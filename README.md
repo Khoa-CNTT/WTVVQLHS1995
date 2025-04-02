@@ -1,6 +1,7 @@
 # LegAI - Website Tư Vấn và Quản Lý Hồ Sơ Pháp Lý Tích Hợp AI Để Nâng Cao Hiệu Quả Tra Cứu
 
-![LegAI Banner](![logo](https://github.com/user-attachments/assets/7ecb384b-6c59-4741-a3a6-9e447da78382))  
+![logo](https://github.com/user-attachments/assets/0eea7ce9-c850-4237-b498-6a5dab66dc0a)
+
 *Empowering legal consultation and document management with AI for enhanced search efficiency.*
 
 ---
