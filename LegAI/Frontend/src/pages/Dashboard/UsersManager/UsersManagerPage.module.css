@@ -1,7 +1,6 @@
 /* Tổng thể */
 .container {
   padding: 30px;
-  max-width: 1600px;
   margin: 0 auto;
   background-color: #f5f7fa;
   min-height: 100vh;
@@ -9,7 +8,7 @@
 
 /* Tiêu đề trang */
 .pageTitle {
-  font-size: 28px;
+  font-size: 1em;
   font-weight: 600;
   color: #1a3c5e;
   margin-bottom: 30px;
