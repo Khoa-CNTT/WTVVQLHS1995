@@ -1,13 +1,7 @@
-import Navbar from "./components/layout/Navbar";
-import Home from "./pages/Home/Home";
+import AppRouter from './router';
 
 function App() {
-  return (
-    <div>
-      <Navbar />
-      <Home />
-    </div>
-  );
+  return <AppRouter />;
 }
 
 export default App;
