@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import './App.css'
+import Navbar from "./components/layout/Navbar";
+import Home from "./pages/Home/Home";
 
 function App() {
   return (
-    <div className="app-container">
-          <img src="/LogoWeb.jpg" alt="Legal Law Logo" className="main-logo" />
+    <div>
+      <Navbar />
+      <Home />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
