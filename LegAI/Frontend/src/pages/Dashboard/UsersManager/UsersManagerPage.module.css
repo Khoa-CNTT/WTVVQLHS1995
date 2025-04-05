@@ -1,0 +1,409 @@
+/* Tổng thể */
+.container {
+  padding: 30px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Tiêu đề trang */
+.pageTitle {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1a3c5e;
+  margin-bottom: 30px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Thanh tìm kiếm */
+.searchBar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  background-color: #ffffff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.searchSelect,
+.searchInput {
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.searchSelect {
+  width: 200px;
+  background-color: #f9fafb;
+}
+
+.searchInput {
+  flex: 1;
+  background-color: #f9fafb;
+}
+
+.searchSelect:focus,
+.searchInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Thông báo */
+.notification {
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #34d399;
+}
+
+.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bảng dữ liệu */
+.tableWrapper {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table th {
+  background-color: #1a3c5e;
+  color: #ffffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  color: #4b5563;
+}
+
+.evenRow {
+  background-color: #f9fafb;
+}
+
+.oddRow {
+  background-color: #ffffff;
+}
+
+.table tr:hover {
+  background-color: #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.statusActive {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.statusLocked {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.noData {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Nút hành động */
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.editButton,
+.toggleButton,
+.resetButton,
+.deleteButton {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.editButton {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.editButton:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.toggleButton {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.toggleButton:hover {
+  background-color: #d97706;
+  transform: translateY(-1px);
+}
+
+.resetButton {
+  background-color: #8b5cf6;
+  color: #ffffff;
+}
+
+.resetButton:hover {
+  background-color: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.deleteButton {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.deleteButton:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Phân trang */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.pageButton {
+  padding: 8px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pageButton:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.activePage {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  font-weight: 600;
+}
+
+/* Lịch sử thay đổi */
+.history {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a3c5e;
+  margin-bottom: 15px;
+}
+
+.historyList {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.historyItem {
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.noHistory {
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 440px;
+  max-width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: slideInModal 0.3s ease;
+}
+
+@keyframes slideInModal {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a3c5e;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 25px;
+}
+
+.saveButton,
+.cancelButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.saveButton {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.saveButton:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.cancelButton {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.cancelButton:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
