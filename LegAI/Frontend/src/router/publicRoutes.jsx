@@ -3,6 +3,7 @@ import LoginPage from '../pages/Login/LoginPage'; // Giả sử bạn có một 
 import HomePage from '../pages/Home/Home'; // Giả sử bạn có một trang chủ công khai
 import RegisterPage from '../pages/Register/Register';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
+import Dashboard from '../pages/Dashboard/Dashboard';
 
 const PublicRoutes = () => {
   return (
@@ -11,6 +12,7 @@ const PublicRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/usersManager" element={<UsersManagerPage />} />
+      <Route path="/admin" element={<Dashboard />} />
 
     </Routes>
   );
