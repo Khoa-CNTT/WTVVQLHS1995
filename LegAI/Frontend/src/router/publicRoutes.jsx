@@ -18,17 +18,17 @@ const PublicRoutes = () => {
           </PageTransition>
         } />
         <Route path="/login" element={
-          <PageTransition custom="slideRight">
+          <PageTransition custom="fade">
             <LoginPage />
           </PageTransition>
         } />
         <Route path="/register" element={
-          <PageTransition custom="slideUp">
+          <PageTransition custom="fade">
             <RegisterPage />
           </PageTransition>
         } />
         <Route path="/admin" element={
-          <PageTransition custom="scale">
+          <PageTransition custom="fade">
             <Dashboard />
           </PageTransition>
         } />

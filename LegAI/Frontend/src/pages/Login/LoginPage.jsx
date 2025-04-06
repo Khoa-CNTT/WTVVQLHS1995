@@ -9,9 +9,15 @@ function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  
   const goToHomePage = () => {
     navigate('/');
   };
+  
+  const goToRegisterPage = () => {
+    navigate('/register');
+  };
+  
   const handleLogin = (e) => {
     e.preventDefault();
     // Thực hiện xử lý đăng nhập tại đây
@@ -75,7 +81,7 @@ function LoginPage() {
         <FaBalanceScale size={50} style={{ marginBottom: '20px', opacity: '0.8' }} />
         <h2 className={styles.greeting}>PHÁP LUẬT VIỆT NAM</h2>
         <p>Đăng ký tài khoản để truy cập vào hệ thống quản lý pháp lý toàn diện và tận dụng các công cụ hỗ trợ pháp lý tiên tiến.</p>
-        <button className={styles.registerButton}>Đăng ký ngay</button>
+        <button className={styles.registerButton} onClick={goToRegisterPage}>Đăng ký ngay</button>
       </div>
     </div>
   );

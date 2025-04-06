@@ -14,12 +14,12 @@ const PrivateRoutes = () => {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/dashboard" element={
-          <PageTransition custom="slideUp">
+          <PageTransition custom="fade">
             <Dashboard />
           </PageTransition>
         } />
         <Route path="/profile" element={
-          <PageTransition custom="scale">
+          <PageTransition custom="fade">
             <Profile />
           </PageTransition>
         } />

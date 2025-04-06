@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 import AppRouter from './router';
-// import ChatManager from './components/layout/ChatManager';
+// import ChatManager from './components/layout/Chat/ChatManager';
 // chưa cần ChatManager
 
 import './styles/global.css';
