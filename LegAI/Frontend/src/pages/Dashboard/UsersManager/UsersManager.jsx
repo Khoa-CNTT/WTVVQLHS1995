@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from './UsersManagerPage.module.css';
+
+// Tách các component ra để dễ quản lý
+import UserTable from './components/UserTable';
+import SearchBar from './components/SearchBar';
+import Notification from './components/Notification';
+import Pagination from './components/Pagination';
+import HistoryLog from './components/HistoryLog';
+import EditUserModal from './components/EditUserModal';
+import ResetPasswordModal from './components/ResetPasswordModal';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 
 function UsersManagerPage() {
   const isAdmin = true;
@@ -189,142 +199,34 @@ function UsersManagerPage() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.pageTitle}>Quản Lý Tài Khoản Người Dùng</h1>
-
       {/* Thanh tìm kiếm */}
-      <div className={styles.searchBar}>
-        <select
-          value={searchField}
-          onChange={(e) => setSearchField(e.target.value)}
-          className={styles.searchSelect}
-        >
-          <option value="username">Tên đăng nhập</option>
-          <option value="email">Email</option>
-          <option value="role">Vai trò</option>
-        </select>
-        <input
-          type="text"
-          placeholder={`Tìm kiếm theo ${searchField === 'username' ? 'tên đăng nhập' : searchField === 'email' ? 'email' : 'vai trò'}...`}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-        />
-      </div>
+      <SearchBar
+        searchTerm={searchTerm}
+        searchField={searchField}
+        onSearchTermChange={(value) => setSearchTerm(value)}
+        onSearchFieldChange={(value) => setSearchField(value)}
+      />
 
       {/* Thông báo */}
-      {notification.message && (
-        <div className={`${styles.notification} ${notification.type === 'success' ? styles.success : styles.error}`}>
-          {notification.message}
-        </div>
-      )}
+      <Notification notification={notification} />
 
       {/* Bảng danh sách người dùng */}
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Tên Đăng Nhập</th>
-              <th>Họ Tên</th>
-              <th>Email</th>
-              <th>Số Điện Thoại</th>
-              <th>Địa Chỉ</th>
-              <th>Mô Tả</th>
-              <th>Vai Trò</th>
-              <th>Xác Minh</th>
-              <th>Trạng Thái</th>
-              <th>Lần Đăng Nhập Cuối</th>
-              <th>Thất Bại</th>
-              <th>Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentUsers.length > 0 ? (
-              currentUsers.map((user, index) => (
-                <tr key={user.id} className={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
-                  <td data-label="STT">{indexOfFirstUser + index + 1}</td>
-                  <td data-label="Tên Đăng Nhập">{user.username}</td>
-                  <td data-label="Họ Tên">{user.full_name}</td>
-                  <td data-label="Email">{user.email}</td>
-                  <td data-label="Số Điện Thoại">{user.phone}</td>
-                  <td data-label="Địa Chỉ">{user.address || 'Chưa có'}</td>
-                  <td data-label="Mô Tả">{user.description || 'Chưa có'}</td>
-                  <td data-label="Vai Trò">{user.role}</td>
-                  <td data-label="Xác Minh">{user.is_verified ? 'Đã xác minh' : 'Chưa xác minh'}</td>
-                  <td data-label="Trạng Thái">
-                    <span className={user.is_locked ? styles.statusLocked : styles.statusActive}>
-                      {user.is_locked ? 'Đã khóa' : 'Hoạt động'}
-                    </span>
-                  </td>
-                  <td data-label="Lần Đăng Nhập Cuối">{user.last_login ? new Date(user.last_login).toLocaleString() : 'Chưa đăng nhập'}</td>
-                  <td data-label="Thất Bại">{user.failed_attempts}</td>
-                  <td data-label="Hành Động" className={styles.actionButtons}>
-                    <button
-                      className={styles.editButton}
-                      onClick={() => handleEditUser(user)}
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      className={styles.toggleButton}
-                      onClick={() => handleToggleLock(user.id)}
-                    >
-                      {user.is_locked ? 'Mở khóa' : 'Khóa'}
-                    </button>
-                    <button
-                      className={styles.resetButton}
-                      onClick={() => handleOpenResetPasswordModal(user.id)}
-                    >
-                      Đặt lại mật khẩu
-                    </button>
-                    <button
-                      className={styles.deleteButton}
-                      onClick={() => handleDeleteUser(user.id)}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="13" className={styles.noData}>
-                  Không tìm thấy người dùng.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <UserTable
+        users={currentUsers}
+        onEditUser={(user) => handleEditUser(user)}
+        onToggleLock={(userId) => handleToggleLock(userId)}
+        onDeleteUser={(userId) => handleDeleteUser(userId)}
+      />
 
       {/* Phân trang */}
-      <div className={styles.pagination}>
-        {Array.from({ length: totalPages }, (_, index) => (
-          <button
-            key={index + 1}
-            onClick={() => handlePageChange(index + 1)}
-            className={`${styles.pageButton} ${currentPage === index + 1 ? styles.activePage : ''}`}
-          >
-            {index + 1}
-          </button>
-        ))}
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(pageNumber) => handlePageChange(pageNumber)}
+      />
 
       {/* Lịch sử thay đổi */}
-      <div className={styles.history}>
-        <h2 className={styles.sectionTitle}>Lịch Sử Thay Đổi</h2>
-        {history.length > 0 ? (
-          <ul className={styles.historyList}>
-            {history.map((entry, index) => (
-              <li key={index} className={styles.historyItem}>
-                {entry.timestamp}: {entry.action} (ID: {entry.userId})
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.noHistory}>Chưa có thay đổi nào.</p>
-        )}
-      </div>
+      <HistoryLog history={history} />
 
       {/* Modal chỉnh sửa */}
       {isEditModalOpen && selectedUser && (
@@ -343,147 +245,6 @@ function UsersManagerPage() {
           onClose={closeResetPasswordModal}
         />
       )}
-    </div>
-  );
-}
-
-function EditUserModal({ user, onSave, onClose }) {
-  const [formData, setFormData] = useState({ ...user });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
-        <h2 className={styles.modalTitle}>Chỉnh Sửa Tài Khoản</h2>
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Tên đăng nhập:</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              disabled
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Email:</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              disabled
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Họ tên:</label>
-            <input
-              type="text"
-              name="full_name"
-              value={formData.full_name}
-              onChange={handleChange}
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Số điện thoại:</label>
-            <input
-              type="text"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Địa chỉ:</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address || ''}
-              onChange={handleChange}
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Mô tả:</label>
-            <textarea
-              name="description"
-              value={formData.description || ''}
-              onChange={handleChange}
-              rows="3"
-              className={styles.formTextarea}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Vai trò:</label>
-            <select name="role" value={formData.role} onChange={handleChange} className={styles.formSelect}>
-              <option value="Admin">Admin</option>
-              <option value="User">User</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Trạng thái xác minh:</label>
-            <select name="is_verified" value={formData.is_verified} onChange={handleChange} className={styles.formSelect}>
-              <option value={true}>Đã xác minh</option>
-              <option value={false}>Chưa xác minh</option>
-            </select>
-          </div>
-          <div className={styles.modalActions}>
-            <button type="submit" className={styles.saveButton}>Lưu</button>
-            <button type="button" className={styles.cancelButton} onClick={onClose}>Hủy</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function ResetPasswordModal({ userId, onSave, onClose }) {
-  const [newPassword, setNewPassword] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newPassword) {
-      alert('Vui lòng nhập mật khẩu mới!');
-      return;
-    }
-    onSave(userId, newPassword);
-  };
-
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
-        <h2 className={styles.modalTitle}>Đặt Lại Mật Khẩu</h2>
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Mật khẩu mới:</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Nhập mật khẩu mới"
-              className={styles.formInput}
-            />
-          </div>
-          <div className={styles.modalActions}>
-            <button type="submit" className={styles.saveButton}>Lưu</button>
-            <button type="button" className={styles.cancelButton} onClick={onClose}>Hủy</button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }
