@@ -19,12 +19,12 @@ const AppRouter = () => {
             </PageTransition>
           } />
           <Route path="/dashboard/*" element={
-            <PageTransition custom="slideUp">
+            <PageTransition custom="fade">
               <PrivateRoutes />
             </PageTransition>
           } />
           <Route path="/profile/*" element={
-            <PageTransition custom="scale">
+            <PageTransition custom="fade">
               <PrivateRoutes />
             </PageTransition>
           } />
