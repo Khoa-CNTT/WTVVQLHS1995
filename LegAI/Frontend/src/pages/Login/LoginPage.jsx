@@ -4,24 +4,43 @@ import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey } from 'react-icons/
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
+const fakeUsers = [
+  {
+    id: 1,
+    userName: 'Hahaha',
+    password: '123456',
+    name: 'Nguyễn Văn A'
+  },
+  {
+    id: 2,
+    userName: 'admin@legai.com',
+    password: 'admin123',
+    name: 'Admin'
+  }
+];
+
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [userName, setuserName] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  
   const goToHomePage = () => {
     navigate('/');
   };
-  
-  const goToRegisterPage = () => {
-    navigate('/register');
-  };
-  
   const handleLogin = (e) => {
     e.preventDefault();
-    // Thực hiện xử lý đăng nhập tại đây
-    console.log('Đăng nhập với:', email, password);
+    const foundUser = fakeUsers.find(
+      (user) => user.userName === userName && user.password === password
+    );
+
+    if (foundUser) {
+      alert(`Đăng nhập thành công. Xin chào ${foundUser.name}!`);
+      // Có thể lưu thông tin vào localStorage nếu cần
+      // localStorage.setItem('user', JSON.stringify(foundUser));
+      navigate('/dashboard'); // hoặc trang chính khác
+    } else {
+      alert('Sai Tên đăng nhập hoặc mật khẩu.');
+    }
   };
 
   return (
@@ -35,7 +54,7 @@ function LoginPage() {
 
         <div className={styles.socialLogin}>
           <button title="Đăng nhập bằng Facebook"><FaFacebookF /></button>
-          <button title="Đăng nhập bằng Email"><FaEnvelope /></button>
+          <button title="Đăng nhập bằng userName"><FaEnvelope /></button>
           <button title="Đăng nhập bằng Twitter"><FaXTwitter /></button>
         </div>
 
@@ -48,9 +67,9 @@ function LoginPage() {
             <FaUser className={styles.icon} />
             <input 
               type="text" 
-              placeholder="Email hoặc số điện thoại" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Tên đăng nhập" 
+              value={userName}
+              onChange={(e) => setuserName(e.target.value)}
               required
             />
           </div>
