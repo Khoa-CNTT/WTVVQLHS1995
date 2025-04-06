@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './Navbar.module.css';
+import SideMenu from './SideMenu';
+import NavLink from './NavLink';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,23 +40,44 @@ const Navbar = () => {
     }
   };
 
+  const toggleSideMenu = () => {
+    setIsSideMenuOpen(!isSideMenuOpen);
+  };
+
+  const toggleChat = (e) => {
+    e.preventDefault();
+    
+    // Gửi event với giá trị state mới (sau khi toggle)
+    const newChatOpenState = !isChatOpen;
+    setIsChatOpen(newChatOpenState);
+    
+    // Thông báo cho ChatManager thông qua một event
+    const event = new CustomEvent('toggleChat', { 
+      detail: { 
+        isOpen: newChatOpenState,
+        action: newChatOpenState ? 'open' : 'close'
+      } 
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ''}`}>
-      <div className={styles.logo}>
+      <Link to="/" className={styles.logo}>
         <img 
-          src="logo.png" 
+          src="/logo.png" 
           alt="Logo" 
           className={styles.logoImg} 
         />
         <span className={styles.logoText}>LegAI</span>
-      </div>
+      </Link>
       
       <div className={isMenuOpen ? styles.navLinksOpen : styles.navLinks}>
-        <a href="#" className={styles.navLink}>Trang chủ</a>
-        <a href="#" className={styles.navLink}>Dịch vụ</a>
-        <a href="#" className={styles.navLink}>Luật sư</a>
-        <a href="#" className={styles.navLink}>Tin tức</a>
-        <a href="#" className={styles.navLink}>Liên hệ</a>
+        <NavLink to="/">Trang chủ</NavLink>
+        <NavLink to="/services">Dịch vụ</NavLink>
+        <NavLink to="/lawyers">Luật sư</NavLink>
+        <NavLink to="/news">Tin tức</NavLink>
+        <NavLink to="/contact">Liên hệ</NavLink>
       </div>
       
       <div className={styles.navIcons}>
@@ -68,13 +94,16 @@ const Navbar = () => {
         </div>
         
         <div className={styles.rightControls}>
-          <a href="#" className={`${styles.icon} ${styles.messageIcon}`}>
+          <a href="#" 
+            className={`${styles.icon} ${styles.messageIcon} ${isChatOpen ? styles.active : ''}`}
+            onClick={toggleChat}
+          >
             <i className="fas fa-comment-dots"></i>
             <span className={styles.iconLabel}>Nhắn tin</span>
           </a>
           
-          <button onClick={toggleMenu} className={styles.menuButton}>
-            <div className={`${styles.hamburger} ${isMenuOpen ? styles.active : ''}`}>
+          <button onClick={toggleSideMenu} className={styles.menuButton}>
+            <div className={`${styles.hamburger} ${isSideMenuOpen ? styles.active : ''}`}>
               <span className={styles.bar}></span>
               <span className={styles.bar}></span>
               <span className={styles.bar}></span>
@@ -82,8 +111,11 @@ const Navbar = () => {
           </button>
         </div>
       </div>
+
+      {/* Sử dụng component SideMenu */}
+      <SideMenu isOpen={isSideMenuOpen} onClose={toggleSideMenu} />
     </nav>
   );
 };
 
-export default Navbar;
+export default Navbar; 
