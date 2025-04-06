@@ -27,6 +27,9 @@ function LoginPage() {
   const goToHomePage = () => {
     navigate('/');
   };
+  const goToRegisterPage = () => {
+    navigate('/register');
+  };
   const handleLogin = (e) => {
     e.preventDefault();
     const foundUser = fakeUsers.find(
@@ -35,8 +38,6 @@ function LoginPage() {
 
     if (foundUser) {
       alert(`Đăng nhập thành công. Xin chào ${foundUser.name}!`);
-      // Có thể lưu thông tin vào localStorage nếu cần
-      // localStorage.setItem('user', JSON.stringify(foundUser));
       navigate('/dashboard'); // hoặc trang chính khác
     } else {
       alert('Sai Tên đăng nhập hoặc mật khẩu.');
