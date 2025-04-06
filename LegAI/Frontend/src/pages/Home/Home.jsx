@@ -6,6 +6,8 @@ import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-coverflow';
 import styles from './Home.module.css';
+import Navbar from '../../components/layout/Navbar';
+import ChatManager from '../../components/layout/ChatManager';
 
 const Home = () => {
   // Dữ liệu cho slider chính
@@ -87,6 +89,8 @@ const Home = () => {
   ];
 
   return (
+    <>
+    <Navbar></Navbar>
     <div className={styles.container}>
       {/* Hero Section */}
       <section className={styles.heroSection}>
@@ -220,7 +224,9 @@ const Home = () => {
           </SwiperSlide>
         ))}
       </Swiper>
-    </div>
+      <ChatManager />
+
+    </div></>
   );
 };
 

@@ -1,0 +1,178 @@
+/* ChatOptions.module.css */
+.chatOptionsContainer {
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  width: 400px;
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  overflow: hidden;
+  animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chatOptionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chatOptionsHeader h3 {
+  color: #ffcc00;
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.5px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.closeButton:hover {
+  color: #ffcc00;
+  transform: rotate(90deg);
+}
+
+.chatOptionsList {
+  padding: 15px;
+}
+
+.chatOption {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chatOption:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.chatOption.selected {
+  background-color: rgba(255, 204, 0, 0.1);
+  border-color: #ffcc00;
+}
+
+.optionIcon {
+  width: 50px;
+  height: 50px;
+  background-color: rgba(255, 204, 0, 0.1);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.optionIcon i {
+  font-size: 1.5rem;
+  color: #ffcc00;
+}
+
+.optionInfo {
+  flex: 1;
+}
+
+.optionInfo h4 {
+  margin: 0 0 5px 0;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.optionInfo p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.chatOptionsFooter {
+  padding: 15px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.startChatButton {
+  background-color: #ffcc00;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.startChatButton:hover {
+  background-color: #e6b800;
+}
+
+.startChatButton.disabled {
+  background-color: #4a4a4a;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+  .chatOptionsContainer {
+    width: 90%;
+    right: 5%;
+    bottom: 80px;
+  }
+  
+  .optionIcon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .optionIcon i {
+    font-size: 1.2rem;
+  }
+} 
