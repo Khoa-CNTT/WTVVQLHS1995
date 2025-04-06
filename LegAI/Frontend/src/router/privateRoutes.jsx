@@ -1,6 +1,6 @@
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import PageTransition from '../components/layout/PageTransition';
+import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
 

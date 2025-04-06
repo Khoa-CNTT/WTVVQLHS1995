@@ -1,8 +1,8 @@
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import PageTransition from '../components/layout/PageTransition';
-import LoginPage from '../pages/Login/LoginPage'; // Giả sử bạn có một trang đăng nhập
-import HomePage from '../pages/Home/Home'; // Trang chủ
+import PageTransition from '../components/layout/TransitionPage/PageTransition';
+import LoginPage from '../pages/Login/LoginPage';
+import HomePage from '../pages/Home/Home'; 
 import RegisterPage from '../pages/Register/Register';
 import Dashboard from '../pages/Dashboard/Dashboard';
 

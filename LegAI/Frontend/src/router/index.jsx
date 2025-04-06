@@ -1,9 +1,9 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import PageTransition from '../components/layout/PageTransition';
+import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import PublicRoutes from './publicRoutes';
 import PrivateRoutes from './privateRoutes';
-import RouteChangeDetector from '../components/layout/RouteChangeDetector';
+import RouteChangeDetector from '../components/layout/TransitionPage/RouteChangeDetector';
 
 const AppRouter = () => {
   const location = useLocation();
