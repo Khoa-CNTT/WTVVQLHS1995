@@ -19,7 +19,7 @@ app.get('/api/protected', authenticateToken, (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;// Khởi động server ở cổng 8000
 app.listen(PORT, () => {
     console.log(`Server chạy trên port ${PORT}`);
 });
