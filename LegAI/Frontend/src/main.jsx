@@ -6,8 +6,12 @@ import './index.css';
 import AppRouter from './router';
 // import ChatManager from './components/layout/Chat/ChatManager';
 // chưa cần ChatManager
+import { emailjsInit } from './services/emailService';
 
 import './styles/global.css';
+
+// Khởi tạo EmailJS
+emailjsInit();
 
 document.documentElement.style.setProperty('--primary-color', '#ffcc00');
 document.documentElement.style.setProperty('--secondary-color', '#333');

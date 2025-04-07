@@ -1,8 +1,9 @@
 import styles from './RegisterPage.module.css';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey, FaPhone, FaIdCard } from 'react-icons/fa6';
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import authService from '../../services/authService';
 
 function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,7 +16,43 @@ function RegisterPage() {
     password: '',
     confirmPassword: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [userId, setUserId] = useState(null);
+  const [countdown, setCountdown] = useState(600); // 10 phút
+  const [isCountdownActive, setIsCountdownActive] = useState(false);
+  const otpInputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   const navigate = useNavigate();
+
+  // Xử lý đếm ngược thời gian OTP
+  useEffect(() => {
+    let intervalId;
+    if (isCountdownActive && countdown > 0) {
+      intervalId = setInterval(() => {
+        setCountdown(prevCount => prevCount - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+      setIsCountdownActive(false);
+    }
+    
+    return () => clearInterval(intervalId);
+  }, [isCountdownActive, countdown]);
+
+  // Khởi động đếm ngược khi mở modal OTP
+  useEffect(() => {
+    if (showOTPModal) {
+      setCountdown(900); // 15 phút
+      setIsCountdownActive(true);
+    }
+  }, [showOTPModal]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const goToHomePage = () => {
     navigate('/');
@@ -33,15 +70,108 @@ function RegisterPage() {
     }));
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     // Kiểm tra mật khẩu trùng khớp
     if (formData.password !== formData.confirmPassword) {
-      alert('Mật khẩu xác nhận không khớp!');
+      setError('Mật khẩu xác nhận không khớp!');
+      setLoading(false);
       return;
     }
-    // Thực hiện xử lý đăng ký tại đây
-    console.log('Đăng ký với:', formData);
+
+    try {
+      // Đăng ký tài khoản sẽ trả về userId và gửi email OTP thông qua EmailJS
+      const response = await authService.register({
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        phone: formData.phone,
+        fullName: formData.fullName
+      });
+
+      setUserId(response.data.userId); 
+      setShowOTPModal(true);
+    } catch (err) {
+      setError(err.message || 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý nhập OTP
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) {
+      value = value.charAt(0);
+    }
+    
+    // Chỉ cho phép nhập số
+    if (value && !/^\d+$/.test(value)) {
+      return;
+    }
+    
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = value;
+    setOtpValues(newOtpValues);
+    
+    // Tự động focus vào ô tiếp theo
+    if (value && index < 5) {
+      otpInputRefs[index + 1].current.focus();
+    }
+  };
+
+  // Xử lý phím backspace
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      otpInputRefs[index - 1].current.focus();
+    }
+  };
+
+  // Gửi lại mã OTP
+  const handleResendOTP = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Gửi lại OTP (được xử lý qua EmailJS)
+      await authService.resendOTP(userId, formData.email);
+      setCountdown(900); // 15 phút
+      setIsCountdownActive(true);
+      setOtpValues(['', '', '', '', '', '']);
+      otpInputRefs[0].current.focus();
+      
+      // Hiển thị thông báo thành công
+      setError(''); // Xóa thông báo lỗi nếu có
+      alert('Đã gửi lại mã OTP, vui lòng kiểm tra email');
+    } catch (err) {
+      setError(err.message || 'Không thể gửi lại mã OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xác minh OTP
+  const handleVerifyOTP = async () => {
+    setLoading(true);
+    const otp = otpValues.join('');
+    
+    if (otp.length !== 6) {
+      setError('Vui lòng nhập đủ 6 chữ số OTP');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      await authService.verifyAccount(userId, otp);
+      setShowOTPModal(false);
+      alert('Xác minh tài khoản thành công! Vui lòng đăng nhập.');
+      navigate('/login');
+    } catch (err) {
+      setError(err.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,6 +189,8 @@ function RegisterPage() {
           <span>LegAI</span>
         </div>
         <h2 className={styles.title}>Tạo tài khoản mới</h2>
+
+        {error && <p style={{ color: 'red', marginBottom: '15px' }}>{error}</p>}
 
         <div className={styles.socialLogin}>
           <button title="Đăng ký bằng Facebook"><FaFacebookF /></button>
@@ -154,9 +286,75 @@ function RegisterPage() {
             <label htmlFor="terms">Tôi đồng ý với <a href="#">Điều khoản</a> và <a href="#">Chính sách</a></label>
           </div>
 
-          <button type="submit" className={styles.registerButton}>Đăng ký</button>
+          <button 
+            type="submit" 
+            className={styles.registerButton}
+            disabled={loading}
+          >
+            {loading ? 'Đang xử lý...' : 'Đăng ký'}
+          </button>
         </form>
       </div>
+
+      {/* Modal xác minh OTP */}
+      {showOTPModal && (
+        <div className={styles.otpModal} onClick={(e) => e.target === e.currentTarget && setShowOTPModal(false)}>
+          <div className={styles.otpContent}>
+            <div className={styles.otpHeader}>
+              <h3 className={styles.otpTitle}>Xác minh tài khoản</h3>
+            </div>
+            <div className={styles.otpBody}>
+              <p className={styles.otpDescription}>
+                Mã xác minh đã được gửi đến<br />
+                <span className={styles.otpEmail}>{formData.email}</span>
+              </p>
+              
+              {error && <p style={{ color: 'red', fontSize: '13px', textAlign: 'center', margin: '0 0 15px' }}>{error}</p>}
+              
+              <div className={styles.otpInputContainer}>
+                {otpValues.map((value, index) => (
+                  <input
+                    key={index}
+                    ref={otpInputRefs[index]}
+                    type="text"
+                    className={styles.otpInput}
+                    value={value}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    maxLength={1}
+                    autoFocus={index === 0}
+                  />
+                ))}
+              </div>
+              
+              <div className={styles.otpButtonContainer}>
+                <button 
+                  className={styles.otpVerifyButton}
+                  onClick={handleVerifyOTP}
+                  disabled={loading}
+                >
+                  {loading ? 'Đang xác minh...' : 'Xác minh'}
+                </button>
+              </div>
+              
+              <div className={styles.otpResendContainer}>
+                <span className={styles.otpResendText}>Không nhận được mã?</span>
+                <button 
+                  className={styles.otpResendButton}
+                  onClick={handleResendOTP}
+                  disabled={loading || isCountdownActive}
+                >
+                  {isCountdownActive ? `Gửi lại sau (${formatTime(countdown)})` : 'Gửi lại mã'}
+                </button>
+              </div>
+              
+              <div className={styles.timer}>
+                Mã OTP có hiệu lực trong <span className={styles.timerHighlight}>{formatTime(countdown)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
