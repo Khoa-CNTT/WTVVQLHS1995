@@ -1,7 +1,17 @@
 import React from 'react';
 import styles from '../UsersManagerPage.module.css';
 
-const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPassword, onDeleteUser }) => {
+const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPassword, onDeleteUser, loading }) => {
+  if (loading) {
+    return (
+      <div className={styles.tableWrapper}>
+        <div className={styles.loading}>
+          <i className="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.tableWrapper}>
       <table className={styles.table}>
@@ -11,14 +21,8 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
             <th>Tên Đăng Nhập</th>
             <th>Họ Tên</th>
             <th>Email</th>
-            <th>Số Điện Thoại</th>
-            <th>Địa Chỉ</th>
-            <th>Mô Tả</th>
             <th>Vai Trò</th>
-            <th>Xác Minh</th>
             <th>Trạng Thái</th>
-            <th>Lần Đăng Nhập Cuối</th>
-            <th>Thất Bại</th>
             <th>Hành Động</th>
           </tr>
         </thead>
@@ -30,19 +34,10 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
                 <td data-label="Tên Đăng Nhập">{user.username}</td>
                 <td data-label="Họ Tên">{user.full_name}</td>
                 <td data-label="Email">{user.email}</td>
-                <td data-label="Số Điện Thoại">{user.phone}</td>
-                <td data-label="Địa Chỉ">{user.address || 'Chưa có'}</td>
-                <td data-label="Mô Tả">{user.description || 'Chưa có'}</td>
                 <td data-label="Vai Trò">
                   <span className={user.role === 'Admin' ? styles.badgeAdmin : styles.badgeUser}>
                     {user.role}
                   </span>
-                </td>
-                <td data-label="Xác Minh">
-                  {user.is_verified ? 
-                    <span className={styles.verifiedBadge}><i className="fas fa-check-circle"></i> Đã xác minh</span> : 
-                    <span className={styles.unverifiedBadge}><i className="fas fa-times-circle"></i> Chưa xác minh</span>
-                  }
                 </td>
                 <td data-label="Trạng Thái">
                   <span className={user.is_locked ? styles.statusLocked : styles.statusActive}>
@@ -50,20 +45,13 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
                     {user.is_locked ? ' Đã khóa' : ' Hoạt động'}
                   </span>
                 </td>
-                <td data-label="Lần Đăng Nhập Cuối">{user.last_login ? new Date(user.last_login).toLocaleString() : 'Chưa đăng nhập'}</td>
-                <td data-label="Thất Bại">
-                  {user.failed_attempts > 0 ? 
-                    <span className={styles.failedAttempts}>{user.failed_attempts}</span> : 
-                    user.failed_attempts
-                  }
-                </td>
                 <td data-label="Hành Động" className={styles.actionButtons}>
                   <button
                     className={styles.editButton}
                     onClick={() => onEditUser(user)}
                     title="Chỉnh sửa"
                   >
-                    <i className="fas fa-edit"></i> Sửa
+                    <i className="fas fa-edit"></i>
                   </button>
                   <button
                     className={styles.toggleButton}
@@ -71,28 +59,28 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
                     title={user.is_locked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
                   >
                     <i className={user.is_locked ? "fas fa-unlock" : "fas fa-lock"}></i>
-                    {user.is_locked ? ' Mở khóa' : ' Khóa'}
                   </button>
                   <button
                     className={styles.resetButton}
                     onClick={() => onResetPassword(user.id)}
                     title="Đặt lại mật khẩu"
                   >
-                    <i className="fas fa-key"></i> Đặt lại MK
+                    <i className="fas fa-key"></i>
                   </button>
                   <button
                     className={styles.deleteButton}
                     onClick={() => onDeleteUser(user.id)}
                     title="Xóa tài khoản"
+                    disabled={user.role === 'Admin' && user.id === 1}
                   >
-                    <i className="fas fa-trash-alt"></i> Xóa
+                    <i className="fas fa-trash-alt"></i>
                   </button>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="13" className={styles.noData}>
+              <td colSpan="7" className={styles.noData}>
                 <i className="fas fa-search"></i> Không tìm thấy người dùng.
               </td>
             </tr>

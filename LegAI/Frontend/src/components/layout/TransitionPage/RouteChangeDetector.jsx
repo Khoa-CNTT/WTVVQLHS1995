@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Loading from '../Loading/Loading';
 
 // Component này theo dõi thay đổi route và hiển thị loading khi chuyển trang
 const RouteChangeDetector = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -23,17 +24,25 @@ const RouteChangeDetector = () => {
     // Cuộn về đầu trang khi chuyển trang
     window.scrollTo(0, 0);
 
+    // Kiểm tra xác thực cho các route protected
+    const protectedRoutes = ['/admin', '/dashboard'];
+    const isProtectedRoute = protectedRoutes.some(route => location.pathname.startsWith(route));
+    
+    if (isProtectedRoute) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login', { replace: true });
+        return;
+      }
+    }
+
     // Ẩn loading sau khi chuyển trang hoàn tất
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 300); // Thời gian loading (ms)
 
-    // Log cho việc debug
-    console.log(`Đã chuyển đến trang: ${location.pathname}`);
-
-    // Cleanup timer khi unmount
     return () => clearTimeout(timer);
-  }, [location]);
+  }, [location, navigate]);
 
   // Hiển thị component loading khi đang chuyển trang
   return isLoading ? <Loading /> : null;
