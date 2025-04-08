@@ -115,3 +115,4 @@ const getUserById = async (req, res) => {
 };
 
 module.exports = { register, verifyAccount, getUserById };
+
