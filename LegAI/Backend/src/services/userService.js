@@ -277,6 +277,25 @@ const deleteUser = async (userId) => {
     }
 };
 
+// Tìm người dùng theo username
+const getUserByUsername = async (username) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE username = $1',
+            [username]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo username:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -286,5 +305,6 @@ module.exports = {
     updateUser,
     toggleUserLock,
     resetPassword,
-    deleteUser
+    deleteUser,
+    getUserByUsername
 }; 

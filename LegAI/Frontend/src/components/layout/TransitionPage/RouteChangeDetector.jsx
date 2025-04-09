@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Loading from '../Loading/Loading';
+import authService from '../../../services/authService';
 
 // Component này theo dõi thay đổi route và hiển thị loading khi chuyển trang
 const RouteChangeDetector = () => {
@@ -25,14 +26,23 @@ const RouteChangeDetector = () => {
     window.scrollTo(0, 0);
 
     // Kiểm tra xác thực cho các route protected
-    const protectedRoutes = ['/admin', '/dashboard'];
+    const protectedRoutes = ['/admin', '/dashboard', '/profile'];
     const isProtectedRoute = protectedRoutes.some(route => location.pathname.startsWith(route));
     
     if (isProtectedRoute) {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      const isAuth = authService.isAuthenticated();
+      if (!isAuth) {
         navigate('/login', { replace: true });
         return;
+      }
+      
+      // Kiểm tra phân quyền admin cho route /admin
+      if (location.pathname.startsWith('/admin')) {
+        const currentUser = authService.getCurrentUser();
+        if (!currentUser || currentUser.role !== 'admin') {
+          navigate('/', { replace: true });
+          return;
+        }
       }
     }
 

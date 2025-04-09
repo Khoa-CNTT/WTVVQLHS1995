@@ -162,7 +162,9 @@
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 }
-
+.inputGroup input ::placeholder{
+  font-size: 12px;
+}
 .inputGroup input:focus {
   outline: none;
   border-color: #ffd700;
@@ -335,4 +337,58 @@ form {
   flex-direction: column;
   align-items: center;
   width: 100%;
+}
+
+.errorMessage {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #e53935;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  border-left: 3px solid #e53935;
+  text-align: center;
+}
+
+.otpMessage {
+  font-size: 0.95rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.resendButton, .backButton {
+  background: none;
+  border: none;
+  color: #4a64e7;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.resendButton:hover, .backButton:hover {
+  background-color: rgba(74, 100, 231, 0.1);
+  text-decoration: underline;
+}
+
+.backButton {
+  display: block;
+  margin: 15px auto 0;
+  color: #666;
+}
+
+.bottomRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.inputGroup input[type="text"][placeholder*="OTP"] {
+  font-weight: 200;
+  letter-spacing: 0.1rem;
+  text-align: center;
+  font-size: 1rem;
 }

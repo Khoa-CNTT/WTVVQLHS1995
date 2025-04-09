@@ -4,6 +4,7 @@ import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import PublicRoutes from './publicRoutes';
 import PrivateRoutes from './privateRoutes';
 import RouteChangeDetector from '../components/layout/TransitionPage/RouteChangeDetector';
+import Dashboard from '../pages/Dashboard/Dashboard';
 
 const AppRouter = () => {
   const location = useLocation();
@@ -16,6 +17,11 @@ const AppRouter = () => {
           <Route path="/*" element={
             <PageTransition custom="fade">
               <PublicRoutes />
+            </PageTransition>
+          } />
+          <Route path="/admin" element={
+            <PageTransition custom="fade">
+              <Dashboard />
             </PageTransition>
           } />
           <Route path="/dashboard/*" element={

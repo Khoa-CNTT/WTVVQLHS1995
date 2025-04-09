@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import SideMenu from './SideMenu';
 import NavLink from './NavLink';
+import authService from '../../../services/authService';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,8 +11,15 @@ const Navbar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Lấy thông tin người dùng từ localStorage
+    const user = authService.getCurrentUser();
+    setCurrentUser(user);
+
     const handleScroll = () => {
       if (window.scrollY > 50) {
         setIsScrolled(true);
@@ -61,6 +69,17 @@ const Navbar = () => {
     window.dispatchEvent(event);
   };
 
+  const toggleUserDropdown = () => {
+    setShowUserDropdown(!showUserDropdown);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setCurrentUser(null);
+    setShowUserDropdown(false);
+    navigate('/');
+  };
+
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ''}`}>
       <Link to="/" className={styles.logo}>
@@ -102,6 +121,49 @@ const Navbar = () => {
             <span className={styles.iconLabel}>Nhắn tin</span>
           </a>
           
+          {currentUser ? (
+            <div className={styles.userMenuContainer}>
+              <div 
+                className={styles.userAvatar} 
+                onClick={toggleUserDropdown}
+              >
+                <span className={styles.userInitial}>
+                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
+                </span>
+              </div>
+              
+              {showUserDropdown && (
+                <div className={styles.userDropdown}>
+                  <div className={styles.userInfo}>
+                    <span className={styles.userName}>{currentUser.fullName || currentUser.username}</span>
+                    <span className={styles.userEmail}>{currentUser.email}</span>
+                  </div>
+                  <div className={styles.userMenuDivider}></div>
+                  {currentUser.role === 'admin' ? (
+                    <Link to="/admin" className={styles.userMenuItem}>
+                      <i className="fas fa-th-large"></i> Quản trị hệ thống
+                    </Link>
+                  ) : (
+                    <Link to="/dashboard" className={styles.userMenuItem}>
+                      <i className="fas fa-th-large"></i> Bảng điều khiển
+                    </Link>
+                  )}
+                  <Link to="/profile" className={styles.userMenuItem}>
+                    <i className="fas fa-user-circle"></i> Hồ sơ cá nhân
+                  </Link>
+                  <button className={styles.userMenuItem} onClick={handleLogout}>
+                    <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className={`${styles.icon} ${styles.loginIcon}`}>
+              <i className="fas fa-user"></i>
+              <span className={styles.iconLabel}>Đăng nhập</span>
+            </Link>
+          )}
+          
           <button onClick={toggleSideMenu} className={styles.menuButton}>
             <div className={`${styles.hamburger} ${isSideMenuOpen ? styles.active : ''}`}>
               <span className={styles.bar}></span>
@@ -113,7 +175,12 @@ const Navbar = () => {
       </div>
 
       {/* Sử dụng component SideMenu */}
-      <SideMenu isOpen={isSideMenuOpen} onClose={toggleSideMenu} />
+      <SideMenu 
+        isOpen={isSideMenuOpen} 
+        onClose={toggleSideMenu} 
+        currentUser={currentUser} 
+        onLogout={handleLogout}
+      />
     </nav>
   );
 };

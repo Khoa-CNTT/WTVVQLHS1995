@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './UsersManagerPage.module.css';
 import axiosInstance from '../../../config/axios';
 
@@ -11,6 +12,7 @@ import HistoryLog from './components/HistoryLog';
 import EditUserModal from './components/EditUserModal';
 import ResetPasswordModal from './components/ResetPasswordModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
+import AddUserModal from './components/AddUserModal';
 
 function UsersManagerPage() {
   const [users, setUsers] = useState([]);
@@ -29,7 +31,9 @@ function UsersManagerPage() {
   const [error, setError] = useState(null);
   const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const usersPerPage = 10;
+  const navigate = useNavigate();
 
   // Lấy danh sách người dùng
   const fetchUsers = useCallback(async () => {
@@ -284,6 +288,30 @@ function UsersManagerPage() {
     }
   }, [notification]);
 
+  // Add new user
+  const openAddUserModal = () => {
+    setShowAddModal(true);
+  };
+
+  const handleAddUser = (newUser) => {
+    // Update users list with the new user
+    setUsers([newUser, ...users]);
+    
+    // Show success notification
+    setNotification({
+      message: 'Người dùng đã được tạo thành công!',
+      type: 'success'
+    });
+    
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setNotification({ message: '', type: '' });
+    }, 3000);
+    
+    // Refresh user list
+    fetchUsers(currentPage);
+  };
+
   if (error) {
     return (
       <div className={styles.errorContainer}>
@@ -297,6 +325,31 @@ function UsersManagerPage() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.header}>
+        <button 
+          onClick={openAddUserModal}
+          style={{
+            padding: '8px 15px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Thêm người dùng mới
+        </button>
+      </div>
+
+      {notification.message && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification({ message: '', type: '' })} 
+        />
+      )}
+
       {/* Thanh tìm kiếm */}
       <SearchBar
         searchTerm={searchTerm}
@@ -306,9 +359,6 @@ function UsersManagerPage() {
         onSearchFieldChange={(value) => setSearchField(value)}
         onRoleChange={(value) => setRole(value)}
       />
-
-      {/* Thông báo */}
-      <Notification notification={notification} />
 
       {/* Bảng danh sách người dùng */}
       <UserTable
@@ -359,6 +409,13 @@ function UsersManagerPage() {
             setDeleteConfirmOpen(false);
             setUserToDelete(null);
           }}
+        />
+      )}
+
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddUser}
         />
       )}
     </div>

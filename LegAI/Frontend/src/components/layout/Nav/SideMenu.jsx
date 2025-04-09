@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import styles from './Navbar.module.css';
 
-const SideMenu = ({ isOpen, onClose }) => {
+const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
   return (
     <>
       <div className={`${styles.sideMenu} ${isOpen ? styles.sideMenuOpen : ''}`}>
@@ -11,6 +11,20 @@ const SideMenu = ({ isOpen, onClose }) => {
             <i className="fas fa-times"></i>
           </button>
         </div>
+        
+        {currentUser && (
+          <div className={styles.sideMenuUser}>
+            <div className={styles.sideMenuAvatar}>
+              <span className={styles.sideMenuInitial}>
+                {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+            <div className={styles.sideMenuUserInfo}>
+              <span className={styles.sideMenuName}>{currentUser.fullName || currentUser.username}</span>
+              <span className={styles.sideMenuEmail}>{currentUser.email}</span>
+            </div>
+          </div>
+        )}
         
         <div className={styles.sideMenuContent}>
           <Link to="/" className={styles.sideMenuItem} onClick={onClose}>
@@ -40,15 +54,43 @@ const SideMenu = ({ isOpen, onClose }) => {
           
           <div className={styles.sideMenuDivider}></div>
           
-          <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-sign-in-alt"></i>
-            <span>Đăng nhập</span>
-          </Link>
-          
-          <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-user-plus"></i>
-            <span>Đăng ký</span>
-          </Link>
+          {currentUser ? (
+            <>
+              {currentUser.role === 'admin' ? (
+                <Link to="/admin" className={styles.sideMenuItem} onClick={onClose}>
+                  <i className="fas fa-th-large"></i>
+                  <span>Quản trị hệ thống</span>
+                </Link>
+              ) : (
+                <Link to="/dashboard" className={styles.sideMenuItem} onClick={onClose}>
+                  <i className="fas fa-th-large"></i>
+                  <span>Bảng điều khiển</span>
+                </Link>
+              )}
+              
+              <Link to="/profile" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-user-circle"></i>
+                <span>Hồ sơ cá nhân</span>
+              </Link>
+              
+              <span className={styles.sideMenuItem} onClick={() => { onLogout(); onClose(); }}>
+                <i className="fas fa-sign-out-alt"></i>
+                <span>Đăng xuất</span>
+              </span>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-sign-in-alt"></i>
+                <span>Đăng nhập</span>
+              </Link>
+              
+              <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-user-plus"></i>
+                <span>Đăng ký</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
       

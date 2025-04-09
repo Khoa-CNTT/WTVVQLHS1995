@@ -4,7 +4,6 @@ import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import LoginPage from '../pages/Login/LoginPage';
 import HomePage from '../pages/Home/Home'; 
 import RegisterPage from '../pages/Register/Register';
-import Dashboard from '../pages/Dashboard/Dashboard';
 import ChangePassword from '../pages/Profile/ChangePassword/ChangePasssword'
 
 
@@ -33,11 +32,6 @@ const PublicRoutes = () => {
          <PageTransition custom="fade">
             <ChangePassword/>
          </PageTransition>
-        } />
-        <Route path="/admin" element={
-          <PageTransition custom="fade">
-            <Dashboard />
-          </PageTransition>
         } />
       </Routes>
     </AnimatePresence>

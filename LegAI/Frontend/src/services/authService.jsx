@@ -158,6 +158,23 @@ const login = async (username, password) => {
     
     return response.data;
   } catch (error) {
+    // Xử lý trường hợp tài khoản chưa xác minh
+    if (error.response?.data?.message && 
+        error.response.data.message.includes('chưa được xác minh')) {
+      // Lấy ID người dùng từ chuỗi lỗi hoặc data trả về
+      const userId = error.response.data.userId || null;
+      const email = error.response.data.email || null;
+      
+      // Tạo lỗi với thông tin bổ sung để client xử lý
+      const customError = {
+        message: error.response.data.message,
+        userId: userId,
+        email: email
+      };
+      
+      throw customError;
+    }
+    
     throw error.response?.data || { message: 'Lỗi đăng nhập' };
   }
 };

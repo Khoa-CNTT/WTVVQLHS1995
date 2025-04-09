@@ -17,11 +17,8 @@ const login = async (username, password) => {
 
         const user = userQuery.rows[0];
 
-        // Kiểm tra xem tài khoản đã được xác minh chưa
-        if (!user.is_verified) {
-            throw new Error('Tài khoản chưa được xác minh. Vui lòng xác minh tài khoản');
-        }
-
+        // Không kiểm tra xác minh ở đây, vì đã kiểm tra ở controller
+        
         // So sánh mật khẩu
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
@@ -36,7 +33,7 @@ const login = async (username, password) => {
 
         // Tạo JWT token
         const token = jwt.sign(
-            { id: user.id, username: user.username },
+            { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
@@ -48,7 +45,9 @@ const login = async (username, password) => {
                 username: user.username,
                 email: user.email,
                 fullName: user.full_name,
-                role: user.role
+                role: user.role,
+                isVerified: user.is_verified,
+                lastLogin: user.last_login
             } 
         };
     } catch (error) {
