@@ -31,10 +31,21 @@ const login = async (username, password) => {
             [user.id]
         );
 
+        // Xác định JWT_SECRET
+        const jwtSecret = process.env.JWT_SECRET || 'legai_jwt_super_secret_key_12345_secure_random_string';
+        
+        if (!jwtSecret) {
+            throw new Error('JWT Secret không được thiết lập');
+        }
+
         // Tạo JWT token
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role },
-            process.env.JWT_SECRET,
+            { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role 
+            },
+            jwtSecret,
             { expiresIn: '1h' }
         );
 
@@ -51,6 +62,7 @@ const login = async (username, password) => {
             } 
         };
     } catch (error) {
+        console.error('Lỗi đăng nhập:', error);
         throw new Error(error.message);
     }
 };

@@ -1,21 +1,24 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
-// Kiểm tra các biến môi trường
-// const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'];
-// requiredEnvVars.forEach((varName) => {
-//     if (!process.env[varName]) {
-//         throw new Error(`Thiếu biến môi trường: ${varName}`);
-//     }
-// });
+// Tạo các giá trị mặc định nếu không có biến môi trường
+const dbConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || '123456',
+    database: process.env.DB_NAME || 'legai',
+    port: process.env.DB_PORT || 5432,
+};
 
-const pool = new Pool({
-    host: 'localhost',
-    user: 'postgres',
-    password: '123456',
-    database: 'legai',
-    port: 5432,
+console.log('Cấu hình Database:', {
+    host: dbConfig.host,
+    user: dbConfig.user,
+    database: dbConfig.database,
+    port: dbConfig.port,
+    // không log mật khẩu vì lý do bảo mật
 });
+
+const pool = new Pool(dbConfig);
 
 pool.connect((err, client, release) => {
     if (err) {

@@ -154,6 +154,8 @@ const login = async (username, password) => {
     if (response.data.data?.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    } else {
+      throw new Error('Không nhận được token xác thực từ server');
     }
     
     return response.data;
@@ -175,7 +177,20 @@ const login = async (username, password) => {
       throw customError;
     }
     
-    throw error.response?.data || { message: 'Lỗi đăng nhập' };
+    // Log lỗi để dễ dàng gỡ rối
+    console.error('Lỗi đăng nhập:', error);
+    
+    // Trả về thông báo lỗi cụ thể
+    if (error.message === 'Không nhận được token xác thực từ server') {
+      throw { message: 'Lỗi xác thực từ server. Vui lòng thử lại sau.' };
+    }
+    
+    // Kiểm tra lỗi secret key
+    if (error.message && error.message.includes('secret')) {
+      throw { message: 'Lỗi cấu hình xác thực. Vui lòng liên hệ quản trị viên.' };
+    }
+    
+    throw error.response?.data || { message: 'Lỗi đăng nhập. Vui lòng thử lại sau.' };
   }
 };
 

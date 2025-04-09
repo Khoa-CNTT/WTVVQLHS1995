@@ -1,10 +1,16 @@
 // src/app.js
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
-require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
+
+// Kiểm tra biến môi trường JWT_SECRET
+if (!process.env.JWT_SECRET) {
+    console.log('CẢNH BÁO: Biến môi trường JWT_SECRET không tìm thấy. Sử dụng giá trị mặc định.');
+    process.env.JWT_SECRET = 'legai_jwt_super_secret_key_12345_secure_random_string';
+}
 
 // Middleware
 app.use(cors());
