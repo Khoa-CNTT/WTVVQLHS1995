@@ -1,28 +1,52 @@
-// src/controllers/authController.js
-const authService = require('../services/authService');
+// controllers/authController.js
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/env');
+const pool = require('../config/database');
 
 const login = async (req, res) => {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Vui lòng cung cấp username và password'
-        });
-    }
-
     try {
-        const { token, user } = await authService.login(username, password);
-        res.json({
-            status: 'success',
+        const userQuery = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const user = userQuery.rows[0];
+
+        if (!user) {
+            return res.status(400).json({ message: 'Tên người dùng không tồn tại' });
+        }
+
+        if (user.is_verified === false) {
+            return res.status(400).json({ message: 'Tài khoản chưa được xác minh. Vui lòng xác minh tài khoản' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu không đúng' });
+        }
+
+        await pool.query(
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+            [user.id]
+        );
+
+        const token = jwt.sign(
+            { id: user.id, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.status(200).json({
             message: 'Đăng nhập thành công',
-            data: { token, user }
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+            },
         });
     } catch (error) {
-        res.status(401).json({
-            status: 'error',
-            message: error.message
-        });
+        console.error('Lỗi đăng nhập:', error);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
 

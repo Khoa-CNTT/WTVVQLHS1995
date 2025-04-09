@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey } from 'react-icons/fa6';
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const fakeUsers = [
   {
@@ -24,23 +25,47 @@ function LoginPage() {
   const [userName, setuserName] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  
   const goToHomePage = () => {
     navigate('/');
   };
   const goToRegisterPage = () => {
     navigate('/register');
   };
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const foundUser = fakeUsers.find(
-      (user) => user.userName === userName && user.password === password
-    );
+  // const handleLogin = (e) => {
+  //   e.preventDefault();
+  //   const foundUser = fakeUsers.find(
+  //     (user) => user.userName === userName && user.password === password
+  //   );
 
-    if (foundUser) {
-      alert(`Đăng nhập thành công. Xin chào ${foundUser.name}!`);
-      navigate('/dashboard'); // hoặc trang chính khác
-    } else {
-      alert('Sai Tên đăng nhập hoặc mật khẩu.');
+  //   if (foundUser) {
+  //     alert(`Đăng nhập thành công. Xin chào ${foundUser.name}!`);
+  //     navigate('/dashboard'); // hoặc trang chính khác
+  //   } else {
+  //     alert('Sai Tên đăng nhập hoặc mật khẩu.');
+  //   }
+  // };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/login', {
+        username: userName,
+        password,
+      });
+
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      alert(`Đăng nhập thành công. Xin chào ${user.username}!`);
+      navigate('/dashboard');
+    } catch (err) {
+      console.log('Lỗi từ backend:', err.response); // Log lỗi từ backen
+      const errorMessage = err.response?.data?.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+      setError(errorMessage);
     }
   };
 
