@@ -5,6 +5,8 @@ import LoginPage from '../pages/Login/LoginPage';
 import HomePage from '../pages/Home/Home'; 
 import RegisterPage from '../pages/Register/Register';
 import Dashboard from '../pages/Dashboard/Dashboard';
+import ChangePassword from '../pages/Profile/ChangePassword/ChangePasssword'
+
 
 const PublicRoutes = () => {
   const location = useLocation();
@@ -26,6 +28,11 @@ const PublicRoutes = () => {
           <PageTransition custom="fade">
             <RegisterPage />
           </PageTransition>
+        } />
+        <Route path="/change-password" element={
+         <PageTransition custom="fade">
+            <ChangePassword/>
+         </PageTransition>
         } />
         <Route path="/admin" element={
           <PageTransition custom="fade">

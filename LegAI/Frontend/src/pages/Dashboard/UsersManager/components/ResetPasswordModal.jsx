@@ -7,12 +7,83 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
+  // Styles inline
+  const passwordInputWrapperStyle = {
+    position: 'relative',
+    width: '100%'
+  };
+
+  const togglePasswordStyle = {
+    position: 'absolute',
+    right: '10px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'none',
+    border: 'none',
+    color: '#6c757d',
+    cursor: 'pointer',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px'
+  };
+
+  const passwordHintStyle = {
+    display: 'block',
+    marginTop: '5px',
+    color: '#6c757d',
+    fontSize: '0.85rem'
+  };
+
+  const generateButtonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 16px',
+    backgroundColor: '#e9ecef',
+    color: '#495057',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '0.95rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    width: '100%',
+    justifyContent: 'center',
+    margin: '10px 0',
+    transition: 'all 0.2s'
+  };
+
+  const errorAlertStyle = {
+    padding: '10px 15px',
+    marginBottom: '15px',
+    borderRadius: '4px',
+    backgroundColor: '#f8d7da',
+    color: '#721c24',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '0.95rem'
+  };
+
+  const modalStyle = {
+    margin: '0 auto',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    width: '100%',
+    maxWidth: '450px'
+  };
+
   const generateRandomPassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
-    for (let i = 0; i < 12; i++) {
+    
+    // Đảm bảo ít nhất 6 ký tự
+    for (let i = 0; i < 10; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    
     setNewPassword(password);
     setConfirmPassword(password);
   };
@@ -26,8 +97,8 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
       return;
     }
     
-    if (newPassword.length < 8) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự');
+    if (newPassword.length < 6) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     
@@ -36,16 +107,15 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
       return;
     }
     
-    // Gửi yêu cầu đặt lại mật khẩu
     onSave(userId, newPassword);
   };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={modalStyle}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>
-            <i className="fas fa-key"></i> Đặt Lại Mật Khẩu
+            <i className="fas fa-key"></i> Đặt lại mật khẩu
           </h2>
           <button className={styles.modalCloseButton} onClick={onClose}>
             <i className="fas fa-times"></i>
@@ -53,56 +123,53 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
         </div>
         
         <form onSubmit={handleSubmit} className={styles.modalForm}>
+          {error && (
+            <div style={errorAlertStyle}>
+              <i className="fas fa-exclamation-circle"></i> {error}
+            </div>
+          )}
+          
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Mật khẩu mới:</label>
-            <div className={styles.passwordInputWrapper}>
+            <div style={passwordInputWrapperStyle}>
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 value={newPassword}
-                onChange={(e) => {
-                  setNewPassword(e.target.value);
-                  setError('');
-                }}
-                placeholder="Nhập mật khẩu mới"
+                onChange={(e) => setNewPassword(e.target.value)}
                 className={styles.formInput}
+                placeholder="Nhập mật khẩu mới"
               />
-              <button
-                type="button"
-                className={styles.passwordToggle}
+              <button 
+                type="button" 
+                style={togglePasswordStyle}
                 onClick={() => setShowPassword(!showPassword)}
-                title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
               >
-                <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
               </button>
             </div>
-            <small className={styles.formHelp}>Mật khẩu phải có ít nhất 8 ký tự</small>
+            <small style={passwordHintStyle}>Mật khẩu phải có ít nhất 6 ký tự</small>
           </div>
           
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Xác nhận mật khẩu:</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setError('');
-              }}
-              placeholder="Nhập lại mật khẩu mới"
-              className={styles.formInput}
-            />
+            <div style={passwordInputWrapperStyle}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={styles.formInput}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </div>
           </div>
           
-          {error && <div className={styles.errorMessage}>{error}</div>}
-          
-          <div className={styles.formGroup}>
-            <button
-              type="button"
-              className={styles.generateButton}
-              onClick={generateRandomPassword}
-            >
-              <i className="fas fa-random"></i> Tạo mật khẩu ngẫu nhiên
-            </button>
-          </div>
+          <button 
+            type="button" 
+            onClick={generateRandomPassword} 
+            style={generateButtonStyle}
+          >
+            <i className="fas fa-random"></i> Tạo mật khẩu ngẫu nhiên
+          </button>
           
           <div className={styles.modalActions}>
             <button type="submit" className={styles.saveButton}>
@@ -118,4 +185,4 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
   );
 };
 
-export default ResetPasswordModal; 
+export default ResetPasswordModal;
