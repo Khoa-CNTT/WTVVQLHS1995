@@ -5,6 +5,7 @@ import LoginPage from '../pages/Login/LoginPage';
 import HomePage from '../pages/Home/Home'; 
 import RegisterPage from '../pages/Register/Register';
 import ChangePassword from '../pages/Profile/ChangePassword/ChangePasssword'
+import ForgotPassword from '../pages/ForgotPassword/ForgotPassword';
 
 
 const PublicRoutes = () => {
@@ -31,7 +32,12 @@ const PublicRoutes = () => {
         <Route path="/change-password" element={
          <PageTransition custom="fade">
             <ChangePassword/>
-         </PageTransition>
+          </PageTransition>
+        } />
+        <Route path="/forgot-password" element={
+         <PageTransition custom="fade">
+            <ForgotPassword/>
+          </PageTransition>
         } />
       </Routes>
     </AnimatePresence>

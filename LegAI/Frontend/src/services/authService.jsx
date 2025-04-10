@@ -217,6 +217,65 @@ const isAuthenticated = () => {
   return !!localStorage.getItem('token');
 };
 
+// Kiểm tra email tồn tại
+const checkEmailExists = async (email) => {
+  try {
+    // Sử dụng API thực tế
+    const response = await authAxios.post('/forgot-password', { email });
+    return {
+      exists: true,
+      userId: response.data.data.userId,
+      email: response.data.data.email
+    };
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      // Email không tồn tại
+      return { exists: false };
+    }
+    throw new Error(error.response?.data?.message || 'Lỗi kiểm tra email');
+  }
+};
+
+// Gửi yêu cầu đặt lại mật khẩu
+const requestPasswordReset = async (email) => {
+  try {
+    // Gửi yêu cầu đặt lại mật khẩu qua API
+    const response = await authAxios.post('/forgot-password', { email });
+    
+    // Trích xuất thông tin từ response
+    const { userId, email: userEmail, otp } = response.data.data;
+    
+    return { 
+      status: 'success', 
+      userId, 
+      email: userEmail,
+      otp: otp // Thêm OTP vào response để frontend gửi email
+    };
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Lỗi gửi yêu cầu đặt lại mật khẩu');
+  }
+};
+
+// Xác minh mã OTP đặt lại mật khẩu
+const verifyResetToken = async (userId, otp) => {
+  try {
+    const response = await authAxios.post('/verify-reset-token', { userId, otp });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+  }
+};
+
+// Đặt lại mật khẩu
+const resetPassword = async (userId, newPassword) => {
+  try {
+    const response = await authAxios.post('/change-password', { userId, newPassword });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Lỗi đặt lại mật khẩu');
+  }
+};
+
 const authService = {
   register,
   verifyAccount,
@@ -224,7 +283,11 @@ const authService = {
   login,
   logout,
   getCurrentUser,
-  isAuthenticated
+  isAuthenticated,
+  checkEmailExists,
+  requestPasswordReset,
+  verifyResetToken,
+  resetPassword
 };
 
 export default authService;

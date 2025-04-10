@@ -128,7 +128,7 @@ function RegisterPage() {
 
   const handleVerifyOTP = async () => {
     setLoading(true);
-    
+
     if (otpValue.length !== 6) {
       setError('Vui lòng nhập đủ 6 chữ số OTP');
       setLoading(false);
@@ -285,15 +285,15 @@ function RegisterPage() {
               {error && <p style={{ color: 'red', fontSize: '13px', textAlign: 'center', margin: '0 0 15px' }}>{error}</p>}
 
               <div className={styles.otpInputContainer}>
-                <input
-                  type="text"
-                  className={styles.otpInput}
+                  <input
+                    type="text"
+                    className={styles.otpInput}
                   value={otpValue}
                   onChange={handleOtpChange}
                   placeholder="Nhập mã OTP 6 chữ số"
                   maxLength={6}
                   autoFocus
-                />
+                  />
               </div>
 
               <div className={styles.otpButtonContainer}>

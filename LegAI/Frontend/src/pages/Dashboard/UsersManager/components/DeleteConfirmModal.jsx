@@ -122,7 +122,7 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel }) => {
             <i className="fas fa-times"></i>
           </button>
         </div>
-
+        
         <div>
           <i className="fas fa-trash-alt" style={warningIconStyle}></i>
           

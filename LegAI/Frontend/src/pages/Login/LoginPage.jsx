@@ -1,8 +1,8 @@
 import styles from './LoginPage.module.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey } from 'react-icons/fa6';
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
 import { sendOTPEmail } from '../../services/emailService';
 import Loading from '../../components/layout/Loading/Loading';
@@ -17,8 +17,19 @@ function LoginPage() {
   const [otpValue, setOtpValue] = useState('');
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Kiểm tra thông báo từ các trang khác chuyển đến
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Xóa state để tránh hiển thị lại khi refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
   
   const goToHomePage = () => {
     navigate('/');
@@ -53,7 +64,7 @@ function LoginPage() {
         } else {
           setError('Không thể xác minh tài khoản. Vui lòng liên hệ hỗ trợ.');
         }
-      } else {
+    } else {
         setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
     }
@@ -157,7 +168,7 @@ function LoginPage() {
           // Form đăng nhập
           <>
             <h2 className={styles.title}>Đăng nhập vào tài khoản của bạn</h2>
-            
+
             <div className={styles.socialLogin}>
               <button title="Đăng nhập bằng Facebook"><FaFacebookF /></button>
               <button title="Đăng nhập bằng Email"><FaEnvelope /></button>
@@ -167,6 +178,10 @@ function LoginPage() {
             <div className={styles.orDivider}>
               <span>hoặc</span>
             </div>
+            
+            {successMessage && (
+              <div className={styles.successMessage}>{successMessage}</div>
+            )}
             
             {error && <div className={styles.errorMessage}>{error}</div>}
 
@@ -197,7 +212,7 @@ function LoginPage() {
               </div>
 
               <div className={styles.bottomRow}>
-                <a href="#">Quên mật khẩu?</a>
+                <a href="/forgot-password">Quên mật khẩu?</a>
               </div>
 
               <button type="submit" className={styles.loginButton}>Đăng nhập</button>

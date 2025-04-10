@@ -282,6 +282,116 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Vui lòng cung cấp email'
+        });
+    }
+    
+    try {
+        // Tìm người dùng với email cung cấp
+        const user = await userService.getUserByEmail(email);
+        
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Không tìm thấy tài khoản với email này'
+            });
+        }
+        
+        // Tạo mã OTP
+        const { otp, expiresAt } = await userService.createPasswordResetToken(user.id, email);
+        
+        res.json({
+            status: 'success',
+            message: 'Mã OTP đã được tạo',
+            data: {
+                userId: user.id,
+                email: user.email,
+                otp: otp, // Trả về OTP để frontend gửi email
+                expiresAt
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi quên mật khẩu:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Lỗi xử lý yêu cầu quên mật khẩu'
+        });
+    }
+};
+
+const verifyResetToken = async (req, res) => {
+    const { userId, otp } = req.body;
+    
+    if (!userId || !otp) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Vui lòng cung cấp userId và otp'
+        });
+    }
+    
+    try {
+        // Xác minh mã OTP
+        const isValid = await userService.verifyPasswordResetToken(userId, otp);
+        
+        if (!isValid) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Mã OTP không hợp lệ hoặc đã hết hạn'
+            });
+        }
+        
+        res.json({
+            status: 'success',
+            message: 'Mã OTP hợp lệ',
+            data: {
+                userId
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi xác minh mã OTP:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Lỗi xử lý xác minh mã OTP'
+        });
+    }
+};
+
+const changePassword = async (req, res) => {
+    const { userId, newPassword } = req.body;
+    
+    if (!userId || !newPassword) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Vui lòng cung cấp userId và newPassword'
+        });
+    }
+    
+    try {
+        // Đặt lại mật khẩu
+        await userService.resetPassword(userId, newPassword);
+        
+        // Ghi log hành động
+        // TODO: Thêm ghi log vào bảng AuditLogs
+        
+        res.json({
+            status: 'success',
+            message: 'Đặt lại mật khẩu thành công'
+        });
+    } catch (error) {
+        console.error('Lỗi đặt lại mật khẩu:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Lỗi xử lý đặt lại mật khẩu'
+        });
+    }
+};
+
 module.exports = {
     register,
     verifyAccount,
@@ -290,6 +400,9 @@ module.exports = {
     updateUser,
     deleteUser,
     toggleUserLock,
-    resetPassword
+    resetPassword,
+    forgotPassword,
+    verifyResetToken,
+    changePassword
 };
 

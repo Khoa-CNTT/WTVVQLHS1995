@@ -10,6 +10,11 @@ router.post('/login', authController.login);
 router.post('/register', userController.register);
 router.post('/verify', userController.verifyAccount);
 
+// Routes quên mật khẩu
+router.post('/forgot-password', userController.forgotPassword);
+router.post('/verify-reset-token', userController.verifyResetToken);
+router.post('/change-password', userController.changePassword);
+
 // Routes được bảo vệ (yêu cầu xác thực)
 router.get('/users', authenticateToken, userController.getUsers);
 router.get('/users/:userId', authenticateToken, userController.getUserById);

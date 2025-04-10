@@ -80,15 +80,15 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
             </>
           ) : (
             <>
-              <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
-                <i className="fas fa-sign-in-alt"></i>
-                <span>Đăng nhập</span>
-              </Link>
-              
-              <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
-                <i className="fas fa-user-plus"></i>
-                <span>Đăng ký</span>
-              </Link>
+          <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
+            <i className="fas fa-sign-in-alt"></i>
+            <span>Đăng nhập</span>
+          </Link>
+          
+          <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
+            <i className="fas fa-user-plus"></i>
+            <span>Đăng ký</span>
+          </Link>
             </>
           )}
         </div>

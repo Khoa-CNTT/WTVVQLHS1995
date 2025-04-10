@@ -392,3 +392,15 @@ form {
   text-align: center;
   font-size: 1rem;
 }
+
+.successMessage {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  border-left: 3px solid #4CAF50;
+  text-align: center;
+  max-width: 400px;
+}

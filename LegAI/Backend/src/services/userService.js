@@ -296,6 +296,90 @@ const getUserByUsername = async (username) => {
     }
 };
 
+// Tìm người dùng theo email
+const getUserByEmail = async (email) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo email:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
+// Cache để lưu các token đặt lại mật khẩu
+const passwordResetTokens = new Map();
+
+// Tạo token đặt lại mật khẩu
+const createPasswordResetToken = async (userId, email) => {
+    try {
+        // Tạo OTP ngẫu nhiên 6 chữ số
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Thời gian hết hạn OTP (15 phút)
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        
+        // Lưu token vào cache
+        passwordResetTokens.set(userId.toString(), {
+            otp,
+            email,
+            expiresAt,
+            attempts: 0
+        });
+        
+        // Gửi email chứa OTP sẽ được xử lý ở Frontend thông qua EmailJS
+        
+        return { otp, expiresAt };
+    } catch (error) {
+        throw new Error(`Lỗi tạo token đặt lại mật khẩu: ${error.message}`);
+    }
+};
+
+// Xác minh token đặt lại mật khẩu
+const verifyPasswordResetToken = async (userId, otp) => {
+    try {
+        const tokenData = passwordResetTokens.get(userId.toString());
+        
+        // Kiểm tra OTP có tồn tại không
+        if (!tokenData) {
+            throw new Error('Mã OTP không tồn tại hoặc đã hết hạn');
+        }
+        
+        // Kiểm tra OTP có hết hạn không
+        if (new Date() > tokenData.expiresAt) {
+            passwordResetTokens.delete(userId.toString());
+            throw new Error('Mã OTP đã hết hạn');
+        }
+        
+        // Kiểm tra OTP có đúng không
+        if (tokenData.otp !== otp) {
+            // Tăng số lần thử
+            tokenData.attempts += 1;
+            
+            // Nếu thử sai quá 3 lần, xóa OTP
+            if (tokenData.attempts >= 3) {
+                passwordResetTokens.delete(userId.toString());
+                throw new Error('Bạn đã nhập sai OTP quá nhiều lần');
+            }
+            
+            throw new Error('Mã OTP không đúng');
+        }
+        
+        return true;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -306,5 +390,8 @@ module.exports = {
     toggleUserLock,
     resetPassword,
     deleteUser,
-    getUserByUsername
+    getUserByUsername,
+    getUserByEmail,
+    createPasswordResetToken,
+    verifyPasswordResetToken
 }; 

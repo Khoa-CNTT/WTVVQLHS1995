@@ -75,8 +75,8 @@ const EditUserModal = ({ user, onSave, onClose }) => {
         break;
       case 'phone':
         if (value) {
-          const phoneRegex = /^[0-9]{10,11}$/;
-          if (!phoneRegex.test(value)) error = 'Số điện thoại không hợp lệ';
+        const phoneRegex = /^[0-9]{10,11}$/;
+        if (!phoneRegex.test(value)) error = 'Số điện thoại không hợp lệ';
         }
         break;
       default:
@@ -101,7 +101,7 @@ const EditUserModal = ({ user, onSave, onClose }) => {
     // Kiểm tra lỗi
     let hasErrors = false;
     const newErrors = {};
-
+    
     // Kiểm tra họ tên
     if (!formData.full_name || formData.full_name.trim() === '') {
       newErrors.full_name = 'Họ tên không được để trống';
@@ -116,7 +116,7 @@ const EditUserModal = ({ user, onSave, onClose }) => {
         hasErrors = true;
       }
     }
-
+    
     if (hasErrors) {
       setErrors(newErrors);
       return;
@@ -163,7 +163,7 @@ const EditUserModal = ({ user, onSave, onClose }) => {
             <i className="fas fa-times"></i>
           </button>
         </div>
-
+        
         <div style={userInfoStyle}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 auto' }}>
             <div style={{ 
@@ -215,110 +215,110 @@ const EditUserModal = ({ user, onSave, onClose }) => {
           <div style={twoColumnStyle}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>Tên đăng nhập:</label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                disabled
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  disabled
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #ddd',
                   borderRadius: '4px',
                   backgroundColor: '#f9f9f9'
                 }}
-              />
+                />
               <small style={{ color: '#666', fontSize: '0.8rem' }}>Không thể thay đổi</small>
-            </div>
-
+              </div>
+              
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>Email:</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                disabled
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  disabled
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #ddd',
                   borderRadius: '4px',
                   backgroundColor: '#f9f9f9'
                 }}
-              />
+                />
               <small style={{ color: '#666', fontSize: '0.8rem' }}>Không thể thay đổi</small>
-            </div>
-
+              </div>
+              
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>
                 Họ tên: <span style={{ color: '#e53e3e' }}>*</span>
               </label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
                 style={{
                   padding: '8px 12px',
                   border: `1px solid ${errors.full_name ? '#e53e3e' : '#ddd'}`,
                   borderRadius: '4px'
                 }}
-              />
+                />
               {errors.full_name && (
                 <small style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors.full_name}</small>
               )}
-            </div>
-
+              </div>
+              
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>Số điện thoại:</label>
-              <input
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
                 style={{
                   padding: '8px 12px',
                   border: `1px solid ${errors.phone ? '#e53e3e' : '#ddd'}`,
                   borderRadius: '4px'
                 }}
-              />
+                />
               {errors.phone && (
                 <small style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors.phone}</small>
               )}
             </div>
-
+            
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>Địa chỉ:</label>
-              <input
-                type="text"
-                name="address"
+                <input
+                  type="text"
+                  name="address"
                 value={formData.address}
-                onChange={handleChange}
+                  onChange={handleChange}
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #ddd',
                   borderRadius: '4px'
                 }}
-              />
-            </div>
-
+                />
+              </div>
+              
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontWeight: '500', color: '#333' }}>Vai trò:</label>
-              <select 
-                name="role" 
-                value={formData.role} 
-                onChange={handleChange} 
+                <select 
+                  name="role" 
+                  value={formData.role} 
+                  onChange={handleChange} 
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #ddd',
                   borderRadius: '4px'
                 }}
-              >
-                <option value="Admin">Admin</option>
-                <option value="User">User</option>
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="User">User</option>
                 <option value="Lawyer">Luật sư</option>
-              </select>
+                </select>
             </div>
           </div>
-
+          
           <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <label style={{ fontWeight: '500', color: '#333' }}>Giới thiệu:</label>
             <textarea
