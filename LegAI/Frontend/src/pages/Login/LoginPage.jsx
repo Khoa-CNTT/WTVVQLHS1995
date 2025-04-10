@@ -9,7 +9,7 @@ import Loading from '../../components/layout/Loading/Loading';
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [usernameOrEmailOrPhone, setUsernameOrEmailOrPhone] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +45,7 @@ function LoginPage() {
     setLoading(true);
     
     try {
-      const response = await authService.login(usernameOrEmailOrPhone, password);
+      const response = await authService.login(usernameOrEmail, password);
       // Đăng nhập thành công
       setLoading(false);
       navigate('/');
@@ -64,7 +64,12 @@ function LoginPage() {
         } else {
           setError('Không thể xác minh tài khoản. Vui lòng liên hệ hỗ trợ.');
         }
-    } else {
+      } 
+      // Kiểm tra trường hợp tài khoản bị khóa
+      else if (error.message && (error.message.includes('đã bị khóa') || error.isLocked)) {
+        setError(error.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      } 
+      else {
         setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
     }
@@ -190,9 +195,9 @@ function LoginPage() {
                 <FaUser className={styles.icon} />
                 <input 
                   type="text" 
-                  placeholder="Tên đăng nhập, Email hoặc SĐT" 
-                  value={usernameOrEmailOrPhone}
-                  onChange={(e) => setUsernameOrEmailOrPhone(e.target.value)}
+                  placeholder="Tên đăng nhập hoặc Email" 
+                  value={usernameOrEmail}
+                  onChange={(e) => setUsernameOrEmail(e.target.value)}
                   required
                 />
               </div>

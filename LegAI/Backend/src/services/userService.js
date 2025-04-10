@@ -163,14 +163,32 @@ const updateUser = async (userId, userData) => {
             throw new Error('Không tìm thấy người dùng');
         }
 
-        // Cập nhật profile
-        const profileResult = await client.query(
-            `UPDATE userprofiles 
-            SET address = $1, bio = $2, updated_at = CURRENT_TIMESTAMP 
-            WHERE user_id = $3 
-            RETURNING *`,
-            [address, bio, userId]
+        // Kiểm tra xem profile đã tồn tại chưa
+        const checkProfile = await client.query(
+            `SELECT * FROM userprofiles WHERE user_id = $1`,
+            [userId]
         );
+        
+        let profileResult;
+        if (checkProfile.rows.length === 0) {
+            // Chưa có profile, tạo mới
+            profileResult = await client.query(
+                `INSERT INTO userprofiles 
+                (user_id, address, avatar_url, bio) 
+                VALUES ($1, $2, $3, $4) 
+                RETURNING *`,
+                [userId, address, '/default-avatar.png', bio]
+            );
+        } else {
+            // Đã có profile, cập nhật
+            profileResult = await client.query(
+                `UPDATE userprofiles 
+                SET address = $1, bio = $2, updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = $3 
+                RETURNING *`,
+                [address, bio, userId]
+            );
+        }
 
         await client.query('COMMIT');
         

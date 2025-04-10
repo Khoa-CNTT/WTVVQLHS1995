@@ -3,9 +3,9 @@ const authService = require('../services/authService');
 const userService = require('../services/userService');
 
 const login = async (req, res) => {
-    const { usernameOrEmailOrPhone, password } = req.body;
+    const { usernameOrEmail, password } = req.body;
 
-    if (!usernameOrEmailOrPhone || !password) {
+    if (!usernameOrEmail || !password) {
         return res.status(400).json({
             status: 'error',
             message: 'Vui lòng cung cấp thông tin đăng nhập và mật khẩu'
@@ -17,16 +17,11 @@ const login = async (req, res) => {
         let user = null;
         
         // Kiểm tra đăng nhập bằng username
-        user = await userService.getUserByUsername(usernameOrEmailOrPhone);
+        user = await userService.getUserByUsername(usernameOrEmail);
         
         // Nếu không tìm thấy user bằng username, thử tìm bằng email
         if (!user) {
-            user = await userService.getUserByEmail(usernameOrEmailOrPhone);
-        }
-        
-        // Nếu không tìm thấy user bằng email, thử tìm bằng số điện thoại
-        if (!user) {
-            user = await userService.getUserByPhone(usernameOrEmailOrPhone);
+            user = await userService.getUserByEmail(usernameOrEmail);
         }
         
         // Nếu không tìm thấy user
@@ -34,6 +29,14 @@ const login = async (req, res) => {
             return res.status(401).json({
                 status: 'error',
                 message: 'Thông tin đăng nhập không đúng'
+            });
+        }
+        
+        // Kiểm tra xem tài khoản có bị khóa không
+        if (user.is_locked) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên'
             });
         }
         
@@ -59,6 +62,14 @@ const login = async (req, res) => {
         // Nếu lỗi đăng nhập do mật khẩu không đúng
         if (error.message === 'Mật khẩu không đúng') {
             return res.status(401).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+        
+        // Nếu lỗi đăng nhập do tài khoản bị khóa
+        if (error.message.includes('Tài khoản của bạn đã bị khóa')) {
+            return res.status(403).json({
                 status: 'error',
                 message: error.message
             });

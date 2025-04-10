@@ -2,11 +2,6 @@
 const jwt = require('jsonwebtoken');
 
 const authenticateToken = (req, res, next) => {
-    // Tạm thời bỏ qua xác thực token để test
-    next();
-    
-    // Uncomment đoạn code dưới đây khi cần bật lại xác thực
-    /*
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -30,7 +25,6 @@ const authenticateToken = (req, res, next) => {
         req.user = user;
         next();
     });
-    */
 };
 
 module.exports = { authenticateToken };

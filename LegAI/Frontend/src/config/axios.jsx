@@ -12,7 +12,11 @@ const axiosInstance = axios.create({
 // Thêm interceptor cho request
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Tạm thời bỏ qua việc thêm token
+    // Lấy token từ localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -26,7 +30,13 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Tạm thời bỏ qua việc xử lý lỗi xác thực
+    // Xử lý lỗi xác thực (401 Unauthorized)
+    if (error.response && error.response.status === 401) {
+      // Xóa thông tin đăng nhập và chuyển đến trang login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );

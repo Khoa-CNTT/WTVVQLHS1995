@@ -147,10 +147,10 @@ const resendOTP = async (userId, email) => {
 };
 
 // Đăng nhập
-const login = async (usernameOrEmailOrPhone, password) => {
+const login = async (usernameOrEmail, password) => {
   try {
     const response = await authAxios.post('/login', { 
-      usernameOrEmailOrPhone, 
+      usernameOrEmail, 
       password 
     });
     
@@ -178,6 +178,16 @@ const login = async (usernameOrEmailOrPhone, password) => {
       };
       
       throw customError;
+    }
+    
+    // Xử lý trường hợp tài khoản bị khóa
+    if (error.response?.data?.message && 
+        (error.response.data.message.includes('đã bị khóa') || 
+        error.response.data.message.includes('bị khóa'))) {
+      throw {
+        message: error.response.data.message,
+        isLocked: true
+      };
     }
     
     // Log lỗi để dễ dàng gỡ rối
@@ -280,6 +290,33 @@ const resetPassword = async (userId, newPassword) => {
   }
 };
 
+/**
+ * Đổi mật khẩu của người dùng đã đăng nhập
+ * @param {Object} passwordData Dữ liệu mật khẩu
+ * @param {string} passwordData.currentPassword Mật khẩu hiện tại
+ * @param {string} passwordData.newPassword Mật khẩu mới
+ * @param {string} passwordData.confirmPassword Xác nhận mật khẩu mới
+ * @returns {Promise} Promise chứa kết quả từ API
+ */
+export const changePassword = async (passwordData) => {
+  const user = getCurrentUser();
+  
+  if (!user || !user.token) {
+    throw new Error('Bạn cần đăng nhập để thực hiện thao tác này');
+  }
+  
+  try {
+    const response = await authAxios.post('/users/change-password', passwordData, {
+      headers: {
+        Authorization: `Bearer ${user.token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const authService = {
   register,
   verifyAccount,
@@ -291,7 +328,8 @@ const authService = {
   checkEmailExists,
   requestPasswordReset,
   verifyResetToken,
-  resetPassword
+  resetPassword,
+  changePassword
 };
 
 export default authService;

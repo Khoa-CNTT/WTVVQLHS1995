@@ -17,17 +17,41 @@ const login = async (username, password) => {
 
         const user = userQuery.rows[0];
 
+        // Kiểm tra xem tài khoản có bị khóa không
+        if (user.is_locked) {
+            throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên');
+        }
+
         // Không kiểm tra xác minh ở đây, vì đã kiểm tra ở controller
         
         // So sánh mật khẩu
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
+            // Tăng số lần đăng nhập thất bại
+            const updatedFailedAttempts = user.failed_attempts + 1;
+            
+            // Nếu số lần đăng nhập thất bại vượt quá 5 lần, khóa tài khoản
+            let isLocked = user.is_locked;
+            if (updatedFailedAttempts >= 5) {
+                isLocked = true;
+            }
+            
+            // Cập nhật số lần đăng nhập thất bại và trạng thái khóa
+            await pool.query(
+                'UPDATE users SET failed_attempts = $1, is_locked = $2 WHERE id = $3',
+                [updatedFailedAttempts, isLocked, user.id]
+            );
+            
+            if (updatedFailedAttempts >= 5) {
+                throw new Error('Tài khoản của bạn đã bị khóa do nhập sai mật khẩu quá nhiều lần');
+            }
+            
             throw new Error('Mật khẩu không đúng');
         }
 
-        // Cập nhật thời gian đăng nhập
+        // Đăng nhập thành công, đặt lại số lần đăng nhập thất bại
         await pool.query(
-            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP, failed_attempts = 0 WHERE id = $1',
             [user.id]
         );
 
@@ -56,9 +80,14 @@ const login = async (username, password) => {
                 username: user.username,
                 email: user.email,
                 fullName: user.full_name,
+                phone: user.phone,
                 role: user.role,
                 isVerified: user.is_verified,
-                lastLogin: user.last_login
+                lastLogin: user.last_login,
+                isLocked: user.is_locked,
+                failedAttempts: user.failed_attempts,
+                createdAt: user.created_at,
+                updatedAt: user.updated_at
             } 
         };
     } catch (error) {

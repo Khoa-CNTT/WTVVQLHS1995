@@ -5,6 +5,17 @@ import PublicRoutes from './publicRoutes';
 import PrivateRoutes from './privateRoutes';
 import RouteChangeDetector from '../components/layout/TransitionPage/RouteChangeDetector';
 import Dashboard from '../pages/Dashboard/Dashboard';
+import Profile from '../pages/Profile/Profile';
+import authService from '../services/authService';
+import { Navigate } from 'react-router-dom';
+
+// Kiểm tra xác thực
+const isAuthenticated = () => authService.isAuthenticated();
+
+// Thành phần bảo vệ route
+const ProtectedRoute = ({ children }) => {
+  return isAuthenticated() ? children : <Navigate to="/login" />;
+};
 
 const AppRouter = () => {
   const location = useLocation();
@@ -26,12 +37,16 @@ const AppRouter = () => {
           } />
           <Route path="/dashboard/*" element={
             <PageTransition custom="fade">
-              <PrivateRoutes />
+              <ProtectedRoute>
+                <PrivateRoutes />
+              </ProtectedRoute>
             </PageTransition>
           } />
-          <Route path="/profile/*" element={
+          <Route path="/profile" element={
             <PageTransition custom="fade">
-              <PrivateRoutes />
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
             </PageTransition>
           } />
         </Routes>
