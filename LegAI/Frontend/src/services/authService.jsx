@@ -243,13 +243,14 @@ const requestPasswordReset = async (email) => {
     const response = await authAxios.post('/forgot-password', { email });
     
     // Trích xuất thông tin từ response
-    const { userId, email: userEmail, otp } = response.data.data;
+    const { userId, email: userEmail, otp, fullName } = response.data.data;
     
     return { 
       status: 'success', 
       userId, 
       email: userEmail,
-      otp: otp // Thêm OTP vào response để frontend gửi email
+      otp: otp, // Thêm OTP vào response để frontend gửi email
+      userName: fullName // Thêm tên người dùng nếu có
     };
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Lỗi gửi yêu cầu đặt lại mật khẩu');

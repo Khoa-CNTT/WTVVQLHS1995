@@ -313,6 +313,7 @@ const forgotPassword = async (req, res) => {
                 userId: user.id,
                 email: user.email,
                 otp: otp, // Trả về OTP để frontend gửi email
+                fullName: user.full_name, // Thêm tên người dùng
                 expiresAt
             }
         });
