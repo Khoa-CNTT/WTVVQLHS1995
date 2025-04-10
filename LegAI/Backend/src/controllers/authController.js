@@ -3,24 +3,37 @@ const authService = require('../services/authService');
 const userService = require('../services/userService');
 
 const login = async (req, res) => {
-    const { username, password } = req.body;
+    const { usernameOrEmailOrPhone, password } = req.body;
 
-    if (!username || !password) {
+    if (!usernameOrEmailOrPhone || !password) {
         return res.status(400).json({
             status: 'error',
-            message: 'Vui lòng cung cấp username và password'
+            message: 'Vui lòng cung cấp thông tin đăng nhập và mật khẩu'
         });
     }
 
     try {
         // Kiểm tra thông tin đăng nhập
-        const user = await userService.getUserByUsername(username);
+        let user = null;
+        
+        // Kiểm tra đăng nhập bằng username
+        user = await userService.getUserByUsername(usernameOrEmailOrPhone);
+        
+        // Nếu không tìm thấy user bằng username, thử tìm bằng email
+        if (!user) {
+            user = await userService.getUserByEmail(usernameOrEmailOrPhone);
+        }
+        
+        // Nếu không tìm thấy user bằng email, thử tìm bằng số điện thoại
+        if (!user) {
+            user = await userService.getUserByPhone(usernameOrEmailOrPhone);
+        }
         
         // Nếu không tìm thấy user
         if (!user) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Tên đăng nhập không tồn tại'
+                message: 'Thông tin đăng nhập không đúng'
             });
         }
         
@@ -35,7 +48,7 @@ const login = async (req, res) => {
         }
         
         // Tiếp tục quá trình đăng nhập
-        const { token, user: userData } = await authService.login(username, password);
+        const { token, user: userData } = await authService.login(user.username, password);
         
         res.json({
             status: 'success',

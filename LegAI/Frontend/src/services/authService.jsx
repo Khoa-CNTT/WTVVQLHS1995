@@ -147,9 +147,12 @@ const resendOTP = async (userId, email) => {
 };
 
 // Đăng nhập
-const login = async (username, password) => {
+const login = async (usernameOrEmailOrPhone, password) => {
   try {
-    const response = await authAxios.post('/login', { username, password });
+    const response = await authAxios.post('/login', { 
+      usernameOrEmailOrPhone, 
+      password 
+    });
     
     if (response.data.data?.token) {
       localStorage.setItem('token', response.data.data.token);

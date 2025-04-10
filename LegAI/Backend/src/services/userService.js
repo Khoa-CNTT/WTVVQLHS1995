@@ -315,6 +315,25 @@ const getUserByEmail = async (email) => {
     }
 };
 
+// Tìm người dùng theo số điện thoại
+const getUserByPhone = async (phone) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE phone = $1',
+            [phone]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo số điện thoại:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
 // Cache để lưu các token đặt lại mật khẩu
 const passwordResetTokens = new Map();
 
@@ -392,6 +411,7 @@ module.exports = {
     deleteUser,
     getUserByUsername,
     getUserByEmail,
+    getUserByPhone,
     createPasswordResetToken,
     verifyPasswordResetToken
 }; 
