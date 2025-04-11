@@ -16,6 +16,7 @@ function Dashboard() {
   const [notifications, setNotifications] = useState(3);
   const [menuVisible, setMenuVisible] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     // Lấy thông tin người dùng khi component mount
@@ -69,6 +70,16 @@ function Dashboard() {
   // Hàm toggle sidebar
   const toggleSidebar = () => {
     setMenuVisible(!menuVisible);
+  };
+
+  // Hàm mở/đóng menu người dùng
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+
+  // Hàm chuyển đến trang hồ sơ
+  const goToProfilePage = () => {
+    navigate('/profile');
   };
 
   // Danh sách menu dựa trên cấu trúc cơ sở dữ liệu
@@ -274,7 +285,7 @@ function Dashboard() {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
+    <div className={`${styles.dashboardContainer} ${menuVisible ? '' : styles.sidebarCollapsed}`}>
       {/* Sidebar */}
       <div className={`${styles.sidebar} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
         <div
@@ -322,8 +333,22 @@ function Dashboard() {
               {notifications > 0 && <span className={styles.notificationBadge}>{notifications}</span>}
             </div>
             <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
-            <div className={styles.userAvatar}>
+            <div className={styles.userAvatar} onClick={toggleUserMenu}>
               {getUserInitials()}
+
+              {userMenuOpen && (
+                <div className={styles.userDropdownMenu} onClick={e => e.stopPropagation()}>
+                  <div className={styles.userMenuItem} onClick={() => navigate('/')}>
+                    <i className="fas fa-home"></i> Trang chủ
+                  </div>
+                  <div className={styles.userMenuItem} onClick={goToProfilePage}>
+                    <i className="fas fa-user"></i> Hồ sơ
+                  </div>
+                  <div className={styles.userMenuItem} onClick={handleLogout}>
+                    <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

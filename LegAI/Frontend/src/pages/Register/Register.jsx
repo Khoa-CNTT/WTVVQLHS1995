@@ -4,7 +4,7 @@ import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey, FaPhone, FaIdCard }
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
-
+import {toast } from 'react-toastify';
 function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -118,7 +118,7 @@ function RegisterPage() {
       setIsCountdownActive(true);
       setOtpValue('');
 
-      alert('Đã gửi lại mã OTP, vui lòng kiểm tra email');
+      toast.success('Đã gửi lại mã OTP, vui lòng kiểm tra email');
     } catch (err) {
       setError(err.message || 'Không thể gửi lại mã OTP.');
     } finally {
@@ -138,7 +138,7 @@ function RegisterPage() {
     try {
       await authService.verifyAccount(userId, otpValue);
       setShowOTPModal(false);
-      alert('Xác minh tài khoản thành công! Vui lòng đăng nhập.');
+      toast.success('Xác minh tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');

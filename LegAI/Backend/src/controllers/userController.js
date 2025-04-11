@@ -1,17 +1,26 @@
 const userService = require('../services/userService');
 const authService = require('../services/authService');
+const bcryptjs = require('bcryptjs');
 // Không cần emailService nữa vì gửi email sẽ được xử lý ở frontend
 // const emailService = require('../services/emailService');
 
 // Đăng ký người dùng mới
 const register = async (req, res) => {
-    const { username, password, email, phone, fullName } = req.body;
+    const { username, password, email, phone, fullName, role } = req.body;
 
     // Kiểm tra thông tin đầu vào
     if (!username || !password || !email || !phone || !fullName) {
         return res.status(400).json({
             status: 'error',
             message: 'Vui lòng cung cấp đầy đủ thông tin'
+        });
+    }
+    
+    // Kiểm tra độ dài mật khẩu
+    if (password.length < 6) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Mật khẩu phải có ít nhất 6 ký tự'
         });
     }
 
@@ -25,8 +34,18 @@ const register = async (req, res) => {
             });
         }
 
+        // Chuẩn hóa role với chữ cái đầu viết hoa
+        let normalizedRole = 'User'; // Role mặc định là User
+        if (role) {
+            const roleToLower = role.toLowerCase();
+            // Chỉ chấp nhận các role hợp lệ và viết hoa chữ cái đầu
+            if (roleToLower === 'admin' || roleToLower === 'user' || roleToLower === 'lawyer') {
+                normalizedRole = roleToLower.charAt(0).toUpperCase() + roleToLower.slice(1);
+            }
+        }
+
         // Tạo người dùng mới (chưa xác minh)
-        const user = await userService.createUser(username, password, email, phone, fullName);
+        const user = await userService.createUser(username, password, email, phone, fullName, normalizedRole);
         
         // Không tạo OTP ở backend nữa, việc này sẽ được xử lý ở frontend
         // const otpInfo = await authService.generateAndStoreOTP(user.id, email);
@@ -40,7 +59,8 @@ const register = async (req, res) => {
             data: { 
                 userId: user.id,
                 username: user.username,
-                email: user.email 
+                email: user.email,
+                role: user.role
             }
         });
     } catch (error) {
@@ -201,6 +221,7 @@ const deleteUser = async (req, res) => {
             });
         }
 
+        // Xóa hoàn toàn người dùng khỏi database
         const result = await userService.deleteUser(userId);
         
         res.json({
@@ -210,9 +231,21 @@ const deleteUser = async (req, res) => {
         });
     } catch (error) {
         console.error('Lỗi xóa người dùng:', error);
-        res.status(500).json({
+        
+        // Cung cấp thông báo lỗi cụ thể cho các trường hợp lỗi khác nhau
+        let errorMessage = error.message;
+        let statusCode = 500;
+        
+        if (error.message.includes('violates foreign key constraint')) {
+            statusCode = 409;
+            errorMessage = 'Không thể xóa người dùng vì còn dữ liệu liên kết trong hệ thống. Hãy xóa dữ liệu liên quan trước.';
+        } else if (error.message.includes('Không tìm thấy người dùng')) {
+            statusCode = 404;
+        }
+        
+        res.status(statusCode).json({
             status: 'error',
-            message: `Lỗi xóa: ${error.message}`
+            message: errorMessage
         });
     }
 };
@@ -278,6 +311,51 @@ const resetPassword = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: `Lỗi: ${error.message}`
+        });
+    }
+};
+
+// Lấy thống kê của người dùng theo ID
+const getUserStats = async (req, res) => {
+    const userId = req.params.userId;
+
+    if (!userId) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Vui lòng cung cấp userId'
+        });
+    }
+
+    try {
+        const user = await userService.getUserById(userId);
+        
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Không tìm thấy người dùng'
+            });
+        }
+        
+        // Mặc định trả về các thống kê cơ bản
+        // Trong thực tế, bạn sẽ truy vấn cơ sở dữ liệu để lấy số liệu thực
+        const stats = {
+            documents: 0,  // Số lượng tài liệu
+            cases: 0,      // Số lượng vụ án
+            appointments: 0, // Số cuộc hẹn
+            consultations: 0 // Số lần tư vấn
+        };
+        
+        // TODO: Truy vấn thống kê thực tế từ cơ sở dữ liệu
+        
+        res.json({
+            status: 'success',
+            data: stats
+        });
+    } catch (error) {
+        console.error('Lỗi lấy thống kê người dùng:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message
         });
     }
 };
@@ -364,16 +442,43 @@ const verifyResetToken = async (req, res) => {
 };
 
 const changePassword = async (req, res) => {
-    const { userId, newPassword } = req.body;
+    const { userId, currentPassword, newPassword } = req.body;
     
-    if (!userId || !newPassword) {
+    if (!userId || !currentPassword || !newPassword) {
         return res.status(400).json({
             status: 'error',
-            message: 'Vui lòng cung cấp userId và newPassword'
+            message: 'Vui lòng cung cấp userId, currentPassword và newPassword'
         });
     }
     
     try {
+        // Lấy thông tin người dùng
+        const user = await userService.getUserById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Không tìm thấy người dùng'
+            });
+        }
+        
+        // Kiểm tra mật khẩu hiện tại
+        const validPassword = await bcryptjs.compare(currentPassword, user.password);
+        if (!validPassword) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Mật khẩu hiện tại không chính xác'
+            });
+        }
+        
+        // Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+        const isSamePassword = await bcryptjs.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Mật khẩu mới không được trùng với mật khẩu hiện tại'
+            });
+        }
+        
         // Đặt lại mật khẩu
         await userService.resetPassword(userId, newPassword);
         
@@ -382,13 +487,58 @@ const changePassword = async (req, res) => {
         
         res.json({
             status: 'success',
-            message: 'Đặt lại mật khẩu thành công'
+            message: 'Đổi mật khẩu thành công'
         });
     } catch (error) {
-        console.error('Lỗi đặt lại mật khẩu:', error);
+        console.error('Lỗi đổi mật khẩu:', error);
         res.status(500).json({
             status: 'error',
-            message: error.message || 'Lỗi xử lý đặt lại mật khẩu'
+            message: error.message || 'Lỗi xử lý đổi mật khẩu'
+        });
+    }
+};
+
+// Kiểm tra ràng buộc database
+const checkDatabaseConstraints = async (req, res) => {
+    try {
+        const { tableName } = req.params;
+        const client = await pool.connect();
+        
+        // Truy vấn để lấy thông tin ràng buộc foreign key
+        const query = `
+            SELECT 
+                tc.table_name AS table_name, 
+                kcu.column_name AS column_name, 
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name
+            FROM 
+                information_schema.table_constraints AS tc 
+                JOIN information_schema.key_column_usage AS kcu
+                    ON tc.constraint_name = kcu.constraint_name
+                    AND tc.table_schema = kcu.table_schema
+                JOIN information_schema.constraint_column_usage AS ccu
+                    ON ccu.constraint_name = tc.constraint_name
+                    AND ccu.table_schema = tc.table_schema
+            WHERE 
+                tc.constraint_type = 'FOREIGN KEY' 
+                AND (
+                    ccu.table_name = $1 OR
+                    tc.table_name = $1
+                )
+        `;
+        
+        const result = await client.query(query, [tableName]);
+        client.release();
+        
+        res.json({
+            status: 'success',
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Lỗi kiểm tra ràng buộc database:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message
         });
     }
 };
@@ -404,6 +554,8 @@ module.exports = {
     resetPassword,
     forgotPassword,
     verifyResetToken,
-    changePassword
+    changePassword,
+    getUserStats,
+    checkDatabaseConstraints
 };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Loading from '../Loading/Loading';
 import authService from '../../../services/authService';
+import { toast } from 'react-toastify';
 
 // Component này theo dõi thay đổi route và hiển thị loading khi chuyển trang
 const RouteChangeDetector = () => {
@@ -39,8 +40,21 @@ const RouteChangeDetector = () => {
       // Kiểm tra phân quyền admin cho route /admin
       if (location.pathname.startsWith('/admin')) {
         const currentUser = authService.getCurrentUser();
-        if (!currentUser || currentUser.role !== 'admin') {
+        if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
           navigate('/', { replace: true });
+          toast.error('Bạn không có quyền truy cập vào trang này');
+          return;
+        }
+      }
+      
+      // Kiểm tra phân quyền dashboard, chỉ admin mới có thể truy cập
+      if (location.pathname.startsWith('/dashboard')) {
+        const currentUser = authService.getCurrentUser();
+        const normalizedRole = currentUser?.role?.toLowerCase() || '';
+        
+        if (!currentUser || normalizedRole !== 'admin') {
+          navigate('/', { replace: true });
+          toast.error('Bạn không có quyền truy cập vào trang này');
           return;
         }
       }

@@ -4,10 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 import AppRouter from './router';
-// import ChatManager from './components/layout/Chat/ChatManager';
-// chưa cần ChatManager
 import { emailjsInit } from './services/emailService';
-
+import { ToastContainer } from 'react-toastify'; // Add this
+import 'react-toastify/dist/ReactToastify.css'; // Add this
 import './styles/global.css';
 
 // Khởi tạo EmailJS
@@ -21,10 +20,10 @@ document.documentElement.style.setProperty('--text-dark', '#333333');
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ToastContainer /> {/* Add this */}
       <App />
       <div className="app-container">
         <AppRouter />
-        {/* <ChatManager /> */}
       </div>
     </BrowserRouter>
   </React.StrictMode>
