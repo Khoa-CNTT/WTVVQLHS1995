@@ -60,7 +60,6 @@ export const useProfile = () => {
         // Sau đó tải thông tin chi tiết từ API
         const userData = await userService.getUserProfile(userId || currentUser.id);
         
-        console.log('Thông tin chi tiết người dùng:', userData);
         
         if (!userData) {
           throw new Error('Không tìm thấy thông tin người dùng');
