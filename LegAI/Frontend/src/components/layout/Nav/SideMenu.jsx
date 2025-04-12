@@ -28,28 +28,23 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
         
         <div className={styles.sideMenuContent}>
           <Link to="/" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-home"></i>
-            <span>Trang chủ</span>
+            <i className="fas fa-home"></i> Trang chủ
           </Link>
           
           <Link to="/services" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-scale-balanced"></i>
-            <span>Dịch vụ</span>
+            <i className="fas fa-briefcase"></i> Dịch vụ
           </Link>
           
           <Link to="/lawyers" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-user-tie"></i>
-            <span>Luật sư</span>
+            <i className="fas fa-user-tie"></i> Luật sư
           </Link>
           
           <Link to="/news" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-newspaper"></i>
-            <span>Tin tức</span>
+            <i className="fas fa-newspaper"></i> Tin tức
           </Link>
           
           <Link to="/contact" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-envelope"></i>
-            <span>Liên hệ</span>
+            <i className="fas fa-envelope"></i> Liên hệ
           </Link>
           
           <div className={styles.sideMenuDivider}></div>

@@ -120,11 +120,23 @@ const Navbar = () => {
       </Link>
       
       <div className={isMenuOpen ? styles.navLinksOpen : styles.navLinks}>
-        <NavLink to="/">Trang chủ</NavLink>
-        <NavLink to="/services">Dịch vụ</NavLink>
-        <NavLink to="/lawyers">Luật sư</NavLink>
-        <NavLink to="/news">Tin tức</NavLink>
-        <NavLink to="/contact">Liên hệ</NavLink>
+        <ul className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
+          <li>
+            <NavLink to="/">Trang chủ</NavLink>
+          </li>
+          <li>
+            <NavLink to="/services">Dịch vụ</NavLink>
+          </li>
+          <li>
+            <NavLink to="/lawyers">Luật sư</NavLink>
+          </li>
+          <li>
+            <NavLink to="/news">Tin tức</NavLink>
+          </li>
+          <li>
+            <NavLink to="/contact">Liên hệ</NavLink>
+          </li>
+        </ul>
       </div>
       
       <div className={styles.navIcons}>

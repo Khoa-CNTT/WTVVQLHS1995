@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const baseURL = 'http://localhost:8000/api';
 
@@ -44,7 +45,7 @@ axiosInstance.interceptors.response.use(
           ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
           : 'Bạn không có quyền truy cập. Vui lòng đăng nhập lại.';
         
-        alert(messageText);
+        toast.error(messageText);
         
         // Xóa thông tin đăng nhập và chuyển đến trang login
         localStorage.removeItem('token');
