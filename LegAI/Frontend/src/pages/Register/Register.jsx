@@ -4,7 +4,7 @@ import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey, FaPhone, FaIdCard }
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
-
+import {toast } from 'react-toastify';
 function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -19,7 +19,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showOTPModal, setShowOTPModal] = useState(false);
-  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [otpValue, setOtpValue] = useState('');
   const [userId, setUserId] = useState(null);
   const [countdown, setCountdown] = useState(600); // 10 phút
   const [isCountdownActive, setIsCountdownActive] = useState(false);
@@ -36,7 +36,7 @@ function RegisterPage() {
     } else if (countdown === 0) {
       setIsCountdownActive(false);
     }
-    
+
     return () => clearInterval(intervalId);
   }, [isCountdownActive, countdown]);
 
@@ -92,7 +92,7 @@ function RegisterPage() {
         fullName: formData.fullName
       });
 
-      setUserId(response.data.userId); 
+      setUserId(response.data.userId);
       setShowOTPModal(true);
     } catch (err) {
       setError(err.message || 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.');
@@ -101,49 +101,24 @@ function RegisterPage() {
     }
   };
 
-  // Xử lý nhập OTP
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) {
-      value = value.charAt(0);
-    }
-    
-    // Chỉ cho phép nhập số
-    if (value && !/^\d+$/.test(value)) {
-      return;
-    }
-    
-    const newOtpValues = [...otpValues];
-    newOtpValues[index] = value;
-    setOtpValues(newOtpValues);
-    
-    // Tự động focus vào ô tiếp theo
-    if (value && index < 5) {
-      otpInputRefs[index + 1].current.focus();
+  const handleOtpChange = (e) => {
+    const value = e.target.value;
+    // Chỉ cho phép nhập số và tối đa 6 ký tự
+    if (/^\d*$/.test(value) && value.length <= 6) {
+      setOtpValue(value);
     }
   };
 
-  // Xử lý phím backspace
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-      otpInputRefs[index - 1].current.focus();
-    }
-  };
-
-  // Gửi lại mã OTP
   const handleResendOTP = async () => {
     setLoading(true);
     setError('');
     try {
-      // Gửi lại OTP (được xử lý qua EmailJS)
       await authService.resendOTP(userId, formData.email);
       setCountdown(900); // 15 phút
       setIsCountdownActive(true);
-      setOtpValues(['', '', '', '', '', '']);
-      otpInputRefs[0].current.focus();
-      
-      // Hiển thị thông báo thành công
-      setError(''); // Xóa thông báo lỗi nếu có
-      alert('Đã gửi lại mã OTP, vui lòng kiểm tra email');
+      setOtpValue('');
+
+      toast.success('Đã gửi lại mã OTP, vui lòng kiểm tra email');
     } catch (err) {
       setError(err.message || 'Không thể gửi lại mã OTP.');
     } finally {
@@ -151,21 +126,19 @@ function RegisterPage() {
     }
   };
 
-  // Xác minh OTP
   const handleVerifyOTP = async () => {
     setLoading(true);
-    const otp = otpValues.join('');
-    
-    if (otp.length !== 6) {
+
+    if (otpValue.length !== 6) {
       setError('Vui lòng nhập đủ 6 chữ số OTP');
       setLoading(false);
       return;
     }
-    
+
     try {
-      await authService.verifyAccount(userId, otp);
+      await authService.verifyAccount(userId, otpValue);
       setShowOTPModal(false);
-      alert('Xác minh tài khoản thành công! Vui lòng đăng nhập.');
+      toast.success('Xác minh tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');
@@ -205,10 +178,10 @@ function RegisterPage() {
         <form onSubmit={handleRegister}>
           <div className={styles.inputGroup}>
             <FaIdCard className={styles.icon} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="fullName"
-              placeholder="Họ và tên" 
+              placeholder="Họ và tên"
               value={formData.fullName}
               onChange={handleChange}
               required
@@ -217,10 +190,10 @@ function RegisterPage() {
 
           <div className={styles.inputGroup}>
             <FaUser className={styles.icon} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="username"
-              placeholder="Tên đăng nhập" 
+              placeholder="Tên đăng nhập"
               value={formData.username}
               onChange={handleChange}
               required
@@ -229,10 +202,10 @@ function RegisterPage() {
 
           <div className={styles.inputGroup}>
             <FaEnvelope className={styles.icon} />
-            <input 
-              type="email" 
+            <input
+              type="email"
               name="email"
-              placeholder="Email" 
+              placeholder="Email"
               value={formData.email}
               onChange={handleChange}
               required
@@ -241,10 +214,10 @@ function RegisterPage() {
 
           <div className={styles.inputGroup}>
             <FaPhone className={styles.icon} />
-            <input 
-              type="tel" 
+            <input
+              type="tel"
               name="phone"
-              placeholder="Số điện thoại" 
+              placeholder="Số điện thoại"
               value={formData.phone}
               onChange={handleChange}
               required
@@ -286,8 +259,8 @@ function RegisterPage() {
             <label htmlFor="terms">Tôi đồng ý với <a href="#">Điều khoản</a> và <a href="#">Chính sách</a></label>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.registerButton}
             disabled={loading}
           >
@@ -308,27 +281,23 @@ function RegisterPage() {
                 Mã xác minh đã được gửi đến<br />
                 <span className={styles.otpEmail}>{formData.email}</span>
               </p>
-              
+
               {error && <p style={{ color: 'red', fontSize: '13px', textAlign: 'center', margin: '0 0 15px' }}>{error}</p>}
-              
+
               <div className={styles.otpInputContainer}>
-                {otpValues.map((value, index) => (
                   <input
-                    key={index}
-                    ref={otpInputRefs[index]}
                     type="text"
                     className={styles.otpInput}
-                    value={value}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    maxLength={1}
-                    autoFocus={index === 0}
+                  value={otpValue}
+                  onChange={handleOtpChange}
+                  placeholder="Nhập mã OTP 6 chữ số"
+                  maxLength={6}
+                  autoFocus
                   />
-                ))}
               </div>
-              
+
               <div className={styles.otpButtonContainer}>
-                <button 
+                <button
                   className={styles.otpVerifyButton}
                   onClick={handleVerifyOTP}
                   disabled={loading}
@@ -336,10 +305,10 @@ function RegisterPage() {
                   {loading ? 'Đang xác minh...' : 'Xác minh'}
                 </button>
               </div>
-              
+
               <div className={styles.otpResendContainer}>
                 <span className={styles.otpResendText}>Không nhận được mã?</span>
-                <button 
+                <button
                   className={styles.otpResendButton}
                   onClick={handleResendOTP}
                   disabled={loading || isCountdownActive}
@@ -347,7 +316,7 @@ function RegisterPage() {
                   {isCountdownActive ? `Gửi lại sau (${formatTime(countdown)})` : 'Gửi lại mã'}
                 </button>
               </div>
-              
+
               <div className={styles.timer}>
                 Mã OTP có hiệu lực trong <span className={styles.timerHighlight}>{formatTime(countdown)}</span>
               </div>

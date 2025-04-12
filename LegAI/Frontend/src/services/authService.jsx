@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { sendOTPEmail } from './emailService';
+import axiosInstance from '../config/axios';
 
 const API_URL = 'http://localhost:8000/api/auth';
 
@@ -147,18 +148,63 @@ const resendOTP = async (userId, email) => {
 };
 
 // Đăng nhập
-const login = async (username, password) => {
+const login = async (usernameOrEmail, password) => {
   try {
-    const response = await authAxios.post('/login', { username, password });
+    const response = await authAxios.post('/login', { 
+      usernameOrEmail, 
+      password 
+    });
     
     if (response.data.data?.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    } else {
+      throw new Error('Không nhận được token xác thực từ server');
     }
     
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Lỗi đăng nhập' };
+    // Xử lý trường hợp tài khoản chưa xác minh
+    if (error.response?.data?.message && 
+        error.response.data.message.includes('chưa được xác minh')) {
+      // Lấy ID người dùng từ chuỗi lỗi hoặc data trả về
+      const userId = error.response.data.userId || null;
+      const email = error.response.data.email || null;
+      
+      // Tạo lỗi với thông tin bổ sung để client xử lý
+      const customError = {
+        message: error.response.data.message,
+        userId: userId,
+        email: email
+      };
+      
+      throw customError;
+    }
+    
+    // Xử lý trường hợp tài khoản bị khóa
+    if (error.response?.data?.message && 
+        (error.response.data.message.includes('đã bị khóa') || 
+        error.response.data.message.includes('bị khóa'))) {
+      throw {
+        message: error.response.data.message,
+        isLocked: true
+      };
+    }
+    
+    // Log lỗi để dễ dàng gỡ rối
+    console.error('Lỗi đăng nhập:', error);
+    
+    // Trả về thông báo lỗi cụ thể
+    if (error.message === 'Không nhận được token xác thực từ server') {
+      throw { message: 'Lỗi xác thực từ server. Vui lòng thử lại sau.' };
+    }
+    
+    // Kiểm tra lỗi secret key
+    if (error.message && error.message.includes('secret')) {
+      throw { message: 'Lỗi cấu hình xác thực. Vui lòng liên hệ quản trị viên.' };
+    }
+    
+    throw error.response?.data || { message: 'Lỗi đăng nhập. Vui lòng thử lại sau.' };
   }
 };
 
@@ -182,7 +228,136 @@ const getCurrentUser = () => {
 
 // Kiểm tra người dùng đã đăng nhập chưa
 const isAuthenticated = () => {
-  return !!localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  
+  try {
+    // Kiểm tra xem token đã hết hạn chưa
+    const currentUser = getCurrentUser();
+    return !!currentUser;
+  } catch (error) {
+    console.error('Lỗi kiểm tra xác thực:', error);
+    return false;
+  }
+};
+
+// Kiểm tra email tồn tại
+const checkEmailExists = async (email) => {
+  try {
+    // Sử dụng API thực tế
+    const response = await authAxios.post('/forgot-password', { email });
+    return {
+      exists: true,
+      userId: response.data.data.userId,
+      email: response.data.data.email
+    };
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      // Email không tồn tại
+      return { exists: false };
+    }
+    throw new Error(error.response?.data?.message || 'Lỗi kiểm tra email');
+  }
+};
+
+// Gửi yêu cầu đặt lại mật khẩu
+const requestPasswordReset = async (email) => {
+  try {
+    // Gửi yêu cầu đặt lại mật khẩu qua API
+    const response = await authAxios.post('/forgot-password', { email });
+    
+    // Trích xuất thông tin từ response
+    const { userId, email: userEmail, otp, fullName } = response.data.data;
+    
+    return { 
+      status: 'success', 
+      userId, 
+      email: userEmail,
+      otp: otp, // Thêm OTP vào response để frontend gửi email
+      userName: fullName // Thêm tên người dùng nếu có
+    };
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Lỗi gửi yêu cầu đặt lại mật khẩu');
+  }
+};
+
+// Xác minh mã OTP đặt lại mật khẩu
+const verifyResetToken = async (userId, otp) => {
+  try {
+    const response = await authAxios.post('/verify-reset-token', { userId, otp });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+  }
+};
+
+// Đặt lại mật khẩu
+const resetPassword = async (userId, newPassword) => {
+  try {
+    const response = await authAxios.post('/change-password', { userId, newPassword });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Lỗi đặt lại mật khẩu');
+  }
+};
+
+/**
+ * Đổi mật khẩu của người dùng đã đăng nhập
+ * @param {Object} passwordData Dữ liệu mật khẩu
+ * @param {string} passwordData.currentPassword Mật khẩu hiện tại
+ * @param {string} passwordData.newPassword Mật khẩu mới
+ * @param {string} passwordData.confirmPassword Xác nhận mật khẩu mới
+ * @returns {Promise} Promise chứa kết quả từ API
+ */
+export const changePassword = async (passwordData) => {
+  const user = getCurrentUser();
+  
+  if (!user || !user.token) {
+    throw new Error('Bạn cần đăng nhập để thực hiện thao tác này');
+  }
+  
+  try {
+    const response = await authAxios.post('/users/change-password', passwordData, {
+      headers: {
+        Authorization: `Bearer ${user.token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Kiểm tra token hết hạn
+const checkTokenValidity = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return false;
+    }
+
+    // Gọi API kiểm tra token
+    const response = await axiosInstance.get('/auth/verify-token');
+    return response.data.status === 'success';
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra token:', error);
+    return false;
+  }
+};
+
+// Kiểm tra vai trò người dùng
+const hasRole = (role) => {
+  const user = getCurrentUser();
+  
+  if (!user || !user.role) return false;
+  
+  // Chuyển đổi cả hai thành chữ thường để so sánh
+  const userRole = user.role.toLowerCase();
+  const requiredRole = Array.isArray(role) 
+    ? role.map(r => r.toLowerCase()) 
+    : [role.toLowerCase()];
+  
+  return requiredRole.includes(userRole);
 };
 
 const authService = {
@@ -192,7 +367,14 @@ const authService = {
   login,
   logout,
   getCurrentUser,
-  isAuthenticated
+  isAuthenticated,
+  checkEmailExists,
+  requestPasswordReset,
+  verifyResetToken,
+  resetPassword,
+  changePassword,
+  checkTokenValidity,
+  hasRole
 };
 
 export default authService;

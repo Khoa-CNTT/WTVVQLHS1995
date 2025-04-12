@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './UsersManagerPage.module.css';
+import axiosInstance from '../../../config/axios';
 
 // Tách các component ra để dễ quản lý
 import UserTable from './components/UserTable';
@@ -10,25 +12,10 @@ import HistoryLog from './components/HistoryLog';
 import EditUserModal from './components/EditUserModal';
 import ResetPasswordModal from './components/ResetPasswordModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
+import AddUserModal from './components/AddUserModal';
 
 function UsersManagerPage() {
-  const isAdmin = true;
-
-  if (!isAdmin) {
-    return <div className={styles.error}>Bạn không có quyền truy cập trang này!</div>;
-  }
-
-  const [users, setUsers] = useState([
-    { id: 1, username: 'admin1', email: 'admin1@example.com', phone: '0123456789', full_name: 'Nguyễn Văn Admin', address: '123 Đường Admin, Hà Nội', description: 'Quản trị viên chính', role: 'Admin', is_verified: true, created_at: '2025-01-01', updated_at: '2025-01-01', last_login: '2025-04-01', failed_attempts: 0, is_locked: false },
-    { id: 2, username: 'user1', email: 'user1@example.com', phone: '0987654321', full_name: 'Trần Thị User', address: '456 Đường User, TP.HCM', description: 'Người dùng thường', role: 'User', is_verified: false, created_at: '2025-02-01', updated_at: '2025-02-01', last_login: null, failed_attempts: 3, is_locked: false },
-    { id: 3, username: 'user2', email: 'user2@example.com', phone: '0912345678', full_name: 'Lê Văn User 2', address: '789 Đường User, Đà Nẵng', description: 'Người dùng mới', role: 'User', is_verified: true, created_at: '2025-03-01', updated_at: '2025-03-01', last_login: '2025-04-02', failed_attempts: 0, is_locked: false },
-    { id: 4, username: 'user3', email: 'user3@example.com', phone: '0934567890', full_name: 'Phạm Thị User 3', address: '101 Đường User, Hải Phòng', description: 'Người dùng tích cực', role: 'User', is_verified: true, created_at: '2025-03-15', updated_at: '2025-03-15', last_login: '2025-04-03', failed_attempts: 1, is_locked: false },
-    { id: 5, username: 'user4', email: 'user4@example.com', phone: '0945678901', full_name: 'Ngô Văn User 4', address: '202 Đường User, Cần Thơ', description: 'Người dùng mới', role: 'User', is_verified: false, created_at: '2025-03-20', updated_at: '2025-03-20', last_login: null, failed_attempts: 0, is_locked: false },
-    { id: 6, username: 'user5', email: 'user5@example.com', phone: '0956789012', full_name: 'Đỗ Thị User 5', address: '303 Đường User, Nha Trang', description: 'Người dùng thường', role: 'User', is_verified: true, created_at: '2025-03-25', updated_at: '2025-03-25', last_login: '2025-04-04', failed_attempts: 2, is_locked: false },
-    { id: 7, username: 'user6', email: 'user6@example.com', phone: '0967890123', full_name: 'Bùi Văn User 6', address: '404 Đường User, Huế', description: 'Người dùng mới', role: 'User', is_verified: false, created_at: '2025-03-30', updated_at: '2025-03-30', last_login: null, failed_attempts: 0, is_locked: false },
-    { id: 8, username: 'user7', email: 'user7@example.com', phone: '0978901234', full_name: 'Hoàng Thị User 7', address: '505 Đường User, Vũng Tàu', description: 'Người dùng tích cực', role: 'User', is_verified: true, created_at: '2025-04-01', updated_at: '2025-04-01', last_login: '2025-04-05', failed_attempts: 0, is_locked: false },
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [history, setHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('username');
@@ -38,19 +25,64 @@ function UsersManagerPage() {
   const [resetUserId, setResetUserId] = useState(null);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('');
+  const [error, setError] = useState(null);
+  const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const usersPerPage = 10;
+  const navigate = useNavigate();
 
-  const filteredUsers = users.filter(user => {
-    if (searchField === 'username') return user.username.toLowerCase().includes(searchTerm.toLowerCase());
-    if (searchField === 'email') return user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    if (searchField === 'role') return user.role.toLowerCase().includes(searchTerm.toLowerCase());
-    return true;
-  });
+  // Lấy danh sách người dùng
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Vui lòng đăng nhập để xem danh sách người dùng');
+        return;
+      }
+
+      const response = await axiosInstance.get('/auth/users', {
+        params: {
+          page: currentPage,
+          limit: usersPerPage,
+          search: searchTerm,
+          role: role
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.status === 'success') {
+        setUsers(response.data.data.users);
+        setTotalPages(response.data.data.totalPages);
+      } else {
+        setError(response.data.message || 'Có lỗi xảy ra khi tải dữ liệu');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      if (error.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+        // Redirect to login page
+        window.location.href = '/login';
+      } else {
+        setError(error.response?.data?.message || 'Không thể tải danh sách người dùng');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchTerm, role]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const closeEditModal = () => {
     setIsEditModalOpen(false);
@@ -64,56 +96,83 @@ function UsersManagerPage() {
 
   const handleSaveUser = async (updatedUser) => {
     try {
-      const response = await fetch(`https://your-api/users/${updatedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(updatedUser),
-      });
-      if (response.ok) {
-        setUsers(users.map(user => (user.id === updatedUser.id ? updatedUser : user)));
-        setHistory([...history, {
-          action: 'Chỉnh sửa tài khoản',
+      // Đảm bảo có ID người dùng
+      if (!updatedUser.id) {
+        setNotification({
+          message: 'Lỗi: ID người dùng không hợp lệ',
+          type: 'error'
+        });
+        return;
+      }
+
+      const response = await axiosInstance.put(`/auth/users/${updatedUser.id}`, updatedUser);
+      
+      if (response.data.status === 'success') {
+        setNotification({
+          message: 'Cập nhật thông tin thành công',
+          type: 'success'
+        });
+        
+        // Cập nhật danh sách người dùng
+        const updatedUsers = users.map(user => 
+          user.id === updatedUser.id ? { ...user, ...response.data.data } : user
+        );
+        setUsers(updatedUsers);
+        
+        // Đóng modal
+        closeEditModal();
+        
+        // Thêm vào lịch sử thay đổi
+        const newHistoryEntry = {
           userId: updatedUser.id,
-          timestamp: new Date().toLocaleString(),
-        }]);
-        setNotification({ message: 'Cập nhật tài khoản thành công!', type: 'success' });
-      } else {
-        setNotification({ message: 'Lỗi khi cập nhật tài khoản!', type: 'error' });
+          action: `Chỉnh sửa thông tin người dùng ${updatedUser.fullName || ''}`,
+          timestamp: new Date().toLocaleString()
+        };
+        setHistory([newHistoryEntry, ...history]);
       }
     } catch (error) {
-      setNotification({ message: 'Lỗi khi cập nhật tài khoản!', type: 'error' });
+      console.error('Lỗi khi cập nhật người dùng:', error);
+      setNotification({
+        message: `Lỗi cập nhật: ${error.response?.data?.message || error.message}`,
+        type: 'error'
+      });
     }
-    closeEditModal();
   };
 
   const handleToggleLock = async (userId) => {
-    const user = users.find(u => u.id === userId);
-    const newLockedStatus = !user.is_locked;
     try {
-      const response = await fetch(`https://your-api/users/${userId}/toggle-lock`, {
-        method: 'PATCH',
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setNotification({ message: 'Vui lòng đăng nhập để thực hiện thao tác này', type: 'error' });
+        return;
+      }
+
+      const response = await axiosInstance.patch(`/auth/users/${userId}/toggle-lock`, {}, {
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ is_locked: newLockedStatus }),
+          'Authorization': `Bearer ${token}`
+        }
       });
-      if (response.ok) {
-        setUsers(users.map(u => (u.id === userId ? { ...u, is_locked: newLockedStatus } : u)));
+      
+      if (response.data.status === 'success') {
+        const updatedUser = response.data.data;
+        setUsers(users.map(u => (u.id === userId ? updatedUser : u)));
         setHistory([...history, {
-          action: `Đã ${newLockedStatus ? 'khóa' : 'mở khóa'} tài khoản`,
+          action: `Đã ${updatedUser.is_locked ? 'khóa' : 'mở khóa'} tài khoản`,
           userId,
-          timestamp: new Date().toLocaleString(),
+          timestamp: new Date().toLocaleString()
         }]);
-        setNotification({ message: `Tài khoản đã được ${newLockedStatus ? 'khóa' : 'mở khóa'}!`, type: 'success' });
+        setNotification({
+          message: `Tài khoản đã được ${updatedUser.is_locked ? 'khóa' : 'mở khóa'}!`,
+          type: 'success'
+        });
       } else {
-        setNotification({ message: 'Lỗi khi thay đổi trạng thái tài khoản!', type: 'error' });
+        throw new Error(response.data.message);
       }
     } catch (error) {
-      setNotification({ message: 'Lỗi khi thay đổi trạng thái tài khoản!', type: 'error' });
+      setNotification({
+        message: error.response?.data?.message || 'Lỗi khi thay đổi trạng thái tài khoản',
+        type: 'error'
+      });
     }
   };
 
@@ -129,58 +188,99 @@ function UsersManagerPage() {
 
   const handleResetPassword = async (userId, newPassword) => {
     try {
-      const response = await fetch(`https://your-api/users/${userId}/reset-password`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ password: newPassword }),
-      });
-      if (response.ok) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setNotification({ message: 'Vui lòng đăng nhập để thực hiện thao tác này', type: 'error' });
+        return;
+      }
+
+      const response = await axiosInstance.post(`/auth/users/${userId}/reset-password`, 
+        { newPassword },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.data.status === 'success') {
         setHistory([...history, {
           action: 'Đặt lại mật khẩu',
           userId,
-          timestamp: new Date().toLocaleString(),
+          timestamp: new Date().toLocaleString()
         }]);
         setNotification({ message: 'Mật khẩu đã được đặt lại thành công!', type: 'success' });
       } else {
-        setNotification({ message: 'Lỗi khi đặt lại mật khẩu!', type: 'error' });
+        throw new Error(response.data.message);
       }
     } catch (error) {
-      setNotification({ message: 'Lỗi khi đặt lại mật khẩu!', type: 'error' });
+      setNotification({
+        message: error.response?.data?.message || 'Lỗi khi đặt lại mật khẩu',
+        type: 'error'
+      });
     }
     closeResetPasswordModal();
   };
 
+  const handleOpenDeleteConfirmModal = (user) => {
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
   const handleDeleteUser = async (userId) => {
-    const user = users.find(u => u.id === userId);
-    if (user.role === 'Admin' && user.id === 1) {
-      setNotification({ message: 'Không thể xóa tài khoản Admin chính!', type: 'error' });
-      return;
-    }
-    if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản ${user.username}?`)) {
-      try {
-        const response = await fetch(`https://your-api/users/${userId}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
+    try {
+      // Kiểm tra ID người dùng
+      if (!userId) {
+        console.error('Lỗi: Không có userId được truyền vào hàm handleDeleteUser');
+        setNotification({
+          message: 'Lỗi: ID người dùng không hợp lệ',
+          type: 'error'
         });
-        if (response.ok) {
-          setUsers(users.filter(u => u.id !== userId));
-          setHistory([...history, {
-            action: 'Xóa tài khoản',
-            userId,
-            timestamp: new Date().toLocaleString(),
-          }]);
-          setNotification({ message: 'Xóa tài khoản thành công!', type: 'success' });
-        } else {
-          setNotification({ message: 'Lỗi khi xóa tài khoản!', type: 'error' });
-        }
-      } catch (error) {
-        setNotification({ message: 'Lỗi khi xóa tài khoản!', type: 'error' });
+        return;
       }
+
+      console.log(`Bắt đầu xóa người dùng có ID: ${userId}`);
+      
+      // Gọi API xóa người dùng
+      const response = await axiosInstance.delete(`/auth/users/${userId}`);
+      console.log('Kết quả trả về từ API:', response.data);
+      
+      if (response.data.status === 'success') {
+        setNotification({
+          message: 'Xóa tài khoản thành công',
+          type: 'success'
+        });
+        
+        // Cập nhật danh sách người dùng
+        setUsers(users.filter(user => user.id !== userId));
+        
+        // Đóng modal xác nhận xóa
+        setDeleteConfirmOpen(false);
+        setUserToDelete(null);
+        
+        // Thêm vào lịch sử thay đổi
+        const deletedUser = userToDelete;
+        const newHistoryEntry = {
+          userId: userId,
+          action: `Xóa tài khoản người dùng ${deletedUser?.username || ''}`,
+          timestamp: new Date().toLocaleString()
+        };
+        setHistory([newHistoryEntry, ...history]);
+      } else {
+        throw new Error(response.data.message || 'Lỗi không xác định khi xóa người dùng');
+      }
+    } catch (error) {
+      console.error('Lỗi chi tiết khi xóa người dùng:', error);
+      console.error('Response data:', error.response?.data);
+      console.error('Status code:', error.response?.status);
+      
+      setNotification({
+        message: `Lỗi xóa: ${error.response?.data?.message || error.message}`,
+        type: 'error'
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -197,33 +297,96 @@ function UsersManagerPage() {
     }
   }, [notification]);
 
+  // Add new user
+  const openAddUserModal = () => {
+    setShowAddModal(true);
+  };
+
+  const handleAddUser = (newUser) => {
+    // Update users list with the new user
+    setUsers([newUser, ...users]);
+    
+    // Show success notification
+    setNotification({
+      message: 'Người dùng đã được tạo thành công!',
+      type: 'success'
+    });
+    
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setNotification({ message: '', type: '' });
+    }, 3000);
+    
+    // Refresh user list
+    fetchUsers(currentPage);
+  };
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.errorMessage}>
+          <i className="fas fa-exclamation-circle"></i>
+          {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
+      <div className={styles.header}>
+        <button 
+          onClick={openAddUserModal}
+          style={{
+            padding: '8px 15px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Thêm người dùng mới
+        </button>
+      </div>
+
+      {notification.message && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification({ message: '', type: '' })} 
+        />
+      )}
+
       {/* Thanh tìm kiếm */}
       <SearchBar
         searchTerm={searchTerm}
         searchField={searchField}
+        role={role}
         onSearchTermChange={(value) => setSearchTerm(value)}
         onSearchFieldChange={(value) => setSearchField(value)}
+        onRoleChange={(value) => setRole(value)}
       />
-
-      {/* Thông báo */}
-      <Notification notification={notification} />
 
       {/* Bảng danh sách người dùng */}
       <UserTable
-        users={currentUsers}
-        onEditUser={(user) => handleEditUser(user)}
-        onToggleLock={(userId) => handleToggleLock(userId)}
-        onDeleteUser={(userId) => handleDeleteUser(userId)}
+        users={users}
+        onEditUser={handleEditUser}
+        onToggleLock={handleToggleLock}
+        onResetPassword={handleOpenResetPasswordModal}
+        onDeleteUser={handleOpenDeleteConfirmModal}
+        loading={loading}
       />
 
       {/* Phân trang */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(pageNumber) => handlePageChange(pageNumber)}
-      />
+      {users.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
 
       {/* Lịch sử thay đổi */}
       <HistoryLog history={history} />
@@ -243,6 +406,25 @@ function UsersManagerPage() {
           userId={resetUserId}
           onSave={handleResetPassword}
           onClose={closeResetPasswordModal}
+        />
+      )}
+
+      {/* Modal xác nhận xóa */}
+      {isDeleteConfirmOpen && userToDelete && (
+        <DeleteConfirmModal
+          user={userToDelete}
+          onConfirm={handleDeleteUser}
+          onCancel={() => {
+            setDeleteConfirmOpen(false);
+            setUserToDelete(null);
+          }}
+        />
+      )}
+
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddUser}
         />
       )}
     </div>

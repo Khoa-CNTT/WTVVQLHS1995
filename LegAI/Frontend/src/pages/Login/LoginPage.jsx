@@ -1,48 +1,114 @@
 import styles from './LoginPage.module.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey } from 'react-icons/fa6';
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-
-const fakeUsers = [
-  {
-    id: 1,
-    userName: 'Hahaha',
-    password: '123456',
-    name: 'Nguyễn Văn A'
-  },
-  {
-    id: 2,
-    userName: 'admin@legai.com',
-    password: 'admin123',
-    name: 'Admin'
-  }
-];
+import { useNavigate, useLocation } from 'react-router-dom';
+import authService from '../../services/authService';
+import { sendOTPEmail } from '../../services/emailService';
+import Loading from '../../components/layout/Loading/Loading';
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [userName, setuserName] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showOtpForm, setShowOtpForm] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Kiểm tra thông báo từ các trang khác chuyển đến
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Xóa state để tránh hiển thị lại khi refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+  
   const goToHomePage = () => {
     navigate('/');
   };
+  
   const goToRegisterPage = () => {
     navigate('/register');
   };
-  const handleLogin = (e) => {
+  
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const foundUser = fakeUsers.find(
-      (user) => user.userName === userName && user.password === password
-    );
-
-    if (foundUser) {
-      alert(`Đăng nhập thành công. Xin chào ${foundUser.name}!`);
-      navigate('/dashboard'); // hoặc trang chính khác
-    } else {
-      alert('Sai Tên đăng nhập hoặc mật khẩu.');
+    setError('');
+    setLoading(true);
+    
+    try {
+      const response = await authService.login(usernameOrEmail, password);
+      // Đăng nhập thành công
+      setLoading(false);
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      console.error('Lỗi đăng nhập:', error);
+      
+      // Kiểm tra trường hợp chưa xác minh tài khoản
+      if (error.message && error.message.includes('chưa được xác minh')) {
+        // Lưu thông tin user để gửi OTP
+        if (error.userId && error.email) {
+          setUserId(error.userId);
+          setUserEmail(error.email);
+          setShowOtpForm(true);
+          handleSendOTP(error.userId, error.email);
+        } else {
+          setError('Không thể xác minh tài khoản. Vui lòng liên hệ hỗ trợ.');
+        }
+      } 
+      // Kiểm tra trường hợp tài khoản bị khóa
+      else if (error.message && (error.message.includes('đã bị khóa') || error.isLocked)) {
+        setError(error.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      } 
+      else {
+        setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      }
     }
   };
+  
+  const handleSendOTP = async (userIdToUse, emailToUse) => {
+    setLoading(true);
+    try {
+      // Gửi lại OTP
+      const id = userIdToUse || userId;
+      const email = emailToUse || userEmail;
+      await authService.resendOTP(id, email);
+      setLoading(false);
+    } catch (error) {
+      setError('Không thể gửi mã OTP. Vui lòng thử lại sau.');
+      setLoading(false);
+    }
+  };
+  
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await authService.verifyAccount(userId, otpValue);
+      setLoading(false);
+      // Sau khi xác minh thành công, cho phép đăng nhập lại
+      setShowOtpForm(false);
+      setError('Xác minh tài khoản thành công. Vui lòng đăng nhập lại.');
+    } catch (error) {
+      setLoading(false);
+      setError(error.message || 'Xác minh thất bại. Vui lòng kiểm tra lại mã OTP.');
+    }
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <div className={styles.container}>
@@ -51,50 +117,113 @@ function LoginPage() {
           <FaGavel style={{ marginRight: '10px',color: 'Gray' }} />
           <span>LegAI</span>
         </div>
-        <h2 className={styles.title}>Đăng nhập vào tài khoản của bạn</h2>
+        
+        {showOtpForm ? (
+          // Form nhập OTP
+          <>
+            <h2 className={styles.title}>Xác minh tài khoản</h2>
+            <p className={styles.otpMessage}>
+              Vui lòng nhập mã OTP đã được gửi đến email của bạn để xác minh tài khoản
+            </p>
+            
+            {error && <div className={styles.errorMessage}>{error}</div>}
+            
+            <form onSubmit={handleVerifyOTP}>
+              <div className={styles.inputGroup}>
+                <FaKey className={styles.icon} />
+                <input 
+                  type="text" 
+                  placeholder="Nhập mã OTP 6 chữ số" 
+                  value={otpValue}
+                  onChange={(e) => {
+                    // Chỉ chấp nhận số và giới hạn 6 ký tự
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val) && val.length <= 6) {
+                      setOtpValue(val);
+                    }
+                  }}
+                  maxLength={6}
+                  required
+                />
+              </div>
+              
+              <button type="submit" className={styles.loginButton}>Xác minh</button>
+              
+              <div className={styles.bottomRow}>
+                <button 
+                  type="button" 
+                  className={styles.resendButton}
+                  onClick={() => handleSendOTP()}
+                >
+                  Gửi lại mã OTP
+                </button>
+              </div>
+            </form>
+            
+            <div className={styles.bottomRow}>
+              <button 
+                className={styles.backButton}
+                onClick={() => setShowOtpForm(false)}
+              >
+                Quay lại đăng nhập
+              </button>
+            </div>
+          </>
+        ) : (
+          // Form đăng nhập
+          <>
+            <h2 className={styles.title}>Đăng nhập vào tài khoản của bạn</h2>
 
-        <div className={styles.socialLogin}>
-          <button title="Đăng nhập bằng Facebook"><FaFacebookF /></button>
-          <button title="Đăng nhập bằng userName"><FaEnvelope /></button>
-          <button title="Đăng nhập bằng Twitter"><FaXTwitter /></button>
-        </div>
+            <div className={styles.socialLogin}>
+              <button title="Đăng nhập bằng Facebook"><FaFacebookF /></button>
+              <button title="Đăng nhập bằng Email"><FaEnvelope /></button>
+              <button title="Đăng nhập bằng Twitter"><FaXTwitter /></button>
+            </div>
 
-        <div className={styles.orDivider}>
-          <span>hoặc</span>
-        </div>
+            <div className={styles.orDivider}>
+              <span>hoặc</span>
+            </div>
+            
+            {successMessage && (
+              <div className={styles.successMessage}>{successMessage}</div>
+            )}
+            
+            {error && <div className={styles.errorMessage}>{error}</div>}
 
-        <form onSubmit={handleLogin}>
-          <div className={styles.inputGroup}>
-            <FaUser className={styles.icon} />
-            <input 
-              type="text" 
-              placeholder="Tên đăng nhập" 
-              value={userName}
-              onChange={(e) => setuserName(e.target.value)}
-              required
-            />
-          </div>
+            <form onSubmit={handleLogin}>
+              <div className={styles.inputGroup}>
+                <FaUser className={styles.icon} />
+                <input 
+                  type="text" 
+                  placeholder="Tên đăng nhập hoặc Email" 
+                  value={usernameOrEmail}
+                  onChange={(e) => setUsernameOrEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className={styles.inputGroup}>
-            <FaKey className={styles.icon} />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Mật khẩu"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <span className={styles.eye} onClick={() => setShowPassword(!showPassword)}>
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </span>
-          </div>
+              <div className={styles.inputGroup}>
+                <FaKey className={styles.icon} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <span className={styles.eye} onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+              </div>
 
-          <div className={styles.bottomRow}>
-            <a href="#">Quên mật khẩu?</a>
-          </div>
+              <div className={styles.bottomRow}>
+                <a href="/forgot-password">Quên mật khẩu?</a>
+              </div>
 
-          <button type="submit" className={styles.loginButton}>Đăng nhập</button>
-        </form>
+              <button type="submit" className={styles.loginButton}>Đăng nhập</button>
+            </form>
+          </>
+        )}
       </div>
 
       <div className={styles.registerSection}>

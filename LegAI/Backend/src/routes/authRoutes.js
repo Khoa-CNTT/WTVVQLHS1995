@@ -3,17 +3,28 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-// Đăng nhập
+// Routes công khai
 router.post('/login', authController.login);
-
-// Đăng ký
 router.post('/register', userController.register);
-
-// Xác minh tài khoản
 router.post('/verify', userController.verifyAccount);
 
-// Lấy thông tin người dùng theo ID
-router.get('/users/:userId', userController.getUserById);
+// Routes quên mật khẩu
+router.post('/forgot-password', userController.forgotPassword);
+router.post('/verify-reset-token', userController.verifyResetToken);
+router.post('/change-password', userController.changePassword);
+
+// Routes được bảo vệ (yêu cầu xác thực)
+router.get('/users', authenticateToken, userController.getUsers);
+router.get('/users/:userId', authenticateToken, userController.getUserById);
+router.get('/users/:userId/stats', authenticateToken, userController.getUserStats);
+router.put('/users/:userId', authenticateToken, userController.updateUser);
+router.delete('/users/:userId', authenticateToken, userController.deleteUser);
+router.patch('/users/:userId/toggle-lock', authenticateToken, userController.toggleUserLock);
+router.post('/users/:userId/reset-password', authenticateToken, userController.resetPassword);
+
+// Route cho developer kiểm tra ràng buộc database
+router.get('/check-constraints/:tableName', authenticateToken, userController.checkDatabaseConstraints);
 
 module.exports = router;

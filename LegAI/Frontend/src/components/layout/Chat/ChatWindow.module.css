@@ -287,6 +287,7 @@
   display: flex !important;
   align-items: center;
   gap: 10px;
+  flex-direction: row;
 }
 
 .chatInput {
@@ -311,9 +312,9 @@
   width: 42px;
   height: 42px;
   /* border-radius: 50%; */
-  background-color: #ffcc00;
+  background-color: transparent;
   border: none;
-  color: #000;
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -328,8 +329,8 @@
 }
 
 .sendButton:hover {
-  background-color: #e6b800;
-  transform: scale(1.05);
+  color: #fff314;
+  transform: scale(1.25);
 }
 
 /* Custom scrollbar */

@@ -17,27 +17,59 @@ const login = async (username, password) => {
 
         const user = userQuery.rows[0];
 
-        // Kiểm tra xem tài khoản đã được xác minh chưa
-        if (!user.is_verified) {
-            throw new Error('Tài khoản chưa được xác minh. Vui lòng xác minh tài khoản');
+        // Kiểm tra xem tài khoản có bị khóa không
+        if (user.is_locked) {
+            throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên');
         }
 
+        // Không kiểm tra xác minh ở đây, vì đã kiểm tra ở controller
+        
         // So sánh mật khẩu
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
+            // Tăng số lần đăng nhập thất bại
+            const updatedFailedAttempts = user.failed_attempts + 1;
+            
+            // Nếu số lần đăng nhập thất bại vượt quá 5 lần, khóa tài khoản
+            let isLocked = user.is_locked;
+            if (updatedFailedAttempts >= 5) {
+                isLocked = true;
+            }
+            
+            // Cập nhật số lần đăng nhập thất bại và trạng thái khóa
+            await pool.query(
+                'UPDATE users SET failed_attempts = $1, is_locked = $2 WHERE id = $3',
+                [updatedFailedAttempts, isLocked, user.id]
+            );
+            
+            if (updatedFailedAttempts >= 5) {
+                throw new Error('Tài khoản của bạn đã bị khóa do nhập sai mật khẩu quá nhiều lần');
+            }
+            
             throw new Error('Mật khẩu không đúng');
         }
 
-        // Cập nhật thời gian đăng nhập
+        // Đăng nhập thành công, đặt lại số lần đăng nhập thất bại
         await pool.query(
-            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP, failed_attempts = 0 WHERE id = $1',
             [user.id]
         );
 
+        // Xác định JWT_SECRET
+        const jwtSecret = process.env.JWT_SECRET || 'legai_jwt_super_secret_key_12345_secure_random_string';
+        
+        if (!jwtSecret) {
+            throw new Error('JWT Secret không được thiết lập');
+        }
+
         // Tạo JWT token
         const token = jwt.sign(
-            { id: user.id, username: user.username },
-            process.env.JWT_SECRET,
+            { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role 
+            },
+            jwtSecret,
             { expiresIn: '1h' }
         );
 
@@ -48,10 +80,18 @@ const login = async (username, password) => {
                 username: user.username,
                 email: user.email,
                 fullName: user.full_name,
-                role: user.role
+                phone: user.phone,
+                role: user.role,
+                isVerified: user.is_verified,
+                lastLogin: user.last_login,
+                isLocked: user.is_locked,
+                failedAttempts: user.failed_attempts,
+                createdAt: user.created_at,
+                updatedAt: user.updated_at
             } 
         };
     } catch (error) {
+        console.error('Lỗi đăng nhập:', error);
         throw new Error(error.message);
     }
 };

@@ -342,6 +342,7 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   position: relative;
+  cursor: pointer;
 }
 
 .sideMenuItem:hover {
@@ -418,4 +419,175 @@
   .sideMenu {
     width: 280px;
   }
+}
+
+.loginIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.loginIcon:hover {
+  background-color: rgba(255, 204, 0, 0.2);
+}
+
+.userMenuContainer {
+  position: relative;
+  margin-left: 10px;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffcc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.userAvatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.userInitial {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.userDropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 240px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 15px 0;
+  animation: dropdownFadeIn 0.3s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.userInfo {
+  padding: 0 15px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.userEmail {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userMenuDivider {
+  height: 1px;
+  background-color: #eee;
+  margin: 10px 0;
+}
+
+.userMenuItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  background: transparent;
+  transition: background-color 0.2s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.userMenuItem i {
+  margin-right: 10px;
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  background: transparent;
+}
+
+
+.sideMenuUser {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: #f9f9f9;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.sideMenuAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffcc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.sideMenuInitial {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.sideMenuUserInfo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sideMenuName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sideMenuEmail {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

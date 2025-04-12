@@ -1,10 +1,17 @@
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import LoginPage from '../pages/Login/LoginPage';
 import HomePage from '../pages/Home/Home'; 
 import RegisterPage from '../pages/Register/Register';
-import Dashboard from '../pages/Dashboard/Dashboard';
+import ChangePassword from '../pages/Profile/ChangePassword/ChangePasssword'
+import ForgotPassword from '../pages/ForgotPassword/ForgotPassword';
+import Contact from '../pages/Contact/Contact';
+import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
+import Services from '../pages/Services/Services';
+import News from '../pages/News/News';
+import Lawyers from '../pages/Lawyers/Lawyers';
+
 
 const PublicRoutes = () => {
   const location = useLocation();
@@ -27,9 +34,39 @@ const PublicRoutes = () => {
             <RegisterPage />
           </PageTransition>
         } />
-        <Route path="/admin" element={
+        <Route path="/change-password" element={
+         <PageTransition custom="fade">
+            <ChangePassword/>
+          </PageTransition>
+        } />
+        <Route path="/forgot-password" element={
+         <PageTransition custom="fade">
+            <ForgotPassword/>
+          </PageTransition>
+        } />
+        <Route path="/contact" element={
+         <PageTransition custom="fade">
+            <Contact/>
+          </PageTransition>
+        } />
+        <Route path="/lawyer-dashboard" element={
           <PageTransition custom="fade">
-            <Dashboard />
+            <LawyerDashboard />
+          </PageTransition>
+        } />
+        <Route path="/services" element={
+          <PageTransition custom="fade">
+            <Services />
+          </PageTransition>
+        } />
+        <Route path="/news" element={
+          <PageTransition custom="fade">
+            <News />
+          </PageTransition>
+        } />
+        <Route path="/lawyers" element={
+          <PageTransition custom="fade">
+            <Lawyers />
           </PageTransition>
         } />
       </Routes>
