@@ -1,4 +1,5 @@
 import axios from 'axios';
+import authService from './authService';
 
 const API_URL = 'http://localhost:8000/api';
 
@@ -37,10 +38,42 @@ const getUserProfile = async (userId) => {
 // Cập nhật thông tin hồ sơ người dùng
 const updateUserProfile = async (userId, userData) => {
   try {
-    const response = await userAxios.put(`/auth/users/${userId}`, userData);
-    return response.data.data;
+    // Lấy thông tin người dùng hiện tại từ localStorage để bảo toàn vai trò
+    const currentUser = authService.getCurrentUser();
+    
+    // Chuẩn bị dữ liệu để cập nhật
+    const updateData = {
+      ...userData,
+      role: currentUser?.role || 'user' // Giữ nguyên vai trò hiện tại
+    };
+    
+    const response = await userAxios.put(`/auth/users/${userId}`, updateData);
+    
+    if (response.data.status === 'success') {
+      // Cập nhật localStorage
+      if (currentUser) {
+        // Cập nhật dữ liệu mới nhưng giữ nguyên vai trò
+        const updatedUserData = response.data.data;
+        
+        // Đảm bảo vai trò được giữ nguyên
+        if (!updatedUserData.role) {
+          updatedUserData.role = currentUser.role;
+        }
+        
+        localStorage.setItem('user', JSON.stringify({
+          ...currentUser,
+          ...updatedUserData,
+          role: currentUser.role // Đảm bảo vai trò không bị ghi đè
+        }));
+      }
+      
+      return response.data.data;
+    } else {
+      throw new Error('Cập nhật thông tin người dùng thất bại');
+    }
   } catch (error) {
-    throw error.response?.data || { message: 'Lỗi cập nhật thông tin người dùng' };
+    console.error('Lỗi cập nhật hồ sơ:', error);
+    throw error;
   }
 };
 
@@ -76,10 +109,31 @@ const uploadAvatar = async (userId, formData) => {
 // Lấy thông tin chi tiết luật sư
 const getLawyerDetails = async (userId) => {
   try {
+    // Kiểm tra vai trò người dùng trước khi gọi API
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Nếu không phải luật sư, trả về dữ liệu rỗng mà không cần gọi API
+    // Sử dụng toLowerCase() để đảm bảo không phân biệt chữ hoa/thường
+    if (!currentUser || currentUser.role?.toLowerCase() !== 'lawyer') {
+      return {
+        certification: '',
+        experienceYears: 0,
+        specialization: '',
+        rating: 0.0
+      };
+    }
+    
+    // Chỉ gọi API khi người dùng có vai trò là luật sư
     const response = await userAxios.get(`/lawyers/${userId}`);
     return response.data.data;
   } catch (error) {
     console.error('Lỗi lấy thông tin luật sư:', error);
+    
+    // Trường hợp endpoint không tồn tại hoặc lỗi khác
+    if (error.response && error.response.status === 404) {
+      console.log('API cho thông tin luật sư chưa được triển khai, trả về dữ liệu mẫu');
+    }
+    
     // Trả về dữ liệu trống nếu không phải là luật sư hoặc có lỗi
     return {
       certification: '',

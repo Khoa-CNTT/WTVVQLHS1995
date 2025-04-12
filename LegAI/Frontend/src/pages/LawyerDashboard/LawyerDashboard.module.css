@@ -618,24 +618,161 @@
   border-bottom: 2px solid rgba(255, 215, 0, 0.2);
 }
 
-.dataFields {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.dataFields li {
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f1f1;
+/* Cuộc hẹn */
+.appointmentsList {
   display: flex;
-  justify-content: space-between;
-  transition: all 0.2s ease;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.dataFields li:hover {
-  background-color: rgba(255, 215, 0, 0.05);
-  padding-left: 10px;
-  border-bottom-color: #ffd700;
+.appointmentItem {
+  display: flex;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  flex-wrap: wrap;
+}
+
+.appointmentItem:hover {
+  background-color: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+}
+
+.appointmentTime {
+  min-width: 120px;
+  padding-right: 15px;
+  font-weight: 600;
+  color: #ffd700;
+  margin-bottom: 5px;
+}
+
+.appointmentDetails {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 5px;
+}
+
+.appointmentTitle {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #2c3e50;
+}
+
+.appointmentClient {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.appointmentStatus {
+  min-width: 100px;
+  text-align: right;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #27ae60;
+  border-radius: 20px;
+  align-self: flex-start;
+}
+
+.appointmentStatus.urgent {
+  color: #e74c3c;
+}
+
+/* Vụ án */
+.casesList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.caseItem {
+  display: flex;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.caseItem:hover {
+  background-color: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+}
+
+.caseStatus {
+  width: 8px;
+  height: 40px;
+  border-radius: 4px;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.caseStatus.high {
+  background-color: #e74c3c;
+}
+
+.caseStatus.medium {
+  background-color: #f39c12;
+}
+
+.caseStatus.low {
+  background-color: #27ae60;
+}
+
+.caseInfo {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 10px;
+}
+
+.caseInfo h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.caseDetails {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  color: #7f8c8d;
+  flex-wrap: wrap;
+}
+
+.caseDetails span {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.caseDetails span i {
+  margin-right: 5px;
+  color: #ffd700;
+}
+
+.casePriority {
+  min-width: 120px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-left: auto;
+}
+
+.caseItem:has(.caseStatus.high) .casePriority {
+  color: #e74c3c;
+}
+
+.caseItem:has(.caseStatus.medium) .casePriority {
+  color: #f39c12;
+}
+
+.caseItem:has(.caseStatus.low) .casePriority {
+  color: #27ae60;
 }
 
 /* Responsive styles */
@@ -744,6 +881,12 @@
   .halfWidth {
     min-width: 100%;
   }
+  
+  .appointmentStatus, .casePriority {
+    margin-left: 0;
+    margin-top: 10px;
+    text-align: left;
+  }
 }
 
 @media (max-width: 480px) {
@@ -779,4 +922,4 @@
     width: 100%;
     justify-content: center;
   }
-}
+} 

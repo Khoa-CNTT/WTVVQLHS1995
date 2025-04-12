@@ -11,7 +11,7 @@ const EditUserModal = ({ user, onSave, onClose }) => {
     phone: user.phone || '',
     address: user.address || '',
     bio: user.bio || '',
-    role: user.role || 'User',
+    role: user.role || 'user',
     is_verified: user.is_verified || false,
     is_locked: user.is_locked || false,
     failed_attempts: user.failed_attempts || 0,

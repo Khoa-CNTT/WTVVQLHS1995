@@ -29,6 +29,13 @@ function ChangePasswordPage() {
       return;
     }
 
+    // Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+    if (currentPassword === newPassword) {
+      setError('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Lấy thông tin người dùng hiện tại
       const currentUser = authService.getCurrentUser();
@@ -61,7 +68,37 @@ function ChangePasswordPage() {
       */
     } catch (error) {
       console.error('Lỗi đổi mật khẩu:', error);
-      setError(error.response?.data?.message || 'Mật khẩu hiện tại không chính xác');
+      
+      // Bổ sung thông tin chi tiết hơn cho việc debug
+      if (error.message && error.message.includes('Network Error')) {
+        console.error('Chi tiết lỗi kết nối mạng:', {
+          message: error.message,
+          config: error.config,
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        });
+        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và đảm bảo server đang chạy.');
+        return;
+      }
+      
+      // Xử lý các loại lỗi cụ thể
+      if (error.response) {
+        // Lỗi từ API
+        if (error.response.data && error.response.data.message) {
+          // Kiểm tra loại lỗi dựa vào message từ server
+          if (error.response.data.message.includes('current password') || 
+              error.response.data.message.includes('mật khẩu hiện tại')) {
+            setError('Mật khẩu hiện tại không chính xác. Vui lòng kiểm tra lại.');
+          } else {
+            setError(error.response.data.message);
+          }
+        } else {
+          setError('Đã xảy ra lỗi khi đổi mật khẩu. Vui lòng thử lại sau.');
+        }
+      } else {
+        setError(`Mật khẩu hiện tại không chính xác. Vui lòng kiểm tra lại`);
+      }
     } finally {
       setLoading(false);
     }

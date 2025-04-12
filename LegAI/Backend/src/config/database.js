@@ -10,13 +10,12 @@ const dbConfig = {
     port: process.env.DB_PORT || 5432,
 };
 
-console.log('Cấu hình Database:', {
-    host: dbConfig.host,
-    user: dbConfig.user,
-    database: dbConfig.database,
-    port: dbConfig.port,
-    // không log mật khẩu vì lý do bảo mật
-});
+// console.log('Cấu hình Database:', {
+//     host: dbConfig.host,
+//     user: dbConfig.user,
+//     database: dbConfig.database,
+//     port: dbConfig.port,
+// });
 
 const pool = new Pool(dbConfig);
 

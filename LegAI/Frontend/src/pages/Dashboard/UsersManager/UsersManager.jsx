@@ -231,6 +231,7 @@ function UsersManagerPage() {
     try {
       // Kiểm tra ID người dùng
       if (!userId) {
+        console.error('Lỗi: Không có userId được truyền vào hàm handleDeleteUser');
         setNotification({
           message: 'Lỗi: ID người dùng không hợp lệ',
           type: 'error'
@@ -238,8 +239,11 @@ function UsersManagerPage() {
         return;
       }
 
+      console.log(`Bắt đầu xóa người dùng có ID: ${userId}`);
+      
       // Gọi API xóa người dùng
       const response = await axiosInstance.delete(`/auth/users/${userId}`);
+      console.log('Kết quả trả về từ API:', response.data);
       
       if (response.data.status === 'success') {
         setNotification({
@@ -262,9 +266,14 @@ function UsersManagerPage() {
           timestamp: new Date().toLocaleString()
         };
         setHistory([newHistoryEntry, ...history]);
+      } else {
+        throw new Error(response.data.message || 'Lỗi không xác định khi xóa người dùng');
       }
     } catch (error) {
-      console.error('Lỗi khi xóa người dùng:', error);
+      console.error('Lỗi chi tiết khi xóa người dùng:', error);
+      console.error('Response data:', error.response?.data);
+      console.error('Status code:', error.response?.status);
+      
       setNotification({
         message: `Lỗi xóa: ${error.response?.data?.message || error.message}`,
         type: 'error'

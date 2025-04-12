@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { sendOTPEmail } from './emailService';
+import axiosInstance from '../config/axios';
 
 const API_URL = 'http://localhost:8000/api/auth';
 
@@ -227,7 +228,17 @@ const getCurrentUser = () => {
 
 // Kiểm tra người dùng đã đăng nhập chưa
 const isAuthenticated = () => {
-  return !!localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  
+  try {
+    // Kiểm tra xem token đã hết hạn chưa
+    const currentUser = getCurrentUser();
+    return !!currentUser;
+  } catch (error) {
+    console.error('Lỗi kiểm tra xác thực:', error);
+    return false;
+  }
 };
 
 // Kiểm tra email tồn tại
@@ -317,6 +328,38 @@ export const changePassword = async (passwordData) => {
   }
 };
 
+// Kiểm tra token hết hạn
+const checkTokenValidity = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return false;
+    }
+
+    // Gọi API kiểm tra token
+    const response = await axiosInstance.get('/auth/verify-token');
+    return response.data.status === 'success';
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra token:', error);
+    return false;
+  }
+};
+
+// Kiểm tra vai trò người dùng
+const hasRole = (role) => {
+  const user = getCurrentUser();
+  
+  if (!user || !user.role) return false;
+  
+  // Chuyển đổi cả hai thành chữ thường để so sánh
+  const userRole = user.role.toLowerCase();
+  const requiredRole = Array.isArray(role) 
+    ? role.map(r => r.toLowerCase()) 
+    : [role.toLowerCase()];
+  
+  return requiredRole.includes(userRole);
+};
+
 const authService = {
   register,
   verifyAccount,
@@ -329,7 +372,9 @@ const authService = {
   requestPasswordReset,
   verifyResetToken,
   resetPassword,
-  changePassword
+  changePassword,
+  checkTokenValidity,
+  hasRole
 };
 
 export default authService;

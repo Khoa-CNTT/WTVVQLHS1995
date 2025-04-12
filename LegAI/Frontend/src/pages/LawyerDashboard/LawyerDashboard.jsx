@@ -1,0 +1,397 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import styles from '../Dashboard/DashboardPage.module.css';
+import authService from '../../services/authService';
+import userService from '../../services/userService';
+
+const LawyerDashboard = () => {
+  const [activeMenu, setActiveMenu] = useState('overview');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [appointmentCount, setAppointmentCount] = useState(0);
+  const [caseCount, setCaseCount] = useState(0);
+  const [documentCount, setDocumentCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState({});
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (!user || user.role !== 'lawyer') {
+          navigate('/login');
+          return;
+        }
+        setCurrentUser(user);
+        
+        // Simulate loading data with counting animation
+        let counter = 0;
+        const interval = setInterval(() => {
+          counter += 1;
+          setPendingCount(Math.min(counter * 2, 12));
+          setAppointmentCount(Math.min(counter * 3, 18));
+          setCaseCount(Math.min(counter * 4, 24));
+          setDocumentCount(Math.min(counter * 5, 35));
+          
+          if (counter >= 8) {
+            clearInterval(interval);
+          }
+        }, 100);
+        
+        // Load notifications
+        setNotifications([
+          { id: 1, message: 'Bạn có lịch hẹn mới', time: '10 phút trước', icon: 'calendar-check' },
+          { id: 2, message: 'Tài liệu đã được duyệt', time: '35 phút trước', icon: 'file-check' },
+          { id: 3, message: 'Tin nhắn mới từ khách hàng', time: '2 giờ trước', icon: 'message' },
+          { id: 4, message: 'Nhắc nhở: Phiên tòa ngày mai', time: '5 giờ trước', icon: 'gavel' },
+        ]);
+      } catch (error) {
+        console.error('Error checking user:', error);
+        navigate('/login');
+      }
+    };
+    
+    checkUser();
+  }, [navigate]);
+
+  const navigateToHome = () => {
+    navigate('/');
+  };
+  
+  const navigateToProfile = () => {
+    navigate('/profile');
+    setUserProfileOpen(false);
+  };
+  
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+  
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+  
+  const toggleUserMenu = () => {
+    setUserProfileOpen(!userProfileOpen);
+  };
+  
+  const menuItems = [
+    { id: 'overview', label: 'Tổng quan', icon: 'chart-line' },
+    { id: 'messages', label: 'Tin nhắn', icon: 'envelope', count: 12 },
+    { id: 'cases', label: 'Vụ án', icon: 'balance-scale', count: 24 },
+    { id: 'appointments', label: 'Lịch hẹn', icon: 'calendar-alt', count: 18 },
+    { id: 'documents', label: 'Tài liệu', icon: 'file-alt', count: 35 },
+    { id: 'contracts', label: 'Hợp đồng', icon: 'file-signature' },
+    { id: 'clients', label: 'Khách hàng', icon: 'users' },
+    { id: 'transactions', label: 'Giao dịch', icon: 'money-bill-wave' },
+    { id: 'specialties', label: 'Chuyên môn', icon: 'graduation-cap' },
+  ];
+  
+  const renderOverview = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Tổng quan Luật sư</h1>
+      <div className={styles.legalQuote}>
+        "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy đang được thực thi."
+      </div>
+      
+      <div className={styles.cardGrid}>
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>
+            <i className={`fas fa-envelope ${styles.legalIcon}`}></i>
+            Tin nhắn đang chờ
+          </div>
+          <div className={styles.cardContent}>
+            <span className={styles.statNumber}>{pendingCount}</span> tin nhắn
+          </div>
+          <button className={styles.actionButton}>
+            Xem tất cả <span>&rarr;</span>
+          </button>
+        </div>
+        
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>
+            <i className={`fas fa-calendar-alt ${styles.legalIcon}`}></i>
+            Lịch hẹn sắp tới
+          </div>
+          <div className={styles.cardContent}>
+            <span className={styles.statNumber}>{appointmentCount}</span> cuộc hẹn
+          </div>
+          <button className={styles.actionButton}>
+            Quản lý lịch <span>&rarr;</span>
+          </button>
+        </div>
+        
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>
+            <i className={`fas fa-balance-scale ${styles.legalIcon}`}></i>
+            Vụ án đang xử lý
+          </div>
+          <div className={styles.cardContent}>
+            <span className={styles.statNumber}>{caseCount}</span> vụ án
+          </div>
+          <button className={styles.actionButton}>
+            Xem chi tiết <span>&rarr;</span>
+          </button>
+        </div>
+        
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>
+            <i className={`fas fa-file-alt ${styles.legalIcon}`}></i>
+            Tài liệu cần xem xét
+          </div>
+          <div className={styles.cardContent}>
+            <span className={styles.statNumber}>{documentCount}</span> tài liệu
+          </div>
+          <button className={styles.actionButton}>
+            Xem tài liệu <span>&rarr;</span>
+          </button>
+        </div>
+      </div>
+      
+      <div className={styles.legalDivider}></div>
+      
+      <div className={styles.recentActivities}>
+        <h2 className={styles.subSectionTitle}>Hoạt động gần đây</h2>
+        
+        {notifications.map((notification) => (
+          <div key={notification.id} className={styles.activityItem}>
+            <div className={styles.activityIcon}>
+              <i className={`fas fa-${notification.icon}`}></i>
+            </div>
+            <div className={styles.activityContent}>
+              <div className={styles.activityTitle}>{notification.message}</div>
+              <div className={styles.activityTime}>{notification.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className={styles.rowContainer}>
+        <div className={styles.halfWidth}>
+          <h3 className={styles.subSectionTitle}>Thống kê hiệu suất</h3>
+          <ul className={styles.dataFields}>
+            <li>
+              <span>Tỷ lệ thắng kiện</span>
+              <strong>87%</strong>
+            </li>
+            <li>
+              <span>Tư vấn hoàn tất</span>
+              <strong>142</strong>
+            </li>
+            <li>
+              <span>Khách hàng mới (tháng)</span>
+              <strong>24</strong>
+            </li>
+            <li>
+              <span>Đánh giá trung bình</span>
+              <strong>4.8/5.0</strong>
+            </li>
+          </ul>
+        </div>
+        
+        <div className={styles.halfWidth}>
+          <h3 className={styles.subSectionTitle}>Lịch trình hôm nay</h3>
+          <ul className={styles.dataFields}>
+            <li>
+              <span>9:00 - Phiên tòa</span>
+              <strong>Phòng 302</strong>
+            </li>
+            <li>
+              <span>11:30 - Gặp khách hàng</span>
+              <strong>Văn phòng</strong>
+            </li>
+            <li>
+              <span>14:00 - Tư vấn trực tuyến</span>
+              <strong>Zoom</strong>
+            </li>
+            <li>
+              <span>16:30 - Họp nhóm</span>
+              <strong>Phòng họp</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderMessages = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Tin nhắn</h1>
+      <p className={styles.sectionDescription}>
+        Quản lý tin nhắn và liên lạc với khách hàng của bạn.
+      </p>
+      {/* Nội dung chi tiết phần tin nhắn sẽ được thêm sau */}
+      <div className={styles.contentSection}>
+        <div className={styles.legalQuote}>
+          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderCases = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Vụ án</h1>
+      <p className={styles.sectionDescription}>
+        Quản lý và theo dõi tất cả các vụ án pháp lý đang xử lý.
+      </p>
+      {/* Nội dung chi tiết phần vụ án sẽ được thêm sau */}
+      <div className={styles.contentSection}>
+        <div className={styles.legalQuote}>
+          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderAppointments = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Lịch hẹn</h1>
+      <p className={styles.sectionDescription}>
+        Quản lý lịch hẹn và lịch trình công việc của bạn.
+      </p>
+      {/* Nội dung chi tiết phần lịch hẹn sẽ được thêm sau */}
+      <div className={styles.contentSection}>
+        <div className={styles.legalQuote}>
+          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderDocuments = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Tài liệu</h1>
+      <p className={styles.sectionDescription}>
+        Quản lý tất cả tài liệu pháp lý và hồ sơ của bạn.
+      </p>
+      {/* Nội dung chi tiết phần tài liệu sẽ được thêm sau */}
+      <div className={styles.contentSection}>
+        <div className={styles.legalQuote}>
+          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderContent = () => {
+    switch (activeMenu) {
+      case 'messages':
+        return renderMessages();
+      case 'cases':
+        return renderCases();
+      case 'appointments':
+        return renderAppointments();
+      case 'documents':
+        return renderDocuments();
+      default:
+        return renderOverview();
+    }
+  };
+  
+  const getCurrentDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date().toLocaleDateString('vi-VN', options);
+  };
+  
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  return (
+    <div className={styles.dashboardContainer}>
+      <div className={`${styles.sidebar} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
+        <div className={styles.logoContainer} onClick={navigateToHome}>
+          <h2>LegAI</h2>
+        </div>
+        
+        <button
+          className={styles.menuToggle}
+          onClick={toggleSidebar}
+        >
+          <i className={`fas ${isSidebarCollapsed ? 'fa-angle-right' : 'fa-angle-left'}`}></i>
+        </button>
+        
+        <div className={styles.menuContainer}>
+          {menuItems.map((item) => (
+            <div
+              key={item.id}
+              className={`${styles.menuItem} ${activeMenu === item.id ? styles.active : ''}`}
+              onClick={() => setActiveMenu(item.id)}
+            >
+              <i className={`fas fa-${item.icon} ${styles.menuIcon}`}></i>
+              <span className={styles.menuLabel}>{item.label}</span>
+              {item.count && !isSidebarCollapsed && (
+                <span className={styles.notificationBadge}>{item.count}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        <div className={styles.logoutContainer}>
+          <button onClick={handleLogout} className={styles.logoutButton}>
+            <i className="fas fa-sign-out-alt"></i>
+            {!isSidebarCollapsed && <span style={{ marginLeft: '10px' }}>Đăng xuất</span>}
+          </button>
+        </div>
+      </div>
+      
+      <div className={styles.mainContent}>
+        <div className={styles.header}>
+          <div>
+            <h1>{activeMenu === 'overview' ? 'Bảng điều khiển Luật sư' : menuItems.find(item => item.id === activeMenu)?.label}</h1>
+            <div className={styles.currentDate}>{getCurrentDate()}</div>
+          </div>
+          
+          <div className={styles.userInfo}>
+            <div className={styles.notifications}>
+              <i className={`fas fa-bell ${styles.notificationIcon}`}></i>
+              <span className={styles.notificationBadge}>4</span>
+            </div>
+            
+            {currentUser.fullName && <div className={styles.userName}>{currentUser.fullName}</div>}
+            
+            <div className={styles.userAvatar} onClick={toggleUserMenu}>
+              {getInitials(currentUser.fullName)}
+              
+              {userProfileOpen && (
+                <div className={styles.userDropdownMenu}>
+                  <div className={styles.userMenuItem} onClick={navigateToProfile}>
+                    <i className="fas fa-user"></i>
+                    Hồ sơ của tôi
+                  </div>
+                  <div className={styles.userMenuItem} onClick={handleLogout}>
+                    <i className="fas fa-sign-out-alt"></i>
+                    Đăng xuất
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className={styles.contentWrapper}>
+          <div className={styles.contentSection}>
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LawyerDashboard; 

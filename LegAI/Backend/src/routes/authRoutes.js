@@ -18,9 +18,13 @@ router.post('/change-password', userController.changePassword);
 // Routes được bảo vệ (yêu cầu xác thực)
 router.get('/users', authenticateToken, userController.getUsers);
 router.get('/users/:userId', authenticateToken, userController.getUserById);
+router.get('/users/:userId/stats', authenticateToken, userController.getUserStats);
 router.put('/users/:userId', authenticateToken, userController.updateUser);
 router.delete('/users/:userId', authenticateToken, userController.deleteUser);
 router.patch('/users/:userId/toggle-lock', authenticateToken, userController.toggleUserLock);
 router.post('/users/:userId/reset-password', authenticateToken, userController.resetPassword);
+
+// Route cho developer kiểm tra ràng buộc database
+router.get('/check-constraints/:tableName', authenticateToken, userController.checkDatabaseConstraints);
 
 module.exports = router;

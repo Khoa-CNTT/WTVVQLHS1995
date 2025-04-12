@@ -15,7 +15,7 @@ const checkUserExists = async (username, email) => {
 };
 
 // Tạo người dùng mới và profile
-const createUser = async (username, password, email, phone, fullName) => {
+const createUser = async (username, password, email, phone, fullName, role = 'user') => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -24,13 +24,17 @@ const createUser = async (username, password, email, phone, fullName) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
+        // Chuẩn hóa role với chữ cái đầu viết hoa
+        let normalizedRole = (role || 'user').toLowerCase();
+        normalizedRole = normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1);
+        
         // Thêm người dùng vào bảng Users
         const userResult = await client.query(
             `INSERT INTO users 
             (username, password, email, phone, full_name, role, is_verified) 
             VALUES ($1, $2, $3, $4, $5, $6, $7) 
             RETURNING id, username, email, full_name, role, is_verified`,
-            [username, hashedPassword, email, phone, fullName, 'user', false]
+            [username, hashedPassword, email, phone, fullName, normalizedRole, false]
         );
         
         // Tạo profile mặc định cho user
@@ -76,7 +80,7 @@ const getUserById = async (userId) => {
             `SELECT u.*, up.address, up.avatar_url, up.bio 
             FROM users u 
             LEFT JOIN userprofiles up ON u.id = up.user_id 
-            WHERE u.id = $1`,
+            WHERE u.id = $1 AND u.username NOT LIKE 'deleted_%'`,
             [userId]
         );
         
@@ -98,7 +102,7 @@ const getUsers = async (page = 1, limit = 10, searchTerm = '', role = '') => {
             SELECT u.*, up.address, up.avatar_url, up.bio 
             FROM users u 
             LEFT JOIN userprofiles up ON u.id = up.user_id 
-            WHERE 1=1
+            WHERE u.username NOT LIKE 'deleted_%'
         `;
         const params = [];
 
@@ -146,7 +150,11 @@ const updateUser = async (userId, userData) => {
         // Đảm bảo dữ liệu không bị null
         const fullName = userData.fullName || ''; 
         const phone = userData.phone || '';
-        const role = userData.role || 'User';
+        
+        // Đảm bảo role được chuẩn hóa với chữ cái đầu viết hoa
+        let role = userData.role ? userData.role.toLowerCase() : 'user';
+        role = role.charAt(0).toUpperCase() + role.slice(1);
+        
         const address = userData.address || '';
         const bio = userData.bio || '';
         
@@ -279,10 +287,42 @@ const deleteUser = async (userId) => {
             throw new Error('Không tìm thấy người dùng');
         }
         
-        // Xóa dữ liệu liên quan trong userprofiles trước
+        // Xóa dữ liệu từ tất cả các bảng có liên kết với user_id
+        
+        // 1. Xóa userprofiles
         await client.query('DELETE FROM userprofiles WHERE user_id = $1', [userId]);
         
-        // Xóa trong bảng users
+        // 2. Xóa AIConsultations
+        await client.query('DELETE FROM AIConsultations WHERE user_id = $1', [userId]);
+        
+        // 3. Xóa các bản ghi trong Appointments
+        await client.query('DELETE FROM Appointments WHERE customer_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 4. Xóa các bản ghi trong LiveChats
+        await client.query('DELETE FROM LiveChats WHERE customer_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 5. Xóa các bản ghi trong Transactions
+        await client.query('DELETE FROM Transactions WHERE user_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 6. Xóa dữ liệu trong AuditLogs
+        await client.query('DELETE FROM AuditLogs WHERE user_id = $1', [userId]);
+        
+        // 7. Xóa dữ liệu trong LawyerDetails
+        await client.query('DELETE FROM LawyerDetails WHERE lawyer_id = $1', [userId]);
+        
+        // 8. Xóa dữ liệu trong DigitalSignatures
+        await client.query('DELETE FROM DigitalSignatures WHERE user_id = $1', [userId]);
+        
+        // 9. Xóa dữ liệu trong LawyerAvailability
+        await client.query('DELETE FROM LawyerAvailability WHERE lawyer_id = $1', [userId]);
+        
+        // 10. Xóa dữ liệu trong Contracts
+        await client.query('DELETE FROM Contracts WHERE user_id = $1', [userId]);
+        
+        // 11. Xóa dữ liệu trong LegalCases
+        await client.query('DELETE FROM LegalCases WHERE user_id = $1', [userId]);
+        
+        // Cuối cùng xóa người dùng
         const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING id, username', [userId]);
         
         await client.query('COMMIT');
@@ -299,7 +339,7 @@ const deleteUser = async (userId) => {
 const getUserByUsername = async (username) => {
     try {
         const userQuery = await pool.query(
-            'SELECT * FROM users WHERE username = $1',
+            'SELECT * FROM users WHERE username = $1 AND username NOT LIKE \'deleted_%\'',
             [username]
         );
         
@@ -318,7 +358,7 @@ const getUserByUsername = async (username) => {
 const getUserByEmail = async (email) => {
     try {
         const userQuery = await pool.query(
-            'SELECT * FROM users WHERE email = $1',
+            'SELECT * FROM users WHERE email = $1 AND username NOT LIKE \'deleted_%\'',
             [email]
         );
         
@@ -337,7 +377,7 @@ const getUserByEmail = async (email) => {
 const getUserByPhone = async (phone) => {
     try {
         const userQuery = await pool.query(
-            'SELECT * FROM users WHERE phone = $1',
+            'SELECT * FROM users WHERE phone = $1 AND username NOT LIKE \'deleted_%\'',
             [phone]
         );
         
@@ -417,6 +457,39 @@ const verifyPasswordResetToken = async (userId, otp) => {
     }
 };
 
+// Soft delete (vô hiệu hóa) người dùng thay vì xóa
+const softDeleteUser = async (userId) => {
+    try {
+        // Kiểm tra xem người dùng có tồn tại không
+        const checkUser = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (checkUser.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+
+        // Cập nhật trạng thái người dùng thành "đã xóa mềm" (soft delete)
+        const result = await pool.query(
+            `UPDATE users 
+            SET 
+                is_deleted = true,
+                is_locked = true,
+                email = CONCAT('deleted_', id, '_', email), 
+                username = CONCAT('deleted_', id, '_', username),
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1 
+            RETURNING id, username, is_deleted`,
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            throw new Error('Không thể vô hiệu hóa người dùng');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi vô hiệu hóa người dùng: ${error.message}`);
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -427,6 +500,7 @@ module.exports = {
     toggleUserLock,
     resetPassword,
     deleteUser,
+    softDeleteUser,
     getUserByUsername,
     getUserByEmail,
     getUserByPhone,
