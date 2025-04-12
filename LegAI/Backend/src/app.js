@@ -12,14 +12,10 @@ if (!process.env.JWT_SECRET) {
     process.env.JWT_SECRET = 'legai_jwt_super_secret_key_12345_secure_random_string';
 }
 
+
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Thông báo
-console.log('Server khởi động với cấu hình:');
-console.log('- Xác thực JWT được kích hoạt');
-console.log('- Gửi email OTP được xử lý ở frontend thông qua EmailJS');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -52,5 +48,6 @@ app.get('/api/protected', authenticateToken, (req, res) => {
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-    console.log(`Server chạy trên port ${PORT}`);
+    console.log(`Server website đẳng cấp thế giới đã được khởi động, Chú ý !`);
+    console.log(`Cổng: ${PORT}`);
 });
