@@ -80,6 +80,34 @@ const Navbar = () => {
     navigate('/');
   };
 
+  const navigateToDashboard = () => {
+    // Xác định trang Dashboard dựa vào vai trò người dùng
+    if (currentUser) {
+      const role = currentUser.role?.toLowerCase() || '';
+      
+      if (role === 'admin') {
+        navigate('/dashboard');
+      } else if (role === 'lawyer') {
+        navigate('/lawyer-dashboard');
+      }
+      // Người dùng thông thường không có trang dashboard
+    } else {
+      navigate('/login');
+    }
+  };
+
+  // Lấy chữ cái đầu từ tên người dùng để hiển thị trong avatar
+  const getUserInitials = () => {
+    if (currentUser?.fullName) {
+      const nameParts = currentUser.fullName.split(' ');
+      if (nameParts.length > 1) {
+        return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase();
+      }
+      return currentUser.fullName.charAt(0).toUpperCase();
+    }
+    return currentUser?.username?.charAt(0).toUpperCase() || 'U';
+  };
+
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ''}`}>
       <Link to="/" className={styles.logo}>
@@ -121,39 +149,47 @@ const Navbar = () => {
             <span className={styles.iconLabel}>Nhắn tin</span>
           </a>
           
+          {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
+            <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>
+              <i className="fas fa-tachometer-alt"></i>
+              <span className={styles.iconLabel}>
+                {currentUser.role?.toLowerCase() === 'admin' ? 'Admin' : 'Luật Sư'}
+              </span>
+            </div>
+          )}
+          
           {currentUser ? (
             <div className={styles.userMenuContainer}>
               <div 
                 className={styles.userAvatar} 
                 onClick={toggleUserDropdown}
               >
-                <span className={styles.userInitial}>
-                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
-                </span>
+                <span className={styles.userInitial}>{getUserInitials()}</span>
               </div>
               
               {showUserDropdown && (
                 <div className={styles.userDropdown}>
                   <div className={styles.userInfo}>
-                    <span className={styles.userName}>{currentUser.fullName || currentUser.username}</span>
-                    <span className={styles.userEmail}>{currentUser.email}</span>
+                    <div className={styles.userName}>{currentUser.fullName || currentUser.username}</div>
+                    <div className={styles.userEmail}>{currentUser.email}</div>
                   </div>
                   <div className={styles.userMenuDivider}></div>
-                  {currentUser.role === 'admin' ? (
-                    <Link to="/admin" className={styles.userMenuItem}>
-                      <i className="fas fa-th-large"></i> Quản trị hệ thống
-                    </Link>
-                  ) : (
-                    <Link to="/dashboard" className={styles.userMenuItem}>
-                      <i className="fas fa-th-large"></i> Bảng điều khiển
-                    </Link>
+                  <div className={styles.userMenuItem} onClick={() => navigate('/profile')}>
+                    <i className="fas fa-user"></i> Hồ sơ
+                  </div>
+                  {currentUser.role?.toLowerCase() === 'admin' && (
+                    <div className={styles.userMenuItem} onClick={() => navigate('/dashboard')}>
+                      <i className="fas fa-tachometer-alt"></i> Quản trị
+                    </div>
                   )}
-                  <Link to="/profile" className={styles.userMenuItem}>
-                    <i className="fas fa-user-circle"></i> Hồ sơ cá nhân
-                  </Link>
-                  <button className={styles.userMenuItem} onClick={handleLogout}>
+                  {currentUser.role?.toLowerCase() === 'lawyer' && (
+                    <div className={styles.userMenuItem} onClick={() => navigate('/lawyer-dashboard')}>
+                      <i className="fas fa-gavel"></i> Bảng điều khiển
+                    </div>
+                  )}
+                  <div className={styles.userMenuItem} onClick={handleLogout}>
                     <i className="fas fa-sign-out-alt"></i> Đăng xuất
-                  </button>
+                  </div>
                 </div>
               )}
             </div>

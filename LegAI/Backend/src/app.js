@@ -32,6 +32,15 @@ app.get('/', (req, res) => {
     });
 });
 
+// Route kiểm tra token
+app.get('/api/auth/verify-token', authenticateToken, (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Token hợp lệ',
+        user: req.user
+    });
+});
+
 // Route ví dụ cần bảo vệ
 app.get('/api/protected', authenticateToken, (req, res) => {
     res.json({

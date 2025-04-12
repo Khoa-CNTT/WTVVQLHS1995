@@ -7,6 +7,7 @@ import authService from '../../services/authService';
 import userService from '../../services/userService';
 import { useProfile } from '../../components/hooks/Profile';
 import ChangePasswordPage from './ChangePassword/ChangePasssword';
+import ChatManager from '../../components/layout/Chat/ChatManager';
 
 function Profile() {
   const navigate = useNavigate();
@@ -177,6 +178,7 @@ function Profile() {
   return (
     <>
       <Navbar />
+      <ChatManager />
       <div className={styles.profileContainer}>
         
         <div className={styles.content}>

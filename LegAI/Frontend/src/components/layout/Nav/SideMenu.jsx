@@ -56,20 +56,24 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
           
           {currentUser ? (
             <>
-              {currentUser.role === 'admin' ? (
-                <Link to="/admin" className={styles.sideMenuItem} onClick={onClose}>
-                  <i className="fas fa-th-large"></i>
+              {/* Kiểm tra vai trò admin */}
+              {currentUser.role?.toLowerCase() === 'admin' && (
+                <Link to="/dashboard" className={styles.sideMenuItem} onClick={onClose}>
+                  <i className="fas fa-tachometer-alt"></i>
                   <span>Quản trị hệ thống</span>
                 </Link>
-              ) : (
-                <Link to="/dashboard" className={styles.sideMenuItem} onClick={onClose}>
-                  <i className="fas fa-th-large"></i>
-                  <span>Bảng điều khiển</span>
+              )}
+              
+              {/* Kiểm tra vai trò luật sư */}
+              {currentUser.role?.toLowerCase() === 'lawyer' && (
+                <Link to="/lawyer-dashboard" className={styles.sideMenuItem} onClick={onClose}>
+                  <i className="fas fa-gavel"></i>
+                  <span>Bảng điều khiển luật sư</span>
                 </Link>
               )}
               
               <Link to="/profile" className={styles.sideMenuItem} onClick={onClose}>
-                <i className="fas fa-user-circle"></i>
+                <i className="fas fa-user"></i>
                 <span>Hồ sơ cá nhân</span>
               </Link>
               
@@ -80,15 +84,15 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
             </>
           ) : (
             <>
-          <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-sign-in-alt"></i>
-            <span>Đăng nhập</span>
-          </Link>
-          
-          <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-user-plus"></i>
-            <span>Đăng ký</span>
-          </Link>
+              <Link to="/login" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-sign-in-alt"></i>
+                <span>Đăng nhập</span>
+              </Link>
+              
+              <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-user-plus"></i>
+                <span>Đăng ký</span>
+              </Link>
             </>
           )}
         </div>

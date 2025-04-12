@@ -60,7 +60,6 @@ export const useProfile = () => {
         // Sau đó tải thông tin chi tiết từ API
         const userData = await userService.getUserProfile(userId || currentUser.id);
         
-        
         if (!userData) {
           throw new Error('Không tìm thấy thông tin người dùng');
         }
@@ -97,6 +96,37 @@ export const useProfile = () => {
         // Kiểm tra vai trò người dùng
         const isLawyer = userData.role && userData.role.toLowerCase() === 'lawyer';
         
+        // Lấy thống kê người dùng
+        let userStats;
+        try {
+          userStats = await userService.getUserStats(currentUser.id);
+        } catch (statsError) {
+          console.error('Lỗi lấy thống kê người dùng:', statsError);
+          userStats = {
+            documents: 0,
+            cases: 0,
+            appointments: 0,
+            consultations: 0
+          };
+        }
+        
+        // Lấy thông tin luật sư nếu có vai trò luật sư
+        let lawyerData = null;
+        if (isLawyer) {
+          try {
+            lawyerData = await userService.getLawyerDetails(currentUser.id);
+          } catch (lawyerError) {
+            console.error('Lỗi lấy thông tin luật sư:', lawyerError);
+            // Nếu có lỗi, sử dụng dữ liệu mặc định
+            lawyerData = {
+              certification: 'Chưa cập nhật',
+              experienceYears: 0,
+              specialization: 'Chưa cập nhật',
+              rating: 0.0
+            };
+          }
+        }
+        
         // Cập nhật thông tin bổ sung
         setUserDetails({
           lastLogin: userData.last_login || null,
@@ -104,8 +134,8 @@ export const useProfile = () => {
           isLocked: userData.is_locked || false,
           failedAttempts: userData.failed_attempts || 0,
           isLawyer: isLawyer,
-          lawyerDetails: isLawyer ? await userService.getLawyerDetails(currentUser.id) : null,
-          stats: await userService.getUserStats(currentUser.id)
+          lawyerDetails: lawyerData,
+          stats: userStats
         });
       } catch (apiError) {
         console.error('Lỗi tải API:', apiError);
@@ -133,16 +163,34 @@ export const useProfile = () => {
         throw new Error('Không có thông tin người dùng để cập nhật');
       }
       
-      const updatedUser = await userService.updateUserProfile(user.id, userData);
+      // Lưu lại vai trò hiện tại trước khi cập nhật
+      const currentRole = user.role;
+      
+      // Thêm vai trò vào dữ liệu cập nhật để đảm bảo không bị mất
+      const updatedUserData = {
+        ...userData,
+        role: currentRole
+      };
+      
+      const updatedUser = await userService.updateUserProfile(user.id, updatedUserData);
+      
+      // Cập nhật dữ liệu người dùng trong state và đảm bảo giữ nguyên vai trò
+      setUser(prev => ({
+        ...prev,
+        ...updatedUser,
+        role: currentRole // Đảm bảo vai trò được giữ nguyên
+      }));
       
       // Cập nhật dữ liệu người dùng trong localStorage
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
         currentUser.fullName = userData.fullName || '';
+        currentUser.phone = userData.phone || '';
+        // Đảm bảo vai trò được giữ nguyên
+        currentUser.role = currentRole;
         localStorage.setItem('user', JSON.stringify(currentUser));
       }
       
-      setUser(prev => ({...prev, ...updatedUser}));
       setSuccessMessage('Cập nhật hồ sơ thành công');
       setLoading(false);
       
