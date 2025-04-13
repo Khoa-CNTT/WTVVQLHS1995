@@ -8,7 +8,7 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Đang xóa user ID:", user.id); // Thêm log để debug
-    onConfirm(user.id);
+    onConfirm(user);
   };
 
   return (

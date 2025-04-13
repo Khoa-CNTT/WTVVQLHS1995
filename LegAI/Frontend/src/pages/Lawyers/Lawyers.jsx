@@ -1,37 +1,256 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './Lawyers.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import PageTransition from '../../components/layout/TransitionPage/PageTransition';
 import ChatManager from '../../components/layout/Chat/ChatManager';
+import userService from '../../services/userService';
+import authService from '../../services/authService';
 
 function Lawyers() {
   const [activeTab, setActiveTab] = useState('all');
+  const [lawyers, setLawyers] = useState([]);
   const [visibleLawyers, setVisibleLawyers] = useState([]);
   const [selectedLawyer, setSelectedLawyer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [userRating, setUserRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [userLoggedIn, setUserLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
-  // Danh sách các chuyên môn
+  // Kiểm tra đăng nhập
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const isLoggedIn = authService.isAuthenticated();
+      setUserLoggedIn(isLoggedIn);
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  // Danh sách các chuyên môn - đã chỉnh sửa để khớp với backend
   const specialties = [
     { id: 'all', name: 'Tất cả' },
-    { id: 'business', name: 'Doanh nghiệp' },
-    { id: 'civil', name: 'Dân sự' },
-    { id: 'criminal', name: 'Hình sự' },
-    { id: 'labor', name: 'Lao động' },
-    { id: 'intellectual', name: 'Sở hữu trí tuệ' },
-    { id: 'land', name: 'Đất đai' }
+    { id: 'Dân sự', name: 'Dân sự' },
+    { id: 'Hình sự', name: 'Hình sự' },
+    { id: 'Hôn nhân', name: 'Hôn nhân' },
+    { id: 'Đất đai', name: 'Đất đai' },
+    { id: 'Doanh nghiệp', name: 'Doanh nghiệp' },
+    { id: 'Sở hữu trí tuệ', name: 'Sở hữu trí tuệ' },
+    { id: 'Lao động', name: 'Lao động' },
+    { id: 'Hành chính', name: 'Hành chính' }
   ];
 
-  // Dữ liệu luật sư
-  const lawyers = [
+  useEffect(() => {
+    fetchLawyers();
+  }, [page, activeTab, searchTerm]);
+
+  const fetchLawyers = async () => {
+    try {
+      setLoading(true);
+      const response = await userService.getAllLawyers(
+        page, 
+        10, 
+        searchTerm, 
+        activeTab === 'all' ? '' : activeTab
+      );
+      
+      if (response && response.data) {
+        // Xử lý đường dẫn avatar - đảm bảo hiển thị đúng đường dẫn từ backend
+        const lawyersWithValidImages = response.data.lawyers.map(lawyer => {
+          // Lấy đường dẫn avatar từ nhiều nguồn khác nhau
+          let avatarUrl = lawyer.avatar || lawyer.avatarUrl || lawyer.avatar_url;
+          
+          // Kiểm tra xem có phải đường dẫn tương đối không
+          if (avatarUrl && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://') && !avatarUrl.startsWith('/')) {
+            avatarUrl = `/${avatarUrl}`;
+          }
+
+          // Kiểm tra xem có phải đường dẫn từ thư mục upload không
+          if (avatarUrl && avatarUrl.includes('uploads/')) {
+            // Thêm đường dẫn API base nếu cần
+            avatarUrl = `${process.env.REACT_APP_API_URL || ''}${avatarUrl}`;
+          }
+          
+          return {
+            ...lawyer,
+            avatarUrl: avatarUrl || '/default-avatar.png'
+          };
+        });
+        
+        setLawyers(lawyersWithValidImages || []);
+        setVisibleLawyers(lawyersWithValidImages || []);
+        setTotalPages(response.data.totalPages || 0);
+      } else {
+        // Nếu chưa có API hoặc có lỗi, sẽ hiển thị dữ liệu mẫu
+        setVisibleLawyers(sampleLawyers);
+      }
+    } catch (error) {
+      console.error('Lỗi lấy danh sách luật sư:', error);
+      setVisibleLawyers(sampleLawyers);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setPage(1); // Reset về trang 1 khi tìm kiếm
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setPage(1);
+  };
+
+  const handleSpecialtyFilter = (specialty) => {
+    setActiveTab(specialty);
+    setPage(1); // Reset về trang 1 khi chọn chuyên môn
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+
+  // Xử lý khi click vào luật sư
+  const handleLawyerClick = async (lawyer) => {
+    try {
+      // Lấy thông tin chi tiết của luật sư
+      const lawyerDetails = await userService.getLawyerById(lawyer.id);
+      
+      // Đảm bảo có ít nhất một object không rỗng để hiển thị
+      const combinedData = lawyerDetails || lawyer || {};
+      
+      // Xử lý experienceYears - đảm bảo luôn là số
+      let experienceYears = 0;
+      if (combinedData.experienceYears) {
+        experienceYears = parseInt(combinedData.experienceYears) || 0;
+      }
+      
+      // Xử lý avatar URL - đảm bảo luôn hiển thị
+      let avatarUrl = combinedData.avatarUrl || combinedData.avatar || 'default-avatar.png';
+      
+      // Nếu có đường dẫn avatar nhưng không phải đường dẫn đầy đủ, thêm tiền tố
+      if (avatarUrl && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
+        // Nếu URL bắt đầu với /uploads, thêm base URL API
+        if (avatarUrl.includes('uploads')) {
+          avatarUrl = `${process.env.REACT_APP_API_URL || ''}${avatarUrl.startsWith('/') ? avatarUrl : '/' + avatarUrl}`;
+        } 
+        // Nếu không phải URL tuyệt đối và không bắt đầu bằng /
+        else if (!avatarUrl.startsWith('/')) {
+          avatarUrl = `/${avatarUrl}`;
+        }
+      }
+      
+      // Kết hợp thông tin và cập nhật experienceYears và avatarUrl
+      setSelectedLawyer({
+        ...lawyer,
+        ...lawyerDetails,
+        experienceYears, // Đảm bảo là số
+        avatarUrl // Đảm bảo có URL hợp lệ
+      });
+    } catch (error) {
+      console.error('Lỗi lấy thông tin chi tiết luật sư:', error);
+      
+      // Xử lý mặc định nếu có lỗi
+      const experienceYears = parseInt(lawyer.experienceYears) || 0;
+      const avatarUrl = lawyer.avatarUrl || '/default-avatar.png';
+      
+      setSelectedLawyer({
+        ...lawyer,
+        experienceYears,
+        avatarUrl
+      });
+    }
+    
+    setIsModalOpen(true);
+    // Reset trạng thái đánh giá
+    setUserRating(0);
+    setReviewText('');
+    setReviewSuccess(false);
+  };
+
+  // Đóng modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedLawyer(null);
+  };
+
+  // Xử lý đặt lịch hẹn
+  const handleAppointment = (lawyer) => {
+    // Sẽ xử lý logic đặt lịch hẹn sau
+    alert(`Đặt lịch hẹn với luật sư ${lawyer.fullName}`);
+  };
+
+  // Hàm xử lý gửi đánh giá - đơn giản hóa tối đa
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    
+    if (!userRating) {
+      alert('Vui lòng chọn số sao đánh giá');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    
+    try {
+      // Trực tiếp gửi đánh giá mà không cần kiểm tra
+      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/reviews/lawyer/${selectedLawyer.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          rating: userRating
+        })
+      });
+
+      // Đơn giản hóa xử lý kết quả
+      if (response.status === 200) {
+        setReviewSuccess(true);
+        
+        // Cập nhật rating hiển thị trên UI
+        setSelectedLawyer(prev => ({
+          ...prev,
+          rating: userRating, // Đơn giản hóa: hiển thị đúng rating vừa đánh giá
+          reviews: (prev.reviews || 0) + 1
+        }));
+      } else {
+        alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
+      }
+    } catch (error) {
+      console.error('Lỗi khi gửi đánh giá:', error);
+      alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Dữ liệu mẫu luật sư - dùng khi API chưa hoàn thiện
+  const sampleLawyers = [
     {
       id: 1,
-      name: 'Nguyễn Văn Minh',
-      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      fullName: 'Nguyễn Văn Minh',
+      avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
       position: 'Luật sư Trưởng',
-      specialty: ['business', 'civil'],
-      experience: '15 năm',
+      specialization: ['Doanh nghiệp', 'Dân sự'],
+      experienceYears: 15,
       education: 'Tiến sĩ Luật - Đại học Luật Hà Nội',
       bio: 'Luật sư Nguyễn Văn Minh là một trong những chuyên gia hàng đầu về luật doanh nghiệp và luật dân sự tại Việt Nam. Với hơn 15 năm kinh nghiệm, ông đã tư vấn và đại diện cho nhiều doanh nghiệp lớn trong nước và quốc tế.',
       achievements: [
@@ -47,271 +266,118 @@ function Lawyers() {
       reviews: 120,
       featured: true
     },
-    {
-      id: 2,
-      name: 'Trần Thị Hương',
-      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-      position: 'Luật sư Cấp cao',
-      specialty: ['civil', 'labor'],
-      experience: '12 năm',
-      education: 'Thạc sĩ Luật - Đại học Luật TP. HCM',
-      bio: 'Luật sư Trần Thị Hương chuyên về lĩnh vực luật lao động và dân sự. Cô được biết đến với khả năng giải quyết các vụ tranh chấp lao động phức tạp và bảo vệ quyền lợi cho người lao động.',
-      achievements: [
-        'Giải quyết thành công hơn 500 vụ tranh chấp lao động',
-        'Tư vấn chính sách nhân sự cho nhiều tập đoàn đa quốc gia',
-        'Diễn giả tại nhiều hội thảo quốc tế về luật lao động'
-      ],
-      contact: {
-        email: 'huong.tran@legai.vn',
-        phone: '(+84) 909 234 567'
-      },
-      rating: 4.8,
-      reviews: 95,
-      featured: true
-    },
-    {
-      id: 3,
-      name: 'Lê Thanh Tùng',
-      avatar: 'https://randomuser.me/api/portraits/men/62.jpg',
-      position: 'Luật sư Hình sự',
-      specialty: ['criminal'],
-      experience: '18 năm',
-      education: 'Thạc sĩ Luật - Học viện Tư pháp',
-      bio: 'Luật sư Lê Thanh Tùng là một trong những luật sư hình sự hàng đầu tại Việt Nam với 18 năm kinh nghiệm. Ông nổi tiếng với sự am hiểu sâu sắc về luật hình sự và khả năng biện hộ xuất sắc tại tòa.',
-      achievements: [
-        'Bào chữa thành công trong hơn 300 vụ án hình sự',
-        'Từng là Thẩm phán tại Tòa án Nhân dân TP.HCM',
-        'Giảng viên thỉnh giảng tại Đại học Luật TP.HCM'
-      ],
-      contact: {
-        email: 'tung.le@legai.vn',
-        phone: '(+84) 909 345 678'
-      },
-      rating: 4.9,
-      reviews: 150,
-      featured: true
-    },
-    {
-      id: 4,
-      name: 'Phạm Minh Hiếu',
-      avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
-      position: 'Luật sư Sở hữu Trí tuệ',
-      specialty: ['intellectual', 'business'],
-      experience: '10 năm',
-      education: 'Thạc sĩ Luật Sở hữu Trí tuệ - Đại học Washington',
-      bio: 'Luật sư Phạm Minh Hiếu là chuyên gia về luật sở hữu trí tuệ và bảo hộ thương hiệu. Với kinh nghiệm làm việc tại Mỹ và Việt Nam, ông có hiểu biết sâu rộng về luật sở hữu trí tuệ quốc tế.',
-      achievements: [
-        'Đại diện đăng ký bảo hộ thành công hơn 500 nhãn hiệu trong nước và quốc tế',
-        'Tư vấn chiến lược sở hữu trí tuệ cho nhiều startup công nghệ',
-        'Chuyên gia tư vấn của Cục Sở hữu Trí tuệ Việt Nam'
-      ],
-      contact: {
-        email: 'hieu.pham@legai.vn',
-        phone: '(+84) 909 456 789'
-      },
-      rating: 4.7,
-      reviews: 88,
-      featured: false
-    },
-    {
-      id: 5,
-      name: 'Nguyễn Thị Mai',
-      avatar: 'https://randomuser.me/api/portraits/women/29.jpg',
-      position: 'Luật sư Đất đai',
-      specialty: ['land', 'civil'],
-      experience: '14 năm',
-      education: 'Thạc sĩ Luật - Đại học Quốc gia Hà Nội',
-      bio: 'Luật sư Nguyễn Thị Mai chuyên về lĩnh vực luật đất đai và bất động sản. Với 14 năm kinh nghiệm, cô đã tư vấn cho nhiều dự án bất động sản lớn và giải quyết nhiều tranh chấp phức tạp về đất đai.',
-      achievements: [
-        'Tư vấn pháp lý cho hơn 50 dự án bất động sản lớn',
-        'Giải quyết thành công nhiều vụ tranh chấp đất đai phức tạp',
-        'Tác giả của nhiều bài báo chuyên sâu về luật đất đai'
-      ],
-      contact: {
-        email: 'mai.nguyen@legai.vn',
-        phone: '(+84) 909 567 890'
-      },
-      rating: 4.8,
-      reviews: 102,
-      featured: false
-    },
-    {
-      id: 6,
-      name: 'Trần Văn Hoàng',
-      avatar: 'https://randomuser.me/api/portraits/men/42.jpg',
-      position: 'Luật sư Doanh nghiệp',
-      specialty: ['business', 'intellectual'],
-      experience: '11 năm',
-      education: 'Thạc sĩ Luật Thương mại Quốc tế - Đại học London',
-      bio: 'Luật sư Trần Văn Hoàng chuyên về luật doanh nghiệp và đầu tư quốc tế. Với kinh nghiệm làm việc tại các công ty luật quốc tế, ông có kiến thức sâu rộng về các giao dịch M&A và đầu tư nước ngoài.',
-      achievements: [
-        'Tư vấn thành công nhiều thương vụ M&A trị giá hàng trăm triệu USD',
-        'Chuyên gia tư vấn cho nhiều tập đoàn đa quốc gia',
-        'Thành viên Hiệp hội Luật sư Thương mại Quốc tế'
-      ],
-      contact: {
-        email: 'hoang.tran@legai.vn',
-        phone: '(+84) 909 678 901'
-      },
-      rating: 4.7,
-      reviews: 75,
-      featured: false
-    },
-    {
-      id: 7,
-      name: 'Phạm Thị Lan',
-      avatar: 'https://randomuser.me/api/portraits/women/17.jpg',
-      position: 'Luật sư Dân sự',
-      specialty: ['civil', 'labor'],
-      experience: '9 năm',
-      education: 'Cử nhân Luật - Đại học Luật Hà Nội',
-      bio: 'Luật sư Phạm Thị Lan chuyên về lĩnh vực luật dân sự và luật gia đình. Với 9 năm kinh nghiệm, cô đã hỗ trợ nhiều khách hàng trong các vấn đề về thừa kế, hôn nhân và tranh chấp dân sự.',
-      achievements: [
-        'Giải quyết thành công hơn 200 vụ tranh chấp dân sự',
-        'Tư vấn về di chúc và thừa kế cho nhiều gia đình',
-        'Hỗ trợ pháp lý cho các tổ chức phi chính phủ'
-      ],
-      contact: {
-        email: 'lan.pham@legai.vn',
-        phone: '(+84) 909 789 012'
-      },
-      rating: 4.6,
-      reviews: 63,
-      featured: false
-    },
-    {
-      id: 8,
-      name: 'Nguyễn Đức Thành',
-      avatar: 'https://randomuser.me/api/portraits/men/77.jpg',
-      position: 'Luật sư Hình sự',
-      specialty: ['criminal'],
-      experience: '13 năm',
-      education: 'Thạc sĩ Luật Hình sự - Đại học Luật TP.HCM',
-      bio: 'Luật sư Nguyễn Đức Thành chuyên về luật hình sự và tố tụng hình sự. Với 13 năm kinh nghiệm trong lĩnh vực này, ông đã đại diện bào chữa cho nhiều thân chủ trong các vụ án hình sự phức tạp.',
-      achievements: [
-        'Bào chữa thành công trong hơn 150 vụ án hình sự',
-        'Từng công tác tại Viện Kiểm sát Nhân dân TP.HCM',
-        'Giảng viên thỉnh giảng về luật hình sự tại nhiều trường đại học'
-      ],
-      contact: {
-        email: 'thanh.nguyen@legai.vn',
-        phone: '(+84) 909 890 123'
-      },
-      rating: 4.8,
-      reviews: 92,
-      featured: false
-    }
+    // ... keep other sample lawyers
   ];
 
-  // Lọc luật sư theo chuyên môn và từ khóa tìm kiếm
-  useEffect(() => {
-    let filtered = [...lawyers];
-    
-    // Lọc theo chuyên môn
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(lawyer => 
-        lawyer.specialty.includes(activeTab)
+  // Phần đánh giá luật sư renderReviewSection
+  const renderReviewSection = () => {
+    if (!userLoggedIn) {
+      return (
+        <div className={styles.reviewSection}>
+          <h3>Đánh giá</h3>
+          <div className={styles.loginToReview}>
+            <p>Vui lòng <Link to="/login" className={styles.loginLink}>đăng nhập</Link> để đánh giá luật sư này</p>
+          </div>
+        </div>
       );
     }
     
-    // Lọc theo từ khóa tìm kiếm
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(lawyer => 
-        lawyer.name.toLowerCase().includes(term) || 
-        lawyer.position.toLowerCase().includes(term) ||
-        lawyer.specialty.some(s => specialties.find(sp => sp.id === s)?.name.toLowerCase().includes(term)) ||
-        lawyer.bio.toLowerCase().includes(term)
+    if (reviewSuccess) {
+      return (
+        <div className={styles.reviewSection}>
+          <h3>Đánh giá</h3>
+          <div className={styles.reviewSuccess}>
+            <i className="fas fa-check-circle"></i>
+            <p>Cảm ơn bạn đã đánh giá luật sư này!</p>
+          </div>
+        </div>
       );
     }
     
-    setVisibleLawyers(filtered);
-  }, [activeTab, searchTerm]);
-
-  // Xử lý khi nhấp vào luật sư để xem chi tiết
-  const handleLawyerClick = (lawyer) => {
-    setSelectedLawyer(lawyer);
-    setIsModalOpen(true);
-    document.body.style.overflow = 'hidden'; // Ngăn cuộn trang khi modal mở
-  };
-
-  // Đóng modal chi tiết
-  const closeModal = () => {
-    setIsModalOpen(false);
-    document.body.style.overflow = 'auto'; // Khôi phục cuộn trang
-  };
-
-  // Xử lý khi nhấp vào nút đặt lịch hẹn
-  const handleAppointment = (lawyer) => {
-    // Điều hướng đến trang liên hệ với thông tin luật sư
-    window.location.href = `/contact?lawyer=${lawyer.id}`;
+    return (
+      <div className={styles.reviewSection}>
+        <h3>Đánh giá</h3>
+        <form onSubmit={handleSubmitReview} className={styles.reviewForm}>
+          <div className={styles.ratingSelect}>
+            <span>Chọn đánh giá của bạn:</span>
+            <div className={styles.starRating}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <i 
+                  key={star} 
+                  className={`fas fa-star ${star <= userRating ? styles.selected : ''}`}
+                  onClick={() => setUserRating(star)}
+                ></i>
+              ))}
+            </div>
+          </div>
+          <button 
+            type="submit" 
+            disabled={submittingReview || !userRating} 
+            className={styles.submitReviewButton}
+          >
+            {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
+          </button>
+        </form>
+      </div>
+    );
   };
 
   return (
     <PageTransition>
+      <Navbar />
+      <ChatManager />
+      
       <div className={styles.lawyersPage}>
-        <Navbar />
-        
-        {/* Banner */}
         <div className={styles.banner}>
           <div className={styles.bannerOverlay}></div>
           <div className={styles.bannerContent}>
-            <h1>Đội Ngũ Luật Sư</h1>
-            <p>Chuyên nghiệp - Uy tín - Tận tâm</p>
+            <h1>Đội ngũ Luật sư chuyên nghiệp</h1>
+            <p>Kết nối với những luật sư hàng đầu trong lĩnh vực bạn cần tư vấn</p>
           </div>
         </div>
         
-        {/* Luật sư nổi bật */}
+        {/* Featured Lawyers Section */}
         <section className={styles.featuredSection}>
           <div className={styles.container}>
             <div className={styles.sectionHeader}>
-              <h2>Luật Sư Tiêu Biểu</h2>
+              <h2>Luật sư hàng đầu</h2>
               <div className={styles.titleBar}></div>
-              <p>Đội ngũ luật sư hàng đầu với kinh nghiệm và chuyên môn cao</p>
+              <p>Những luật sư có kinh nghiệm chuyên sâu và đánh giá cao từ khách hàng</p>
             </div>
             
             <div className={styles.featuredGrid}>
-              {lawyers.filter(lawyer => lawyer.featured).map(lawyer => (
-                <div key={lawyer.id} className={styles.featuredCard} onClick={() => handleLawyerClick(lawyer)}>
+              {visibleLawyers.filter(lawyer => lawyer.featured || lawyer.rating >= 4.8).slice(0, 3).map(lawyer => (
+                <div key={lawyer.id} className={styles.featuredCard}>
                   <div className={styles.featuredImageContainer}>
-                    <img 
-                      src={lawyer.avatar} 
-                      alt={lawyer.name} 
-                      className={styles.featuredImage} 
-                    />
+                    <img src={lawyer.avatarUrl} alt={lawyer.fullName} className={styles.featuredImage} />
                     <div className={styles.featuredOverlay}>
-                      <button className={styles.viewProfileButton}>
-                        Xem hồ sơ
-                      </button>
+                      <button className={styles.viewProfileButton} onClick={() => handleLawyerClick(lawyer)}>Xem hồ sơ</button>
                     </div>
                   </div>
-                  
                   <div className={styles.featuredContent}>
-                    <h3>{lawyer.name}</h3>
-                    <p className={styles.position}>{lawyer.position}</p>
-                    
+                    <h3>{lawyer.fullName}</h3>
+                    <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
                     <div className={styles.specialtyTags}>
-                      {lawyer.specialty.map(spec => (
-                        <span key={spec} className={styles.specialtyTag}>
-                          {specialties.find(s => s.id === spec)?.name}
-                        </span>
+                      {(lawyer.specialization && typeof lawyer.specialization === 'string' 
+                        ? lawyer.specialization.split(',') 
+                        : lawyer.specialization || []
+                      ).slice(0, 2).map((specialty, index) => (
+                        <span key={index} className={styles.specialtyTag}>{specialty}</span>
                       ))}
                     </div>
-                    
                     <div className={styles.experience}>
-                      <i className="fas fa-briefcase"></i> {lawyer.experience} kinh nghiệm
+                      <i className="fas fa-briefcase"></i>
+                      {(lawyer.experienceYears !== undefined && lawyer.experienceYears !== null) 
+                       ? parseInt(lawyer.experienceYears) + ' năm kinh nghiệm'
+                       : '0 năm kinh nghiệm'}
                     </div>
-                    
                     <div className={styles.rating}>
                       <div className={styles.stars}>
-                        {[...Array(5)].map((_, index) => (
-                          <i 
-                            key={index} 
-                            className={`fas fa-star ${index < Math.floor(lawyer.rating) ? styles.filled : styles.empty}`}
-                          ></i>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <i key={star} className={`fas fa-star ${star <= Math.round(lawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
                         ))}
                       </div>
-                      <span>{lawyer.rating} ({lawyer.reviews} đánh giá)</span>
+                      <span>{lawyer.rating || 0} ({lawyer.reviews || 0} đánh giá)</span>
                     </div>
                   </div>
                 </div>
@@ -320,23 +386,20 @@ function Lawyers() {
           </div>
         </section>
         
-        {/* Tìm kiếm luật sư */}
+        {/* Search and Filter Section */}
         <section className={styles.searchSection}>
           <div className={styles.container}>
             <div className={styles.searchContainer}>
               <div className={styles.searchBox}>
-                <i className="fas fa-search"></i>
                 <input 
                   type="text"
                   placeholder="Tìm kiếm luật sư theo tên, chuyên môn..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearch}
                 />
+                <i className="fas fa-search"></i>
                 {searchTerm && (
-                  <button 
-                    className={styles.clearButton}
-                    onClick={() => setSearchTerm('')}
-                  >
+                  <button className={styles.clearButton} onClick={clearSearch}>
                     <i className="fas fa-times"></i>
                   </button>
                 )}
@@ -347,7 +410,7 @@ function Lawyers() {
                   <button
                     key={specialty.id}
                     className={`${styles.specialtyTab} ${activeTab === specialty.id ? styles.active : ''}`}
-                    onClick={() => setActiveTab(specialty.id)}
+                    onClick={() => handleSpecialtyFilter(specialty.id)}
                   >
                     {specialty.name}
                   </button>
@@ -357,142 +420,173 @@ function Lawyers() {
           </div>
         </section>
         
-        {/* Danh sách luật sư */}
+        {/* All Lawyers Section */}
         <section className={styles.lawyersSection}>
           <div className={styles.container}>
-            {visibleLawyers.length > 0 ? (
+            <div className={styles.sectionHeader}>
+              <h2>Danh sách Luật sư</h2>
+              <div className={styles.titleBar}></div>
+            </div>
+            
+            {loading ? (
+              <div className={styles.loading}>
+                <i className="fas fa-spinner fa-spin"></i>
+                <p>Đang tải danh sách luật sư...</p>
+              </div>
+            ) : visibleLawyers.length > 0 ? (
+              <>
               <div className={styles.lawyersGrid}>
                 {visibleLawyers.map(lawyer => (
                   <div key={lawyer.id} className={styles.lawyerCard} onClick={() => handleLawyerClick(lawyer)}>
                     <div className={styles.lawyerImageContainer}>
-                      <img 
-                        src={lawyer.avatar} 
-                        alt={lawyer.name} 
-                        className={styles.lawyerImage} 
-                      />
-                    </div>
-                    
-                    <div className={styles.lawyerContent}>
-                      <h3>{lawyer.name}</h3>
-                      <p className={styles.position}>{lawyer.position}</p>
-                      
-                      <div className={styles.specialtyTags}>
-                        {lawyer.specialty.slice(0, 2).map(spec => (
-                          <span key={spec} className={styles.specialtyTag}>
-                            {specialties.find(s => s.id === spec)?.name}
-                          </span>
-                        ))}
-                        {lawyer.specialty.length > 2 && (
-                          <span className={styles.specialtyTagMore}>+{lawyer.specialty.length - 2}</span>
-                        )}
+                        <img src={lawyer.avatarUrl} alt={lawyer.fullName} className={styles.lawyerImage} />
                       </div>
-                      
-                      <div className={styles.lawyerFooter}>
-                        <div className={styles.experience}>
-                          <i className="fas fa-briefcase"></i> {lawyer.experience}
-                        </div>
-                        
+                      <div className={styles.lawyerContent}>
+                        <h3>{lawyer.fullName}</h3>
+                        <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
                         <div className={styles.rating}>
-                          <i className="fas fa-star filled"></i>
-                          <span>{lawyer.rating}</span>
+                          <div className={styles.stars}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <i key={star} className={`fas fa-star ${star <= Math.round(lawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
+                            ))}
+                          </div>
+                          <span>{lawyer.rating || 0}</span>
+                        </div>
+                        <div className={styles.lawyerFooter}>
+                          {(lawyer.specialization && typeof lawyer.specialization === 'string' 
+                            ? lawyer.specialization.split(',') 
+                            : lawyer.specialization || []
+                          ).slice(0, 2).map((specialty, index) => (
+                            <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                          ))}
+                          {(lawyer.specialization && 
+                           ((typeof lawyer.specialization === 'string' 
+                              ? lawyer.specialization.split(',') 
+                              : lawyer.specialization
+                            ) || []).length > 2) && (
+                            <span className={styles.specialtyTagMore}>+{(typeof lawyer.specialization === 'string' 
+                              ? lawyer.specialization.split(',') 
+                              : lawyer.specialization || []).length - 2}</span>
+                          )}
                         </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <button 
+                      className={`${styles.paginationButton} ${page === 1 ? styles.disabled : ''}`}
+                      onClick={handlePrevPage}
+                      disabled={page === 1}
+                    >
+                      <i className="fas fa-chevron-left"></i> Trước
+                    </button>
+                    <span>Trang {page} / {totalPages}</span>
+                    <button 
+                      className={`${styles.paginationButton} ${page === totalPages ? styles.disabled : ''}`}
+                      onClick={handleNextPage}
+                      disabled={page === totalPages}
+                    >
+                      Sau <i className="fas fa-chevron-right"></i>
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <div className={styles.noResults}>
                 <i className="fas fa-search"></i>
-                <h3>Không tìm thấy kết quả</h3>
-                <p>Không tìm thấy luật sư phù hợp với tiêu chí tìm kiếm của bạn.</p>
-                <button onClick={() => {setSearchTerm(''); setActiveTab('all');}}>
-                  Xóa bộ lọc
-                </button>
+                <h3>Không tìm thấy luật sư phù hợp</h3>
+                <p>Hãy thử tìm kiếm với từ khóa khác hoặc chọn lại danh mục chuyên môn</p>
+                <button onClick={clearSearch}>Xem tất cả luật sư</button>
               </div>
             )}
           </div>
         </section>
         
-        {/* Modal chi tiết luật sư */}
+        {/* Lawyer Profile Modal */}
         {isModalOpen && selectedLawyer && (
           <div className={styles.modalOverlay} onClick={closeModal}>
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
               <button className={styles.closeButton} onClick={closeModal}>
                 <i className="fas fa-times"></i>
               </button>
               
               <div className={styles.modalHeader}>
                 <div className={styles.lawyerProfile}>
-                  <img src={selectedLawyer.avatar} alt={selectedLawyer.name} />
+                  <img src={selectedLawyer.avatarUrl} alt={selectedLawyer.fullName} />
                   <div className={styles.profileInfo}>
-                    <h2>{selectedLawyer.name}</h2>
-                    <p className={styles.position}>{selectedLawyer.position}</p>
-                    
+                    <h2>{selectedLawyer.fullName}</h2>
+                    <div className={styles.infoItem}>
+                      <i className="fas fa-user-tie"></i>
+                      <span>{selectedLawyer.position || 'Luật sư'}</span>
+                    </div>
                     <div className={styles.infoItem}>
                       <i className="fas fa-graduation-cap"></i>
-                      <span>{selectedLawyer.education}</span>
+                      <span>{selectedLawyer.education || 'Cử nhân Luật'}</span>
                     </div>
-                    
                     <div className={styles.infoItem}>
                       <i className="fas fa-briefcase"></i>
-                      <span>{selectedLawyer.experience} kinh nghiệm</span>
+                      <span>
+                        {(selectedLawyer.experienceYears !== undefined && selectedLawyer.experienceYears !== null) 
+                         ? parseInt(selectedLawyer.experienceYears) + ' năm kinh nghiệm'
+                         : '0 năm kinh nghiệm'}
+                      </span>
                     </div>
-                    
                     <div className={styles.ratingDetail}>
                       <div className={styles.stars}>
-                        {[...Array(5)].map((_, index) => (
-                          <i 
-                            key={index} 
-                            className={`fas fa-star ${index < Math.floor(selectedLawyer.rating) ? styles.filled : styles.empty}`}
-                          ></i>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <i key={star} className={`fas fa-star ${star <= Math.round(selectedLawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
                         ))}
                       </div>
-                      <span>{selectedLawyer.rating} ({selectedLawyer.reviews} đánh giá)</span>
+                      <span>{selectedLawyer.rating || 0} ({selectedLawyer.reviews || 0} đánh giá)</span>
                     </div>
                   </div>
                 </div>
-                
                 <div className={styles.lawyerActions}>
-                  <button 
-                    className={styles.appointmentButton}
-                    onClick={() => handleAppointment(selectedLawyer)}
-                  >
+                  <button className={styles.appointmentButton} onClick={() => handleAppointment(selectedLawyer)}>
                     <i className="fas fa-calendar-alt"></i> Đặt lịch hẹn
                   </button>
-                  
-                  <div className={styles.contactInfo}>
-                    <div className={styles.contactItem}>
-                      <i className="fas fa-envelope"></i>
-                      <a href={`mailto:${selectedLawyer.contact.email}`}>{selectedLawyer.contact.email}</a>
-                    </div>
-                    
-                    <div className={styles.contactItem}>
-                      <i className="fas fa-phone"></i>
-                      <a href={`tel:${selectedLawyer.contact.phone}`}>{selectedLawyer.contact.phone}</a>
-                    </div>
-                  </div>
                 </div>
               </div>
               
               <div className={styles.modalBody}>
+                <div className={styles.contactInfo}>
+                  <div className={styles.contactItem}>
+                    <i className="fas fa-envelope"></i>
+                    <a href={`mailto:${selectedLawyer.contact?.email || selectedLawyer.email || 'contact@legai.vn'}`}>
+                      {selectedLawyer.contact?.email || selectedLawyer.email || 'contact@legai.vn'}
+                    </a>
+                  </div>
+                  <div className={styles.contactItem}>
+                    <i className="fas fa-phone"></i>
+                    <a href={`tel:${selectedLawyer.contact?.phone || selectedLawyer.phone || '(+84) 909 123 456'}`}>
+                      {selectedLawyer.contact?.phone || selectedLawyer.phone || '(+84) 909 123 456'}
+                    </a>
+                  </div>
+                </div>
+                
                 <div className={styles.specialtySection}>
-                  <h3>Chuyên môn</h3>
+                  <h3>Lĩnh vực chuyên môn</h3>
                   <div className={styles.specialtyTagsLarge}>
-                    {selectedLawyer.specialty.map(spec => (
-                      <span key={spec} className={styles.specialtyTagLarge}>
-                        {specialties.find(s => s.id === spec)?.name}
-                      </span>
+                    {(selectedLawyer.specialization && typeof selectedLawyer.specialization === 'string' 
+                      ? selectedLawyer.specialization.split(',') 
+                      : selectedLawyer.specialization || []
+                    ).map((specialty, index) => (
+                      <span key={index} className={styles.specialtyTagLarge}>{specialty}</span>
                     ))}
                   </div>
                 </div>
                 
                 <div className={styles.bioSection}>
                   <h3>Giới thiệu</h3>
-                  <p>{selectedLawyer.bio}</p>
+                  <p>{selectedLawyer.bio || 'Thông tin giới thiệu đang được cập nhật.'}</p>
                 </div>
                 
-                <div className={styles.achievementsSection}>
+                {selectedLawyer.achievements && selectedLawyer.achievements.length > 0 && (
+                  <div className={styles.bioSection}>
                   <h3>Thành tựu nổi bật</h3>
                   <ul className={styles.achievementsList}>
                     {selectedLawyer.achievements.map((achievement, index) => (
@@ -503,39 +597,33 @@ function Lawyers() {
                     ))}
                   </ul>
                 </div>
+                )}
+                
+                {/* Phần đánh giá luật sư */}
+                {renderReviewSection()}
               </div>
             </div>
           </div>
         )}
         
-        {/* CTA */}
+        {/* CTA Section */}
         <section className={styles.ctaSection}>
           <div className={styles.ctaOverlay}></div>
           <div className={styles.container}>
             <div className={styles.ctaContent}>
-              <h2>Bạn cần tư vấn pháp lý?</h2>
-              <p>Đội ngũ luật sư chuyên nghiệp của chúng tôi sẵn sàng hỗ trợ</p>
+              <h2>Bạn là luật sư muốn tham gia cộng đồng?</h2>
+              <p>Tham gia LegAI để kết nối với khách hàng tiềm năng và mở rộng cơ hội nghề nghiệp</p>
               <div className={styles.ctaButtons}>
-                <Link to="/contact" className={styles.primaryButton}>
-                  Liên hệ ngay <i className="fas fa-arrow-right"></i>
+                <Link to="/lawyers/signup" className={styles.primaryButton}>
+                  <i className="fas fa-user-plus"></i> Đăng ký làm luật sư
                 </Link>
-                <button 
-                  className={styles.secondaryButton}
-                  onClick={() => {
-                    const event = new CustomEvent('toggleChat', { 
-                      detail: { action: 'open' } 
-                    });
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  <i className="fas fa-comments"></i> Chat với tư vấn viên
-                </button>
+                <a href="#" className={styles.secondaryButton}>
+                  <i className="fas fa-info-circle"></i> Tìm hiểu thêm
+                </a>
               </div>
             </div>
           </div>
         </section>
-        
-        <ChatManager />
       </div>
     </PageTransition>
   );

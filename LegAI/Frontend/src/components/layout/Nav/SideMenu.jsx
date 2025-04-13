@@ -1,7 +1,40 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import styles from './Navbar.module.css';
+import userService from '../../../services/userService';
 
-const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
+const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
+  const [currentUser, setCurrentUser] = useState(initialUser);
+  const navigate = useNavigate();
+
+  // Làm mới thông tin người dùng khi mở menu
+  useEffect(() => {
+    if (isOpen && initialUser) {
+      // Nên sử dụng một bản sao để tránh hiệu ứng nhấp nháy
+      setCurrentUser(initialUser);
+      
+      // Làm mới thông tin người dùng từ server
+      userService.refreshUserData()
+        .then(updatedUser => {
+          setCurrentUser(updatedUser);
+        })
+        .catch(error => {
+          console.error('Lỗi làm mới thông tin người dùng:', error);
+        });
+    }
+  }, [isOpen, initialUser]);
+
+  // Hàm xử lý điều hướng khi tài khoản đã là luật sư
+  const handleLawyerDashboard = () => {
+    onClose();
+    navigate('/lawyer-dashboard');
+  };
+
+  // Kiểm tra vai trò chính xác
+  const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
+  const isLawyer = currentUser?.role?.toLowerCase() === 'lawyer';
+  const isUser = currentUser?.role?.toLowerCase() === 'user' || (!isAdmin && !isLawyer);
+
   return (
     <>
       <div className={`${styles.sideMenu} ${isOpen ? styles.sideMenuOpen : ''}`}>
@@ -15,13 +48,22 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
         {currentUser && (
           <div className={styles.sideMenuUser}>
             <div className={styles.sideMenuAvatar}>
-              <span className={styles.sideMenuInitial}>
-                {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
-              </span>
+              {currentUser.avatarUrl ? (
+                <img 
+                  src={currentUser.avatarUrl} 
+                  alt={currentUser.fullName || 'User'} 
+                  className={styles.sideMenuAvatarImg} 
+                />
+              ) : (
+                <span className={styles.sideMenuInitial}>
+                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
+                </span>
+              )}
             </div>
             <div className={styles.sideMenuUserInfo}>
               <span className={styles.sideMenuName}>{currentUser.fullName || currentUser.username}</span>
               <span className={styles.sideMenuEmail}>{currentUser.email}</span>
+              <span className={styles.sideMenuRole}>{currentUser.role || 'Người dùng'}</span>
             </div>
           </div>
         )}
@@ -52,7 +94,7 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
           {currentUser ? (
             <>
               {/* Kiểm tra vai trò admin */}
-              {currentUser.role?.toLowerCase() === 'admin' && (
+              {isAdmin && (
                 <Link to="/dashboard" className={styles.sideMenuItem} onClick={onClose}>
                   <i className="fas fa-tachometer-alt"></i>
                   <span>Quản trị hệ thống</span>
@@ -60,10 +102,18 @@ const SideMenu = ({ isOpen, onClose, currentUser, onLogout }) => {
               )}
               
               {/* Kiểm tra vai trò luật sư */}
-              {currentUser.role?.toLowerCase() === 'lawyer' && (
+              {isLawyer && (
                 <Link to="/lawyer-dashboard" className={styles.sideMenuItem} onClick={onClose}>
                   <i className="fas fa-gavel"></i>
                   <span>Bảng điều khiển luật sư</span>
+                </Link>
+              )}
+              
+              {/* Hiển thị tùy chọn đăng ký làm luật sư cho người dùng thông thường */}
+              {isUser && (
+                <Link to="/lawyers/signup" className={styles.sideMenuItem} onClick={onClose}>
+                  <i className="fas fa-gavel"></i>
+                  <span>Đăng ký làm luật sư</span>
                 </Link>
               )}
               

@@ -170,12 +170,30 @@ const login = async (usernameOrEmail, password) => {
       // Lấy ID người dùng từ chuỗi lỗi hoặc data trả về
       const userId = error.response.data.userId || null;
       const email = error.response.data.email || null;
+      const username = error.response.data.username || null;
+      
+      // Tự động tạo và gửi OTP nếu có đủ thông tin
+      if (userId && email && username) {
+        try {
+          // Tạo OTP mới
+          const { otp } = generateAndStoreOTP(userId, email, username);
+          
+          // Gửi email chứa OTP
+          await sendOTPEmail(email, username, otp);
+          
+          console.log('Đã gửi OTP cho tài khoản chưa xác minh');
+        } catch (otpError) {
+          console.error('Lỗi khi gửi OTP:', otpError);
+        }
+      }
       
       // Tạo lỗi với thông tin bổ sung để client xử lý
       const customError = {
         message: error.response.data.message,
         userId: userId,
-        email: email
+        email: email,
+        username: username,
+        needVerification: true
       };
       
       throw customError;
@@ -294,7 +312,15 @@ const verifyResetToken = async (userId, otp) => {
 // Đặt lại mật khẩu
 const resetPassword = async (userId, newPassword) => {
   try {
-    const response = await authAxios.post('/change-password', { userId, newPassword });
+    // Sử dụng một giá trị mặc định cho currentPassword khi đặt lại mật khẩu
+    // do quên mật khẩu không yêu cầu mật khẩu hiện tại, nhưng API vẫn cần tham số này
+    const currentPassword = "reset_password_placeholder";
+    
+    const response = await authAxios.post('/change-password', { 
+      userId, 
+      currentPassword, 
+      newPassword 
+    });
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Lỗi đặt lại mật khẩu');
@@ -360,6 +386,48 @@ const hasRole = (role) => {
   return requiredRole.includes(userRole);
 };
 
+// Cập nhật thông tin người dùng trong localStorage mà không cần đăng nhập lại
+const updateUserInLocalStorage = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const currentUser = getCurrentUser();
+    
+    if (!token || !currentUser || !currentUser.id) {
+      return false;
+    }
+    
+    // Lấy thông tin người dùng mới từ API
+    const response = await axios.get(`${API_URL}/auth/users/${currentUser.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (response.data && response.data.status === 'success') {
+      const userData = response.data.data;
+      
+      // Tạo đối tượng user mới để lưu vào localStorage
+      const updatedUser = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.full_name || userData.fullName,
+        phone: userData.phone || '',
+        role: userData.role || currentUser.role,
+        avatarUrl: userData.avatar_url || userData.avatarUrl || currentUser.avatarUrl
+      };
+      
+      // Lưu thông tin người dùng mới vào localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Lỗi cập nhật thông tin người dùng:', error);
+    return false;
+  }
+};
+
 const authService = {
   register,
   verifyAccount,
@@ -374,7 +442,8 @@ const authService = {
   resetPassword,
   changePassword,
   checkTokenValidity,
-  hasRole
+  hasRole,
+  updateUserInLocalStorage
 };
 
 export default authService;

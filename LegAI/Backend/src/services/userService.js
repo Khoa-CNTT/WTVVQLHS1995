@@ -28,6 +28,11 @@ const createUser = async (username, password, email, phone, fullName, role = 'us
         let normalizedRole = (role || 'user').toLowerCase();
         normalizedRole = normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1);
         
+        // Đảm bảo role 'lawyer' luôn được chuẩn hóa thành 'lawyer'
+        if (normalizedRole.toLowerCase() === 'lawyer') {
+            normalizedRole = 'lawyer';
+        }
+        
         // Thêm người dùng vào bảng Users
         const userResult = await client.query(
             `INSERT INTO users 
@@ -154,6 +159,11 @@ const updateUser = async (userId, userData) => {
         // Đảm bảo role được chuẩn hóa với chữ cái đầu viết hoa
         let role = userData.role ? userData.role.toLowerCase() : 'user';
         role = role.charAt(0).toUpperCase() + role.slice(1);
+        
+        // Đảm bảo role 'lawyer' luôn được chuẩn hóa thành 'Lawyer'
+        if (role.toLowerCase() === 'lawyer') {
+            role = 'Lawyer';
+        }
         
         const address = userData.address || '';
         const bio = userData.bio || '';
@@ -490,6 +500,64 @@ const softDeleteUser = async (userId) => {
     }
 };
 
+// Tăng số lần đăng nhập thất bại
+const updateFailedLoginAttempts = async (userId) => {
+    try {
+        const userQuery = await pool.query('SELECT failed_attempts FROM users WHERE id = $1', [userId]);
+        if (userQuery.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        const currentAttempts = userQuery.rows[0].failed_attempts;
+        const updatedAttempts = currentAttempts + 1;
+        
+        const result = await pool.query(
+            'UPDATE users SET failed_attempts = $1 WHERE id = $2 RETURNING failed_attempts',
+            [updatedAttempts, userId]
+        );
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi cập nhật số lần đăng nhập thất bại: ${error.message}`);
+    }
+};
+
+// Đặt lại số lần đăng nhập thất bại
+const resetFailedLoginAttempts = async (userId) => {
+    try {
+        const result = await pool.query(
+            'UPDATE users SET failed_attempts = 0, last_login = CURRENT_TIMESTAMP WHERE id = $1 RETURNING failed_attempts',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi đặt lại số lần đăng nhập thất bại: ${error.message}`);
+    }
+};
+
+// Cập nhật thời gian đăng nhập cuối
+const updateLastLogin = async (userId) => {
+    try {
+        const result = await pool.query(
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1 RETURNING last_login',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi cập nhật thời gian đăng nhập cuối: ${error.message}`);
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -505,5 +573,8 @@ module.exports = {
     getUserByEmail,
     getUserByPhone,
     createPasswordResetToken,
-    verifyPasswordResetToken
+    verifyPasswordResetToken,
+    updateFailedLoginAttempts,
+    resetFailedLoginAttempts,
+    updateLastLogin
 }; 

@@ -20,11 +20,23 @@ const LawyerDashboard = () => {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const user = await authService.getCurrentUser();
-        if (!user || user.role !== 'lawyer') {
+        // Làm mới thông tin người dùng từ server
+        let user = await userService.refreshUserData();
+        
+        if (!user) {
+          // Thử lấy từ localStorage nếu không làm mới được
+          user = authService.getCurrentUser();
+        }
+        
+        console.log('Thông tin người dùng tại Lawyer Dashboard:', user);
+        
+        // Kiểm tra role, không phân biệt chữ hoa/thường
+        if (!user || (user.role?.toLowerCase() !== 'lawyer' && user.role?.toLowerCase() !== 'admin')) {
+          console.log('Chuyển hướng tới login vì người dùng không phải Lawyer hoặc Admin');
           navigate('/login');
           return;
         }
+        
         setCurrentUser(user);
         
         // Simulate loading data with counting animation
