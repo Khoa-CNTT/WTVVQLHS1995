@@ -69,7 +69,7 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
                   </button>
                   <button
                     className={styles.deleteButton}
-                    onClick={() => onDeleteUser(user.id)}
+                    onClick={() => onDeleteUser(user)}
                     title="Xóa tài khoản"
                     disabled={user.role === 'Admin' && user.id === 1}
                   >

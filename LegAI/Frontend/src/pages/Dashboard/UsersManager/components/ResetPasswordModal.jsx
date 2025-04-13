@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../UsersManagerPage.module.css';
+import { toast } from 'react-toastify';
 
 const ResetPasswordModal = ({ userId, onSave, onClose }) => {
   const [newPassword, setNewPassword] = useState('');
@@ -106,7 +107,7 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
       setError('Mật khẩu xác nhận không khớp');
       return;
     }
-    
+    toast.success('Đã đặt lại mật khẩu thành công');
     onSave(userId, newPassword);
   };
 

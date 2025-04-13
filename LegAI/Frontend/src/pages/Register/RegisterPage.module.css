@@ -413,29 +413,36 @@ form {
 .otpInputContainer {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  margin-bottom: 25px;
+  margin: 20px 0;
 }
 
 .otpInput {
-  width: 40px;
-  height: 45px;
-  text-align: center;
-  font-size: 18px;
+  width: 100%;
+  max-width: 250px;
+  height: 50px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1.2rem;
   font-weight: 600;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background-color: #f8f9fa;
-  transition: all 0.2s;
+  text-align: center;
+  letter-spacing: 0.5rem;
+  color: #333;
+  background-color: #f8f8f8;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  padding: 0 15px;
 }
 
 .otpInput:focus {
-  border-color: var(--primary-color, #ffcc00);
   outline: none;
+  border-color: #ffcc00;
   box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.2);
-  background-color: white;
 }
-
+.otpInput::placeholder{
+  font-weight: 200;
+  letter-spacing: 0.1rem;
+  text-align: center;
+  font-size: 1rem;
+}
 .otpButtonContainer {
   display: flex;
   flex-direction: column;

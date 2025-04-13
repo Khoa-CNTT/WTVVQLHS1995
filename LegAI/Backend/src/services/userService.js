@@ -15,7 +15,7 @@ const checkUserExists = async (username, email) => {
 };
 
 // Tạo người dùng mới và profile
-const createUser = async (username, password, email, phone, fullName) => {
+const createUser = async (username, password, email, phone, fullName, role = 'user') => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -24,13 +24,22 @@ const createUser = async (username, password, email, phone, fullName) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
+        // Chuẩn hóa role với chữ cái đầu viết hoa
+        let normalizedRole = (role || 'user').toLowerCase();
+        normalizedRole = normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1);
+        
+        // Đảm bảo role 'lawyer' luôn được chuẩn hóa thành 'lawyer'
+        if (normalizedRole.toLowerCase() === 'lawyer') {
+            normalizedRole = 'lawyer';
+        }
+        
         // Thêm người dùng vào bảng Users
         const userResult = await client.query(
             `INSERT INTO users 
             (username, password, email, phone, full_name, role, is_verified) 
             VALUES ($1, $2, $3, $4, $5, $6, $7) 
             RETURNING id, username, email, full_name, role, is_verified`,
-            [username, hashedPassword, email, phone, fullName, 'user', false]
+            [username, hashedPassword, email, phone, fullName, normalizedRole, false]
         );
         
         // Tạo profile mặc định cho user
@@ -76,7 +85,7 @@ const getUserById = async (userId) => {
             `SELECT u.*, up.address, up.avatar_url, up.bio 
             FROM users u 
             LEFT JOIN userprofiles up ON u.id = up.user_id 
-            WHERE u.id = $1`,
+            WHERE u.id = $1 AND u.username NOT LIKE 'deleted_%'`,
             [userId]
         );
         
@@ -98,7 +107,7 @@ const getUsers = async (page = 1, limit = 10, searchTerm = '', role = '') => {
             SELECT u.*, up.address, up.avatar_url, up.bio 
             FROM users u 
             LEFT JOIN userprofiles up ON u.id = up.user_id 
-            WHERE 1=1
+            WHERE u.username NOT LIKE 'deleted_%'
         `;
         const params = [];
 
@@ -146,7 +155,16 @@ const updateUser = async (userId, userData) => {
         // Đảm bảo dữ liệu không bị null
         const fullName = userData.fullName || ''; 
         const phone = userData.phone || '';
-        const role = userData.role || 'User';
+        
+        // Đảm bảo role được chuẩn hóa với chữ cái đầu viết hoa
+        let role = userData.role ? userData.role.toLowerCase() : 'user';
+        role = role.charAt(0).toUpperCase() + role.slice(1);
+        
+        // Đảm bảo role 'lawyer' luôn được chuẩn hóa thành 'Lawyer'
+        if (role.toLowerCase() === 'lawyer') {
+            role = 'Lawyer';
+        }
+        
         const address = userData.address || '';
         const bio = userData.bio || '';
         
@@ -163,14 +181,32 @@ const updateUser = async (userId, userData) => {
             throw new Error('Không tìm thấy người dùng');
         }
 
-        // Cập nhật profile
-        const profileResult = await client.query(
-            `UPDATE userprofiles 
-            SET address = $1, bio = $2, updated_at = CURRENT_TIMESTAMP 
-            WHERE user_id = $3 
-            RETURNING *`,
-            [address, bio, userId]
+        // Kiểm tra xem profile đã tồn tại chưa
+        const checkProfile = await client.query(
+            `SELECT * FROM userprofiles WHERE user_id = $1`,
+            [userId]
         );
+        
+        let profileResult;
+        if (checkProfile.rows.length === 0) {
+            // Chưa có profile, tạo mới
+            profileResult = await client.query(
+                `INSERT INTO userprofiles 
+                (user_id, address, avatar_url, bio) 
+                VALUES ($1, $2, $3, $4) 
+                RETURNING *`,
+                [userId, address, '/default-avatar.png', bio]
+            );
+        } else {
+            // Đã có profile, cập nhật
+            profileResult = await client.query(
+                `UPDATE userprofiles 
+                SET address = $1, bio = $2, updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = $3 
+                RETURNING *`,
+                [address, bio, userId]
+            );
+        }
 
         await client.query('COMMIT');
         
@@ -261,10 +297,42 @@ const deleteUser = async (userId) => {
             throw new Error('Không tìm thấy người dùng');
         }
         
-        // Xóa dữ liệu liên quan trong userprofiles trước
+        // Xóa dữ liệu từ tất cả các bảng có liên kết với user_id
+        
+        // 1. Xóa userprofiles
         await client.query('DELETE FROM userprofiles WHERE user_id = $1', [userId]);
         
-        // Xóa trong bảng users
+        // 2. Xóa AIConsultations
+        await client.query('DELETE FROM AIConsultations WHERE user_id = $1', [userId]);
+        
+        // 3. Xóa các bản ghi trong Appointments
+        await client.query('DELETE FROM Appointments WHERE customer_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 4. Xóa các bản ghi trong LiveChats
+        await client.query('DELETE FROM LiveChats WHERE customer_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 5. Xóa các bản ghi trong Transactions
+        await client.query('DELETE FROM Transactions WHERE user_id = $1 OR lawyer_id = $1', [userId]);
+        
+        // 6. Xóa dữ liệu trong AuditLogs
+        await client.query('DELETE FROM AuditLogs WHERE user_id = $1', [userId]);
+        
+        // 7. Xóa dữ liệu trong LawyerDetails
+        await client.query('DELETE FROM LawyerDetails WHERE lawyer_id = $1', [userId]);
+        
+        // 8. Xóa dữ liệu trong DigitalSignatures
+        await client.query('DELETE FROM DigitalSignatures WHERE user_id = $1', [userId]);
+        
+        // 9. Xóa dữ liệu trong LawyerAvailability
+        await client.query('DELETE FROM LawyerAvailability WHERE lawyer_id = $1', [userId]);
+        
+        // 10. Xóa dữ liệu trong Contracts
+        await client.query('DELETE FROM Contracts WHERE user_id = $1', [userId]);
+        
+        // 11. Xóa dữ liệu trong LegalCases
+        await client.query('DELETE FROM LegalCases WHERE user_id = $1', [userId]);
+        
+        // Cuối cùng xóa người dùng
         const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING id, username', [userId]);
         
         await client.query('COMMIT');
@@ -277,6 +345,219 @@ const deleteUser = async (userId) => {
     }
 };
 
+// Tìm người dùng theo username
+const getUserByUsername = async (username) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE username = $1 AND username NOT LIKE \'deleted_%\'',
+            [username]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo username:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
+// Tìm người dùng theo email
+const getUserByEmail = async (email) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE email = $1 AND username NOT LIKE \'deleted_%\'',
+            [email]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo email:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
+// Tìm người dùng theo số điện thoại
+const getUserByPhone = async (phone) => {
+    try {
+        const userQuery = await pool.query(
+            'SELECT * FROM users WHERE phone = $1 AND username NOT LIKE \'deleted_%\'',
+            [phone]
+        );
+        
+        if (userQuery.rows.length === 0) {
+            return null;
+        }
+        
+        return userQuery.rows[0];
+    } catch (error) {
+        console.error('Lỗi khi tìm người dùng theo số điện thoại:', error);
+        throw new Error('Lỗi hệ thống khi tìm kiếm người dùng');
+    }
+};
+
+// Cache để lưu các token đặt lại mật khẩu
+const passwordResetTokens = new Map();
+
+// Tạo token đặt lại mật khẩu
+const createPasswordResetToken = async (userId, email) => {
+    try {
+        // Tạo OTP ngẫu nhiên 6 chữ số
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Thời gian hết hạn OTP (15 phút)
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        
+        // Lưu token vào cache
+        passwordResetTokens.set(userId.toString(), {
+            otp,
+            email,
+            expiresAt,
+            attempts: 0
+        });
+        
+        // Gửi email chứa OTP sẽ được xử lý ở Frontend thông qua EmailJS
+        
+        return { otp, expiresAt };
+    } catch (error) {
+        throw new Error(`Lỗi tạo token đặt lại mật khẩu: ${error.message}`);
+    }
+};
+
+// Xác minh token đặt lại mật khẩu
+const verifyPasswordResetToken = async (userId, otp) => {
+    try {
+        const tokenData = passwordResetTokens.get(userId.toString());
+        
+        // Kiểm tra OTP có tồn tại không
+        if (!tokenData) {
+            throw new Error('Mã OTP không tồn tại hoặc đã hết hạn');
+        }
+        
+        // Kiểm tra OTP có hết hạn không
+        if (new Date() > tokenData.expiresAt) {
+            passwordResetTokens.delete(userId.toString());
+            throw new Error('Mã OTP đã hết hạn');
+        }
+        
+        // Kiểm tra OTP có đúng không
+        if (tokenData.otp !== otp) {
+            // Tăng số lần thử
+            tokenData.attempts += 1;
+            
+            // Nếu thử sai quá 3 lần, xóa OTP
+            if (tokenData.attempts >= 3) {
+                passwordResetTokens.delete(userId.toString());
+                throw new Error('Bạn đã nhập sai OTP quá nhiều lần');
+            }
+            
+            throw new Error('Mã OTP không đúng');
+        }
+        
+        return true;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+// Soft delete (vô hiệu hóa) người dùng thay vì xóa
+const softDeleteUser = async (userId) => {
+    try {
+        // Kiểm tra xem người dùng có tồn tại không
+        const checkUser = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (checkUser.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+
+        // Cập nhật trạng thái người dùng thành "đã xóa mềm" (soft delete)
+        const result = await pool.query(
+            `UPDATE users 
+            SET 
+                is_deleted = true,
+                is_locked = true,
+                email = CONCAT('deleted_', id, '_', email), 
+                username = CONCAT('deleted_', id, '_', username),
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1 
+            RETURNING id, username, is_deleted`,
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            throw new Error('Không thể vô hiệu hóa người dùng');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi vô hiệu hóa người dùng: ${error.message}`);
+    }
+};
+
+// Tăng số lần đăng nhập thất bại
+const updateFailedLoginAttempts = async (userId) => {
+    try {
+        const userQuery = await pool.query('SELECT failed_attempts FROM users WHERE id = $1', [userId]);
+        if (userQuery.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        const currentAttempts = userQuery.rows[0].failed_attempts;
+        const updatedAttempts = currentAttempts + 1;
+        
+        const result = await pool.query(
+            'UPDATE users SET failed_attempts = $1 WHERE id = $2 RETURNING failed_attempts',
+            [updatedAttempts, userId]
+        );
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi cập nhật số lần đăng nhập thất bại: ${error.message}`);
+    }
+};
+
+// Đặt lại số lần đăng nhập thất bại
+const resetFailedLoginAttempts = async (userId) => {
+    try {
+        const result = await pool.query(
+            'UPDATE users SET failed_attempts = 0, last_login = CURRENT_TIMESTAMP WHERE id = $1 RETURNING failed_attempts',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi đặt lại số lần đăng nhập thất bại: ${error.message}`);
+    }
+};
+
+// Cập nhật thời gian đăng nhập cuối
+const updateLastLogin = async (userId) => {
+    try {
+        const result = await pool.query(
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1 RETURNING last_login',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            throw new Error('Không tìm thấy người dùng');
+        }
+        
+        return result.rows[0];
+    } catch (error) {
+        throw new Error(`Lỗi cập nhật thời gian đăng nhập cuối: ${error.message}`);
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -286,5 +567,14 @@ module.exports = {
     updateUser,
     toggleUserLock,
     resetPassword,
-    deleteUser
+    deleteUser,
+    softDeleteUser,
+    getUserByUsername,
+    getUserByEmail,
+    getUserByPhone,
+    createPasswordResetToken,
+    verifyPasswordResetToken,
+    updateFailedLoginAttempts,
+    resetFailedLoginAttempts,
+    updateLastLogin
 }; 

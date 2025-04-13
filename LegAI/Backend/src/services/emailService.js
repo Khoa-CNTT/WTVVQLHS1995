@@ -44,7 +44,6 @@ const sendVerificationEmail = async (email, username, otp) => {
         };
         
         await transporter.sendMail(mailOptions);
-        console.log('Email xác minh đã được gửi đến:', email);
         return true;
     } catch (error) {
         console.error('Lỗi gửi email xác minh:', error);

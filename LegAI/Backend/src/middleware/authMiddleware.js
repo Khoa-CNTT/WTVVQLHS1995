@@ -2,11 +2,6 @@
 const jwt = require('jsonwebtoken');
 
 const authenticateToken = (req, res, next) => {
-    // Tạm thời bỏ qua xác thực token để test
-    next();
-    
-    // Uncomment đoạn code dưới đây khi cần bật lại xác thực
-    /*
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -17,7 +12,10 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    // Sử dụng biến JWT_SECRET có giá trị mặc định để tránh lỗi
+    const jwtSecret = process.env.JWT_SECRET || 'legai_jwt_super_secret_key_12345_secure_random_string';
+
+    jwt.verify(token, jwtSecret, (err, user) => {
         if (err) {
             return res.status(403).json({
                 status: 'error',
@@ -27,7 +25,6 @@ const authenticateToken = (req, res, next) => {
         req.user = user;
         next();
     });
-    */
 };
 
 module.exports = { authenticateToken };

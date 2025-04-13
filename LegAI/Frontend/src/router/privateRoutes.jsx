@@ -3,9 +3,10 @@ import { AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
+import authService from '../services/authService';
 
-// Tạm thời luôn cho phép truy cập các trang private để test UI
-const isAuthenticated = () => true;
+// Sử dụng hàm isAuthenticated từ authService
+const isAuthenticated = () => authService.isAuthenticated();
 
 const PrivateRoutes = () => {
   const location = useLocation();
@@ -13,7 +14,7 @@ const PrivateRoutes = () => {
   return isAuthenticated() ? (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/dashboard" element={
+        <Route path="/" element={
           <PageTransition custom="fade">
             <Dashboard />
           </PageTransition>

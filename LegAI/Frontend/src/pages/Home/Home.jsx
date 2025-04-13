@@ -118,8 +118,8 @@ const Home = () => {
           <h1 className={styles.heroTitle}>Giải pháp pháp lý toàn diện</h1>
           
           <div className={styles.heroBtnGroup}>
-            <button className={styles.exploreButton}>Khám phá ngay</button>
-            <button className={styles.contactButton}>
+            <button className={styles.exploreButton} onClick={() => window.location.href = '/services'}>Khám phá ngay</button>
+            <button className={styles.contactButton} onClick={() => window.location.href = '/contact'}>
               <i className="fa-solid fa-message"></i> Nhắn tin ngay
             </button>
           </div>
@@ -191,7 +191,7 @@ const Home = () => {
               <div className={styles.featureContent}>
                 <h3 className={styles.featureTitle}>{feature.title}</h3>
                 <p className={styles.featureDescription}>{feature.description}</p>
-                <a href="#" className={styles.featureLink}>
+                <a href="/services" className={styles.featureLink}>
                   Xem thêm <i className="fa-solid fa-arrow-right"></i>
                 </a>
               </div>
@@ -217,7 +217,7 @@ const Home = () => {
             <div className={styles.slideContent}>
               <h2 className={styles.slideTitle}>{slide.title}</h2>
               <p className={styles.slideDescription}>{slide.description}</p>
-              <button className={styles.slideButton}>
+              <button className={styles.slideButton} onClick={() => window.location.href = slide.title.includes('LIÊN HỆ') ? '/contact' : '/services'}>
                 {slide.buttonText} <i className="fa-solid fa-arrow-right"></i>
               </button>
             </div>

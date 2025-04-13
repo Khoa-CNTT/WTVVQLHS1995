@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
+import authService from '../../services/authService';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -14,9 +15,19 @@ function Dashboard() {
   });
   const [notifications, setNotifications] = useState(3);
   const [menuVisible, setMenuVisible] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Mô phỏng hiệu ứng đếm số mượt hơn
   useEffect(() => {
+    // Lấy thông tin người dùng khi component mount
+    const user = authService.getCurrentUser();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setCurrentUser(user);
+
+    // Mô phỏng hiệu ứng đếm số mượt hơn
     const targetCounts = { documents: 15, cases: 5, appointments: 3, contracts: 2 };
     const duration = 1500; // ms
     const frameDuration = 1000 / 60; // 60 fps
@@ -43,16 +54,32 @@ function Dashboard() {
     }, frameDuration);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [navigate]);
 
   // Hàm chuyển đến trang chủ
   const goToHomePage = () => {
     navigate('/');
   };
 
+  // Hàm xử lý đăng xuất
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
+  };
+
   // Hàm toggle sidebar
   const toggleSidebar = () => {
     setMenuVisible(!menuVisible);
+  };
+
+  // Hàm mở/đóng menu người dùng
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+
+  // Hàm chuyển đến trang hồ sơ
+  const goToProfilePage = () => {
+    navigate('/profile');
   };
 
   // Danh sách menu dựa trên cấu trúc cơ sở dữ liệu
@@ -245,8 +272,20 @@ function Dashboard() {
     return new Date().toLocaleDateString('vi-VN', options);
   };
 
+  // Hiển thị chữ cái đầu từ họ tên người dùng cho avatar
+  const getUserInitials = () => {
+    if (currentUser?.fullName) {
+      const nameParts = currentUser.fullName.split(' ');
+      if (nameParts.length > 1) {
+        return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase();
+      }
+      return currentUser.fullName.charAt(0).toUpperCase();
+    }
+    return currentUser?.username?.substring(0, 2).toUpperCase() || 'ND';
+  };
+
   return (
-    <div className={styles.dashboardContainer}>
+    <div className={`${styles.dashboardContainer} ${menuVisible ? '' : styles.sidebarCollapsed}`}>
       {/* Sidebar */}
       <div className={`${styles.sidebar} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
         <div
@@ -270,7 +309,7 @@ function Dashboard() {
           ))}
         </div>
         <div className={styles.logoutContainer}>
-          <button className={styles.logoutButton} onClick={() => localStorage.removeItem('token')}>
+          <button className={styles.logoutButton} onClick={handleLogout}>
             🚪 {menuVisible ? 'Đăng xuất' : ''}
           </button>
         </div>
@@ -293,8 +332,24 @@ function Dashboard() {
               <span className={styles.notificationIcon}>🔔</span>
               {notifications > 0 && <span className={styles.notificationBadge}>{notifications}</span>}
             </div>
-            <span className={styles.userName}>NGUYỄN VĂN A</span>
-            <div className={styles.userAvatar}>NV</div>
+            <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
+            <div className={styles.userAvatar} onClick={toggleUserMenu}>
+              {getUserInitials()}
+
+              {userMenuOpen && (
+                <div className={styles.userDropdownMenu} onClick={e => e.stopPropagation()}>
+                  <div className={styles.userMenuItem} onClick={() => navigate('/')}>
+                    <i className="fas fa-home"></i> Trang chủ
+                  </div>
+                  <div className={styles.userMenuItem} onClick={goToProfilePage}>
+                    <i className="fas fa-user"></i> Hồ sơ
+                  </div>
+                  <div className={styles.userMenuItem} onClick={handleLogout}>
+                    <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className={styles.contentWrapper}>

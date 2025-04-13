@@ -47,85 +47,61 @@
 
 ```
 LegAI/
-├── frontend/                       # Frontend (React)
-│   ├── public/                     # Các tệp tĩnh (favicon, index.html, manifest.json)
-│   ├── src/
-│   │   ├── assets/                 # Ảnh, font, icons, CSS, SCSS...
-│   │   ├── components/             # Các component
-│   │   │   ├── ui/                 # Component UI chung (Button, Modal, Input)
-│   │   │   ├── layout/             # Layout (Navbar, Sidebar, Footer)
-│   │   │   ├── hooks/              # Custom hooks (useAuth, useTheme...)
-│   │   │   └── utils/              # Hàm tiện ích (formatDate, debounce...)
-│   │   ├── pages/                  # Các trang (Home, About, Dashboard...)
-│   │   │   ├── Home/
-│   │   │   ├── About/
-│   │   │   └── DASHBOARD/          # Mỗi page có thư mục riêng
-│   │   ├── store/                  # Quản lý state (Redux, Zustand...)
-│   │   │   ├── slices/             # Redux slices (authSlice, userSlice...)
-│   │   │   └── index.ts            # Combine reducers
-│   │   ├── router/                 # Cấu hình Router
-│   │   │   ├── privateRoutes.ts    # Route yêu cầu đăng nhập
-│   │   │   ├── publicRoutes.ts     # Route công khai
-│   │   │   └── index.ts            # Cấu hình Router chính
-│   │   ├── services/               # API services (Axios, Fetch)
-│   │   │   ├── authService.ts      # Service xác thực
-│   │   │   └── userService.ts      # Service người dùng
-│   │   ├── config/                 # Cấu hình chung
-│   │   │   ├── axios.ts            # Cấu hình Axios
-│   │   │   ├── env.ts              # Load biến môi trường
-│   │   │   └── theme.ts            # Cấu hình theme (Dark/Light)
-│   │   ├── types/                  # TypeScript types
-│   │   │   ├── user.ts             # Kiểu dữ liệu User
-│   │   │   └── auth.ts             # Kiểu dữ liệu Auth
-│   │   ├── App.tsx                 # Component gốc
-│   │   └── main.tsx                # Entry point
-│   ├── .env                        # Biến môi trường
-│   ├── tsconfig.json               # Cấu hình TypeScript
-│   ├── tailwind.config.js          # Cấu hình TailwindCSS
-│   ├── package.json                # Dependencies
-│   ├── vite.config.ts              # Cấu hình Vite
-│   └── README.md                   # Tài liệu frontend
-├── backend/                        # Backend (Node.js)
-│   ├── src/
-│   │   ├── controllers/            # Logic API
-│   │   │   ├── authController.ts   # Đăng nhập, đăng ký
-│   │   │   └── userController.ts   # Quản lý người dùng
-│   │   ├── models/                 # Schema/Model
-│   │   │   ├── userModel.ts        # Model người dùng
-│   │   │   └── authModel.ts        # Model xác thực
-│   │   ├── routes/                 # Định nghĩa route
-│   │   │   ├── authRoutes.ts       # Route xác thực
-│   │   │   ├── userRoutes.ts       # Route người dùng
-│   │   │   └── index.ts            # Combine routes
-│   │   ├── middleware/             # Middleware
-│   │   │   ├── authMiddleware.ts   # Kiểm tra token
-│   │   │   └── errorMiddleware.ts  # Xử lý lỗi
-│   │   ├── services/               # Logic nghiệp vụ
-│   │   │   ├── authService.ts      # Dịch vụ xác thực
-│   │   │   └── userService.ts      # Dịch vụ người dùng
-│   │   ├── config/                 # Cấu hình
-│   │   │   ├── database.ts         # Kết nối database
-│   │   │   └── env.ts              # Biến môi trường
-│   │   ├── utils/                  # Hàm tiện ích
-│   │   │   ├── logger.ts           # Ghi log
-│   │   │   └── helpers.ts          # Hỗ trợ (hash, token...)
-│   │   ├── types/                  # TypeScript types
-│   │   │   ├── userTypes.ts        # Kiểu người dùng
-│   │   │   └── authTypes.ts        # Kiểu xác thực
-│   │   └── app.ts                  # Khởi tạo Express
-│   ├── .env                        # Biến môi trường
-│   ├── tsconfig.json               # Cấu hình TypeScript
-│   ├── package.json                # Dependencies
-│   ├── nodemon.json                # Cấu hình Nodemon
-│   └── README.md                   # Tài liệu backend
-├── ai/                             # Chatbot AI (Rasa)
-│   ├── data/                       # Dữ liệu huấn luyện
-│   ├── models/                     # Mô hình AI
-│   └── actions/                    # Hành động tùy chỉnh
-├── docker/                         # Cấu hình Docker
-│   ├── Dockerfile                  # Dockerfile ứng dụng
-│   └── docker-compose.yml          # Dịch vụ tích hợp
-└── README.md                       # Tài liệu chính
+├── .git/                     # Thư mục quản lý phiên bản Git
+├── .vscode/                  # Cấu hình cho Visual Studio Code
+├── Documents/                # Tài liệu dự án
+│   ├── 1.ProjectProposal.docx       # Đề xuất dự án
+│   ├── 2.ProjectPlan.docx           # Kế hoạch dự án
+│   ├── 3.ProjectUserStrory.docx     # User stories
+│   ├── 4.Product-Backlog.docx       # Danh sách tính năng
+│   ├── 6.ProjectDatabase.docx       # Thiết kế cơ sở dữ liệu
+│   └── 10.ProjectSprintBacklog.xlsx # Kế hoạch sprint
+├── .gitignore                # Danh sách loại trừ khỏi Git
+├── LegAI/                    # Mã nguồn dự án
+│   ├── Backend/              # Phần backend
+│   │   ├── node_modules/     # Thư viện
+│   │   ├── src/              # Mã nguồn
+│   │   │   ├── config/       # Cấu hình
+│   │   │   ├── controllers/  # Xử lý logic
+│   │   │   ├── middleware/   # Middleware
+│   │   │   ├── models/       # Mô hình dữ liệu
+│   │   │   ├── routes/       # API routes 
+│   │   │   ├── services/     # Logic nghiệp vụ
+│   │   │   ├── types/        # Định nghĩa kiểu
+│   │   │   ├── utils/        # Tiện ích
+│   │   │   └── app.js        # Khởi động ứng dụng
+│   │   ├── .env              # Biến môi trường
+│   │   ├── .gitignore        # Cấu hình Git
+│   │   ├── package.json      # Cấu hình npm
+│   │   ├── package-lock.json # Khóa phiên bản npm
+│   │   └── pnpm-lock.yaml    # Khóa phiên bản pnpm
+│   └── Frontend/             # Phần frontend
+│       ├── node_modules/     # Thư viện
+│       ├── public/           # Tài nguyên công khai
+│       ├── src/              # Mã nguồn
+│       │   ├── assets/       # Tài nguyên tĩnh
+│       │   ├── components/   # Components UI
+│       │   ├── config/       # Cấu hình
+│       │   ├── pages/        # Các trang
+│       │   ├── router/       # Định tuyến
+│       │   ├── services/     # Gọi API
+│       │   ├── store/        # Quản lý trạng thái
+│       │   ├── styles/       # Style chung
+│       │   ├── types/        # Định nghĩa kiểu
+│       │   ├── App.jsx       # Component chính
+│       │   ├── App.css       # Style cho App
+│       │   ├── main.jsx      # Điểm khởi chạy
+│       │   └── index.css     # Style toàn cục
+│       ├── .env              # Biến môi trường
+│       ├── .gitignore        # Cấu hình Git
+│       ├── eslint.config.js  # Cấu hình linting
+│       ├── index.html        # HTML gốc
+│       ├── package.json      # Cấu hình npm
+│       ├── package-lock.json # Khóa phiên bản npm
+│       ├── pnpm-lock.yaml    # Khóa phiên bản pnpm
+│       ├── README.md         # Hướng dẫn frontend
+│       └── vite.config.js    # Cấu hình Vite
+└── README.md                 # Tài liệu tổng quan
 ```
 
 ---

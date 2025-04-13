@@ -1,52 +1,58 @@
-// controllers/authController.js
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/env');
-const pool = require('../config/database');
+// src/controllers/authController.js
+const authService = require('../services/authService');
+const userService = require('../services/userService');
 
 const login = async (req, res) => {
-    const { username, password } = req.body;
-
     try {
-        const userQuery = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-        const user = userQuery.rows[0];
+    const { usernameOrEmail, password } = req.body;
 
-        if (!user) {
-            return res.status(400).json({ message: 'Tên người dùng không tồn tại' });
-        }
-
-        if (user.is_verified === false) {
-            return res.status(400).json({ message: 'Tài khoản chưa được xác minh. Vui lòng xác minh tài khoản' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Mật khẩu không đúng' });
-        }
-
-        await pool.query(
-            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
-            [user.id]
-        );
-
-        const token = jwt.sign(
-            { id: user.id, username: user.username },
-            JWT_SECRET,
-            { expiresIn: '1h' }
-        );
-
-        res.status(200).json({
-            message: 'Đăng nhập thành công',
-            token,
-            user: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-            },
+    if (!usernameOrEmail || !password) {
+        return res.status(400).json({
+            status: 'error',
+                message: 'Vui lòng nhập tên đăng nhập/email và mật khẩu'
         });
+    }
+
+        const authResult = await authService.login(usernameOrEmail, password);
+        
+        // Nếu tài khoản chưa xác minh
+        if (authResult.needVerification) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Tài khoản chưa được xác minh. Vui lòng xác minh tài khoản để tiếp tục.',
+                userId: authResult.userId,
+                email: authResult.email,
+                username: authResult.username,
+                needVerification: true
+            });
+        }
+        
+        // Nếu tài khoản đã bị khóa
+        if (authResult.isLocked) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng liên hệ quản trị viên.',
+                isLocked: true
+            });
+        }
+        
+        // Đăng nhập thành công
+        return res.status(200).json({
+            status: 'success',
+            message: 'Đăng nhập thành công',
+            data: {
+                token: authResult.token,
+                user: authResult.user
+            }
+        });
+        
     } catch (error) {
         console.error('Lỗi đăng nhập:', error);
-        res.status(500).json({ message: 'Lỗi server' });
+        
+        return res.status(500).json({
+            status: 'error',
+            message: error.message || 'Lỗi server khi đăng nhập'
+        });
     }
 };
 
