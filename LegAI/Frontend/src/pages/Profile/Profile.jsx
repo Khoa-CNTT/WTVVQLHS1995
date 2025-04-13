@@ -5,32 +5,26 @@ import styles from './Profile.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import authService from '../../services/authService';
 import userService from '../../services/userService';
-import { useProfile } from '../../components/hooks/Profile';
 import ChangePasswordPage from './ChangePassword/ChangePasssword';
 import ChatManager from '../../components/layout/Chat/ChatManager';
 
 function Profile() {
   const navigate = useNavigate();
-  const {
-    user,
-    userDetails,
-    formData,
-    loading,
-    error,
-    successMessage,
-    setFormData,
-    setError,
-    setSuccessMessage,
-    fetchUserProfile,
-    updateUserProfile,
-    uploadAvatar,
-    formatDate
-  } = useProfile();
-  
+  const [user, setUser] = useState(null);
+  const [userDetails, setUserDetails] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
   const [editMode, setEditMode] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('/default-avatar.png');
   const [avatar, setAvatar] = useState(null);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    bio: ''
+  });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -46,9 +40,69 @@ function Profile() {
       return;
     }
     
-    // Lấy thông tin chi tiết người dùng
-    fetchUserProfile(currentUser.id);
+    // Làm mới thông tin người dùng từ server mỗi khi mở profile
+    const refreshData = async () => {
+      try {
+        // Làm mới thông tin từ localStorage
+        const updatedUser = await userService.refreshUserData();
+        setUser(updatedUser);
+        
+        // Sau đó lấy thông tin chi tiết
+        fetchUserProfile(updatedUser.id);
+      } catch (error) {
+        console.error('Lỗi làm mới thông tin người dùng:', error);
+        setUser(currentUser);
+        fetchUserProfile(currentUser.id);
+      }
+    };
+    
+    refreshData();
   }, [navigate]);
+  
+  const fetchUserProfile = async (userId) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const userData = await userService.getUserProfile(userId);
+      
+      if (userData) {
+        // Cập nhật user state
+        setUserDetails(userData);
+        
+        // Cập nhật form data
+        setFormData({
+          fullName: userData.fullName || userData.full_name || '',
+          phone: userData.phone || '',
+          address: userData.address || '',
+          bio: userData.bio || ''
+        });
+        
+        // Cập nhật avatar URL
+        if (userData.avatarUrl || userData.avatar_url) {
+          setPreviewUrl(userData.avatarUrl || userData.avatar_url);
+        }
+        
+        // Nếu là luật sư, lấy thêm thông tin chi tiết của luật sư
+        if (user && user.role === 'Lawyer') {
+          try {
+            const lawyerData = await userService.getLawyerById(userId);
+            if (lawyerData) {
+              console.log('Thông tin chi tiết luật sư:', lawyerData);
+            }
+          } catch (err) {
+            console.error('Lỗi lấy thông tin chi tiết luật sư:', err);
+          }
+        }
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Lỗi lấy thông tin profile:', error);
+      setError('Không thể tải thông tin người dùng');
+      setLoading(false);
+    }
+  };
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -86,10 +140,13 @@ function Profile() {
   
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
     
     try {
       // Cập nhật thông tin hồ sơ
-      await updateUserProfile({
+      await userService.updateUserProfile(user.id, {
         fullName: formData.fullName,
         phone: formData.phone,
         address: formData.address,
@@ -98,14 +155,56 @@ function Profile() {
       
       // Nếu có avatar mới, tải lên
       if (avatar) {
-        const formData = new FormData();
-        formData.append('avatar', avatar);
-        await uploadAvatar(formData);
+        const formDataUpload = new FormData();
+        formDataUpload.append('avatar', avatar);
+        
+        console.log('Uploading new avatar...');
+        const avatarResponse = await userService.uploadAvatar(user.id, formDataUpload);
+        console.log('Avatar upload response:', avatarResponse);
+        
+        if (avatarResponse && avatarResponse.data) {
+          // Lấy URL avatar từ phản hồi
+          let avatarUrl = avatarResponse.data.avatarUrl || '';
+          
+          // Chuyển thành URL đầy đủ
+          if (avatarUrl) {
+            const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
+            console.log('Full avatar URL:', fullAvatarUrl);
+            
+            // Cập nhật URL vào user locals
+            const updatedUser = JSON.parse(localStorage.getItem('user'));
+            if (updatedUser) {
+              updatedUser.avatarUrl = fullAvatarUrl;
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+          }
+        }
       }
       
+      // Cập nhật thông tin user trong localStorage
+      await userService.refreshUserData();
+      
+      // Cập nhật lại user từ localStorage sau khi cập nhật
+      const updatedUser = authService.getCurrentUser();
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+      
+      setSuccessMessage('Cập nhật hồ sơ thành công');
       setEditMode(false);
+      
+      // Làm mới thông tin profile
+      fetchUserProfile(user.id);
+      
+      // Tự động ẩn thông báo sau 3 giây
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
     } catch (error) {
-      // Lỗi đã được xử lý trong hook
+      console.error('Lỗi cập nhật profile:', error);
+      setError(error.response?.data?.message || 'Lỗi cập nhật thông tin');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -156,15 +255,33 @@ function Profile() {
         newPassword: '',
         confirmPassword: ''
       });
-      setPasswordLoading(false);
     } catch (error) {
       setError(error.response?.data?.message || 'Mật khẩu hiện tại không chính xác');
+    } finally {
       setPasswordLoading(false);
     }
   };
   
-  if (loading) {
-    return <div className={styles.loading}>Đang tải...</div>;
+  // Định dạng ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Chưa cập nhật';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return 'Ngày không hợp lệ';
+    }
+  };
+  
+  if (loading && !user) {
+    return <div className={styles.loading}>Đang tải thông tin người dùng...</div>;
   }
   
   if (!user) {
@@ -180,6 +297,10 @@ function Profile() {
       <Navbar />
       <ChatManager />
       <div className={styles.profileContainer}>
+        <div className={styles.header}>
+          <h1>Hồ sơ cá nhân</h1>
+          <p>Quản lý thông tin cá nhân của bạn</p>
+        </div>
         
         <div className={styles.content}>
           <div className={styles.sidebar}>
@@ -213,14 +334,14 @@ function Profile() {
                   <FaCalendarAlt />
                   <div>
                     <p>Tham gia:</p>
-                    <span>{formatDate(userDetails.createdAt)}</span>
+                    <span>{formatDate(userDetails.createdAt || userDetails.created_at)}</span>
                   </div>
                 </div>
                 <div className={styles.statItem}>
                   <FaHistory />
                   <div>
                     <p>Đăng nhập gần đây:</p>
-                    <span>{formatDate(userDetails.lastLogin)}</span>
+                    <span>{formatDate(userDetails.lastLogin || userDetails.last_login)}</span>
                   </div>
                 </div>
               </div>

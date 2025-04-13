@@ -92,16 +92,27 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 };
 
 // Tải lên ảnh đại diện
-const uploadAvatar = async (userId, formData) => {
+const uploadAvatar = async (userId, formData, config = {}) => {
   try {
-    // Thay đổi content-type để phù hợp với tải lên file
-    const response = await userAxios.post(`/auth/users/${userId}/avatar`, formData, {
+    // Sửa đường dẫn API để trỏ đến endpoint đúng
+    console.log('Uploading avatar for user ID:', userId);
+    const response = await userAxios.post(`/users/${userId}/avatar`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      ...config
     });
+    
+    console.log('Upload response:', response.data);
+    
+    // Làm mới thông tin người dùng sau khi tải lên avatar thành công
+    if (response.data && response.data.status === 'success') {
+      await refreshUserData();
+    }
+    
     return response.data;
   } catch (error) {
+    console.error('Lỗi chi tiết khi tải lên avatar:', error);
     throw error.response?.data || { message: 'Lỗi tải lên ảnh đại diện' };
   }
 };
@@ -201,6 +212,93 @@ const getUserConsultations = async (userId, page = 1, limit = 10) => {
   }
 };
 
+// Thêm hàm mới để làm mới thông tin user
+const refreshUserData = async () => {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser || !currentUser.id) {
+      throw new Error('Không tìm thấy thông tin người dùng');
+    }
+    
+    const response = await userAxios.get(`/auth/users/${currentUser.id}`);
+    
+    if (response.data && response.data.status === 'success') {
+      const userData = response.data.data;
+      
+      // Cập nhật thông tin người dùng trong localStorage
+      const updatedUser = {
+        ...currentUser,
+        fullName: userData.full_name || currentUser.fullName,
+        email: userData.email || currentUser.email,
+        phone: userData.phone || currentUser.phone,
+        role: userData.role || currentUser.role,
+        avatarUrl: userData.avatar_url || currentUser.avatarUrl
+      };
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    }
+    
+    return currentUser;
+  } catch (error) {
+    console.error('Lỗi khi làm mới thông tin người dùng:', error);
+    throw error;
+  }
+};
+
+// Cập nhật hàm getAllLawyers để thêm đầy đủ tham số
+const getAllLawyers = async (page = 1, limit = 10, searchTerm = '', specialization = '') => {
+  try {
+    // Xây dựng query parameters
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', limit);
+    
+    if (searchTerm) {
+      params.append('search', searchTerm);
+    }
+    
+    if (specialization) {
+      params.append('specialization', specialization);
+    }
+    
+    const response = await userAxios.get(`/auth/lawyers?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi lấy danh sách luật sư:', error);
+    throw error;
+  }
+};
+
+// Cập nhật hàm getLawyerById
+const getLawyerById = async (lawyerId) => {
+  try {
+    const response = await userAxios.get(`/auth/lawyers/${lawyerId}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Lỗi lấy thông tin luật sư:', error);
+    throw error;
+  }
+};
+
+// Lấy URL đầy đủ cho avatar
+const getFullAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  
+  // Nếu đã là URL đầy đủ, trả về nguyên bản
+  if (avatarPath.startsWith('http')) {
+    return avatarPath;
+  }
+  
+  // Nếu là đường dẫn tương đối, thêm tiền tố API_URL
+  if (avatarPath.startsWith('/uploads')) {
+    return `${API_URL.replace('/api', '')}${avatarPath}`;
+  }
+  
+  // Xử lý trường hợp chỉ có tên file
+  return `${API_URL.replace('/api', '')}/uploads/${avatarPath}`;
+};
+
 const userService = {
   getUserProfile,
   updateUserProfile,
@@ -211,7 +309,11 @@ const userService = {
   getUserDocuments,
   getUserCases,
   getUserAppointments,
-  getUserConsultations
+  getUserConsultations,
+  getAllLawyers,
+  getLawyerById,
+  refreshUserData,
+  getFullAvatarUrl
 };
 
 export default userService;

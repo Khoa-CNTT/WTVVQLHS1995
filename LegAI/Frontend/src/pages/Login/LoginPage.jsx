@@ -18,6 +18,11 @@ function LoginPage() {
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [requireOTP, setRequireOTP] = useState(false);
+  const [userIdToVerify, setUserIdToVerify] = useState(null);
+  const [emailToVerify, setEmailToVerify] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otp, setOtp] = useState('');
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,37 +46,46 @@ function LoginPage() {
   
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    
+    // Kiểm tra form
+    if (!usernameOrEmail || !password) {
+      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu');
+      return;
+    }
     
     try {
-      const response = await authService.login(usernameOrEmail, password);
-      // Đăng nhập thành công
-      setLoading(false);
+      setLoading(true);
+      
+      // Gọi API đăng nhập
+      await authService.login(usernameOrEmail, password);
+      
+      // Nếu đăng nhập thành công, chuyển hướng đến trang chính
       navigate('/');
+      
     } catch (error) {
-      setLoading(false);
       console.error('Lỗi đăng nhập:', error);
       
-      // Kiểm tra trường hợp chưa xác minh tài khoản
-      if (error.message && error.message.includes('chưa được xác minh')) {
-        // Lưu thông tin user để gửi OTP
-        if (error.userId && error.email) {
-          setUserId(error.userId);
-          setUserEmail(error.email);
-          setShowOtpForm(true);
-          handleSendOTP(error.userId, error.email);
-        } else {
-          setError('Không thể xác minh tài khoản. Vui lòng liên hệ hỗ trợ.');
-        }
+      // Xử lý lỗi tài khoản chưa được xác minh
+      if (error.needVerification && error.userId) {
+        // Thay đổi trạng thái để hiển thị form nhập OTP
+        setRequireOTP(true);
+        setUserIdToVerify(error.userId);
+        setEmailToVerify(error.email);
+        setError('');
+        
+        // Hiển thị thông báo cho người dùng biết đã gửi OTP
+        setOtpMessage(`Tài khoản chưa được xác minh. Mã OTP đã được gửi đến email ${error.email}. Vui lòng kiểm tra email và nhập mã OTP để xác minh.`);
       } 
-      // Kiểm tra trường hợp tài khoản bị khóa
-      else if (error.message && (error.message.includes('đã bị khóa') || error.isLocked)) {
-        setError(error.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      // Xử lý lỗi tài khoản bị khóa
+      else if (error.isLocked) {
+        setError('Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng liên hệ quản trị viên để được hỗ trợ.');
       } 
+      // Các lỗi khác
       else {
-        setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        setError(error.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
       }
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -91,15 +105,36 @@ function LoginPage() {
   
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    
+    if (!otp) {
+      setError('Vui lòng nhập mã OTP');
+      return;
+    }
     
     try {
-      const response = await authService.verifyAccount(userId, otpValue);
-      setLoading(false);
-      // Sau khi xác minh thành công, cho phép đăng nhập lại
-      setShowOtpForm(false);
-      setError('Xác minh tài khoản thành công. Vui lòng đăng nhập lại.');
+      setLoading(true);
+      
+      // Gửi yêu cầu xác minh OTP
+      await authService.verifyAccount(userIdToVerify, otp);
+      
+      // Hiển thị thông báo thành công
+      setSuccessMessage('Xác minh tài khoản thành công! Đang chuyển hướng...');
+      
+      // Đợi 2 giây và thử đăng nhập lại
+      setTimeout(async () => {
+        try {
+          // Đăng nhập lại sau khi xác minh thành công
+          await authService.login(usernameOrEmail, password);
+          navigate('/');
+        } catch (loginError) {
+          console.error('Lỗi đăng nhập sau khi xác minh:', loginError);
+          setError('Xác minh thành công nhưng đăng nhập thất bại. Vui lòng đăng nhập lại.');
+          setRequireOTP(false); // Quay lại form đăng nhập
+        } finally {
+          setLoading(false);
+        }
+      }, 2000);
+      
     } catch (error) {
       setLoading(false);
       setError(error.message || 'Xác minh thất bại. Vui lòng kiểm tra lại mã OTP.');
@@ -118,15 +153,16 @@ function LoginPage() {
           <span>LegAI</span>
         </div>
         
-        {showOtpForm ? (
+        {requireOTP ? (
           // Form nhập OTP
           <>
             <h2 className={styles.title}>Xác minh tài khoản</h2>
             <p className={styles.otpMessage}>
-              Vui lòng nhập mã OTP đã được gửi đến email của bạn để xác minh tài khoản
+              {otpMessage || `Vui lòng nhập mã OTP đã được gửi đến email ${emailToVerify} để xác minh tài khoản`}
             </p>
             
             {error && <div className={styles.errorMessage}>{error}</div>}
+            {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
             
             <form onSubmit={handleVerifyOTP}>
               <div className={styles.inputGroup}>
@@ -134,12 +170,12 @@ function LoginPage() {
                 <input 
                   type="text" 
                   placeholder="Nhập mã OTP 6 chữ số" 
-                  value={otpValue}
+                  value={otp}
                   onChange={(e) => {
                     // Chỉ chấp nhận số và giới hạn 6 ký tự
                     const val = e.target.value;
                     if (/^\d*$/.test(val) && val.length <= 6) {
-                      setOtpValue(val);
+                      setOtp(val);
                     }
                   }}
                   maxLength={6}
@@ -153,7 +189,7 @@ function LoginPage() {
                 <button 
                   type="button" 
                   className={styles.resendButton}
-                  onClick={() => handleSendOTP()}
+                  onClick={() => handleSendOTP(userIdToVerify, emailToVerify)}
                 >
                   Gửi lại mã OTP
                 </button>
@@ -163,7 +199,11 @@ function LoginPage() {
             <div className={styles.bottomRow}>
               <button 
                 className={styles.backButton}
-                onClick={() => setShowOtpForm(false)}
+                onClick={() => {
+                  setRequireOTP(false);
+                  setError('');
+                  setSuccessMessage('');
+                }}
               >
                 Quay lại đăng nhập
               </button>

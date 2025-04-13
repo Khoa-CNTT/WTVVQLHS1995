@@ -552,21 +552,27 @@
 }
 
 .sideMenuAvatar {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background-color: #ffcc00;
+  background-color: #0f2027;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-right: 10px;
+}
+
+.sideMenuAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sideMenuInitial {
-  font-size: 1.2rem;
+  color: white;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
 }
 
 .sideMenuUserInfo {
@@ -585,9 +591,18 @@
 }
 
 .sideMenuEmail {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #666;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-top: 3px;
+  display: block;
+}
+
+.sideMenuRole {
+  font-size: 0.75rem;
+  color: #ffffff;
+  background-color: #0f2027;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 5px;
+  display: inline-block;
 }
