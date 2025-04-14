@@ -7,6 +7,7 @@ import ChatManager from '../../components/layout/Chat/ChatManager';
 import userService from '../../services/userService';
 import authService from '../../services/authService';
 import { API_URL } from '../../config/constants';
+import { toast } from 'react-toastify';
 
 function Lawyers() {
   const [activeTab, setActiveTab] = useState('all');
@@ -185,7 +186,7 @@ function Lawyers() {
   // Xử lý đặt lịch hẹn
   const handleAppointment = (lawyer) => {
     // Sẽ xử lý logic đặt lịch hẹn sau
-    alert(`Đặt lịch hẹn với luật sư ${lawyer.fullName}`);
+    toast.success(`Đặt lịch hẹn với luật sư ${lawyer.fullName}`);
   };
 
   // Hàm xử lý gửi đánh giá - đã sửa lỗi process is not defined
@@ -193,7 +194,7 @@ function Lawyers() {
     e.preventDefault();
     
     if (!userRating) {
-      alert('Vui lòng chọn số sao đánh giá');
+      toast.error('Vui lòng chọn số sao đánh giá');
       return;
     }
     
@@ -224,11 +225,11 @@ function Lawyers() {
         }));
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
+        toast.error(errorData.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
       }
     } catch (error) {
       console.error('Lỗi khi gửi đánh giá:', error);
-      alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
+      toast.error('Không thể gửi đánh giá. Vui lòng thử lại sau.');
     } finally {
       setSubmittingReview(false);
     }

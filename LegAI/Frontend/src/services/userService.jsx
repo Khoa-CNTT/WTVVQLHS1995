@@ -95,7 +95,6 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 const uploadAvatar = async (userId, formData, config = {}) => {
   try {
     // Sửa đường dẫn API để trỏ đến endpoint đúng
-    console.log('Uploading avatar for user ID:', userId);
     const response = await userAxios.post(`/users/${userId}/avatar`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -103,7 +102,6 @@ const uploadAvatar = async (userId, formData, config = {}) => {
       ...config
     });
     
-    console.log('Upload response:', response.data);
     
     // Làm mới thông tin người dùng sau khi tải lên avatar thành công
     if (response.data && response.data.status === 'success') {
@@ -262,7 +260,18 @@ const getAllLawyers = async (page = 1, limit = 10, searchTerm = '', specializati
       params.append('specialization', specialization);
     }
     
+    // Thêm tham số để chỉ định tìm kiếm không phân biệt chữ hoa/thường cho role
+    params.append('case_insensitive', 'true');
+    
     const response = await userAxios.get(`/auth/lawyers?${params.toString()}`);
+    
+    // Xử lý kết quả để đảm bảo đúng role lawyer không phân biệt hoa thường
+    if (response.data && response.data.data && response.data.data.lawyers) {
+      response.data.data.lawyers = response.data.data.lawyers.filter(user => 
+        user.role && user.role.toLowerCase() === 'lawyer'
+      );
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Lỗi lấy danh sách luật sư:', error);
@@ -274,6 +283,13 @@ const getAllLawyers = async (page = 1, limit = 10, searchTerm = '', specializati
 const getLawyerById = async (lawyerId) => {
   try {
     const response = await userAxios.get(`/auth/lawyers/${lawyerId}`);
+    
+    // Kiểm tra vai trò để đảm bảo là luật sư không phân biệt chữ hoa/thường
+    const lawyerData = response.data.data;
+    if (lawyerData && lawyerData.role && lawyerData.role.toLowerCase() !== 'lawyer') {
+      console.warn('Đối tượng được truy vấn không phải là luật sư');
+    }
+    
     return response.data.data;
   } catch (error) {
     console.error('Lỗi lấy thông tin luật sư:', error);

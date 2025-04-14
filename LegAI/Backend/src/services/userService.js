@@ -119,8 +119,9 @@ const getUsers = async (page = 1, limit = 10, searchTerm = '', role = '') => {
         }
 
         if (role) {
-            params.push(role);
-            query += ` AND u.role = $${params.length}`;
+            params.push(`%${role}%`);
+            // Sử dụng ILIKE để không phân biệt chữ hoa/thường khi tìm kiếm theo role
+            query += ` AND u.role ILIKE $${params.length}`;
         }
 
         // Tổng số người dùng

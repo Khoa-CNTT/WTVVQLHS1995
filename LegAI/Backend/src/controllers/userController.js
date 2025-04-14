@@ -785,8 +785,8 @@ const getAllLawyers = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const searchTerm = req.query.search || '';
 
-        // Sử dụng hàm getUsers với role là 'Lawyer'
-        const result = await userService.getUsers(page, limit, searchTerm, 'Lawyer');
+        // Sử dụng hàm getUsers với role là 'lawyer' và không phân biệt chữ hoa/thường
+        const result = await userService.getUsers(page, limit, searchTerm, 'lawyer');
 
         // Trả về danh sách luật sư với thông tin cơ bản
         return res.status(200).json({
@@ -798,7 +798,8 @@ const getAllLawyers = async (req, res) => {
                     email: user.email,
                     avatar: user.avatar_url,
                     bio: user.bio,
-                    address: user.address
+                    address: user.address,
+                    role: user.role  // Thêm role vào response để client có thể kiểm tra
                 })),
                 totalLawyers: result.totalUsers,
                 totalPages: result.totalPages,
@@ -821,6 +822,7 @@ const getLawyerById = async (req, res) => {
         const lawyerId = req.params.id;
 
         // Truy vấn kết hợp dữ liệu từ cả hai bảng Users và LawyerDetails
+        // Sử dụng ILIKE thay vì = để không phân biệt chữ hoa/thường cho role
         const query = `
             SELECT 
                 u.id, 
@@ -845,10 +847,10 @@ const getLawyerById = async (req, res) => {
             LEFT JOIN
                 UserProfiles up ON u.id = up.user_id
             WHERE 
-                u.id = $1 AND u.role = 'Lawyer'
+                u.id = $1 AND u.role ILIKE $2
         `;
 
-        const result = await pool.query(query, [lawyerId]);
+        const result = await pool.query(query, [lawyerId, '%lawyer%']);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
