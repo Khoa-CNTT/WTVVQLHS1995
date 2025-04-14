@@ -6,6 +6,7 @@ import PageTransition from '../../components/layout/TransitionPage/PageTransitio
 import ChatManager from '../../components/layout/Chat/ChatManager';
 import userService from '../../services/userService';
 import authService from '../../services/authService';
+import { API_URL } from '../../config/constants';
 
 function Lawyers() {
   const [activeTab, setActiveTab] = useState('all');
@@ -65,22 +66,22 @@ function Lawyers() {
         // Xử lý đường dẫn avatar - đảm bảo hiển thị đúng đường dẫn từ backend
         const lawyersWithValidImages = response.data.lawyers.map(lawyer => {
           // Lấy đường dẫn avatar từ nhiều nguồn khác nhau
-          let avatarUrl = lawyer.avatar || lawyer.avatarUrl || lawyer.avatar_url;
+          const avatarUrl = lawyer.avatar || lawyer.avatarUrl || lawyer.avatar_url;
           
-          // Kiểm tra xem có phải đường dẫn tương đối không
-          if (avatarUrl && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://') && !avatarUrl.startsWith('/')) {
-            avatarUrl = `/${avatarUrl}`;
-          }
-
-          // Kiểm tra xem có phải đường dẫn từ thư mục upload không
-          if (avatarUrl && avatarUrl.includes('uploads/')) {
-            // Thêm đường dẫn API base nếu cần
-            avatarUrl = `${process.env.REACT_APP_API_URL || ''}${avatarUrl}`;
-          }
+          // Sử dụng hàm getFullAvatarUrl để lấy đường dẫn đầy đủ
+          const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
+          
+          // Xử lý rating để hiển thị chính xác
+          const rating = parseFloat(lawyer.rating || 0);
+          
+          // Đánh dấu featured cho luật sư có rating 5 sao
+          const featured = lawyer.featured || rating >= 5.0;
           
           return {
             ...lawyer,
-            avatarUrl: avatarUrl || '/default-avatar.png'
+            avatarUrl: fullAvatarUrl,
+            rating: rating,
+            featured: featured
           };
         });
         
@@ -142,20 +143,10 @@ function Lawyers() {
         experienceYears = parseInt(combinedData.experienceYears) || 0;
       }
       
-      // Xử lý avatar URL - đảm bảo luôn hiển thị
-      let avatarUrl = combinedData.avatarUrl || combinedData.avatar || 'default-avatar.png';
-      
-      // Nếu có đường dẫn avatar nhưng không phải đường dẫn đầy đủ, thêm tiền tố
-      if (avatarUrl && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
-        // Nếu URL bắt đầu với /uploads, thêm base URL API
-        if (avatarUrl.includes('uploads')) {
-          avatarUrl = `${process.env.REACT_APP_API_URL || ''}${avatarUrl.startsWith('/') ? avatarUrl : '/' + avatarUrl}`;
-        } 
-        // Nếu không phải URL tuyệt đối và không bắt đầu bằng /
-        else if (!avatarUrl.startsWith('/')) {
-          avatarUrl = `/${avatarUrl}`;
-        }
-      }
+      // Xử lý avatar URL sử dụng hàm getFullAvatarUrl
+      const avatarUrl = userService.getFullAvatarUrl(
+        combinedData.avatarUrl || combinedData.avatar || combinedData.avatar_url
+      );
       
       // Kết hợp thông tin và cập nhật experienceYears và avatarUrl
       setSelectedLawyer({
@@ -169,7 +160,7 @@ function Lawyers() {
       
       // Xử lý mặc định nếu có lỗi
       const experienceYears = parseInt(lawyer.experienceYears) || 0;
-      const avatarUrl = lawyer.avatarUrl || '/default-avatar.png';
+      const avatarUrl = userService.getFullAvatarUrl(lawyer.avatarUrl);
       
       setSelectedLawyer({
         ...lawyer,
@@ -197,7 +188,7 @@ function Lawyers() {
     alert(`Đặt lịch hẹn với luật sư ${lawyer.fullName}`);
   };
 
-  // Hàm xử lý gửi đánh giá - đơn giản hóa tối đa
+  // Hàm xử lý gửi đánh giá - đã sửa lỗi process is not defined
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     
@@ -209,8 +200,8 @@ function Lawyers() {
     setSubmittingReview(true);
     
     try {
-      // Trực tiếp gửi đánh giá mà không cần kiểm tra
-      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/reviews/lawyer/${selectedLawyer.id}`, {
+      // Sử dụng API_URL từ constants thay vì process.env
+      const response = await fetch(`${API_URL}/reviews/lawyer/${selectedLawyer.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +223,8 @@ function Lawyers() {
           reviews: (prev.reviews || 0) + 1
         }));
       } else {
-        alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
+        const errorData = await response.json();
+        alert(errorData.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
       }
     } catch (error) {
       console.error('Lỗi khi gửi đánh giá:', error);
@@ -346,42 +338,60 @@ function Lawyers() {
             </div>
             
             <div className={styles.featuredGrid}>
-              {visibleLawyers.filter(lawyer => lawyer.featured || lawyer.rating >= 4.8).slice(0, 3).map(lawyer => (
-                <div key={lawyer.id} className={styles.featuredCard}>
-                  <div className={styles.featuredImageContainer}>
-                    <img src={lawyer.avatarUrl} alt={lawyer.fullName} className={styles.featuredImage} />
-                    <div className={styles.featuredOverlay}>
-                      <button className={styles.viewProfileButton} onClick={() => handleLawyerClick(lawyer)}>Xem hồ sơ</button>
+              {visibleLawyers
+                .filter(lawyer => lawyer.featured || parseFloat(lawyer.rating || 0) >= 4.5)
+                .sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0))  // Sắp xếp theo rating giảm dần
+                .slice(0, 3)
+                .map(lawyer => (
+                  <div key={lawyer.id} className={styles.featuredCard}>
+                    {/* Thêm badge cho luật sư 5 sao */}
+                    {parseFloat(lawyer.rating || 0) >= 5.0 && (
+                      <div className={styles.topRatedBadge}>
+                        <i className="fas fa-star"></i> Top
+                      </div>
+                    )}
+                    <div className={styles.featuredImageContainer}>
+                      <img 
+                        src={lawyer.avatarUrl} 
+                        alt={lawyer.fullName}
+                        className={styles.featuredImage}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/default-avatar.png';
+                        }}
+                      />
+                      <div className={styles.featuredOverlay}>
+                        <button className={styles.viewProfileButton} onClick={() => handleLawyerClick(lawyer)}>Xem hồ sơ</button>
+                      </div>
                     </div>
-                  </div>
-                  <div className={styles.featuredContent}>
-                    <h3>{lawyer.fullName}</h3>
-                    <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
-                    <div className={styles.specialtyTags}>
-                      {(lawyer.specialization && typeof lawyer.specialization === 'string' 
-                        ? lawyer.specialization.split(',') 
-                        : lawyer.specialization || []
-                      ).slice(0, 2).map((specialty, index) => (
-                        <span key={index} className={styles.specialtyTag}>{specialty}</span>
-                      ))}
-                    </div>
-                    <div className={styles.experience}>
-                      <i className="fas fa-briefcase"></i>
-                      {(lawyer.experienceYears !== undefined && lawyer.experienceYears !== null) 
-                       ? parseInt(lawyer.experienceYears) + ' năm kinh nghiệm'
-                       : '0 năm kinh nghiệm'}
-                    </div>
-                    <div className={styles.rating}>
-                      <div className={styles.stars}>
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <i key={star} className={`fas fa-star ${star <= Math.round(lawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
+                    <div className={styles.featuredContent}>
+                      <h3>{lawyer.fullName}</h3>
+                      <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
+                      <div className={styles.specialtyTags}>
+                        {(lawyer.specialization && typeof lawyer.specialization === 'string' 
+                          ? lawyer.specialization.split(',') 
+                          : lawyer.specialization || []
+                        ).slice(0, 2).map((specialty, index) => (
+                          <span key={index} className={styles.specialtyTag}>{specialty}</span>
                         ))}
                       </div>
-                      <span>{lawyer.rating || 0} ({lawyer.reviews || 0} đánh giá)</span>
+                      <div className={styles.experience}>
+                        <i className="fas fa-briefcase"></i>
+                        {(lawyer.experienceYears !== undefined && lawyer.experienceYears !== null) 
+                         ? parseInt(lawyer.experienceYears) + ' năm kinh nghiệm'
+                         : '0 năm kinh nghiệm'}
+                      </div>
+                      <div className={styles.rating}>
+                        <div className={styles.stars}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
+                          ))}
+                        </div>
+                        <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </section>
@@ -439,61 +449,69 @@ function Lawyers() {
                 {visibleLawyers.map(lawyer => (
                   <div key={lawyer.id} className={styles.lawyerCard} onClick={() => handleLawyerClick(lawyer)}>
                     <div className={styles.lawyerImageContainer}>
-                        <img src={lawyer.avatarUrl} alt={lawyer.fullName} className={styles.lawyerImage} />
-                      </div>
-                      <div className={styles.lawyerContent}>
-                        <h3>{lawyer.fullName}</h3>
-                        <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
-                        <div className={styles.rating}>
-                          <div className={styles.stars}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <i key={star} className={`fas fa-star ${star <= Math.round(lawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
-                            ))}
-                          </div>
-                          <span>{lawyer.rating || 0}</span>
-                        </div>
-                        <div className={styles.lawyerFooter}>
-                          {(lawyer.specialization && typeof lawyer.specialization === 'string' 
-                            ? lawyer.specialization.split(',') 
-                            : lawyer.specialization || []
-                          ).slice(0, 2).map((specialty, index) => (
-                            <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                      <img 
+                        src={lawyer.avatarUrl} 
+                        alt={lawyer.fullName} 
+                        className={styles.lawyerImage}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/default-avatar.png';
+                        }} 
+                      />
+                    </div>
+                    <div className={styles.lawyerContent}>
+                      <h3>{lawyer.fullName}</h3>
+                      <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
+                      <div className={styles.rating}>
+                        <div className={styles.stars}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
                           ))}
-                          {(lawyer.specialization && 
-                           ((typeof lawyer.specialization === 'string' 
-                              ? lawyer.specialization.split(',') 
-                              : lawyer.specialization
-                            ) || []).length > 2) && (
-                            <span className={styles.specialtyTagMore}>+{(typeof lawyer.specialization === 'string' 
-                              ? lawyer.specialization.split(',') 
-                              : lawyer.specialization || []).length - 2}</span>
-                          )}
                         </div>
+                        <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
+                      </div>
+                      <div className={styles.lawyerFooter}>
+                        {(lawyer.specialization && typeof lawyer.specialization === 'string' 
+                          ? lawyer.specialization.split(',') 
+                          : lawyer.specialization || []
+                        ).slice(0, 2).map((specialty, index) => (
+                          <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                        ))}
+                        {(lawyer.specialization && 
+                         ((typeof lawyer.specialization === 'string' 
+                            ? lawyer.specialization.split(',') 
+                            : lawyer.specialization
+                          ) || []).length > 2) && (
+                          <span className={styles.specialtyTagMore}>+{(typeof lawyer.specialization === 'string' 
+                            ? lawyer.specialization.split(',') 
+                            : lawyer.specialization || []).length - 2}</span>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-                
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button 
-                      className={`${styles.paginationButton} ${page === 1 ? styles.disabled : ''}`}
-                      onClick={handlePrevPage}
-                      disabled={page === 1}
-                    >
-                      <i className="fas fa-chevron-left"></i> Trước
-                    </button>
-                    <span>Trang {page} / {totalPages}</span>
-                    <button 
-                      className={`${styles.paginationButton} ${page === totalPages ? styles.disabled : ''}`}
-                      onClick={handleNextPage}
-                      disabled={page === totalPages}
-                    >
-                      Sau <i className="fas fa-chevron-right"></i>
-                    </button>
                   </div>
-                )}
+                ))}
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button 
+                    className={`${styles.paginationButton} ${page === 1 ? styles.disabled : ''}`}
+                    onClick={handlePrevPage}
+                    disabled={page === 1}
+                  >
+                    <i className="fas fa-chevron-left"></i> Trước
+                  </button>
+                  <span>Trang {page} / {totalPages}</span>
+                  <button 
+                    className={`${styles.paginationButton} ${page === totalPages ? styles.disabled : ''}`}
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                  >
+                    Sau <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              )}
               </>
             ) : (
               <div className={styles.noResults}>
@@ -516,7 +534,14 @@ function Lawyers() {
               
               <div className={styles.modalHeader}>
                 <div className={styles.lawyerProfile}>
-                  <img src={selectedLawyer.avatarUrl} alt={selectedLawyer.fullName} />
+                  <img 
+                    src={selectedLawyer.avatarUrl} 
+                    alt={selectedLawyer.fullName}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/default-avatar.png';
+                    }}
+                  />
                   <div className={styles.profileInfo}>
                     <h2>{selectedLawyer.fullName}</h2>
                     <div className={styles.infoItem}>
@@ -538,10 +563,10 @@ function Lawyers() {
                     <div className={styles.ratingDetail}>
                       <div className={styles.stars}>
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <i key={star} className={`fas fa-star ${star <= Math.round(selectedLawyer.rating || 0) ? styles.filled : styles.empty}`}></i>
+                          <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(selectedLawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
                         ))}
                       </div>
-                      <span>{selectedLawyer.rating || 0} ({selectedLawyer.reviews || 0} đánh giá)</span>
+                      <span>{parseFloat(selectedLawyer.rating || 0).toFixed(1)} ({selectedLawyer.reviews || 0} đánh giá)</span>
                     </div>
                   </div>
                 </div>

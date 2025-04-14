@@ -283,19 +283,26 @@ const getLawyerById = async (lawyerId) => {
 
 // Lấy URL đầy đủ cho avatar
 const getFullAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return null;
+  if (!avatarPath) return '/default-avatar.png';
   
   // Nếu đã là URL đầy đủ, trả về nguyên bản
   if (avatarPath.startsWith('http')) {
     return avatarPath;
   }
   
+  // Xử lý đường dẫn có /uploads/
+  if (avatarPath.includes('/uploads/')) {
+    // Đảm bảo không đúp /uploads/
+    const cleanPath = avatarPath.replace('/uploads/', '');
+    return `${API_URL.replace('/api', '')}/uploads/${cleanPath}`;
+  }
+  
   // Nếu là đường dẫn tương đối, thêm tiền tố API_URL
-  if (avatarPath.startsWith('/uploads')) {
+  if (avatarPath.startsWith('/')) {
     return `${API_URL.replace('/api', '')}${avatarPath}`;
   }
   
-  // Xử lý trường hợp chỉ có tên file
+  // Trường hợp còn lại: chỉ có tên file
   return `${API_URL.replace('/api', '')}/uploads/${avatarPath}`;
 };
 

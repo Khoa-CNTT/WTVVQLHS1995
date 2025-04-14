@@ -17,8 +17,9 @@ function Profile() {
   const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
   const [editMode, setEditMode] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState('/default-avatar.png');
+  const [previewUrl, setPreviewUrl] = useState('');
   const [avatar, setAvatar] = useState(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -47,11 +48,25 @@ function Profile() {
         const updatedUser = await userService.refreshUserData();
         setUser(updatedUser);
         
+        // Nếu có avatarUrl trong user, hiển thị ngay
+        if (updatedUser && updatedUser.avatarUrl) {
+          // Chuyển đổi đường dẫn tương đối thành đường dẫn đầy đủ
+          const fullAvatarUrl = userService.getFullAvatarUrl(updatedUser.avatarUrl);
+          setPreviewUrl(fullAvatarUrl);
+        }
+        
         // Sau đó lấy thông tin chi tiết
         fetchUserProfile(updatedUser.id);
       } catch (error) {
         console.error('Lỗi làm mới thông tin người dùng:', error);
         setUser(currentUser);
+        
+        // Nếu có avatarUrl trong currentUser, hiển thị ngay
+        if (currentUser && currentUser.avatarUrl) {
+          const fullAvatarUrl = userService.getFullAvatarUrl(currentUser.avatarUrl);
+          setPreviewUrl(fullAvatarUrl);
+        }
+        
         fetchUserProfile(currentUser.id);
       }
     };
@@ -78,13 +93,16 @@ function Profile() {
           bio: userData.bio || ''
         });
         
-        // Cập nhật avatar URL
+        // Cập nhật avatar URL từ userDetails nếu có
         if (userData.avatarUrl || userData.avatar_url) {
-          setPreviewUrl(userData.avatarUrl || userData.avatar_url);
+          const avatarUrl = userData.avatarUrl || userData.avatar_url;
+          const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
+          console.log('Avatar URL từ userDetails:', fullAvatarUrl);
+          setPreviewUrl(fullAvatarUrl);
         }
         
         // Nếu là luật sư, lấy thêm thông tin chi tiết của luật sư
-        if (user && user.role === 'Lawyer') {
+        if (user && user.role && user.role.toLowerCase() === 'lawyer') {
           try {
             const lawyerData = await userService.getLawyerById(userId);
             if (lawyerData) {
@@ -127,12 +145,30 @@ function Profile() {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setAvatar(file);
       
-      // Tạo URL preview
+      // Kiểm tra loại file
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Chỉ chấp nhận file ảnh (JPG, PNG, GIF)');
+        return;
+      }
+      
+      // Kiểm tra kích thước file (giới hạn 2MB)
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      if (file.size > maxSize) {
+        setError('Kích thước file không được vượt quá 2MB');
+        return;
+      }
+      
+      setAvatar(file);
+      setError(''); // Xóa thông báo lỗi nếu có
+      
+      // Tạo URL preview ngay lập tức
       const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result);
+      fileReader.onload = (event) => {
+        const result = event.target.result;
+        setPreviewUrl(result);
+        console.log('Preview URL updated:', result);
       };
       fileReader.readAsDataURL(file);
     }
@@ -158,26 +194,37 @@ function Profile() {
         const formDataUpload = new FormData();
         formDataUpload.append('avatar', avatar);
         
-        console.log('Uploading new avatar...');
-        const avatarResponse = await userService.uploadAvatar(user.id, formDataUpload);
-        console.log('Avatar upload response:', avatarResponse);
-        
-        if (avatarResponse && avatarResponse.data) {
-          // Lấy URL avatar từ phản hồi
-          let avatarUrl = avatarResponse.data.avatarUrl || '';
+        console.log('Đang tải lên avatar mới...');
+        setAvatarLoading(true);
+        try {
+          const avatarResponse = await userService.uploadAvatar(user.id, formDataUpload);
+          console.log('Kết quả tải lên avatar:', avatarResponse);
           
-          // Chuyển thành URL đầy đủ
-          if (avatarUrl) {
-            const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
-            console.log('Full avatar URL:', fullAvatarUrl);
+          if (avatarResponse && avatarResponse.data) {
+            // Lấy URL avatar từ phản hồi
+            let avatarUrl = avatarResponse.data.avatarUrl || '';
             
-            // Cập nhật URL vào user locals
-            const updatedUser = JSON.parse(localStorage.getItem('user'));
-            if (updatedUser) {
-              updatedUser.avatarUrl = fullAvatarUrl;
-              localStorage.setItem('user', JSON.stringify(updatedUser));
+            // Chuyển thành URL đầy đủ nếu cần
+            if (avatarUrl) {
+              const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
+              console.log('URL avatar đầy đủ:', fullAvatarUrl);
+              
+              // Cập nhật URL preview để hiển thị ngay
+              setPreviewUrl(fullAvatarUrl);
+              
+              // Cập nhật URL vào user locals
+              const updatedUser = JSON.parse(localStorage.getItem('user'));
+              if (updatedUser) {
+                updatedUser.avatarUrl = fullAvatarUrl;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+              }
             }
           }
+        } catch (avatarError) {
+          console.error('Lỗi khi tải lên avatar:', avatarError);
+          // Vẫn tiếp tục xử lý dù có lỗi avatar
+        } finally {
+          setAvatarLoading(false);
         }
       }
       
@@ -305,13 +352,18 @@ function Profile() {
         <div className={styles.content}>
           <div className={styles.sidebar}>
             <div className={styles.userCard}>
-              <div className={styles.avatarWrapper}>
+              <div className={`${styles.avatarWrapper} ${avatarLoading ? styles.avatarLoading : ''}`}>
                 <img 
-                  src={previewUrl || user.avatarUrl || '/default-avatar.png'} 
+                  src={previewUrl || (user && user.avatarUrl && userService.getFullAvatarUrl(user.avatarUrl)) || '/default-avatar.png'} 
                   alt="Ảnh đại diện" 
                   className={styles.avatar}
+                  onError={(e) => {
+                    console.log('Lỗi tải ảnh, sử dụng ảnh mặc định');
+                    e.target.onerror = null;
+                    e.target.src = '/default-avatar.png';
+                  }}
                 />
-                {editMode && (
+                {editMode && !avatarLoading && (
                   <label className={styles.uploadButton}>
                     <FaUpload />
                     <input 
@@ -381,6 +433,7 @@ function Profile() {
                     <button 
                       className={styles.editButton} 
                       onClick={() => setEditMode(true)}
+                      disabled={avatarLoading}
                     >
                       <FaPen /> Chỉnh sửa
                     </button>
@@ -519,8 +572,23 @@ function Profile() {
                     <div className={styles.formButtons}>
                       <button 
                         type="button" 
-                        className={styles.cancelButton} 
-                        onClick={() => setEditMode(false)}
+                        className={styles.cancelButton}
+                        onClick={() => {
+                          setEditMode(false);
+                          setError('');
+                          // Đặt lại form về giá trị ban đầu
+                          setFormData({
+                            fullName: userDetails.fullName || userDetails.full_name || '',
+                            phone: userDetails.phone || '',
+                            address: userDetails.address || '',
+                            bio: userDetails.bio || ''
+                          });
+                          // Đặt lại avatar preview nếu đã chọn file mới nhưng chưa lưu
+                          if (avatar) {
+                            setAvatar(null);
+                            setPreviewUrl(user.avatarUrl || userDetails.avatarUrl || userDetails.avatar_url || '/default-avatar.png');
+                          }
+                        }}
                       >
                         Hủy
                       </button>

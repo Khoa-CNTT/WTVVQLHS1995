@@ -225,7 +225,7 @@ function AddUserModal({ onClose, onSave }) {
     setIsSubmitting(true);
 
     try {
-      await axiosInstance.post('/auth/users', userData);
+      await axiosInstance.post('/users/register', userData);
       onSave(userData);
       onClose();
     } catch (error) {
