@@ -262,14 +262,23 @@ const getAllLawyers = async (page = 1, limit = 10, searchTerm = '', specializati
     
     // Thêm tham số để chỉ định tìm kiếm không phân biệt chữ hoa/thường cho role
     params.append('case_insensitive', 'true');
-    
     const response = await userAxios.get(`/auth/lawyers?${params.toString()}`);
-    
     // Xử lý kết quả để đảm bảo đúng role lawyer không phân biệt hoa thường
     if (response.data && response.data.data && response.data.data.lawyers) {
-      response.data.data.lawyers = response.data.data.lawyers.filter(user => 
-        user.role && user.role.toLowerCase() === 'lawyer'
-      );
+      // Lọc luật sư theo role và chuẩn hóa dữ liệu
+      response.data.data.lawyers = response.data.data.lawyers
+        .filter(user => user.role && user.role.toLowerCase() === 'lawyer')
+        .map(lawyer => ({
+          ...lawyer,
+          // Đảm bảo rating luôn là số
+          rating: parseFloat(lawyer.rating || 0),
+          // Đảm bảo specialization luôn là mảng
+          specialization: Array.isArray(lawyer.specialization) 
+            ? lawyer.specialization 
+            : lawyer.specialization ? lawyer.specialization.split(',') : [],
+          // Đảm bảo experienceYears luôn là số
+          experienceYears: parseInt(lawyer.experienceYears || 0)
+        }));
     }
     
     return response.data;
@@ -289,7 +298,6 @@ const getLawyerById = async (lawyerId) => {
     if (lawyerData && lawyerData.role && lawyerData.role.toLowerCase() !== 'lawyer') {
       console.warn('Đối tượng được truy vấn không phải là luật sư');
     }
-    
     return response.data.data;
   } catch (error) {
     console.error('Lỗi lấy thông tin luật sư:', error);

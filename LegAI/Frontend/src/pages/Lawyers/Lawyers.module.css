@@ -1088,3 +1088,51 @@
     transform: scale(1);
   }
 } 
+/* Phần phân trang */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 30px;
+  font-size: 16px;
+  color: #333;
+}
+
+/* Nút phân trang (Trước/Sau) */
+.paginationButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #007bff; /* Màu nền nút */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+/* Hiệu ứng hover cho nút phân trang */
+.paginationButton:hover {
+  background-color: #0056b3; /* Màu nền khi hover */
+  transform: translateY(-2px); /* Hiệu ứng nhấc lên nhẹ */
+}
+
+/* Trạng thái disabled cho nút phân trang */
+.paginationButton.disabled {
+  background-color: #cccccc; /* Màu nền khi disabled */
+  cursor: not-allowed;
+  transform: none; /* Không áp dụng hiệu ứng nhấc lên */
+}
+
+/* Icon trong nút phân trang */
+.paginationButton i {
+  font-size: 14px;
+}
+
+/* Văn bản hiển thị trang hiện tại (Trang X / Y) */
+.pagination span {
+  font-weight: 500;
+  color: #555;
+}
