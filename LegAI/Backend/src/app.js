@@ -49,8 +49,6 @@ app.use('/uploads', express.static(uploadsDir, {
         res.setHeader('Access-Control-Allow-Methods', 'GET');
     }
 }));
-console.log('Thư mục uploads được cấu hình tại:', uploadsDir);
-console.log('Đường dẫn đầy đủ:', path.resolve(uploadsDir));
 
 // Routes
 app.use('/api/auth', authRoutes);
