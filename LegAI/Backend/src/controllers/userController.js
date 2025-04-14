@@ -784,25 +784,64 @@ const getAllLawyers = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const searchTerm = req.query.search || '';
+        const specialization = req.query.specialization || '';
 
-        // Sử dụng hàm getUsers với role là 'lawyer' và không phân biệt chữ hoa/thường
-        const result = await userService.getUsers(page, limit, searchTerm, 'lawyer');
+        // Xây dựng các tham số truy vấn
+        const params = [];
+        let query = `
+            SELECT u.id, u.username, u.email, u.phone, u.full_name, u.role, u.is_verified,
+                   up.address, up.bio, up.avatar_url,
+                   COALESCE(ld.rating, 0) as rating, ld.specialization, ld.experience_years
+            FROM users u
+            LEFT JOIN userprofiles up ON u.id = up.user_id
+            LEFT JOIN lawyerdetails ld ON u.id = ld.lawyer_id
+            WHERE u.username NOT LIKE 'deleted_%'
+            AND u.role ILIKE '%lawyer%'
+        `;
+
+        if (searchTerm) {
+            params.push(`%${searchTerm}%`);
+            query += ` AND (u.username ILIKE $${params.length} 
+                OR u.email ILIKE $${params.length} 
+                OR u.full_name ILIKE $${params.length})`;
+        }
+
+        if (specialization) {
+            params.push(`%${specialization}%`);
+            query += ` AND ld.specialization ILIKE $${params.length}`;
+        }
+
+        // Tổng số luật sư
+        const countResult = await pool.query(
+            `SELECT COUNT(*) FROM (${query}) as count_query`,
+            params
+        );
+        const totalLawyers = parseInt(countResult.rows[0].count);
+
+        // Lấy danh sách luật sư với phân trang
+        query += ` ORDER BY ld.rating DESC NULLS LAST LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, (page - 1) * limit);
+
+        const result = await pool.query(query, params);
 
         // Trả về danh sách luật sư với thông tin cơ bản
         return res.status(200).json({
             success: true,
             data: {
-                lawyers: result.users.map(user => ({
+                lawyers: result.rows.map(user => ({
                     id: user.id,
                     fullName: user.full_name,
                     email: user.email,
                     avatar: user.avatar_url,
                     bio: user.bio,
                     address: user.address,
-                    role: user.role  // Thêm role vào response để client có thể kiểm tra
+                    rating: parseFloat(user.rating) || 0,
+                    specialization: user.specialization,
+                    experienceYears: parseInt(user.experience_years) || 0,
+                    role: user.role
                 })),
-                totalLawyers: result.totalUsers,
-                totalPages: result.totalPages,
+                totalLawyers: totalLawyers,
+                totalPages: Math.ceil(totalLawyers / limit),
                 currentPage: page
             }
         });

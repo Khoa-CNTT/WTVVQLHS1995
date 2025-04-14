@@ -57,35 +57,31 @@ function Lawyers() {
     try {
       setLoading(true);
       const response = await userService.getAllLawyers(
-        page, 
-        10, 
-        searchTerm, 
+        page,
+        10,
+        searchTerm,
         activeTab === 'all' ? '' : activeTab
       );
-      
+
       if (response && response.data) {
-        // Xử lý đường dẫn avatar - đảm bảo hiển thị đúng đường dẫn từ backend
+        // Xử lý đường dẫn avatar và đảm bảo dữ liệu nhất quán
         const lawyersWithValidImages = response.data.lawyers.map(lawyer => {
           // Lấy đường dẫn avatar từ nhiều nguồn khác nhau
           const avatarUrl = lawyer.avatar || lawyer.avatarUrl || lawyer.avatar_url;
-          
+
           // Sử dụng hàm getFullAvatarUrl để lấy đường dẫn đầy đủ
           const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
-          
-          // Xử lý rating để hiển thị chính xác
-          const rating = parseFloat(lawyer.rating || 0);
-          
+
           // Đánh dấu featured cho luật sư có rating 5 sao
-          const featured = lawyer.featured || rating >= 5.0;
-          
+          const featured = lawyer.featured || lawyer.rating >= 4.5;
+
           return {
             ...lawyer,
             avatarUrl: fullAvatarUrl,
-            rating: rating,
             featured: featured
           };
         });
-        
+
         setLawyers(lawyersWithValidImages || []);
         setVisibleLawyers(lawyersWithValidImages || []);
         setTotalPages(response.data.totalPages || 0);
@@ -134,21 +130,21 @@ function Lawyers() {
     try {
       // Lấy thông tin chi tiết của luật sư
       const lawyerDetails = await userService.getLawyerById(lawyer.id);
-      
+
       // Đảm bảo có ít nhất một object không rỗng để hiển thị
       const combinedData = lawyerDetails || lawyer || {};
-      
+
       // Xử lý experienceYears - đảm bảo luôn là số
       let experienceYears = 0;
       if (combinedData.experienceYears) {
         experienceYears = parseInt(combinedData.experienceYears) || 0;
       }
-      
+
       // Xử lý avatar URL sử dụng hàm getFullAvatarUrl
       const avatarUrl = userService.getFullAvatarUrl(
         combinedData.avatarUrl || combinedData.avatar || combinedData.avatar_url
       );
-      
+
       // Kết hợp thông tin và cập nhật experienceYears và avatarUrl
       setSelectedLawyer({
         ...lawyer,
@@ -158,18 +154,18 @@ function Lawyers() {
       });
     } catch (error) {
       console.error('Lỗi lấy thông tin chi tiết luật sư:', error);
-      
+
       // Xử lý mặc định nếu có lỗi
       const experienceYears = parseInt(lawyer.experienceYears) || 0;
       const avatarUrl = userService.getFullAvatarUrl(lawyer.avatarUrl);
-      
+
       setSelectedLawyer({
         ...lawyer,
         experienceYears,
         avatarUrl
       });
     }
-    
+
     setIsModalOpen(true);
     // Reset trạng thái đánh giá
     setUserRating(0);
@@ -192,14 +188,14 @@ function Lawyers() {
   // Hàm xử lý gửi đánh giá - đã sửa lỗi process is not defined
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    
+
     if (!userRating) {
       toast.error('Vui lòng chọn số sao đánh giá');
       return;
     }
-    
+
     setSubmittingReview(true);
-    
+
     try {
       // Sử dụng API_URL từ constants thay vì process.env
       const response = await fetch(`${API_URL}/reviews/lawyer/${selectedLawyer.id}`, {
@@ -212,11 +208,10 @@ function Lawyers() {
           rating: userRating
         })
       });
-
       // Đơn giản hóa xử lý kết quả
       if (response.status === 200) {
         setReviewSuccess(true);
-        
+
         // Cập nhật rating hiển thị trên UI
         setSelectedLawyer(prev => ({
           ...prev,
@@ -274,7 +269,7 @@ function Lawyers() {
         </div>
       );
     }
-    
+
     if (reviewSuccess) {
       return (
         <div className={styles.reviewSection}>
@@ -286,7 +281,7 @@ function Lawyers() {
         </div>
       );
     }
-    
+
     return (
       <div className={styles.reviewSection}>
         <h3>Đánh giá</h3>
@@ -295,17 +290,17 @@ function Lawyers() {
             <span>Chọn đánh giá của bạn:</span>
             <div className={styles.starRating}>
               {[1, 2, 3, 4, 5].map((star) => (
-                <i 
-                  key={star} 
+                <i
+                  key={star}
                   className={`fas fa-star ${star <= userRating ? styles.selected : ''}`}
                   onClick={() => setUserRating(star)}
                 ></i>
               ))}
             </div>
           </div>
-          <button 
-            type="submit" 
-            disabled={submittingReview || !userRating} 
+          <button
+            type="submit"
+            disabled={submittingReview || !userRating}
             className={styles.submitReviewButton}
           >
             {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
@@ -319,7 +314,7 @@ function Lawyers() {
     <PageTransition>
       <Navbar />
       <ChatManager />
-      
+
       <div className={styles.lawyersPage}>
         <div className={styles.banner}>
           <div className={styles.bannerOverlay}></div>
@@ -328,7 +323,7 @@ function Lawyers() {
             <p>Kết nối với những luật sư hàng đầu trong lĩnh vực bạn cần tư vấn</p>
           </div>
         </div>
-        
+
         {/* Featured Lawyers Section */}
         <section className={styles.featuredSection}>
           <div className={styles.container}>
@@ -337,7 +332,7 @@ function Lawyers() {
               <div className={styles.titleBar}></div>
               <p>Những luật sư có kinh nghiệm chuyên sâu và đánh giá cao từ khách hàng</p>
             </div>
-            
+
             <div className={styles.featuredGrid}>
               {visibleLawyers
                 .filter(lawyer => lawyer.featured || parseFloat(lawyer.rating || 0) >= 4.5)
@@ -352,8 +347,8 @@ function Lawyers() {
                       </div>
                     )}
                     <div className={styles.featuredImageContainer}>
-                      <img 
-                        src={lawyer.avatarUrl} 
+                      <img
+                        src={lawyer.avatarUrl}
                         alt={lawyer.fullName}
                         className={styles.featuredImage}
                         onError={(e) => {
@@ -369,8 +364,8 @@ function Lawyers() {
                       <h3>{lawyer.fullName}</h3>
                       <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
                       <div className={styles.specialtyTags}>
-                        {(lawyer.specialization && typeof lawyer.specialization === 'string' 
-                          ? lawyer.specialization.split(',') 
+                        {(lawyer.specialization && typeof lawyer.specialization === 'string'
+                          ? lawyer.specialization.split(',')
                           : lawyer.specialization || []
                         ).slice(0, 2).map((specialty, index) => (
                           <span key={index} className={styles.specialtyTag}>{specialty}</span>
@@ -378,9 +373,9 @@ function Lawyers() {
                       </div>
                       <div className={styles.experience}>
                         <i className="fas fa-briefcase"></i>
-                        {(lawyer.experienceYears !== undefined && lawyer.experienceYears !== null) 
-                         ? parseInt(lawyer.experienceYears) + ' năm kinh nghiệm'
-                         : '0 năm kinh nghiệm'}
+                        {(lawyer.experienceYears !== undefined && lawyer.experienceYears !== null)
+                          ? parseInt(lawyer.experienceYears) + ' năm kinh nghiệm'
+                          : '0 năm kinh nghiệm'}
                       </div>
                       <div className={styles.rating}>
                         <div className={styles.stars}>
@@ -396,13 +391,13 @@ function Lawyers() {
             </div>
           </div>
         </section>
-        
+
         {/* Search and Filter Section */}
         <section className={styles.searchSection}>
           <div className={styles.container}>
             <div className={styles.searchContainer}>
               <div className={styles.searchBox}>
-                <input 
+                <input
                   type="text"
                   placeholder="Tìm kiếm luật sư theo tên, chuyên môn..."
                   value={searchTerm}
@@ -415,7 +410,7 @@ function Lawyers() {
                   </button>
                 )}
               </div>
-              
+
               <div className={styles.specialtyTabs}>
                 {specialties.map(specialty => (
                   <button
@@ -430,7 +425,7 @@ function Lawyers() {
             </div>
           </div>
         </section>
-        
+
         {/* All Lawyers Section */}
         <section className={styles.lawyersSection}>
           <div className={styles.container}>
@@ -438,7 +433,7 @@ function Lawyers() {
               <h2>Danh sách Luật sư</h2>
               <div className={styles.titleBar}></div>
             </div>
-            
+
             {loading ? (
               <div className={styles.loading}>
                 <i className="fas fa-spinner fa-spin"></i>
@@ -446,73 +441,73 @@ function Lawyers() {
               </div>
             ) : visibleLawyers.length > 0 ? (
               <>
-              <div className={styles.lawyersGrid}>
-                {visibleLawyers.map(lawyer => (
-                  <div key={lawyer.id} className={styles.lawyerCard} onClick={() => handleLawyerClick(lawyer)}>
-                    <div className={styles.lawyerImageContainer}>
-                      <img 
-                        src={lawyer.avatarUrl} 
-                        alt={lawyer.fullName} 
-                        className={styles.lawyerImage}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/default-avatar.png';
-                        }} 
-                      />
-                    </div>
-                    <div className={styles.lawyerContent}>
-                      <h3>{lawyer.fullName}</h3>
-                      <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
-                      <div className={styles.rating}>
-                        <div className={styles.stars}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
-                          ))}
+                <div className={styles.lawyersGrid}>
+                  {visibleLawyers.map(lawyer => (
+                    <div key={lawyer.id} className={styles.lawyerCard} onClick={() => handleLawyerClick(lawyer)}>
+                      <div className={styles.lawyerImageContainer}>
+                        <img
+                          src={lawyer.avatarUrl}
+                          alt={lawyer.fullName}
+                          className={styles.lawyerImage}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/default-avatar.png';
+                          }}
+                        />
+                      </div>
+                      <div className={styles.lawyerContent}>
+                        <h3>{lawyer.fullName}</h3>
+                        <p className={styles.position}>{lawyer.position || 'Luật sư'}</p>
+                        <div className={styles.rating}>
+                          <div className={styles.stars}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
+                            ))}
+                          </div>
+                          <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
                         </div>
-                        <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
-                      </div>
-                      <div className={styles.lawyerFooter}>
-                        {(lawyer.specialization && typeof lawyer.specialization === 'string' 
-                          ? lawyer.specialization.split(',') 
-                          : lawyer.specialization || []
-                        ).slice(0, 2).map((specialty, index) => (
-                          <span key={index} className={styles.specialtyTag}>{specialty}</span>
-                        ))}
-                        {(lawyer.specialization && 
-                         ((typeof lawyer.specialization === 'string' 
-                            ? lawyer.specialization.split(',') 
-                            : lawyer.specialization
-                          ) || []).length > 2) && (
-                          <span className={styles.specialtyTagMore}>+{(typeof lawyer.specialization === 'string' 
-                            ? lawyer.specialization.split(',') 
-                            : lawyer.specialization || []).length - 2}</span>
-                        )}
+                        <div className={styles.lawyerFooter}>
+                          {(lawyer.specialization && typeof lawyer.specialization === 'string'
+                            ? lawyer.specialization.split(',')
+                            : lawyer.specialization || []
+                          ).slice(0, 2).map((specialty, index) => (
+                            <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                          ))}
+                          {(lawyer.specialization &&
+                            ((typeof lawyer.specialization === 'string'
+                              ? lawyer.specialization.split(',')
+                              : lawyer.specialization
+                            ) || []).length > 2) && (
+                              <span className={styles.specialtyTagMore}>+{(typeof lawyer.specialization === 'string'
+                                ? lawyer.specialization.split(',')
+                                : lawyer.specialization || []).length - 2}</span>
+                            )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className={styles.pagination}>
-                  <button 
-                    className={`${styles.paginationButton} ${page === 1 ? styles.disabled : ''}`}
-                    onClick={handlePrevPage}
-                    disabled={page === 1}
-                  >
-                    <i className="fas fa-chevron-left"></i> Trước
-                  </button>
-                  <span>Trang {page} / {totalPages}</span>
-                  <button 
-                    className={`${styles.paginationButton} ${page === totalPages ? styles.disabled : ''}`}
-                    onClick={handleNextPage}
-                    disabled={page === totalPages}
-                  >
-                    Sau <i className="fas fa-chevron-right"></i>
-                  </button>
+                  ))}
                 </div>
-              )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <button
+                      className={`${styles.paginationButton} ${page === 1 ? styles.disabled : ''}`}
+                      onClick={handlePrevPage}
+                      disabled={page === 1}
+                    >
+                      <i className="fas fa-chevron-left"></i> Trước
+                    </button>
+                    <span>Trang {page} / {totalPages}</span>
+                    <button
+                      className={`${styles.paginationButton} ${page === totalPages ? styles.disabled : ''}`}
+                      onClick={handleNextPage}
+                      disabled={page === totalPages}
+                    >
+                      Sau <i className="fas fa-chevron-right"></i>
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <div className={styles.noResults}>
@@ -524,7 +519,7 @@ function Lawyers() {
             )}
           </div>
         </section>
-        
+
         {/* Lawyer Profile Modal */}
         {isModalOpen && selectedLawyer && (
           <div className={styles.modalOverlay} onClick={closeModal}>
@@ -532,11 +527,11 @@ function Lawyers() {
               <button className={styles.closeButton} onClick={closeModal}>
                 <i className="fas fa-times"></i>
               </button>
-              
+
               <div className={styles.modalHeader}>
                 <div className={styles.lawyerProfile}>
-                  <img 
-                    src={selectedLawyer.avatarUrl} 
+                  <img
+                    src={selectedLawyer.avatarUrl}
                     alt={selectedLawyer.fullName}
                     onError={(e) => {
                       e.target.onerror = null;
@@ -556,9 +551,9 @@ function Lawyers() {
                     <div className={styles.infoItem}>
                       <i className="fas fa-briefcase"></i>
                       <span>
-                        {(selectedLawyer.experienceYears !== undefined && selectedLawyer.experienceYears !== null) 
-                         ? parseInt(selectedLawyer.experienceYears) + ' năm kinh nghiệm'
-                         : '0 năm kinh nghiệm'}
+                        {(selectedLawyer.experienceYears !== undefined && selectedLawyer.experienceYears !== null)
+                          ? parseInt(selectedLawyer.experienceYears) + ' năm kinh nghiệm'
+                          : '0 năm kinh nghiệm'}
                       </span>
                     </div>
                     <div className={styles.ratingDetail}>
@@ -577,7 +572,7 @@ function Lawyers() {
                   </button>
                 </div>
               </div>
-              
+
               <div className={styles.modalBody}>
                 <div className={styles.contactInfo}>
                   <div className={styles.contactItem}>
@@ -593,45 +588,45 @@ function Lawyers() {
                     </a>
                   </div>
                 </div>
-                
+
                 <div className={styles.specialtySection}>
                   <h3>Lĩnh vực chuyên môn</h3>
                   <div className={styles.specialtyTagsLarge}>
-                    {(selectedLawyer.specialization && typeof selectedLawyer.specialization === 'string' 
-                      ? selectedLawyer.specialization.split(',') 
+                    {(selectedLawyer.specialization && typeof selectedLawyer.specialization === 'string'
+                      ? selectedLawyer.specialization.split(',')
                       : selectedLawyer.specialization || []
                     ).map((specialty, index) => (
                       <span key={index} className={styles.specialtyTagLarge}>{specialty}</span>
                     ))}
                   </div>
                 </div>
-                
+
                 <div className={styles.bioSection}>
                   <h3>Giới thiệu</h3>
                   <p>{selectedLawyer.bio || 'Thông tin giới thiệu đang được cập nhật.'}</p>
                 </div>
-                
+
                 {selectedLawyer.achievements && selectedLawyer.achievements.length > 0 && (
                   <div className={styles.bioSection}>
-                  <h3>Thành tựu nổi bật</h3>
-                  <ul className={styles.achievementsList}>
-                    {selectedLawyer.achievements.map((achievement, index) => (
-                      <li key={index}>
-                        <i className="fas fa-trophy"></i>
-                        <span>{achievement}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                    <h3>Thành tựu nổi bật</h3>
+                    <ul className={styles.achievementsList}>
+                      {selectedLawyer.achievements.map((achievement, index) => (
+                        <li key={index}>
+                          <i className="fas fa-trophy"></i>
+                          <span>{achievement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                
+
                 {/* Phần đánh giá luật sư */}
                 {renderReviewSection()}
               </div>
             </div>
           </div>
         )}
-        
+
         {/* CTA Section */}
         <section className={styles.ctaSection}>
           <div className={styles.ctaOverlay}></div>
