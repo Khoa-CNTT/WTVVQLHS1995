@@ -1,24 +1,43 @@
-Dependencies
+# Thư mục node_modules
 node_modules/
 
-Build output
+# Tệp môi trường
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Tệp log
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tệp tạm
+*.tmp
+*.temp
+
+# Tệp build/output
 dist/
 build/
 
-Environment variables
-.env
-.env.local
-.env.development
-.env.production
-
-Logs
-.log
-npm-debug.log
-
-IDE files
+# Tệp cấu hình IDE
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-OS generated files
+# Tệp lock của package manager (nếu dùng yarn hoặc pnpm, có thể bỏ package-lock.json)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Tệp coverage của test
+coverage/
+
+# Tệp hệ thống
 .DS_Store
 Thumbs.db

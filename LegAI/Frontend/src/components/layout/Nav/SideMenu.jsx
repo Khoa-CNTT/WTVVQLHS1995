@@ -50,9 +50,13 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
             <div className={styles.sideMenuAvatar}>
               {currentUser.avatarUrl ? (
                 <img 
-                  src={currentUser.avatarUrl} 
+                  src={userService.getFullAvatarUrl(currentUser.avatarUrl)} 
                   alt={currentUser.fullName || 'User'} 
                   className={styles.sideMenuAvatarImg} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/default-avatar.png';
+                  }}
                 />
               ) : (
                 <span className={styles.sideMenuInitial}>
