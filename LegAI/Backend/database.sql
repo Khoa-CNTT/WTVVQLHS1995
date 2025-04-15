@@ -70,6 +70,8 @@ CREATE TABLE Appointments (
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     status VARCHAR(50) NOT NULL,
+    purpose TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES Users(id),
     FOREIGN KEY (lawyer_id) REFERENCES Users(id)

@@ -8,6 +8,7 @@ import userService from '../../services/userService';
 import authService from '../../services/authService';
 import { API_URL } from '../../config/constants';
 import { toast } from 'react-toastify';
+import AppointmentForm from './components/AppointmentForm';
 
 function Lawyers() {
   const [activeTab, setActiveTab] = useState('all');
@@ -24,6 +25,9 @@ function Lawyers() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [userLoggedIn, setUserLoggedIn] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   // Kiểm tra đăng nhập
@@ -181,8 +185,17 @@ function Lawyers() {
 
   // Xử lý đặt lịch hẹn
   const handleAppointment = (lawyer) => {
-    // Sẽ xử lý logic đặt lịch hẹn sau
-    toast.success(`Đặt lịch hẹn với luật sư ${lawyer.fullName}`);
+    setSelectedLawyer(lawyer);
+    setShowAppointmentModal(true);
+  };
+
+  const handleAppointmentSuccess = (appointment) => {
+    // Hiển thị thông báo thành công
+    setSuccessMessage('Đặt lịch hẹn thành công! Luật sư sẽ xác nhận lịch hẹn của bạn sớm.');
+    setShowAppointmentModal(false);
+    setTimeout(() => {
+      setSuccessMessage('');
+    }, 5000);
   };
 
   // Hàm xử lý gửi đánh giá - đã sửa lỗi process is not defined
@@ -623,6 +636,24 @@ function Lawyers() {
                 {/* Phần đánh giá luật sư */}
                 {renderReviewSection()}
               </div>
+            </div>
+          </div>
+        )}
+
+        {showAppointmentModal && selectedLawyer && (
+          <div className={styles.modalOverlay}>
+            <div className={`${styles.modal} ${styles.appointmentModal}`}>
+              <button 
+                className={styles.closeButton} 
+                onClick={() => setShowAppointmentModal(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+              <AppointmentForm 
+                lawyer={selectedLawyer} 
+                onClose={() => setShowAppointmentModal(false)}
+                onSuccess={handleAppointmentSuccess}
+              />
             </div>
           </div>
         )}

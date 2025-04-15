@@ -8,6 +8,7 @@ const fs = require('fs');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const appointmentRoutes = require('./routes/appointmentRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 
 // Kiểm tra biến môi trường JWT_SECRET
@@ -54,6 +55,7 @@ app.use('/uploads', express.static(uploadsDir, {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // Route chào mừng
 app.get('/', (req, res) => {

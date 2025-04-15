@@ -7,6 +7,8 @@ import authService from '../../services/authService';
 import userService from '../../services/userService';
 import ChangePasswordPage from './ChangePassword/ChangePasssword';
 import ChatManager from '../../components/layout/Chat/ChatManager';
+import AppointmentsPage from './Appointments/AppointmentsPage';
+import AppointmentsManager from '../../pages/LawyerDashboard/components/AppointmentsManager';
 
 function Profile() {
   const navigate = useNavigate();
@@ -339,6 +341,255 @@ function Profile() {
   const passwordRequirements = validatePassword(passwordData.newPassword);
   const isPasswordValid = Object.values(passwordRequirements).every(Boolean);
 
+  const renderContent = () => {
+    if (activeTab === 'appointments') {
+      if (user && user.role && user.role.toLowerCase() === 'lawyer') {
+        return <AppointmentsManager />;
+      } else {
+        return <AppointmentsPage />;
+      }
+    } else if (activeTab === 'password') {
+      return <ChangePasswordPage />;
+    } else if (activeTab === 'activity') {
+      return (
+        <div className={styles.activityTab}>
+          <div className={styles.sectionHeader}>
+            <h2>Hoạt động gần đây</h2>
+          </div>
+          
+          <div className={styles.statsCards}>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <FaFileAlt />
+              </div>
+              <div className={styles.statValue}>{userDetails.stats?.documents || 0}</div>
+              <div className={styles.statLabel}>Tài liệu</div>
+            </div>
+            
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <FaBalanceScale />
+              </div>
+              <div className={styles.statValue}>{userDetails.stats?.cases || 0}</div>
+              <div className={styles.statLabel}>Vụ án</div>
+            </div>
+            
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <FaCalendarAlt />
+              </div>
+              <div className={styles.statValue}>{userDetails.stats?.appointments || 0}</div>
+              <div className={styles.statLabel}>Cuộc hẹn</div>
+            </div>
+            
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <FaUserCircle />
+              </div>
+              <div className={styles.statValue}>{userDetails.stats?.consultations || 0}</div>
+              <div className={styles.statLabel}>Tư vấn</div>
+            </div>
+          </div>
+          
+          <div className={styles.activityLinks}>
+            <a href="#" className={styles.activityLink}>
+              <FaFileAlt /> Xem tài liệu của tôi
+            </a>
+            <a href="#" className={styles.activityLink}>
+              <FaBalanceScale /> Xem vụ án của tôi
+            </a>
+            <a href="#" className={styles.activityLink} onClick={(e) => { e.preventDefault(); setActiveTab('appointments'); }}>
+              <FaCalendarAlt /> Quản lý cuộc hẹn
+            </a>
+            <a href="#" className={styles.activityLink}>
+              <FaUserCircle /> Lịch sử tư vấn
+            </a>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className={styles.profileTab}>
+          <div className={styles.sectionHeader}>
+            <h2>Thông tin cá nhân</h2>
+            {!editMode ? (
+              <button 
+                className={styles.editButton} 
+                onClick={() => setEditMode(true)}
+                disabled={avatarLoading}
+              >
+                <FaPen /> Chỉnh sửa
+              </button>
+            ) : null}
+          </div>
+          
+          {!editMode ? (
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <FaUser className={styles.infoIcon} />
+                <div>
+                  <h3>Tên người dùng</h3>
+                  <p>{user.username}</p>
+                </div>
+              </div>
+              
+              <div className={styles.infoItem}>
+                <FaEnvelope className={styles.infoIcon} />
+                <div>
+                  <h3>Email</h3>
+                  <p>{user.email}</p>
+                </div>
+              </div>
+              
+              <div className={styles.infoItem}>
+                <FaUser className={styles.infoIcon} />
+                <div>
+                  <h3>Họ và tên</h3>
+                  <p>{formData.fullName || 'Chưa cập nhật'}</p>
+                </div>
+              </div>
+              
+              <div className={styles.infoItem}>
+                <FaPhone className={styles.infoIcon} />
+                <div>
+                  <h3>Số điện thoại</h3>
+                  <p>{formData.phone || 'Chưa cập nhật'}</p>
+                </div>
+              </div>
+              
+              <div className={styles.infoItem}>
+                <FaMapMarkerAlt className={styles.infoIcon} />
+                <div>
+                  <h3>Địa chỉ</h3>
+                  <p>{formData.address || 'Chưa cập nhật'}</p>
+                </div>
+              </div>
+              
+              <div className={styles.infoItem + ' ' + styles.fullWidth}>
+                <div className={styles.bioSection}>
+                  <h3>Giới thiệu</h3>
+                  <p>{formData.bio || 'Chưa cập nhật thông tin giới thiệu.'}</p>
+                </div>
+              </div>
+              
+              {userDetails.isLawyer && userDetails.lawyerDetails && (
+                <>
+                  <div className={styles.infoItem}>
+                    <div>
+                      <h3>Chứng chỉ</h3>
+                      <p>{userDetails.lawyerDetails.certification || 'Chưa cập nhật'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.infoItem}>
+                    <div>
+                      <h3>Kinh nghiệm</h3>
+                      <p>{userDetails.lawyerDetails.experienceYears || 0} năm</p>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.infoItem}>
+                    <div>
+                      <h3>Lĩnh vực</h3>
+                      <p>{userDetails.lawyerDetails.specialization || 'Chưa cập nhật'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.infoItem}>
+                    <div>
+                      <h3>Đánh giá</h3>
+                      <p>{userDetails.lawyerDetails.rating || 0}/5</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <form className={styles.editForm} onSubmit={handleUpdateProfile}>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label>Họ và tên</label>
+                  <input 
+                    type="text" 
+                    name="fullName" 
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    placeholder="Nhập họ và tên"
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>Số điện thoại</label>
+                  <input 
+                    type="text" 
+                    name="phone" 
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="Nhập số điện thoại"
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label>Địa chỉ</label>
+                  <input 
+                    type="text" 
+                    name="address" 
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder="Nhập địa chỉ"
+                  />
+                </div>
+                
+                <div className={styles.formGroup + ' ' + styles.fullWidth}>
+                  <label>Giới thiệu</label>
+                  <textarea 
+                    name="bio" 
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    placeholder="Nhập thông tin giới thiệu về bạn"
+                    rows={5}
+                  ></textarea>
+                </div>
+              </div>
+              
+              <div className={styles.formButtons}>
+                <button 
+                  type="button" 
+                  className={styles.cancelButton}
+                  onClick={() => {
+                    setEditMode(false);
+                    setError('');
+                    // Đặt lại form về giá trị ban đầu
+                    setFormData({
+                      fullName: userDetails.fullName || userDetails.full_name || '',
+                      phone: userDetails.phone || '',
+                      address: userDetails.address || '',
+                      bio: userDetails.bio || ''
+                    });
+                    // Đặt lại avatar preview nếu đã chọn file mới nhưng chưa lưu
+                    if (avatar) {
+                      setAvatar(null);
+                      setPreviewUrl(user.avatarUrl || userDetails.avatarUrl || userDetails.avatar_url || '/default-avatar.png');
+                    }
+                  }}
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit" 
+                  className={styles.saveButton}
+                  disabled={loading}
+                >
+                  {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      );
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -407,6 +658,12 @@ function Profile() {
                 <FaUser /> Thông tin cá nhân
               </button>
               <button 
+                className={`${styles.menuItem} ${activeTab === 'appointments' ? styles.active : ''}`} 
+                onClick={() => setActiveTab('appointments')}
+              >
+                <FaCalendarAlt /> Quản lý lịch hẹn
+              </button>
+              <button 
                 className={`${styles.menuItem} ${activeTab === 'password' ? styles.active : ''}`} 
                 onClick={() => setActiveTab('password')}
               >
@@ -425,250 +682,7 @@ function Profile() {
             {error && <div className={styles.errorMessage}>{error}</div>}
             {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
             
-            {activeTab === 'profile' && (
-              <div className={styles.profileTab}>
-                <div className={styles.sectionHeader}>
-                  <h2>Thông tin cá nhân</h2>
-                  {!editMode ? (
-                    <button 
-                      className={styles.editButton} 
-                      onClick={() => setEditMode(true)}
-                      disabled={avatarLoading}
-                    >
-                      <FaPen /> Chỉnh sửa
-                    </button>
-                  ) : null}
-                </div>
-                
-                {!editMode ? (
-                  <div className={styles.infoGrid}>
-                    <div className={styles.infoItem}>
-                      <FaUser className={styles.infoIcon} />
-                      <div>
-                        <h3>Tên người dùng</h3>
-                        <p>{user.username}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.infoItem}>
-                      <FaEnvelope className={styles.infoIcon} />
-                      <div>
-                        <h3>Email</h3>
-                        <p>{user.email}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.infoItem}>
-                      <FaUser className={styles.infoIcon} />
-                      <div>
-                        <h3>Họ và tên</h3>
-                        <p>{formData.fullName || 'Chưa cập nhật'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.infoItem}>
-                      <FaPhone className={styles.infoIcon} />
-                      <div>
-                        <h3>Số điện thoại</h3>
-                        <p>{formData.phone || 'Chưa cập nhật'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.infoItem}>
-                      <FaMapMarkerAlt className={styles.infoIcon} />
-                      <div>
-                        <h3>Địa chỉ</h3>
-                        <p>{formData.address || 'Chưa cập nhật'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.infoItem + ' ' + styles.fullWidth}>
-                      <div className={styles.bioSection}>
-                        <h3>Giới thiệu</h3>
-                        <p>{formData.bio || 'Chưa cập nhật thông tin giới thiệu.'}</p>
-                      </div>
-                    </div>
-                    
-                    {userDetails.isLawyer && userDetails.lawyerDetails && (
-                      <>
-                        <div className={styles.infoItem}>
-                          <div>
-                            <h3>Chứng chỉ</h3>
-                            <p>{userDetails.lawyerDetails.certification || 'Chưa cập nhật'}</p>
-                          </div>
-                        </div>
-                        
-                        <div className={styles.infoItem}>
-                          <div>
-                            <h3>Kinh nghiệm</h3>
-                            <p>{userDetails.lawyerDetails.experienceYears || 0} năm</p>
-                          </div>
-                        </div>
-                        
-                        <div className={styles.infoItem}>
-                          <div>
-                            <h3>Lĩnh vực</h3>
-                            <p>{userDetails.lawyerDetails.specialization || 'Chưa cập nhật'}</p>
-                          </div>
-                        </div>
-                        
-                        <div className={styles.infoItem}>
-                          <div>
-                            <h3>Đánh giá</h3>
-                            <p>{userDetails.lawyerDetails.rating || 0}/5</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <form className={styles.editForm} onSubmit={handleUpdateProfile}>
-                    <div className={styles.formGrid}>
-                      <div className={styles.formGroup}>
-                        <label>Họ và tên</label>
-                        <input 
-                          type="text" 
-                          name="fullName" 
-                          value={formData.fullName}
-                          onChange={handleInputChange}
-                          placeholder="Nhập họ và tên"
-                        />
-                      </div>
-                      
-                      <div className={styles.formGroup}>
-                        <label>Số điện thoại</label>
-                        <input 
-                          type="text" 
-                          name="phone" 
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          placeholder="Nhập số điện thoại"
-                        />
-                      </div>
-                      
-                      <div className={styles.formGroup}>
-                        <label>Địa chỉ</label>
-                        <input 
-                          type="text" 
-                          name="address" 
-                          value={formData.address}
-                          onChange={handleInputChange}
-                          placeholder="Nhập địa chỉ"
-                        />
-                      </div>
-                      
-                      <div className={styles.formGroup + ' ' + styles.fullWidth}>
-                        <label>Giới thiệu</label>
-                        <textarea 
-                          name="bio" 
-                          value={formData.bio}
-                          onChange={handleInputChange}
-                          placeholder="Nhập thông tin giới thiệu về bạn"
-                          rows={5}
-                        ></textarea>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.formButtons}>
-                      <button 
-                        type="button" 
-                        className={styles.cancelButton}
-                        onClick={() => {
-                          setEditMode(false);
-                          setError('');
-                          // Đặt lại form về giá trị ban đầu
-                          setFormData({
-                            fullName: userDetails.fullName || userDetails.full_name || '',
-                            phone: userDetails.phone || '',
-                            address: userDetails.address || '',
-                            bio: userDetails.bio || ''
-                          });
-                          // Đặt lại avatar preview nếu đã chọn file mới nhưng chưa lưu
-                          if (avatar) {
-                            setAvatar(null);
-                            setPreviewUrl(user.avatarUrl || userDetails.avatarUrl || userDetails.avatar_url || '/default-avatar.png');
-                          }
-                        }}
-                      >
-                        Hủy
-                      </button>
-                      <button 
-                        type="submit" 
-                        className={styles.saveButton}
-                        disabled={loading}
-                      >
-                        {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            )}
-            
-            {activeTab === 'password' && (
-              <div className={styles.passwordTab}>
-                <div className={styles.sectionHeader}>
-                </div>
-                <ChangePasswordPage />
-              </div>
-            )}
-            
-            {activeTab === 'activity' && (
-              <div className={styles.activityTab}>
-                <div className={styles.sectionHeader}>
-                  <h2>Hoạt động gần đây</h2>
-                </div>
-                
-                <div className={styles.statsCards}>
-                  <div className={styles.statCard}>
-                    <div className={styles.statIcon}>
-                      <FaFileAlt />
-                    </div>
-                    <div className={styles.statValue}>{userDetails.stats?.documents || 0}</div>
-                    <div className={styles.statLabel}>Tài liệu</div>
-                  </div>
-                  
-                  <div className={styles.statCard}>
-                    <div className={styles.statIcon}>
-                      <FaBalanceScale />
-                    </div>
-                    <div className={styles.statValue}>{userDetails.stats?.cases || 0}</div>
-                    <div className={styles.statLabel}>Vụ án</div>
-                  </div>
-                  
-                  <div className={styles.statCard}>
-                    <div className={styles.statIcon}>
-                      <FaCalendarAlt />
-                    </div>
-                    <div className={styles.statValue}>{userDetails.stats?.appointments || 0}</div>
-                    <div className={styles.statLabel}>Cuộc hẹn</div>
-                  </div>
-                  
-                  <div className={styles.statCard}>
-                    <div className={styles.statIcon}>
-                      <FaUserCircle />
-                    </div>
-                    <div className={styles.statValue}>{userDetails.stats?.consultations || 0}</div>
-                    <div className={styles.statLabel}>Tư vấn</div>
-                  </div>
-                </div>
-                
-                <div className={styles.activityLinks}>
-                  <a href="#" className={styles.activityLink}>
-                    <FaFileAlt /> Xem tài liệu của tôi
-                  </a>
-                  <a href="#" className={styles.activityLink}>
-                    <FaBalanceScale /> Xem vụ án của tôi
-                  </a>
-                  <a href="#" className={styles.activityLink}>
-                    <FaCalendarAlt /> Quản lý cuộc hẹn
-                  </a>
-                  <a href="#" className={styles.activityLink}>
-                    <FaUserCircle /> Lịch sử tư vấn
-                  </a>
-                </div>
-              </div>
-            )}
+            {renderContent()}
           </div>
         </div>
       </div>

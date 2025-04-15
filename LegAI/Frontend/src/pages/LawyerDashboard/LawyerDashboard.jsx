@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import styles from '../Dashboard/DashboardPage.module.css';
 import authService from '../../services/authService';
 import userService from '../../services/userService';
+import appointmentService from '../../services/appointmentService';
+import AppointmentsManager from './components/AppointmentsManager';
+import AvailabilityManager from './components/AvailabilityManager';
 
 const LawyerDashboard = () => {
   const [activeMenu, setActiveMenu] = useState('overview');
@@ -28,30 +31,37 @@ const LawyerDashboard = () => {
           user = authService.getCurrentUser();
         }
         
-        console.log('Thông tin người dùng tại Lawyer Dashboard:', user);
         
         // Kiểm tra role, không phân biệt chữ hoa/thường
         if (!user || (user.role?.toLowerCase() !== 'lawyer' && user.role?.toLowerCase() !== 'admin')) {
-          console.log('Chuyển hướng tới login vì người dùng không phải Lawyer hoặc Admin');
           navigate('/login');
           return;
         }
         
         setCurrentUser(user);
         
-        // Simulate loading data with counting animation
-        let counter = 0;
-        const interval = setInterval(() => {
-          counter += 1;
-          setPendingCount(Math.min(counter * 2, 12));
-          setAppointmentCount(Math.min(counter * 3, 18));
-          setCaseCount(Math.min(counter * 4, 24));
-          setDocumentCount(Math.min(counter * 5, 35));
-          
-          if (counter >= 8) {
-            clearInterval(interval);
+        // Lấy dữ liệu thực tế từ API
+        try {
+          // Lấy số lượng lịch hẹn
+          const appointmentStatsResponse = await appointmentService.getAppointmentStats();
+          if (appointmentStatsResponse.status === 'success') {
+            // Tổng số lịch hẹn đang chờ xác nhận
+            const pendingAppointments = appointmentStatsResponse.data.pending || 0;
+            setAppointmentCount(pendingAppointments);
           }
-        }, 100);
+          
+          // Giả lập các số liệu khác
+          setPendingCount(12); // Tin nhắn đang chờ
+          setCaseCount(24);    // Vụ án đang xử lý
+          setDocumentCount(35); // Tài liệu cần xem xét
+        } catch (error) {
+          console.error('Lỗi khi lấy thống kê:', error);
+          // Fallback về giá trị mặc định nếu có lỗi
+          setPendingCount(12);
+          setAppointmentCount(18);
+          setCaseCount(24);
+          setDocumentCount(35);
+        }
         
         // Load notifications
         setNotifications([
@@ -97,10 +107,11 @@ const LawyerDashboard = () => {
   
   const menuItems = [
     { id: 'overview', label: 'Tổng quan', icon: 'chart-line' },
-    { id: 'messages', label: 'Tin nhắn', icon: 'envelope', count: 12 },
-    { id: 'cases', label: 'Vụ án', icon: 'balance-scale', count: 24 },
-    { id: 'appointments', label: 'Lịch hẹn', icon: 'calendar-alt', count: 18 },
-    { id: 'documents', label: 'Tài liệu', icon: 'file-alt', count: 35 },
+    { id: 'messages', label: 'Tin nhắn', icon: 'envelope', count: pendingCount },
+    { id: 'cases', label: 'Vụ án', icon: 'balance-scale', count: caseCount },
+    { id: 'appointments', label: 'Lịch hẹn', icon: 'calendar-alt', count: appointmentCount },
+    { id: 'availability', label: 'Lịch trống', icon: 'calendar-plus' },
+    { id: 'documents', label: 'Tài liệu', icon: 'file-alt', count: documentCount },
     { id: 'contracts', label: 'Hợp đồng', icon: 'file-signature' },
     { id: 'clients', label: 'Khách hàng', icon: 'users' },
     { id: 'transactions', label: 'Giao dịch', icon: 'money-bill-wave' },
@@ -136,7 +147,7 @@ const LawyerDashboard = () => {
           <div className={styles.cardContent}>
             <span className={styles.statNumber}>{appointmentCount}</span> cuộc hẹn
           </div>
-          <button className={styles.actionButton}>
+          <button className={styles.actionButton} onClick={() => setActiveMenu('appointments')}>
             Quản lý lịch <span>&rarr;</span>
           </button>
         </div>
@@ -270,11 +281,20 @@ const LawyerDashboard = () => {
       <p className={styles.sectionDescription}>
         Quản lý lịch hẹn và lịch trình công việc của bạn.
       </p>
-      {/* Nội dung chi tiết phần lịch hẹn sẽ được thêm sau */}
       <div className={styles.contentSection}>
-        <div className={styles.legalQuote}>
-          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
-        </div>
+        <AppointmentsManager />
+      </div>
+    </div>
+  );
+  
+  const renderAvailability = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Quản lý lịch trống</h1>
+      <p className={styles.sectionDescription}>
+        Thêm hoặc xóa các khung giờ trống để khách hàng có thể đặt lịch hẹn với bạn.
+      </p>
+      <div className={styles.contentSection}>
+        <AvailabilityManager />
       </div>
     </div>
   );
@@ -302,6 +322,8 @@ const LawyerDashboard = () => {
         return renderCases();
       case 'appointments':
         return renderAppointments();
+      case 'availability':
+        return renderAvailability();
       case 'documents':
         return renderDocuments();
       default:
