@@ -135,7 +135,7 @@ const LawyerDashboard = () => {
     { id: 'messages', label: 'Tin nhắn', icon: 'envelope', count: pendingCount },
     { id: 'cases', label: 'Vụ án', icon: 'balance-scale', count: caseCount },
     { id: 'appointments', label: 'Lịch hẹn', icon: 'calendar-alt', count: appointmentCount },
-    { id: 'availability', label: 'Lịch trống', icon: 'calendar-plus' },
+    { id: 'availability', label: 'Quản lý lịch trống', icon: 'calendar-plus' },
     { id: 'documents', label: 'Tài liệu', icon: 'file-alt', count: documentCount },
     { id: 'contracts', label: 'Hợp đồng', icon: 'file-signature' },
     { id: 'clients', label: 'Khách hàng', icon: 'users' },
@@ -277,10 +277,6 @@ const LawyerDashboard = () => {
   
   const renderAvailability = () => (
     <div>
-      <h1 className={styles.sectionTitle}>Quản lý lịch trống</h1>
-      <p className={styles.sectionDescription}>
-        Thêm hoặc xóa các khung giờ trống để khách hàng có thể đặt lịch hẹn với bạn.
-      </p>
       <div className={styles.contentSection}>
         <AvailabilityManager />
       </div>
