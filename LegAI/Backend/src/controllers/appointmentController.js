@@ -3,71 +3,136 @@ const ErrorResponse = require('../utils/errorResponse');
 const appointmentModel = require('../models/appointmentModel');
 const userModel = require('../models/userModel');
 const emailService = require('../services/emailService');
+const db = require('../config/database');
 
 // @desc    Tạo lịch hẹn mới
 // @route   POST /api/appointments
 // @access  Private (User)
-exports.createAppointment = asyncHandler(async (req, res, next) => {
-  const { lawyer_id, start_time, end_time, purpose, notes } = req.body;
+exports.createAppointment = async (req, res) => {
+  const { lawyer_id, start_time, end_time, notes, type, meet_link } = req.body;
   const customer_id = req.user.id;
 
-  // Kiểm tra xem luật sư có tồn tại không
-  const lawyer = await userModel.findLawyerById(lawyer_id);
-  if (!lawyer) {
-    return next(new ErrorResponse('Luật sư không tồn tại', 404));
-  }
-
-  // Kiểm tra xem luật sư có lịch trống trong khoảng thời gian này không
-  const availability = await appointmentModel.checkLawyerAvailability(
-    lawyer_id,
-    start_time,
-    end_time
-  );
-
-  if (!availability.isAvailable) {
-    return next(
-      new ErrorResponse(
-        'Luật sư không có lịch trống trong khoảng thời gian này',
-        400
-      )
-    );
-  }
-
-  // Tạo lịch hẹn mới
-  const appointment = await appointmentModel.createAppointment({
-    customer_id,
-    lawyer_id,
-    start_time,
-    end_time,
-    status: 'pending',
-    purpose,
-    notes
-  });
-
-  // Gửi email thông báo cho luật sư
   try {
-    const customer = await userModel.findById(customer_id);
-    await emailService.sendAppointmentNotificationToLawyer(
-      lawyer.email,
-      lawyer.full_name,
-      {
-        appointmentId: appointment.id,
-        customerName: customer.full_name,
-        customerEmail: customer.email,
-        startTime: appointment.start_time,
-        endTime: appointment.end_time,
-        purpose: appointment.purpose || 'N/A'
-      }
-    );
-  } catch (error) {
-    console.error('Không thể gửi email thông báo:', error);
-  }
+    // Chuyển đổi thời gian từ string sang đối tượng Date
+    const startDate = new Date(start_time);
+    const endDate = new Date(end_time);
 
-  res.status(201).json({
-    status: 'success',
-    data: appointment
-  });
-});
+    // Kiểm tra tính hợp lệ của thời gian
+    if (startDate >= endDate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Thời gian kết thúc phải sau thời gian bắt đầu" 
+      });
+    }
+
+    // Kiểm tra thời lượng tối thiểu (ví dụ: 30 phút)
+    const minDuration = 30 * 60 * 1000; // 30 phút tính bằng mili giây
+    if (endDate - startDate < minDuration) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Cuộc hẹn phải kéo dài ít nhất 30 phút" 
+      });
+    }
+
+    // Kiểm tra tính khả dụng của luật sư
+    const availability = await appointmentModel.checkLawyerAvailability(
+      lawyer_id,
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
+
+    if (!availability.isAvailable) {
+      return res.status(400).json({
+        success: false,
+        message: "Luật sư không có sẵn trong khoảng thời gian đã chọn",
+        conflictingAppointments: availability.conflictingAppointments
+      });
+    }
+
+    // Lấy thông tin luật sư
+    const lawyerResult = await db.query(
+      'SELECT full_name as name, email FROM Users WHERE id = $1',
+      [lawyer_id]
+    );
+    
+    if (lawyerResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy luật sư" });
+    }
+    
+    const lawyer = lawyerResult.rows[0];
+
+    // Lấy thông tin khách hàng
+    const customerResult = await db.query(
+      'SELECT full_name as name, email FROM Users WHERE id = $1',
+      [customer_id]
+    );
+    
+    if (customerResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông tin khách hàng" });
+    }
+    
+    const customer = customerResult.rows[0];
+
+    // Tạo cuộc hẹn trong database
+    const appointment = await appointmentModel.createAppointment({
+      customer_id,
+      lawyer_id,
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
+      notes,
+      type,
+      meet_link
+    });
+
+    // Gửi email thông báo cho luật sư - bỏ qua nếu có lỗi
+    try {
+      await emailService.sendAppointmentNotification({
+        email: lawyer.email,
+        name: lawyer.name,
+        role: 'lawyer',
+        appointmentId: appointment.id,
+        customerName: customer.name,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        notes: notes || '',
+        type: type || 'Tư vấn',
+        meetLink: meet_link || ''
+      });
+    } catch (emailError) {
+      console.error('Không thể gửi email thông báo cho luật sư:', emailError.message);
+      // Bỏ qua lỗi email, không ảnh hưởng đến việc tạo lịch hẹn
+    }
+
+    // Gửi email thông báo cho khách hàng - bỏ qua nếu có lỗi
+    try {
+      await emailService.sendAppointmentNotification({
+        email: customer.email,
+        name: customer.name,
+        role: 'customer',
+        appointmentId: appointment.id,
+        lawyerName: lawyer.name,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        notes: notes || '',
+        type: type || 'Tư vấn',
+        meetLink: meet_link || ''
+      });
+    } catch (emailError) {
+      console.error('Không thể gửi email thông báo cho khách hàng:', emailError.message);
+      // Bỏ qua lỗi email, không ảnh hưởng đến việc tạo lịch hẹn
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Đã tạo cuộc hẹn thành công",
+      data: appointment,
+      availabilityInfo: availability
+    });
+  } catch (err) {
+    console.error(`Lỗi khi tạo cuộc hẹn: ${err.message}`);
+    res.status(500).json({ success: false, message: `Lỗi khi tạo cuộc hẹn: ${err.message}` });
+  }
+};
 
 // @desc    Lấy danh sách lịch hẹn của người dùng (khách hàng hoặc luật sư)
 // @route   GET /api/appointments
@@ -75,14 +140,20 @@ exports.createAppointment = asyncHandler(async (req, res, next) => {
 exports.getAppointments = asyncHandler(async (req, res, next) => {
   const { status } = req.query;
   const userId = req.user.id;
-  const isLawyer = req.user.role === 'lawyer';
+  const isLawyer = req.user.role.toLowerCase() === 'lawyer';
+
+  console.log(`API getAppointments - userId: ${userId}, role: ${req.user.role}, isLawyer: ${isLawyer}`);
 
   let appointments;
   if (isLawyer) {
+    console.log(`Lấy lịch hẹn cho luật sư ID: ${userId}`);
     appointments = await appointmentModel.getAppointmentsByLawyerId(userId, status);
   } else {
+    console.log(`Lấy lịch hẹn cho khách hàng ID: ${userId}`);
     appointments = await appointmentModel.getAppointmentsByCustomerId(userId, status);
   }
+
+  console.log(`Tìm thấy ${appointments.length} lịch hẹn`);
 
   res.status(200).json({
     status: 'success',
@@ -130,7 +201,7 @@ exports.updateAppointmentStatus = asyncHandler(async (req, res, next) => {
   }
 
   // Kiểm tra xem người dùng có quyền cập nhật lịch hẹn này không
-  if (existingAppointment.lawyer_id !== userId && req.user.role !== 'admin') {
+  if (existingAppointment.lawyer_id !== userId && req.user.role !== 'lawyer') {
     return next(new ErrorResponse('Chỉ luật sư hoặc admin mới có thể cập nhật trạng thái lịch hẹn', 403));
   }
 
@@ -147,26 +218,27 @@ exports.updateAppointmentStatus = asyncHandler(async (req, res, next) => {
     notes
   );
 
-  // Gửi email thông báo cho khách hàng
-  try {
-    const customer = await userModel.findById(existingAppointment.customer_id);
-    const lawyer = await userModel.findById(existingAppointment.lawyer_id);
+  // Gửi email thông báo cho khách hàng - bỏ qua nếu có lỗi
+  // try {
+  //   const customer = await userModel.findById(existingAppointment.customer_id);
+  //   const lawyer = await userModel.findById(existingAppointment.lawyer_id);
 
-    await emailService.sendAppointmentStatusUpdateToCustomer(
-      customer.email,
-      customer.full_name,
-      {
-        appointmentId: updatedAppointment.id,
-        lawyerName: lawyer.full_name,
-        startTime: updatedAppointment.start_time,
-        endTime: updatedAppointment.end_time,
-        status: updatedAppointment.status,
-        notes: updatedAppointment.notes
-      }
-    );
-  } catch (error) {
-    console.error('Không thể gửi email thông báo:', error);
-  }
+  //   await emailService.sendAppointmentStatusUpdateToCustomer(
+  //     customer.email,
+  //     customer.full_name,
+  //     {
+  //       appointmentId: updatedAppointment.id,
+  //       lawyerName: lawyer.full_name,
+  //       startTime: updatedAppointment.start_time,
+  //       endTime: updatedAppointment.end_time,
+  //       status: updatedAppointment.status,
+  //       notes: updatedAppointment.notes
+  //     }
+  //   );
+  // } catch (error) {
+  //   console.error('Không thể gửi email thông báo cập nhật trạng thái:', error);
+  //   // Bỏ qua lỗi email
+  // }
 
   res.status(200).json({
     status: 'success',
@@ -199,43 +271,45 @@ exports.cancelAppointment = asyncHandler(async (req, res, next) => {
     reason
   );
 
-  // Gửi email thông báo
-  try {
-    const customer = await userModel.findById(existingAppointment.customer_id);
-    const lawyer = await userModel.findById(existingAppointment.lawyer_id);
-
-    // Xác định người huỷ lịch
-    const isCancelledByCustomer = userId === existingAppointment.customer_id;
-    
-    if (isCancelledByCustomer) {
-      // Gửi email thông báo cho luật sư
-      await emailService.sendAppointmentCancellationToLawyer(
-        lawyer.email,
-        lawyer.full_name,
-        {
-          appointmentId: cancelledAppointment.id,
-          customerName: customer.full_name,
-          startTime: cancelledAppointment.start_time,
-          endTime: cancelledAppointment.end_time,
-          reason: reason || 'Không có lý do'
-        }
-      );
-    } else {
-      // Gửi email thông báo cho khách hàng
+  // Nếu người dùng là luật sư, gửi email thông báo cho khách hàng
+  if (req.user.role.toLowerCase() === 'lawyer') {
+    try {
+      const lawyerName = await userModel.getLawyerName(userId);
       await emailService.sendAppointmentCancellationToCustomer(
-        customer.email,
-        customer.full_name,
+        existingAppointment.customer_email,
+        existingAppointment.customer_name,
         {
-          appointmentId: cancelledAppointment.id,
-          lawyerName: lawyer.full_name,
-          startTime: cancelledAppointment.start_time,
-          endTime: cancelledAppointment.end_time,
-          reason: reason || 'Không có lý do'
+          appointmentId: existingAppointment.id,
+          lawyerName: lawyerName,
+          startTime: existingAppointment.start_time,
+          endTime: existingAppointment.end_time,
+          reason: reason || 'Không có lý do cụ thể'
         }
       );
+    } catch (error) {
+      console.error('Không thể gửi email thông báo hủy lịch hẹn cho khách hàng:', error);
+      // Bỏ qua lỗi email
     }
-  } catch (error) {
-    console.error('Không thể gửi email thông báo:', error);
+  } 
+  // Nếu người dùng là khách hàng, gửi email thông báo cho luật sư
+  else if (req.user.role.toLowerCase() === 'customer') {
+    try {
+      const customerName = await userModel.getCustomerName(userId);
+      await emailService.sendAppointmentCancellationToLawyer(
+        existingAppointment.lawyer_email,
+        existingAppointment.lawyer_name,
+        {
+          appointmentId: existingAppointment.id,
+          customerName: customerName,
+          startTime: existingAppointment.start_time,
+          endTime: existingAppointment.end_time,
+          reason: reason || 'Không có lý do cụ thể'
+        }
+      );
+    } catch (error) {
+      console.error('Không thể gửi email thông báo hủy lịch hẹn cho luật sư:', error);
+      // Bỏ qua lỗi email
+    }
   }
 
   res.status(200).json({
@@ -279,8 +353,9 @@ exports.addAvailability = asyncHandler(async (req, res, next) => {
   const { start_time, end_time } = req.body;
   const lawyerId = req.user.id;
 
-  // Kiểm tra xem người dùng có phải là luật sư không
-  if (req.user.role !== 'lawyer') {
+  // Kiểm tra xem người dùng có phải là luật sư không - chấp nhận cả 'lawyer' và 'Lawyer'
+  const userRole = req.user.role.toLowerCase();
+  if (userRole !== 'lawyer') {
     return next(new ErrorResponse('Chỉ luật sư mới có thể thêm lịch làm việc', 403));
   }
 

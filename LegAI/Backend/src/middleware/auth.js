@@ -37,12 +37,21 @@ const authorize = (...roles) => {
             });
         }
 
-        if (!roles.includes(req.user.role)) {
+        // Chuyển đổi role người dùng thành chữ thường để kiểm tra
+        const userRole = req.user.role ? req.user.role.toLowerCase() : '';
+        
+        // Kiểm tra xem role của người dùng có nằm trong danh sách roles được phép không
+        // bằng cách chuyển cả hai về chữ thường
+        const hasRole = roles.some(role => role.toLowerCase() === userRole);
+        
+        if (!hasRole) {
+            console.log(`User với role "${req.user.role}" không có quyền thực hiện hành động yêu cầu role: ${roles.join(', ')}`);
             return res.status(403).json({
                 status: 'error',
                 message: 'Bạn không có quyền thực hiện hành động này'
             });
         }
+        
         next();
     };
 };

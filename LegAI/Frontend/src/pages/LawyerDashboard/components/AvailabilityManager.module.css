@@ -219,7 +219,7 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: a0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -513,4 +513,22 @@
     display: flex;
     flex-wrap: nowrap;
   }
+}
+
+.dateRangeInfo {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 102, 204, 0.1);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 0.95rem;
+  border-left: 4px solid #0066cc;
+}
+
+.dateRangeInfo i {
+  color: #0066cc;
+  margin-right: 10px;
+  font-size: 1.1rem;
 } 

@@ -43,19 +43,11 @@
   transition: all 0.3s ease;
 }
 
-.tabButton:hover {
-  color: #333;
-}
-
 .activeTab {
   background-color: var(--color-primary);
-  color: rgb(255, 230, 0);
+  color: rgb(0, 145, 255);
 }
 
-.activeTab:hover {
-  background-color: var(--color-primary-dark);
-  color: white;
-}
 
 .appointmentsContainer {
   min-height: 300px;
@@ -257,7 +249,9 @@
 }
 
 .bookButton {
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   background-color: var(--color-primary);
   color: white;
   padding: 10px 20px;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './AppointmentsManager.module.css';
 import appointmentService from '../../../services/appointmentService';
 import { DEFAULT_AVATAR } from '../../../config/constants';
+import authService from '../../../services/authService';
 
 const AppointmentsManager = () => {
   const [appointments, setAppointments] = useState([]);
@@ -21,11 +22,38 @@ const AppointmentsManager = () => {
 
   const fetchAppointments = async () => {
     try {
+      const user = authService.getCurrentUser();
+      if (!user || !user.id) {
+        throw new Error("Không thể xác định ID luật sư");
+      }
+
       setLoading(true);
+      setError('');
+
+      // Trực tiếp lấy danh sách lịch hẹn dựa trên vai trò luật sư
+      // API sẽ tự động lọc dựa trên role và ID từ token
       const response = await appointmentService.getAppointments();
       
-      if (response.status === 'success') {
-        setAppointments(response.data);
+      if (response.status === 'success' && Array.isArray(response.data)) {
+        // Không filter ở client nữa, nhận kết quả trực tiếp từ API
+        const enhancedAppointments = response.data.map(app => ({
+          ...app,
+          // Hỗ trợ nhiều định dạng dữ liệu trả về từ API
+          customer_name: app.customer_name || app.client_name || app.user_name || 'Khách hàng',
+          customer_email: app.customer_email || app.client_email || app.user_email || 'Không có thông tin',
+          customer_phone: app.customer_phone || app.client_phone || app.user_phone || '',
+          customer_avatar: app.customer_avatar || app.client_avatar || app.user_avatar || DEFAULT_AVATAR
+        }));
+        
+        // Sắp xếp theo thời gian
+        const sortedAppointments = enhancedAppointments.sort((a, b) => 
+          new Date(a.start_time) - new Date(b.start_time)
+        );
+        
+        console.log(`Đã lấy ${sortedAppointments.length} lịch hẹn cho luật sư ID ${user.id}`);
+        setAppointments(sortedAppointments);
+      } else {
+        setError(response.message || "Không thể lấy danh sách lịch hẹn");
       }
       
       setLoading(false);
@@ -247,13 +275,14 @@ const AppointmentsManager = () => {
                 <div className={styles.appointmentHeader}>
                   <div className={styles.customerInfo}>
                     <img 
-                      src={appointment.avatar_url || DEFAULT_AVATAR} 
-                      alt={appointment.customer_name} 
+                      src={appointment.customer_avatar || appointment.client_avatar || appointment.avatar_url || DEFAULT_AVATAR} 
+                      alt={appointment.customer_name || appointment.client_name || 'Khách hàng'} 
                       className={styles.customerAvatar}
+                      onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
                     <div>
-                      <h3>{appointment.customer_name}</h3>
-                      <p className={styles.customerEmail}>{appointment.customer_email}</p>
+                      <h3>{appointment.customer_name || appointment.client_name || 'Khách hàng'}</h3>
+                      <p className={styles.customerEmail}>{appointment.customer_email || appointment.client_email || 'Chưa có email'}</p>
                     </div>
                   </div>
                   <div className={`${styles.status} ${getStatusClass(appointment.status)}`}>
@@ -305,14 +334,6 @@ const AppointmentsManager = () => {
                         >
                           <i className="fas fa-edit"></i> Cập nhật trạng thái
                         </button>
-                        
-                        <button 
-                          className={styles.cancelButton}
-                          onClick={() => handleCancelAppointment(appointment)}
-                          disabled={processing}
-                        >
-                          <i className="fas fa-times-circle"></i> Huỷ lịch hẹn
-                        </button>
                       </>
                     )}
                     
@@ -361,7 +382,7 @@ const AppointmentsManager = () => {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <p>Cập nhật trạng thái lịch hẹn với <strong>{selectedAppointment.customer_name}</strong> vào lúc <strong>{formatDate(selectedAppointment.start_time)}</strong></p>
+              <p>Cập nhật trạng thái lịch hẹn với <strong>{selectedAppointment.customer_name || selectedAppointment.client_name || 'Khách hàng'}</strong> vào lúc <strong>{formatDate(selectedAppointment.start_time)}</strong></p>
               
               <div className={styles.formGroup}>
                 <label htmlFor="updateStatus">Trạng thái:</label>

@@ -3,6 +3,7 @@ import styles from './AvailabilityManager.module.css';
 import appointmentService from '../../../services/appointmentService';
 import authService from '../../../services/authService';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const AvailabilityManager = () => {
   const [availabilities, setAvailabilities] = useState([]);
@@ -13,40 +14,77 @@ const AvailabilityManager = () => {
     end_time: ''
   });
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
   const [currentUser, setCurrentUser] = useState(null);
+  const [generatingSchedule, setGeneratingSchedule] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const init = async () => {
       try {
-        const user = authService.getCurrentUser();
-        if (user) {
-          setCurrentUser(user);
-          await fetchAvailabilities(user.id);
-        } else {
-          toast.error('Vui lòng đăng nhập lại');
+        setLoading(true);
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+          toast.error('Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục.');
+          navigate('/login');
+          return;
         }
-      } catch (err) {
-        console.error('Lỗi khởi tạo:', err);
-        toast.error('Có lỗi xảy ra khi tải dữ liệu');
+
+        try {
+          const user = JSON.parse(userStr);
+          setCurrentUser(user);
+          
+          // Kiểm tra role không phân biệt chữ hoa chữ thường
+          if (!user.role || typeof user.role !== 'string' || (user.role.toLowerCase() !== 'lawyer')) {
+            toast.error('Bạn không có quyền truy cập trang này. Chỉ luật sư mới có thể quản lý lịch.');
+            navigate('/dashboard');
+            return;
+          }
+
+          await fetchAvailabilities(user.id);
+        } catch (error) {
+          console.error('Lỗi khi xử lý dữ liệu người dùng:', error);
+          toast.error('Có lỗi xảy ra khi xác thực người dùng.');
+          navigate('/login');
+        }
+      } catch (error) {
+        handleApiError(error);
+      } finally {
+        setLoading(false);
       }
     };
     init();
-  }, []);
+  }, [navigate]);
 
   const fetchAvailabilities = async (lawyerId) => {
-    if (!lawyerId) return;
+    if (!lawyerId) {
+      console.error('Không có ID luật sư để lấy lịch trống');
+      return;
+    }
     
     try {
       setLoading(true);
       const response = await appointmentService.getLawyerAvailability(lawyerId);
-      if (response && Array.isArray(response.data)) {
-        setAvailabilities(response.data);
+      
+      console.log('Response từ getLawyerAvailability:', response);
+      
+      if (response && response.status === 'success') {
+        if (Array.isArray(response.data)) {
+          console.log('Đã lấy lịch trống:', response.data.length);
+          console.log('Chi tiết lịch trống:', response.data);
+          setAvailabilities(response.data);
+        } else {
+          console.log('Dữ liệu không phải mảng:', response.data);
+          setAvailabilities([]);
+        }
       } else {
+        console.log('Không có lịch trống hoặc phản hồi không đúng định dạng:', response);
         setAvailabilities([]);
       }
     } catch (error) {
       console.error('Lỗi khi lấy lịch trống:', error);
-      toast.error('Không thể lấy danh sách lịch trống');
+      handleApiError(error, 'Không thể lấy danh sách lịch trống');
       setAvailabilities([]);
     } finally {
       setLoading(false);
@@ -82,45 +120,105 @@ const AvailabilityManager = () => {
     }));
   };
 
-  const handleAddAvailability = async (e) => {
-    e.preventDefault();
-    if (!currentUser?.id) {
-      toast.error('Vui lòng đăng nhập lại');
+  const handleApiError = (error, customMessage = 'Đã xảy ra lỗi') => {
+    console.error('Chi tiết lỗi:', error);
+    
+    if (error.code === 403 || error.response?.status === 403) {
+      const errorMessage = error.message || error.response?.data?.message || 'Bạn không có quyền thực hiện thao tác này';
+      toast.error(`Lỗi phân quyền: ${errorMessage}`);
+      
+      // Kiểm tra xem lỗi có liên quan đến token hết hạn không
+      if (errorMessage.includes('token') || errorMessage.includes('đăng nhập lại')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
       return;
     }
+    
+    if (error.code === 401 || error.response?.status === 401) {
+      toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      return;
+    }
+    
+    // Hiển thị thông báo lỗi từ response nếu có, nếu không sử dụng thông báo tùy chỉnh
+    const errorMessage = error.message || error.response?.data?.message || customMessage;
+    toast.error(errorMessage);
+  };
 
+  const handleAddAvailability = async (e) => {
+    e.preventDefault();
+    
     try {
+      // Kiểm tra người dùng đăng nhập
+      const user = authService.getCurrentUser();
+      if (!user || !user.id) {
+        setError("Không thể xác định ID luật sư. Vui lòng đăng nhập lại.");
+        return;
+      }
+      
+      // Validate dữ liệu
+      if (!newAvailability.start_time || !newAvailability.end_time) {
+        setError("Vui lòng chọn thời gian bắt đầu và kết thúc");
+        return;
+      }
+      
+      // Kiểm tra thời gian hợp lệ
       const startTime = new Date(newAvailability.start_time);
       const endTime = new Date(newAvailability.end_time);
-
+      
       if (startTime >= endTime) {
-        setError('Thời gian kết thúc phải sau thời gian bắt đầu');
+        setError("Thời gian kết thúc phải sau thời gian bắt đầu");
         return;
       }
-
-      if (startTime < new Date()) {
-        setError('Không thể thêm lịch trống cho thời gian đã qua');
+      
+      const now = new Date();
+      if (startTime < now) {
+        setError("Không thể thêm lịch trống cho thời gian đã qua");
         return;
       }
-
+      
+      // Chuẩn bị dữ liệu
       const availabilityData = {
-        lawyer_id: currentUser.id,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'available'
+        ...newAvailability,
+        lawyer_id: user.id
       };
-
+      
+      // Gọi API thêm lịch trống
+      setLoading(true);
       const response = await appointmentService.addAvailability(availabilityData);
-      if (response.status === 'success') {
-        await fetchAvailabilities(currentUser.id);
+      
+      if (response.success) {
+        // Thêm thành công
+        setSuccessMessage('Đã thêm lịch trống thành công!');
+        setTimeout(() => setSuccessMessage(''), 5000);
+        
+        // Đóng modal và làm mới danh sách
         setShowAddModal(false);
-        toast.success('Thêm lịch trống thành công');
+        resetNewAvailability();
+        await fetchAvailabilities(user.id);
       } else {
-        throw new Error(response.message || 'Không thể thêm lịch trống');
+        // Xử lý lỗi
+        let errorMessage = response.message || 'Không thể thêm lịch trống';
+        
+        // Nếu là lỗi trùng lịch từ server, đưa ra thông báo cụ thể
+        if (response.message && response.message.includes('trùng')) {
+          errorMessage = 'Lịch trống đã tồn tại trong cơ sở dữ liệu. Vui lòng kiểm tra lại.';
+        }
+        
+        handleApiError(response, errorMessage);
       }
     } catch (error) {
-      console.error('Lỗi khi thêm lịch trống:', error);
-      setError(error.message || 'Không thể thêm lịch trống');
+      handleApiError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,80 +243,102 @@ const AvailabilityManager = () => {
     }
   };
 
-  const generateWeeklySchedule = async () => {
-    if (!currentUser?.id) {
-      toast.error('Vui lòng đăng nhập lại');
-      return;
-    }
-
+  const handleGenerateWeeklySchedule = async () => {
     try {
-      const now = new Date();
-      const daysToGenerate = 7;
-      const generatedSlots = [];
-
-      for (let i = 1; i <= daysToGenerate; i++) {
-        const date = new Date(now);
-        date.setDate(date.getDate() + i);
+      setGeneratingSchedule(true);
+      
+      // Lấy ngày đầu tuần (Thứ Hai)
+      const currentDate = new Date();
+      const currentDay = currentDate.getDay(); // 0 = CN, 1 = T2, ...
+      const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+      
+      const monday = new Date(currentDate);
+      monday.setDate(currentDate.getDate() - daysToMonday);
+      monday.setHours(8, 0, 0, 0);
+      
+      // Tạo các slot cho 5 ngày làm việc (T2 - T6)
+      const slots = [];
+      
+      for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + dayOffset);
         
-        // Bỏ qua ngày chủ nhật
-        if (date.getDay() === 0) continue;
-
-        // Tạo 2 slot mỗi ngày: sáng và chiều
+        // Slot buổi sáng (8:00 - 12:00)
         const morningStart = new Date(date);
         morningStart.setHours(8, 0, 0, 0);
+        
         const morningEnd = new Date(date);
         morningEnd.setHours(12, 0, 0, 0);
         
+        // Slot buổi chiều (13:00 - 17:00)
         const afternoonStart = new Date(date);
-        afternoonStart.setHours(13, 30, 0, 0);
+        afternoonStart.setHours(13, 0, 0, 0);
+        
         const afternoonEnd = new Date(date);
-        afternoonEnd.setHours(17, 30, 0, 0);
-
-        generatedSlots.push(
-          {
-            lawyer_id: currentUser.id,
-            start_time: morningStart.toISOString(),
-            end_time: morningEnd.toISOString(),
-            status: 'available'
-          },
-          {
-            lawyer_id: currentUser.id,
-            start_time: afternoonStart.toISOString(),
-            end_time: afternoonEnd.toISOString(),
-            status: 'available'
-          }
-        );
+        afternoonEnd.setHours(17, 0, 0, 0);
+        
+        // Thêm vào danh sách slot
+        slots.push({
+          lawyer_id: currentUser.id,
+          start_time: morningStart.toISOString(),
+          end_time: morningEnd.toISOString(),
+          status: 'available',
+          user_role: 'lawyer'
+        });
+        
+        slots.push({
+          lawyer_id: currentUser.id,
+          start_time: afternoonStart.toISOString(),
+          end_time: afternoonEnd.toISOString(),
+          status: 'available',
+          user_role: 'lawyer'
+        });
       }
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const slot of generatedSlots) {
+      
+      // Kiểm tra các slot đã tồn tại
+      const existingAvailabilities = await appointmentService.getLawyerAvailability(currentUser.id);
+      
+      // Lọc bỏ các slot trùng lặp
+      const uniqueSlots = slots.filter(newSlot => {
+        const newSlotStart = new Date(newSlot.start_time);
+        const newSlotEnd = new Date(newSlot.end_time);
+        
+        // Kiểm tra xem slot mới có trùng với slot đã tồn tại không
+        return !existingAvailabilities.data.some(existingSlot => {
+          const existingSlotStart = new Date(existingSlot.start_time);
+          const existingSlotEnd = new Date(existingSlot.end_time);
+          
+          // Kiểm tra điều kiện trùng lặp
+          return (
+            (newSlotStart <= existingSlotEnd && newSlotEnd >= existingSlotStart)
+          );
+        });
+      });
+      
+      // Nếu không có slot mới nào cần thêm
+      if (uniqueSlots.length === 0) {
+        toast.info('Tất cả các slot trong tuần đã được tạo');
+        setGeneratingSchedule(false);
+        return;
+      }
+      
+      // Thêm các slot mới
+      let addedCount = 0;
+      for (const slot of uniqueSlots) {
         try {
-          const response = await appointmentService.addAvailability(slot);
-          if (response.status === 'success') {
-            successCount++;
-          } else {
-            errorCount++;
-          }
+          await appointmentService.addAvailability(slot);
+          addedCount++;
         } catch (error) {
           console.error('Lỗi khi thêm slot:', error);
-          errorCount++;
-          continue;
         }
       }
-
-      await fetchAvailabilities(currentUser.id);
       
-      if (successCount > 0) {
-        toast.success(`Đã tạo ${successCount} khung giờ làm việc cho tuần tới`);
-      }
-      if (errorCount > 0) {
-        toast.warning(`Có ${errorCount} khung giờ không thể tạo do trùng lặp`);
-      }
+      toast.success(`Đã tạo ${addedCount} khung giờ làm việc trong tuần`);
+      fetchAvailabilities(currentUser.id); // Cập nhật danh sách
     } catch (error) {
-      console.error('Lỗi khi tạo lịch trống:', error);
-      toast.error('Không thể tạo lịch trống tự động');
+      handleApiError(error);
+    } finally {
+      setGeneratingSchedule(false);
     }
   };
 
@@ -254,15 +374,21 @@ const AvailabilityManager = () => {
     return grouped;
   };
 
+  const resetNewAvailability = () => {
+    setNewAvailability({
+      start_time: '',
+      end_time: ''
+    });
+  };
+
   return (
     <div className={styles.availabilityManager}>
       <div className={styles.header}>
-        <h2>Quản lý lịch trống</h2>
         <div className={styles.actionButtons}>
           <button className={styles.addButton} onClick={handleAddModalOpen}>
             <i className="fas fa-plus"></i> Thêm lịch trống
           </button>
-          <button className={styles.generateButton} onClick={generateWeeklySchedule}>
+          <button className={styles.generateButton} onClick={handleGenerateWeeklySchedule}>
             <i className="fas fa-calendar"></i> Tạo lịch tự động
           </button>
         </div>
@@ -328,6 +454,7 @@ const AvailabilityManager = () => {
             </div>
             <form onSubmit={handleAddAvailability} className={styles.modalForm}>
               {error && <div className={styles.errorMessage}>{error}</div>}
+              {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
               <div className={styles.formGroup}>
                 <label>Thời gian bắt đầu:</label>
                 <input

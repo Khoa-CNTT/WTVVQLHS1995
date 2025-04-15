@@ -2,13 +2,62 @@ const nodemailer = require('nodemailer');
 
 // Cấu hình transporter
 const createTransporter = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER || 'trankimt11@gmail.com',
-            pass: process.env.EMAIL_PASSWORD || 'trankimthinh208'
+    // Kiểm tra môi trường phát triển
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    
+    if (isDevelopment) {
+        // Sử dụng ethereal.email cho môi trường phát triển - không thực sự gửi email
+        return nodemailer.createTransport({
+            host: 'smtp.ethereal.email',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'ethereal.user@ethereal.email',
+                pass: 'ethereal_pass'
+            }
+        });
+    } else {
+        // Cấu hình thật cho môi trường sản xuất
+        return nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER || 'your-email@gmail.com',
+                pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+            }
+        });
+    }
+};
+
+// Hàm chung để gửi email
+const sendEmail = async (options) => {
+    try {
+        const transporter = createTransporter();
+        
+        // Kiểm tra nếu đang trong môi trường phát triển thì không thực sự gửi email
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('DEBUG - Giả lập gửi email trong môi trường phát triển');
+            console.log(`To: ${options.email}`);
+            console.log(`Subject: ${options.subject}`);
+            console.log(`Content: ${options.text || options.html}`);
+            return true;
         }
-    });
+        
+        const mailOptions = {
+            from: `"LegAI" <${process.env.EMAIL_USER || 'trankimt11@gmail.com'}>`,
+            to: options.email,
+            subject: options.subject,
+            text: options.text,
+            html: options.html
+        };
+        
+        await transporter.sendMail(mailOptions);
+        return true;
+    } catch (error) {
+        console.error('Lỗi gửi email:', error);
+        // Không throw error để tránh ảnh hưởng đến các chức năng khác
+        console.log('SKIP - Bỏ qua lỗi gửi email trong môi trường phát triển');
+        return false;
+    }
 };
 
 // Gửi email xác minh tài khoản với mã OTP
@@ -284,10 +333,133 @@ const sendAppointmentCancellationToLawyer = async (email, lawyerName, appointmen
     }
 };
 
+/**
+ * Gửi email thông báo về cuộc hẹn đến người dùng (luật sư hoặc khách hàng)
+ * @param {Object} options - Các thông số cần thiết
+ */
+const sendAppointmentNotification = async (options) => {
+  const {
+    email,
+    name,
+    role, // 'lawyer' hoặc 'customer'
+    appointmentId,
+    customerName,
+    lawyerName,
+    startTime,
+    endTime,
+    notes,
+    type,
+    meetLink
+  } = options;
+
+  // Format thời gian
+  const startDate = new Date(startTime);
+  const endDate = new Date(endTime);
+  const formattedDate = startDate.toLocaleDateString('vi-VN', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  const formattedStartTime = startDate.toLocaleTimeString('vi-VN', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+  const formattedEndTime = endDate.toLocaleTimeString('vi-VN', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
+  let subject, text, html;
+
+  if (role === 'lawyer') {
+    subject = `Thông báo: Bạn có cuộc hẹn mới với khách hàng ${customerName}`;
+    
+    text = `Kính gửi ${name},
+      
+Bạn có một cuộc hẹn mới với khách hàng ${customerName}.
+Mã cuộc hẹn: ${appointmentId}
+Thời gian: ${formattedDate}, từ ${formattedStartTime} đến ${formattedEndTime}
+Loại: ${type}
+Ghi chú: ${notes}
+${meetLink ? `Link họp trực tuyến: ${meetLink}` : ''}
+
+Xin vui lòng xác nhận cuộc hẹn này bằng cách đăng nhập vào hệ thống LegAI.
+
+Trân trọng,
+Đội ngũ LegAI`;
+
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Thông báo cuộc hẹn mới</h2>
+        <p>Kính gửi <strong>${name}</strong>,</p>
+        <p>Bạn có một cuộc hẹn mới với khách hàng <strong>${customerName}</strong>.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Mã cuộc hẹn:</strong> ${appointmentId}</p>
+          <p><strong>Thời gian:</strong> ${formattedDate}, từ ${formattedStartTime} đến ${formattedEndTime}</p>
+          <p><strong>Loại:</strong> ${type}</p>
+          <p><strong>Ghi chú:</strong> ${notes}</p>
+          ${meetLink ? `<p><strong>Link họp trực tuyến:</strong> <a href="${meetLink}" target="_blank">${meetLink}</a></p>` : ''}
+        </div>
+        
+        <p>Xin vui lòng <a href="https://legai.vn/login" style="color: #3498db;">đăng nhập</a> vào hệ thống để xác nhận cuộc hẹn này.</p>
+        
+        <p>Trân trọng,<br>Đội ngũ LegAI</p>
+      </div>
+    `;
+  } else {
+    subject = `Xác nhận đặt lịch hẹn với luật sư ${lawyerName}`;
+    
+    text = `Kính gửi ${name},
+      
+Cảm ơn bạn đã đặt lịch hẹn với luật sư ${lawyerName}.
+Mã cuộc hẹn: ${appointmentId}
+Thời gian: ${formattedDate}, từ ${formattedStartTime} đến ${formattedEndTime}
+Loại: ${type}
+Ghi chú: ${notes}
+${meetLink ? `Link họp trực tuyến: ${meetLink}` : ''}
+
+Vui lòng chờ xác nhận từ phía luật sư. Bạn sẽ nhận được email thông báo khi luật sư xác nhận cuộc hẹn.
+
+Trân trọng,
+Đội ngũ LegAI`;
+
+    html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Xác nhận đặt lịch hẹn</h2>
+        <p>Kính gửi <strong>${name}</strong>,</p>
+        <p>Cảm ơn bạn đã đặt lịch hẹn với luật sư <strong>${lawyerName}</strong>.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Mã cuộc hẹn:</strong> ${appointmentId}</p>
+          <p><strong>Thời gian:</strong> ${formattedDate}, từ ${formattedStartTime} đến ${formattedEndTime}</p>
+          <p><strong>Loại:</strong> ${type}</p>
+          <p><strong>Ghi chú:</strong> ${notes}</p>
+          ${meetLink ? `<p><strong>Link họp trực tuyến:</strong> <a href="${meetLink}" target="_blank">${meetLink}</a></p>` : ''}
+        </div>
+        
+        <p>Vui lòng chờ xác nhận từ phía luật sư. Bạn sẽ nhận được email thông báo khi luật sư xác nhận cuộc hẹn.</p>
+        
+        <p>Trân trọng,<br>Đội ngũ LegAI</p>
+      </div>
+    `;
+  }
+
+  await sendEmail({
+    email,
+    subject,
+    text,
+    html
+  });
+};
+
 module.exports = {
     sendVerificationEmail,
     sendAppointmentNotificationToLawyer,
     sendAppointmentStatusUpdateToCustomer,
     sendAppointmentCancellationToCustomer,
-    sendAppointmentCancellationToLawyer
+    sendAppointmentCancellationToLawyer,
+    sendAppointmentNotification,
+    sendEmail
 }; 

@@ -17,11 +17,24 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, jwtSecret, (err, user) => {
         if (err) {
+            console.error('Token không hợp lệ:', err.message);
             return res.status(403).json({
                 status: 'error',
                 message: 'Token không hợp lệ'
             });
         }
+        
+        // Chuẩn hóa các thông tin quan trọng
+        if (user && user.role) {
+            // Đảm bảo role được chuẩn hóa dạng lowercase để dễ so sánh
+            const originalRole = user.role;
+            user.role = user.role.toLowerCase();
+            
+            console.log(`Xác thực token thành công - ID: ${user.id}, Role: ${originalRole} (chuẩn hóa: ${user.role})`);
+        } else {
+            console.log('Xác thực token thành công, nhưng thiếu thông tin vai trò:', user);
+        }
+        
         req.user = user;
         next();
     });

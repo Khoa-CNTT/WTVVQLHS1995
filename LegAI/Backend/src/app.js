@@ -1,4 +1,7 @@
 // src/app.js
+// Thiết lập môi trường phát triển
+process.env.NODE_ENV = 'development';
+
 require('dotenv').config();
 const express = require('express');
 const app = express();
@@ -35,7 +38,7 @@ if (!fs.existsSync(avatarsDir)) {
 app.use(cors({
     origin: '*', // Cho phép tất cả nguồn gốc truy cập API
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role', 'Content-Length', 'X-Requested-With'],
     credentials: true,
     exposedHeaders: ['Content-Length', 'X-Requested-With']
 }));

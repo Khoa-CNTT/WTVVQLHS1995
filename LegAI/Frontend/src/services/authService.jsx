@@ -428,6 +428,11 @@ const updateUserInLocalStorage = async () => {
   }
 };
 
+// Lấy token
+const getToken = () => {
+  return localStorage.getItem('token');
+};
+
 const authService = {
   register,
   verifyAccount,
@@ -443,7 +448,8 @@ const authService = {
   changePassword,
   checkTokenValidity,
   hasRole,
-  updateUserInLocalStorage
+  updateUserInLocalStorage,
+  getToken
 };
 
 export default authService;
