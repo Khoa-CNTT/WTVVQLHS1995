@@ -4,8 +4,10 @@ import styles from '../Dashboard/DashboardPage.module.css';
 import authService from '../../services/authService';
 import userService from '../../services/userService';
 import appointmentService from '../../services/appointmentService';
+import chatService from '../../services/chatService';
 import AppointmentsManager from './components/AppointmentsManager';
 import AvailabilityManager from './components/AvailabilityManager';
+import ChatManager from './components/ChatManager';
 
 const LawyerDashboard = () => {
   const [activeMenu, setActiveMenu] = useState('overview');
@@ -13,6 +15,7 @@ const LawyerDashboard = () => {
   const [appointmentCount, setAppointmentCount] = useState(0);
   const [caseCount, setCaseCount] = useState(0);
   const [documentCount, setDocumentCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({});
@@ -44,21 +47,30 @@ const LawyerDashboard = () => {
         try {
           // Lấy số lượng lịch hẹn
           const appointmentStatsResponse = await appointmentService.getAppointmentStats();
-          if (appointmentStatsResponse.status === 'pending') {
+          if (appointmentStatsResponse.status === 'success') {
             // Tổng số lịch hẹn đang chờ xác nhận
             const pendingAppointments = appointmentStatsResponse.data.pending || 0;
             setAppointmentCount(pendingAppointments);
           }
           
+          // Lấy số lượng tin nhắn chưa đọc
+          try {
+            const unreadCount = await chatService.countUnreadMessages();
+            setUnreadMessages(unreadCount);
+            setPendingCount(unreadCount); // Cập nhật vào pendingCount cho hiển thị trên menu
+          } catch (error) {
+            console.error('Lỗi khi lấy số tin nhắn chưa đọc:', error);
+            setPendingCount(0);
+          }
+          
           // Giả lập các số liệu khác
-          setPendingCount(12); // Tin nhắn đang chờ
           setCaseCount(24);    // Vụ án đang xử lý
           setDocumentCount(35); // Tài liệu cần xem xét
         } catch (error) {
           console.error('Lỗi khi lấy thống kê:', error);
           // Fallback về giá trị mặc định nếu có lỗi
-          setPendingCount(12);
-          setAppointmentCount(18);
+          setPendingCount(0);
+          setAppointmentCount(0);
           setCaseCount(24);
           setDocumentCount(35);
         }
@@ -77,6 +89,19 @@ const LawyerDashboard = () => {
     };
     
     checkUser();
+    
+    // Thiết lập interval để cập nhật số lượng tin nhắn chưa đọc
+    const interval = setInterval(async () => {
+      try {
+        const unreadCount = await chatService.countUnreadMessages();
+        setUnreadMessages(unreadCount);
+        setPendingCount(unreadCount);
+      } catch (error) {
+        console.error('Lỗi khi lấy số tin nhắn chưa đọc:', error);
+      }
+    }, 30000); // Cập nhật mỗi 30 giây
+    
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const navigateToHome = () => {
@@ -129,12 +154,12 @@ const LawyerDashboard = () => {
         <div className={styles.card}>
           <div className={styles.cardTitle}>
             <i className={`fas fa-envelope ${styles.legalIcon}`}></i>
-            Tin nhắn đang chờ
+            Tin nhắn chưa đọc
           </div>
           <div className={styles.cardContent}>
             <span className={styles.statNumber}>{pendingCount}</span> tin nhắn
           </div>
-          <button className={styles.actionButton}>
+          <button className={styles.actionButton} onClick={() => setActiveMenu('messages')}>
             Xem tất cả <span>&rarr;</span>
           </button>
         </div>
@@ -199,46 +224,22 @@ const LawyerDashboard = () => {
       
       <div className={styles.rowContainer}>
         <div className={styles.halfWidth}>
-          <h3 className={styles.subSectionTitle}>Thống kê hiệu suất</h3>
+          <h2 className={styles.subSectionTitle}>Lịch hẹn sắp tới</h2>
           <ul className={styles.dataFields}>
-            <li>
-              <span>Tỷ lệ thắng kiện</span>
-              <strong>87%</strong>
-            </li>
-            <li>
-              <span>Tư vấn hoàn tất</span>
-              <strong>142</strong>
-            </li>
-            <li>
-              <span>Khách hàng mới (tháng)</span>
-              <strong>24</strong>
-            </li>
-            <li>
-              <span>Đánh giá trung bình</span>
-              <strong>4.8/5.0</strong>
-            </li>
+            <li>Gặp khách hàng Nguyễn Văn A - <strong>9:00 AM, Hôm nay</strong></li>
+            <li>Tư vấn luật doanh nghiệp - <strong>11:30 AM, Hôm nay</strong></li>
+            <li>Hòa giải vụ kiện lao động - <strong>14:00 PM, Hôm nay</strong></li>
+            <li>Thảo luận hợp đồng với Công ty X - <strong>9:30 AM, Ngày mai</strong></li>
           </ul>
         </div>
         
         <div className={styles.halfWidth}>
-          <h3 className={styles.subSectionTitle}>Lịch trình hôm nay</h3>
+          <h2 className={styles.subSectionTitle}>Thống kê tháng này</h2>
           <ul className={styles.dataFields}>
-            <li>
-              <span>9:00 - Phiên tòa</span>
-              <strong>Phòng 302</strong>
-            </li>
-            <li>
-              <span>11:30 - Gặp khách hàng</span>
-              <strong>Văn phòng</strong>
-            </li>
-            <li>
-              <span>14:00 - Tư vấn trực tuyến</span>
-              <strong>Zoom</strong>
-            </li>
-            <li>
-              <span>16:30 - Họp nhóm</span>
-              <strong>Phòng họp</strong>
-            </li>
+            <li>Vụ án đã xử lý: <strong>8</strong></li>
+            <li>Lịch hẹn đã hoàn thành: <strong>24</strong></li>
+            <li>Tài liệu đã duyệt: <strong>35</strong></li>
+            <li>Khách hàng mới: <strong>12</strong></li>
           </ul>
         </div>
       </div>
@@ -246,17 +247,8 @@ const LawyerDashboard = () => {
   );
   
   const renderMessages = () => (
-    <div>
-      <h1 className={styles.sectionTitle}>Tin nhắn</h1>
-      <p className={styles.sectionDescription}>
-        Quản lý tin nhắn và liên lạc với khách hàng của bạn.
-      </p>
-      {/* Nội dung chi tiết phần tin nhắn sẽ được thêm sau */}
       <div className={styles.contentSection}>
-        <div className={styles.legalQuote}>
-          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
-        </div>
-      </div>
+      <ChatManager />
     </div>
   );
   
@@ -299,7 +291,7 @@ const LawyerDashboard = () => {
     <div>
       <h1 className={styles.sectionTitle}>Tài liệu</h1>
       <p className={styles.sectionDescription}>
-        Quản lý tất cả tài liệu pháp lý và hồ sơ của bạn.
+        Quản lý và xem xét các tài liệu pháp lý, hợp đồng và hồ sơ vụ án.
       </p>
       {/* Nội dung chi tiết phần tài liệu sẽ được thêm sau */}
       <div className={styles.contentSection}>
@@ -365,7 +357,7 @@ const LawyerDashboard = () => {
             >
               <i className={`fas fa-${item.icon} ${styles.menuIcon}`}></i>
               <span className={styles.menuLabel}>{item.label}</span>
-              {item.count && !isSidebarCollapsed && (
+              {item.count > 0 && !isSidebarCollapsed && (
                 <span className={styles.notificationBadge}>{item.count}</span>
               )}
             </div>
@@ -415,9 +407,7 @@ const LawyerDashboard = () => {
         </div>
         
         <div className={styles.contentWrapper}>
-          <div className={styles.contentSection}>
             {renderContent()}
-          </div>
         </div>
       </div>
     </div>

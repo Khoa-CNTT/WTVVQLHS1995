@@ -257,10 +257,19 @@
 .userMessage .messageContent {
   background-color: rgba(255, 204, 0, 0.2);
   border-top-right-radius: 3px;
+  text-align: right;
 }
 
 .systemMessage .messageContent {
   border-top-left-radius: 3px;
+  text-align: left;
+}
+
+.senderName {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .messageText {
@@ -370,4 +379,18 @@
   .chatMiniButton i {
     font-size: 1.2rem;
   }
+}
+
+.loadingMessages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.7);
+  gap: 15px;
+}
+
+.loadingMessages i {
+  font-size: 2rem;
 } 

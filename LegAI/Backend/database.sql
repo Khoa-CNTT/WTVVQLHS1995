@@ -89,12 +89,24 @@ CREATE TABLE AIConsultations (
 CREATE TABLE LiveChats (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL,
-    lawyer_id INT NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
-    messages TEXT NOT NULL,
+    lawyer_id INT,
+    status VARCHAR(50) NOT NULL DEFAULT 'waiting', -- 'waiting', 'active', 'closed'
+    start_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES Users(id),
     FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+);
+
+CREATE TABLE ChatMessages (
+    id SERIAL PRIMARY KEY,
+    chat_id INT NOT NULL,
+    sender_id INT NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_id) REFERENCES LiveChats(id),
+    FOREIGN KEY (sender_id) REFERENCES Users(id)
 );
 
 CREATE TABLE Transactions (

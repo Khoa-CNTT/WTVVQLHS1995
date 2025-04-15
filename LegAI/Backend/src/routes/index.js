@@ -6,11 +6,13 @@ const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const appointmentRoutes = require('./appointmentRoutes');
+const chatRoutes = require('./chatRoutes');
 
 // Sử dụng các route
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/appointments', appointmentRoutes);
+router.use('/chats', chatRoutes);
 
 module.exports = router;
