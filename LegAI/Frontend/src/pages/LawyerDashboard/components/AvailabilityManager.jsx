@@ -247,21 +247,20 @@ const AvailabilityManager = () => {
     try {
       setGeneratingSchedule(true);
       
-      // Lấy ngày đầu tuần (Thứ Hai)
+      // Lấy ngày hiện tại
       const currentDate = new Date();
-      const currentDay = currentDate.getDay(); // 0 = CN, 1 = T2, ...
-      const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
       
-      const monday = new Date(currentDate);
-      monday.setDate(currentDate.getDate() - daysToMonday);
-      monday.setHours(8, 0, 0, 0);
+      // Ngày bắt đầu tạo lịch là ngày hiện tại + 2 ngày
+      const startDate = new Date(currentDate);
+      startDate.setDate(currentDate.getDate() + 2);
+      startDate.setHours(8, 0, 0, 0);
       
-      // Tạo các slot cho 5 ngày làm việc (T2 - T6)
+      // Tạo các slot cho 5 ngày làm việc tiếp theo
       const slots = [];
       
       for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + dayOffset);
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + dayOffset);
         
         // Slot buổi sáng (8:00 - 12:00)
         const morningStart = new Date(date);

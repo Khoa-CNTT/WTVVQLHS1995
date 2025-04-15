@@ -44,7 +44,7 @@ const LawyerDashboard = () => {
         try {
           // Lấy số lượng lịch hẹn
           const appointmentStatsResponse = await appointmentService.getAppointmentStats();
-          if (appointmentStatsResponse.status === 'success') {
+          if (appointmentStatsResponse.status === 'pending') {
             // Tổng số lịch hẹn đang chờ xác nhận
             const pendingAppointments = appointmentStatsResponse.data.pending || 0;
             setAppointmentCount(pendingAppointments);
@@ -277,10 +277,6 @@ const LawyerDashboard = () => {
   
   const renderAppointments = () => (
     <div>
-      <h1 className={styles.sectionTitle}>Lịch hẹn</h1>
-      <p className={styles.sectionDescription}>
-        Quản lý lịch hẹn và lịch trình công việc của bạn.
-      </p>
       <div className={styles.contentSection}>
         <AppointmentsManager />
       </div>

@@ -3,6 +3,7 @@ import styles from './AppointmentsManager.module.css';
 import appointmentService from '../../../services/appointmentService';
 import { DEFAULT_AVATAR } from '../../../config/constants';
 import authService from '../../../services/authService';
+import { toast } from 'react-toastify';
 
 const AppointmentsManager = () => {
   const [appointments, setAppointments] = useState([]);
@@ -15,10 +16,12 @@ const AppointmentsManager = () => {
   const [updateNotes, setUpdateNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [appointmentsPerPage] = useState(4);
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [activeTab]);
 
   const fetchAppointments = async () => {
     try {
@@ -30,28 +33,24 @@ const AppointmentsManager = () => {
       setLoading(true);
       setError('');
 
-      // Trực tiếp lấy danh sách lịch hẹn dựa trên vai trò luật sư
-      // API sẽ tự động lọc dựa trên role và ID từ token
-      const response = await appointmentService.getAppointments();
+      const response = await appointmentService.getAppointments(activeTab !== 'all' ? activeTab : null);
       
       if (response.status === 'success' && Array.isArray(response.data)) {
-        // Không filter ở client nữa, nhận kết quả trực tiếp từ API
         const enhancedAppointments = response.data.map(app => ({
           ...app,
-          // Hỗ trợ nhiều định dạng dữ liệu trả về từ API
           customer_name: app.customer_name || app.client_name || app.user_name || 'Khách hàng',
           customer_email: app.customer_email || app.client_email || app.user_email || 'Không có thông tin',
           customer_phone: app.customer_phone || app.client_phone || app.user_phone || '',
           customer_avatar: app.customer_avatar || app.client_avatar || app.user_avatar || DEFAULT_AVATAR
         }));
         
-        // Sắp xếp theo thời gian
         const sortedAppointments = enhancedAppointments.sort((a, b) => 
           new Date(a.start_time) - new Date(b.start_time)
         );
         
         console.log(`Đã lấy ${sortedAppointments.length} lịch hẹn cho luật sư ID ${user.id}`);
         setAppointments(sortedAppointments);
+        setCurrentPage(1);
       } else {
         setError(response.message || "Không thể lấy danh sách lịch hẹn");
       }
@@ -91,7 +90,6 @@ const AppointmentsManager = () => {
       );
       
       if (response.status === 'success') {
-        // Cập nhật danh sách lịch hẹn
         setAppointments(prevAppointments => 
           prevAppointments.map(app => 
             app.id === selectedAppointment.id 
@@ -100,6 +98,7 @@ const AppointmentsManager = () => {
           )
         );
         
+        toast.success('Đã cập nhật trạng thái lịch hẹn thành công!');
         setSuccessMessage('Đã cập nhật trạng thái lịch hẹn thành công!');
         setTimeout(() => setSuccessMessage(''), 5000);
       }
@@ -127,7 +126,6 @@ const AppointmentsManager = () => {
       );
       
       if (response.status === 'success') {
-        // Cập nhật danh sách lịch hẹn
         setAppointments(prevAppointments => 
           prevAppointments.map(app => 
             app.id === appointment.id 
@@ -136,6 +134,7 @@ const AppointmentsManager = () => {
           )
         );
         
+        toast.success('Đã huỷ lịch hẹn thành công!');
         setSuccessMessage('Đã huỷ lịch hẹn thành công!');
         setTimeout(() => setSuccessMessage(''), 5000);
       }
@@ -148,27 +147,18 @@ const AppointmentsManager = () => {
     }
   };
 
-  // Lọc lịch hẹn theo tab đang active
-  const filteredAppointments = appointments.filter(appointment => {
-    if (activeTab === 'pending') {
-      return appointment.status === 'pending';
-    } else if (activeTab === 'confirmed') {
-      return appointment.status === 'confirmed';
-    } else if (activeTab === 'completed') {
-      return appointment.status === 'completed';
-    } else if (activeTab === 'cancelled') {
-      return appointment.status === 'cancelled';
-    }
-    
-    return true;
-  });
+  const totalPages = Math.ceil(appointments.length / appointmentsPerPage);
 
-  // Sắp xếp lịch hẹn theo thời gian
-  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
-    return new Date(a.start_time) - new Date(b.start_time);
-  });
+  const getCurrentAppointments = () => {
+    const indexOfLastAppointment = currentPage * appointmentsPerPage;
+    const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+    return appointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  };
 
-  // Format date cho người dùng Việt Nam
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   const formatDate = (dateString) => {
     const options = { 
       day: '2-digit', 
@@ -181,7 +171,25 @@ const AppointmentsManager = () => {
     return new Date(dateString).toLocaleDateString('vi-VN', options);
   };
 
-  // Hiển thị trạng thái lịch hẹn bằng tiếng Việt
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    let session = '';
+    if (hours >= 5 && hours < 12) {
+      session = 'Sáng';
+    } else if (hours >= 12 && hours < 18) {
+      session = 'Chiều';
+    } else {
+      session = 'Tối';
+    }
+    
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
+    return `${timeString} (${session})`;
+  };
+
   const getStatusText = (status) => {
     const statusMap = {
       'pending': 'Chờ xác nhận',
@@ -193,7 +201,6 @@ const AppointmentsManager = () => {
     return statusMap[status] || status;
   };
 
-  // Lấy class CSS tương ứng với trạng thái
   const getStatusClass = (status) => {
     const statusClassMap = {
       'pending': styles.statusPending,
@@ -205,9 +212,7 @@ const AppointmentsManager = () => {
     return statusClassMap[status] || '';
   };
 
-  // Lấy danh sách các trạng thái cho dropdown
   const getAvailableStatusOptions = (currentStatus) => {
-    // Định nghĩa sự chuyển đổi trạng thái hợp lệ
     const statusTransitions = {
       'pending': ['pending', 'confirmed', 'cancelled'],
       'confirmed': ['confirmed', 'completed', 'cancelled'],
@@ -217,6 +222,8 @@ const AppointmentsManager = () => {
     
     return statusTransitions[currentStatus] || [];
   };
+
+  const currentAppointments = getCurrentAppointments();
 
   return (
     <div className={styles.appointmentsManager}>
@@ -259,6 +266,12 @@ const AppointmentsManager = () => {
           >
             <i className="fas fa-ban"></i> Đã huỷ
           </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            Tất cả
+          </button>
         </div>
       </div>
       
@@ -268,86 +281,117 @@ const AppointmentsManager = () => {
             <i className="fas fa-spinner fa-spin"></i>
             <p>Đang tải lịch hẹn...</p>
           </div>
-        ) : sortedAppointments.length > 0 ? (
-          <div className={styles.appointmentsList}>
-            {sortedAppointments.map((appointment) => (
-              <div key={appointment.id} className={styles.appointmentCard}>
-                <div className={styles.appointmentHeader}>
-                  <div className={styles.customerInfo}>
-                    <img 
-                      src={appointment.customer_avatar || appointment.client_avatar || appointment.avatar_url || DEFAULT_AVATAR} 
-                      alt={appointment.customer_name || appointment.client_name || 'Khách hàng'} 
-                      className={styles.customerAvatar}
-                      onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
-                    />
-                    <div>
-                      <h3>{appointment.customer_name || appointment.client_name || 'Khách hàng'}</h3>
-                      <p className={styles.customerEmail}>{appointment.customer_email || appointment.client_email || 'Chưa có email'}</p>
-                    </div>
-                  </div>
-                  <div className={`${styles.status} ${getStatusClass(appointment.status)}`}>
-                    {getStatusText(appointment.status)}
-                  </div>
-                </div>
-                
-                <div className={styles.appointmentBody}>
-                  <div className={styles.appointmentDetail}>
-                    <div className={styles.detailItem}>
-                      <i className="far fa-calendar-alt"></i>
-                      <span>Ngày hẹn:</span>
-                      <span>{formatDate(appointment.start_time)}</span>
-                    </div>
-                    
-                    <div className={styles.detailItem}>
-                      <i className="far fa-clock"></i>
-                      <span>Thời gian:</span>
-                      <span>
-                        {new Date(appointment.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - 
-                        {new Date(appointment.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-tag"></i>
-                      <span>Mục đích:</span>
-                      <span>{appointment.purpose || 'Chưa xác định'}</span>
-                    </div>
-                    
-                    {appointment.notes && (
-                      <div className={styles.detailItem}>
-                        <i className="far fa-sticky-note"></i>
-                        <span>Ghi chú:</span>
-                        <span>{appointment.notes}</span>
+        ) : currentAppointments.length > 0 ? (
+          <>
+            <div className={styles.appointmentsList}>
+              {currentAppointments.map((appointment) => (
+                <div key={appointment.id} className={styles.appointmentCard}>
+                  <div className={styles.appointmentHeader}>
+                    <div className={styles.customerInfo}>
+                      <img 
+                        src={appointment.customer_avatar || appointment.client_avatar || appointment.avatar_url || DEFAULT_AVATAR} 
+                        alt={appointment.customer_name || appointment.client_name || 'Khách hàng'} 
+                        className={styles.customerAvatar}
+                        onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+                      />
+                      <div>
+                        <h3>{appointment.customer_name || appointment.client_name || 'Khách hàng'}</h3>
+                        <p className={styles.customerEmail}>{appointment.customer_email || appointment.client_email || 'Chưa có email'}</p>
                       </div>
-                    )}
+                    </div>
+                    <div className={`${styles.status} ${getStatusClass(appointment.status)}`}>
+                      {getStatusText(appointment.status)}
+                    </div>
+                  </div>
+                  
+                  <div className={styles.appointmentBody}>
+                    <div className={styles.appointmentDetail}>
+                      <div className={styles.detailItem}>
+                        <i className="far fa-calendar-alt"></i>
+                        <span>Ngày hẹn:</span>
+                        <span>{formatDate(appointment.start_time)}</span>
+                      </div>
+                      
+                      <div className={styles.detailItem}>
+                        <i className="far fa-clock"></i>
+                        <span>Thời gian:</span>
+                        <span>
+                          {formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}
+                        </span>
+                      </div>
+                      
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-tag"></i>
+                        <span>Mục đích:</span>
+                        <span>{appointment.purpose || 'Chưa xác định'}</span>
+                      </div>
+                      
+                      {appointment.notes && (
+                        <div className={styles.detailItem}>
+                          <i className="far fa-sticky-note"></i>
+                          <span>Ghi chú:</span>
+                          <span>{appointment.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className={styles.appointmentFooter}>
+                    <div className={styles.appointmentActions}>
+                      {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+                        <>
+                          <button 
+                            className={styles.updateButton}
+                            onClick={() => handleUpdateClick(appointment)}
+                            disabled={processing}
+                          >
+                            <i className="fas fa-edit"></i> Cập nhật trạng thái
+                          </button>
+                        </>
+                      )}
+                      
+                      <a 
+                        href={`mailto:${appointment.customer_email}`} 
+                        className={styles.contactButton}
+                      >
+                        <i className="fas fa-envelope"></i> Liên hệ khách hàng
+                      </a>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+            
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button 
+                  className={`${styles.pageButton} ${currentPage === 1 ? styles.disabled : ''}`}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
                 
-                <div className={styles.appointmentFooter}>
-                  <div className={styles.appointmentActions}>
-                    {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
-                      <>
-                        <button 
-                          className={styles.updateButton}
-                          onClick={() => handleUpdateClick(appointment)}
-                          disabled={processing}
-                        >
-                          <i className="fas fa-edit"></i> Cập nhật trạng thái
-                        </button>
-                      </>
-                    )}
-                    
-                    <a 
-                      href={`mailto:${appointment.customer_email}`} 
-                      className={styles.contactButton}
-                    >
-                      <i className="fas fa-envelope"></i> Liên hệ khách hàng
-                    </a>
-                  </div>
-                </div>
+                {[...Array(totalPages).keys()].map((pageNum) => (
+                  <button
+                    key={pageNum + 1}
+                    className={`${styles.pageButton} ${currentPage === pageNum + 1 ? styles.activePage : ''}`}
+                    onClick={() => handlePageChange(pageNum + 1)}
+                  >
+                    {pageNum + 1}
+                  </button>
+                ))}
+                
+                <button 
+                  className={`${styles.pageButton} ${currentPage === totalPages ? styles.disabled : ''}`}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className={styles.noAppointments}>
             <div className={styles.emptyState}>
@@ -367,7 +411,6 @@ const AppointmentsManager = () => {
         )}
       </div>
       
-      {/* Modal cập nhật trạng thái lịch hẹn */}
       {showUpdateModal && selectedAppointment && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>

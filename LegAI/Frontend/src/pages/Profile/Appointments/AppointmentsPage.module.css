@@ -48,7 +48,6 @@
   color: rgb(0, 145, 255);
 }
 
-
 .appointmentsContainer {
   min-height: 300px;
 }
@@ -114,23 +113,23 @@
 }
 
 .statusPending {
-  background-color: #FFF3CD;
+  background-color: #fff3cd;
   color: #856404;
 }
 
 .statusConfirmed {
-  background-color: #D4EDDA;
+  background-color: #d4edda;
   color: #155724;
 }
 
 .statusCompleted {
-  background-color: #D1ECF1;
-  color: #0C5460;
+  background-color: #d1ecf1;
+  color: #0c5460;
 }
 
 .statusCancelled {
-  background-color: #F8D7DA;
-  color: #721C24;
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 .appointmentBody {
@@ -174,7 +173,7 @@
   gap: 15px;
 }
 
-.cancelButton, 
+.cancelButton,
 .contactButton {
   padding: 8px 15px;
   border-radius: 4px;
@@ -418,25 +417,72 @@
   .tabs {
     flex-wrap: wrap;
   }
-  
+
   .appointmentHeader {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .status {
     align-self: flex-start;
   }
-  
+
   .appointmentActions {
     flex-direction: column;
     gap: 10px;
   }
-  
-  .cancelButton, 
+
+  .cancelButton,
   .contactButton {
     width: 100%;
     justify-content: center;
   }
-} 
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px 0;
+}
+
+.pagination button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination button:hover:not(.disabled) {
+  background-color: #ffcc00;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination button.activePage {
+  background-color: #ffcc00;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pagination button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination button i {
+  font-size: 12px;
+}

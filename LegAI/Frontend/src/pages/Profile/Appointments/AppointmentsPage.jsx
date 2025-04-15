@@ -17,7 +17,7 @@ const AppointmentsPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   // Trạng thái phân trang
   const [currentPage, setCurrentPage] = useState(1);
-  const [appointmentsPerPage] = useState(5);
+  const [appointmentsPerPage] = useState(2);
 
   useEffect(() => {
     fetchAppointments();
@@ -139,6 +139,7 @@ const AppointmentsPage = () => {
 
   // Format date cho người dùng Việt Nam
   const formatDate = (dateString) => {
+    const date = new Date(dateString);
     const options = {
       day: '2-digit',
       month: '2-digit',
@@ -146,8 +147,9 @@ const AppointmentsPage = () => {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
+      timeZone: 'Asia/Ho_Chi_Minh' // Thêm múi giờ Việt Nam
     };
-    return new Date(dateString).toLocaleDateString('vi-VN', options);
+    return date.toLocaleDateString('vi-VN', options);
   };
 
   // Hiển thị trạng thái lịch hẹn bằng tiếng Việt
@@ -282,11 +284,13 @@ const AppointmentsPage = () => {
                           {new Date(appointment.start_time).toLocaleTimeString('vi-VN', {
                             hour: '2-digit',
                             minute: '2-digit',
+                            timeZone: 'Asia/Ho_Chi_Minh'
                           })}{' '}
                           -{' '}
                           {new Date(appointment.end_time).toLocaleTimeString('vi-VN', {
                             hour: '2-digit',
                             minute: '2-digit',
+                            timeZone: 'Asia/Ho_Chi_Minh'
                           })}
                         </span>
                       </div>

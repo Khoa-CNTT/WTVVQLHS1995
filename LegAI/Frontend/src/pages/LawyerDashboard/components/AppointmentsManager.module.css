@@ -291,6 +291,10 @@ button:disabled {
   border-left: 4px solid #cc0000;
 }
 
+.errorMessage i {
+  margin-right: 8px;
+}
+
 /* Modal */
 .modalOverlay {
   position: fixed;
@@ -406,6 +410,55 @@ button:disabled {
   background: #9999b3;
 }
 
+/* Phân trang */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px 0;
+}
+
+.pageButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pageButton:hover:not(.disabled) {
+  background-color: #ffcc00;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pageButton.activePage {
+  background-color: #ffcc00;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pageButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pageButton i {
+  font-size: 12px;
+}
+
 /* Responsive */
 @media (min-width: 768px) {
   .appointmentsList {
@@ -415,5 +468,19 @@ button:disabled {
   .tabButton {
     font-size: 15px;
     padding: 10px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tabButton {
+    margin-bottom: 5px;
+  }
+  
+  .appointmentsList {
+    grid-template-columns: 1fr;
   }
 } 

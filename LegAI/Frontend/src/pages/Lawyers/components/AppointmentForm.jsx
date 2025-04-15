@@ -37,11 +37,9 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
         return;
       }
 
-      console.log('Đang lấy lịch trống cho luật sư ID:', lawyer.id);
       
       // Lấy khung giờ từ API
       const result = await appointmentService.getLawyerAvailability(lawyer.id);
-      console.log('Dữ liệu khung giờ:', result);
 
       if (result && result.status === 'success' && Array.isArray(result.data)) {
         // Trước khi cập nhật state, xử lý dữ liệu để đánh dấu slot đã chọn nếu có
@@ -89,7 +87,6 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
     
     // Chỉ fetch lịch trống khi có ID của luật sư
     if (lawyer && lawyer.id) {
-      console.log('Lấy lịch trống cho luật sư ID:', lawyer.id);
       fetchAvailability();
     } else {
       console.log('Không thể lấy lịch trống - thiếu ID luật sư');
@@ -180,19 +177,22 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
       setLoading(true);
       setError('');
       
+      // Tạo đối tượng Date từ chuỗi thời gian đã chọn
+      const startTimeDate = new Date(selectedSlot.start_time); 
+      const endTimeDate = new Date(selectedSlot.end_time);
+      
+      // Đảm bảo sử dụng múi giờ của Việt Nam khi gửi dữ liệu
       const appointmentData = {
         lawyer_id: lawyer.id,
         customer_id: currentUser.id,
-        start_time: selectedSlot.start_time,
-        end_time: selectedSlot.end_time,
+        start_time: startTimeDate.toISOString(),
+        end_time: endTimeDate.toISOString(),
         purpose: formData.purpose.trim(),
         status: 'pending'
       };
       
-      console.log('Đang gửi dữ liệu đặt lịch:', appointmentData);
       
       const response = await appointmentService.createAppointment(appointmentData);
-      console.log('Phản hồi từ createAppointment:', response);
       
       // Kiểm tra response có đúng định dạng không
       if (response && response.status === 'success') {
@@ -332,7 +332,8 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
-                      day: 'numeric'
+                      day: 'numeric',
+                      timeZone: 'Asia/Ho_Chi_Minh'
                     })}
                   </button>
                 ))}
@@ -354,12 +355,14 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
                     >
                       {new Date(slot.start_time).toLocaleTimeString('vi-VN', {
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'Asia/Ho_Chi_Minh'
                       })}
                       {' - '}
                       {new Date(slot.end_time).toLocaleTimeString('vi-VN', {
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'Asia/Ho_Chi_Minh'
                       })}
                       {(slot.status === 'booked' || slot.isBookable === false) && (
                         <span className={styles.slotStatus}> (Đã đặt)</span>

@@ -35,8 +35,8 @@ const createAppointment = async (appointmentData) => {
     const appointment = {
       customer_id: appointmentData.customer_id,
       lawyer_id: appointmentData.lawyer_id,
-      start_time: new Date(appointmentData.start_time).toISOString(),
-      end_time: new Date(appointmentData.end_time).toISOString(),
+      start_time: adjustTimeForVietnamTimezone(appointmentData.start_time),
+      end_time: adjustTimeForVietnamTimezone(appointmentData.end_time),
       status: 'pending',
       purpose: appointmentData.purpose || '',
       notes: appointmentData.notes || ''
@@ -551,6 +551,26 @@ const getUpcomingAppointments = async (limit = 5) => {
       message: 'Không thể lấy lịch hẹn sắp tới' 
     };
   }
+};
+
+// Hàm điều chỉnh múi giờ cho Việt Nam
+const adjustTimeForVietnamTimezone = (dateTimeString) => {
+  // Tạo đối tượng Date từ chuỗi thời gian
+  const date = new Date(dateTimeString);
+  
+  // Lấy múi giờ UTC
+  const utcDate = new Date(date.toISOString());
+  
+  // Đối với Việt Nam (UTC+7), thêm 7 giờ vào thời gian UTC
+  const offsetHours = 7;
+  const vietnamDate = new Date(utcDate);
+  vietnamDate.setHours(vietnamDate.getHours() + offsetHours);
+  
+  console.log(`Thời gian gốc: ${dateTimeString}`);
+  console.log(`Thời gian Việt Nam: ${vietnamDate.toISOString()}`);
+  
+  // Trả về chuỗi ISO để lưu vào database
+  return vietnamDate.toISOString();
 };
 
 const appointmentService = {
