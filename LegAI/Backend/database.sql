@@ -1,3 +1,4 @@
+-- Bảng Users
 CREATE TABLE Users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
@@ -14,6 +15,7 @@ CREATE TABLE Users (
     is_locked BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+-- Bảng UserProfiles
 CREATE TABLE UserProfiles (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -21,9 +23,10 @@ CREATE TABLE UserProfiles (
     avatar_url VARCHAR(255) NOT NULL,
     bio TEXT,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng LegalDocuments
 CREATE TABLE LegalDocuments (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -36,6 +39,7 @@ CREATE TABLE LegalDocuments (
     language VARCHAR(50) NOT NULL
 );
 
+-- Bảng LegalCases
 CREATE TABLE LegalCases (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -46,9 +50,10 @@ CREATE TABLE LegalCases (
     uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng Contracts
 CREATE TABLE Contracts (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -60,9 +65,10 @@ CREATE TABLE Contracts (
     signature VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng Appointments
 CREATE TABLE Appointments (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -73,31 +79,34 @@ CREATE TABLE Appointments (
     purpose TEXT DEFAULT '',
     notes TEXT DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES Users(id),
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+    FOREIGN KEY (customer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng AIConsultations
 CREATE TABLE AIConsultations (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng LiveChats
 CREATE TABLE LiveChats (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL,
     lawyer_id INT,
     status VARCHAR(50) NOT NULL DEFAULT 'waiting', -- 'waiting', 'active', 'closed'
     start_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMP NULL,
+    end_time TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES Users(id),
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+    FOREIGN KEY (customer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE SET NULL
 );
 
+-- Bảng ChatMessages
 CREATE TABLE ChatMessages (
     id SERIAL PRIMARY KEY,
     chat_id INT NOT NULL,
@@ -105,10 +114,11 @@ CREATE TABLE ChatMessages (
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (chat_id) REFERENCES LiveChats(id),
-    FOREIGN KEY (sender_id) REFERENCES Users(id)
+    FOREIGN KEY (chat_id) REFERENCES LiveChats(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng Transactions
 CREATE TABLE Transactions (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -118,10 +128,11 @@ CREATE TABLE Transactions (
     payment_method VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id),
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng AuditLogs
 CREATE TABLE AuditLogs (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -130,9 +141,10 @@ CREATE TABLE AuditLogs (
     record_id INT NOT NULL,
     details TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng LawyerDetails
 CREATE TABLE LawyerDetails (
     id SERIAL PRIMARY KEY,
     lawyer_id INT NOT NULL,
@@ -141,9 +153,10 @@ CREATE TABLE LawyerDetails (
     specialization VARCHAR(50) NOT NULL,
     rating DECIMAL(3,1) NOT NULL DEFAULT 0.0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng DigitalSignatures
 CREATE TABLE DigitalSignatures (
     id SERIAL PRIMARY KEY,
     contract_id INT NOT NULL,
@@ -151,10 +164,11 @@ CREATE TABLE DigitalSignatures (
     signature_hash VARCHAR(255) NOT NULL,
     signed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (contract_id) REFERENCES Contracts(id),
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (contract_id) REFERENCES Contracts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng DocumentTemplates
 CREATE TABLE DocumentTemplates (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -164,15 +178,17 @@ CREATE TABLE DocumentTemplates (
     language VARCHAR(50) NOT NULL
 );
 
+-- Bảng LawyerAvailability
 CREATE TABLE LawyerAvailability (
     id SERIAL PRIMARY KEY,
     lawyer_id INT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id)
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
+-- Bảng FeeReferences
 CREATE TABLE FeeReferences (
     id SERIAL PRIMARY KEY,
     case_type VARCHAR(50) NOT NULL,
@@ -180,3 +196,23 @@ CREATE TABLE FeeReferences (
     percentage DECIMAL(5,2) NOT NULL,
     description TEXT
 );
+
+-- Thêm index để tối ưu hóa truy vấn
+CREATE INDEX IF NOT EXISTS idx_appointments_customer_id ON Appointments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_lawyer_id ON Appointments(lawyer_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON Appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_start_time ON Appointments(start_time);
+CREATE INDEX IF NOT EXISTS idx_livechats_customer_id ON LiveChats(customer_id);
+CREATE INDEX IF NOT EXISTS idx_livechats_lawyer_id ON LiveChats(lawyer_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON Transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_lawyer_id ON Transactions(lawyer_id);
+
+-- Cập nhật cấu trúc bảng Appointments (nếu cần)
+ALTER TABLE Appointments 
+    ADD COLUMN IF NOT EXISTS purpose TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+
+-- Cập nhật dữ liệu hiện có trong bảng Appointments
+UPDATE Appointments 
+SET purpose = 'Tư vấn pháp luật', notes = 'Tạo tự động khi cập nhật cấu trúc bảng'
+WHERE purpose IS NULL OR notes IS NULL;

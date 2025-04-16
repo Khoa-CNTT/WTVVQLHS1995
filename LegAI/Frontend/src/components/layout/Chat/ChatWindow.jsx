@@ -64,6 +64,25 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     }
   }, [messages, aiChatHistory, chatType, chatSessionKey]);
 
+  // Thêm useEffect mới để theo dõi sự thay đổi của chatId
+  useEffect(() => {
+    // Khi chatId thay đổi, đặt lại state tin nhắn và gọi lại API lấy tin nhắn
+    if (chatType === 'human' && chatId) {
+      // Đặt lại các state liên quan đến tin nhắn
+      setMessages([]);
+      setLoading(true);
+      
+      // Cập nhật chatId hiện tại
+      setCurrentChatId(chatId);
+      
+      // Lấy tin nhắn mới cho chatId mới
+      fetchMessages(chatId, true)
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [chatId, chatType]);
+
   // Kiểm tra phiên chat hiện có và lấy tin nhắn
   useEffect(() => {
     const checkExistingChat = async () => {

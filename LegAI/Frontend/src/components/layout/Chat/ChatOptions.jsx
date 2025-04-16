@@ -63,6 +63,13 @@ const ChatOptions = ({ isOpen, onClose }) => {
           return;
         }
         
+        // Đóng phiên chat hiện tại trước khi mở phiên mới hoặc phiên có sẵn
+        // Điều này sẽ làm sạch tin nhắn cũ
+        if (isChatOpen) {
+          setIsChatOpen(false);
+          await new Promise(resolve => setTimeout(resolve, 100)); // Đợi một chút để component được cập nhật
+        }
+        
         // Kiểm tra xem có phiên chat đang hoạt động không
         if (existingChats.length > 0) {
           // Sử dụng phiên chat đang hoạt động gần nhất

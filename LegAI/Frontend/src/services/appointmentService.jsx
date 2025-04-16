@@ -474,39 +474,42 @@ const formatDateTime = (date) => {
 // Xoá khung giờ làm việc (chỉ dành cho luật sư)
 const deleteAvailability = async (id) => {
   try {
-    if (!id) {
-      return {
-        status: 'error',
-        message: 'ID không hợp lệ'
+    const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+
+    // Kiểm tra xem người dùng có phải là luật sư không - không phân biệt hoa thường
+    if (!currentUser || !currentUser.role || 
+        (currentUser.role.toLowerCase() !== 'lawyer' && 
+         currentUser.role.toLowerCase() !== 'admin')) {
+      return { 
+        success: false, 
+        message: 'Chỉ luật sư hoặc quản trị viên mới có thể xóa lịch trống', 
+        code: 403 
       };
     }
 
-    // Bỏ phần kiểm tra lịch hẹn vì có thể không cần hoặc gây lỗi
-    // Gửi yêu cầu xóa trực tiếp
-    const response = await axios.delete(
-      `${API_URL}/appointments/availability/${id}`, 
-      { headers: getHeaders() }
-    );
-
-    console.log('Phản hồi khi xóa lịch trống:', response.data);
-
-    // Xử lý đúng định dạng phản hồi
-    if (response.data && response.data.status === 'success') {
-      return {
-        status: 'success',
-        data: response.data.data || {}
-      };
-    } else {
-      return {
-        status: 'error',
-        message: response.data?.message || 'Không thể xóa lịch làm việc'
-      };
-    }
+    const response = await axios.delete(`${API_URL}/appointments/availability/${id}`, getHeaders());
+    
+    return {
+      success: true,
+      message: 'Xóa lịch trống thành công',
+      data: response.data
+    };
   } catch (error) {
     console.error('Lỗi khi xóa lịch trống:', error);
-    return { 
-      status: 'error', 
-      message: error.response?.data?.message || error.message || 'Không thể xoá lịch làm việc'
+    
+    // Xử lý lỗi từ server
+    if (error.response) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Lỗi khi xóa lịch trống',
+        code: error.response.status
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Không thể kết nối đến server',
+      code: 500
     };
   }
 };

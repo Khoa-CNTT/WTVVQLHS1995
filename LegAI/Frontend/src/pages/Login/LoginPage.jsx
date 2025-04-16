@@ -34,7 +34,17 @@ function LoginPage() {
       // Xóa state để tránh hiển thị lại khi refresh
       window.history.replaceState({}, document.title);
     }
-  }, [location]);
+    
+    // Kiểm tra thông báo từ tham số URL
+    const params = new URLSearchParams(location.search);
+    const messageParam = params.get('message');
+    
+    if (messageParam === 'relogin_required') {
+      setSuccessMessage('Bạn đã đăng ký làm luật sư thành công! Vui lòng đăng nhập lại để sử dụng đầy đủ quyền truy cập mới.');
+      // Xóa tham số khỏi URL để tránh hiển thị lại thông báo khi refresh
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
   
   const goToHomePage = () => {
     navigate('/');

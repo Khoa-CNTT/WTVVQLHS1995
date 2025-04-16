@@ -237,7 +237,7 @@ function LawyerRegisterForm() {
       // Xử lý phản hồi thành công
       setMessage({
         type: "success",
-        text: "Đăng ký thành công! Hồ sơ của bạn đang được xem xét."
+        text: "Đăng ký thành công! Hồ sơ của bạn đang được xem xét. Vui lòng đăng xuất và đăng nhập lại để sử dụng đầy đủ quyền truy cập luật sư."
       });
       
       // Cập nhật thông tin người dùng trong localStorage mà không cần đăng nhập lại
@@ -252,10 +252,11 @@ function LawyerRegisterForm() {
       // Cuộn lên đầu trang để hiển thị thông báo
       window.scrollTo({ top: 0, behavior: "smooth" });
       
-      // Chuyển hướng về trang hồ sơ sau khi đăng ký thành công
+      // Đăng xuất người dùng sau 3 giây và chuyển hướng về trang đăng nhập
       setTimeout(() => {
-        navigate("/profile");
-      }, 3000);
+        authService.logout();
+        navigate("/login?message=relogin_required");
+      }, 5000);
       
     } catch (error) {
       console.error("Lỗi đăng ký:", error);

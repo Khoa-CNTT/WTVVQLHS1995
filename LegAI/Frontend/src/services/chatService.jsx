@@ -98,6 +98,16 @@ const getChatsByStatus = async (status = 'waiting', page = 1, limit = 10) => {
 // Gán luật sư vào phiên chat (chỉ dành cho luật sư)
 const assignLawyerToChat = async (chatId) => {
   try {
+    // Kiểm tra token và vai trò
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Kiểm tra quyền không phân biệt hoa thường
+    if (!currentUser || !currentUser.role || 
+        (currentUser.role.toLowerCase() !== 'lawyer' && 
+         currentUser.role.toLowerCase() !== 'admin')) {
+      throw new Error('Chỉ luật sư mới có thể nhận phiên chat');
+    }
+    
     const response = await axios.put(`${API_URL}/chats/${chatId}/assign`, {}, getHeaders());
     return response.data;
   } catch (error) {
@@ -109,6 +119,16 @@ const assignLawyerToChat = async (chatId) => {
 // Đóng phiên chat
 const closeChat = async (chatId) => {
   try {
+    // Kiểm tra token và vai trò
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Kiểm tra quyền không phân biệt hoa thường
+    if (!currentUser || !currentUser.role || 
+        (currentUser.role.toLowerCase() !== 'lawyer' && 
+         currentUser.role.toLowerCase() !== 'admin')) {
+      throw new Error('Chỉ luật sư mới có thể kết thúc phiên chat');
+    }
+    
     const response = await axios.put(`${API_URL}/chats/${chatId}/close`, {}, getHeaders());
     return response.data;
   } catch (error) {
@@ -131,6 +151,17 @@ const getChatById = async (chatId) => {
 // Gửi tin nhắn mới
 const sendMessage = async (chatId, message) => {
   try {
+    // Kiểm tra token và vai trò
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    // Kiểm tra quyền không phân biệt hoa thường
+    if (!currentUser || !currentUser.role || 
+        (currentUser.role.toLowerCase() !== 'lawyer' && 
+         currentUser.role.toLowerCase() !== 'admin' && 
+         currentUser.role.toLowerCase() !== 'user')) {
+      throw new Error('Bạn không có quyền gửi tin nhắn');
+    }
+    
     console.log(`Đang gửi tin nhắn đến chat ID ${chatId}:`, message);
     console.log('Headers:', getHeaders());
     
