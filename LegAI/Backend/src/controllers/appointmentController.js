@@ -142,18 +142,14 @@ exports.getAppointments = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   const isLawyer = req.user.role.toLowerCase() === 'lawyer';
 
-  console.log(`API getAppointments - userId: ${userId}, role: ${req.user.role}, isLawyer: ${isLawyer}`);
 
   let appointments;
   if (isLawyer) {
-    console.log(`Lấy lịch hẹn cho luật sư ID: ${userId}`);
     appointments = await appointmentModel.getAppointmentsByLawyerId(userId, status);
   } else {
-    console.log(`Lấy lịch hẹn cho khách hàng ID: ${userId}`);
     appointments = await appointmentModel.getAppointmentsByCustomerId(userId, status);
   }
 
-  console.log(`Tìm thấy ${appointments.length} lịch hẹn`);
 
   res.status(200).json({
     status: 'success',

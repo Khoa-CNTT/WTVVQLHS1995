@@ -2,7 +2,7 @@
 .lawyersPage {
   width: 100%;
   min-height: 100vh;
-  font-family: 'Montserrat', sans-serif;
+  font-family: "Montserrat", sans-serif;
 }
 
 .container {
@@ -16,7 +16,7 @@
   position: relative;
   height: 50vh;
   min-height: 300px;
-  background-image: url('https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop');
+  background-image: url("https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop");
   background-size: cover;
   background-position: center;
   display: flex;
@@ -694,7 +694,7 @@
 .ctaSection {
   position: relative;
   padding: 100px 0;
-  background-image: url('https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop');
+  background-image: url("https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop");
   background-size: cover;
   background-position: center;
   color: white;
@@ -735,7 +735,7 @@
   justify-content: center;
 }
 
-.primaryButton, 
+.primaryButton,
 .secondaryButton {
   padding: 15px 30px;
   border-radius: 5px;
@@ -797,26 +797,26 @@
   .banner h1 {
     font-size: 2.8rem;
   }
-  
+
   .ctaContent h2 {
     font-size: 2rem;
   }
-  
+
   .modalHeader {
     padding: 30px;
     flex-direction: column;
   }
-  
+
   .lawyerProfile {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  
+
   .infoItem {
     justify-content: center;
   }
-  
+
   .ratingDetail {
     justify-content: center;
   }
@@ -826,42 +826,42 @@
   .banner h1 {
     font-size: 2.2rem;
   }
-  
+
   .featuredSection,
   .lawyersSection,
   .ctaSection {
     padding: 60px 0;
   }
-  
+
   .searchSection {
     padding: 30px 0;
   }
-  
+
   .specialtyTabs {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 15px;
     justify-content: flex-start;
   }
-  
+
   .specialtyTab {
     white-space: nowrap;
   }
-  
+
   .ctaButtons {
     flex-direction: column;
     max-width: 300px;
     margin: 0 auto;
   }
-  
+
   .sectionHeader h2 {
     font-size: 2rem;
   }
-  
+
   .modalBody {
     padding: 30px;
   }
-  
+
   .modal {
     max-height: 95vh;
   }
@@ -871,42 +871,42 @@
   .banner {
     height: 40vh;
   }
-  
+
   .banner h1 {
     font-size: 1.8rem;
   }
-  
+
   .banner p {
     font-size: 1rem;
   }
-  
+
   .sectionHeader {
     margin-bottom: 30px;
   }
-  
+
   .lawyerProfile img {
     width: 100px;
     height: 100px;
   }
-  
+
   .profileInfo h2 {
     font-size: 1.5rem;
   }
-  
+
   .modalHeader,
   .modalBody {
     padding: 20px;
   }
-  
+
   .specialtyTagsLarge {
     gap: 10px;
   }
-  
+
   .specialtyTagLarge {
     padding: 6px 15px;
     font-size: 0.9rem;
   }
-  
+
   .closeButton {
     top: 10px;
     right: 10px;
@@ -1025,7 +1025,7 @@
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .submitReviewButton {
     align-self: stretch;
   }
@@ -1089,7 +1089,7 @@
   100% {
     transform: scale(1);
   }
-} 
+}
 /* Phần phân trang */
 .pagination {
   display: flex;
@@ -1212,7 +1212,7 @@
 }
 
 .formSection h4::before {
-  content: '';
+  content: "";
   display: inline-block;
   width: 4px;
   height: 16px;
@@ -1245,8 +1245,8 @@
 }
 
 .dateButton::before {
-  content: '\f133';
-  font-family: 'Font Awesome 5 Free';
+  content: "\f133";
+  font-family: "Font Awesome 5 Free";
   font-weight: 900;
   position: absolute;
   left: 12px;
@@ -1299,8 +1299,8 @@
 }
 
 .timeSlot::before {
-  content: '\f017';
-  font-family: 'Font Awesome 5 Free';
+  content: "\f017";
+  font-family: "Font Awesome 5 Free";
   font-weight: 900;
   position: absolute;
   left: 10px;
@@ -1427,22 +1427,45 @@
 }
 
 .errorMessage {
-  padding: 15px;
-  background-color: #ffebee;
-  color: #e53935;
-  border-radius: 8px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #e6ffed 0%, #d4f7dc 100%);
+  color: #1a3c34;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
   text-align: left;
-  border-left: 4px solid #e53935;
+  box-shadow: 0 4px 12px rgba(0, 128, 0, 0.1);
+  border: 1px solid #a8e6b6;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  animation: slideIn 0.3s ease-out;
 }
 
 .errorMessage i {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  color: #28a745;
+}
+.errorMessage i.fa-times {
+  color: #6c757d;
+  transition: color 0.2s ease;
 }
 
+.errorMessage i.fa-times:hover {
+  color: #343a40;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 .successMessage {
   padding: 15px;
   background-color: #e8f5e9;
@@ -1502,7 +1525,7 @@
     padding: 10px;
     align-items: flex-end;
   }
-  
+
   .modalContent {
     max-height: 92vh;
     width: 100%;
@@ -1512,18 +1535,18 @@
     max-height: 30vh;
     overflow-y: auto;
   }
-  
+
   .timeSlotList {
     grid-template-columns: 1fr;
     max-height: 30vh;
     overflow-y: auto;
   }
-  
+
   .formActions {
     flex-direction: column-reverse;
     gap: 10px;
   }
-  
+
   .cancelButton,
   .submitButton {
     width: 100%;

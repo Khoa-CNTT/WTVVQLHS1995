@@ -71,7 +71,7 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
       console.error('Lỗi khi lấy lịch khả dụng:', error);
       const errorMessage = error.message || 'Không thể lấy lịch khả dụng';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.info(errorMessage);
       setAvailabilitySlots([]);
     } finally {
       setLoading(false);
@@ -221,7 +221,7 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
         } else {
           // Lỗi khác
           setError(errorMessage);
-          toast.error(errorMessage);
+          toast.info(errorMessage);
         }
       }
     } catch (error) {
@@ -309,12 +309,14 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
           </div>
         ) : error ? (
           <div className={styles.errorMessage}>
+            <i style={{cursor: 'pointer'}} onClick={onClose} className="fas fa-times"></i>
             <i className="fas fa-exclamation-circle"></i> {error}
           </div>
         ) : availableDates.length === 0 ? (
           <div className={styles.noAvailabilityWarning}>
             <i className="fas fa-calendar-times"></i>
             <p>Hiện tại luật sư chưa có lịch trống nào</p>
+                <i style={{cursor: 'pointer'}} onClick={onClose} className="fas fa-times"></i>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className={styles.appointmentForm}>

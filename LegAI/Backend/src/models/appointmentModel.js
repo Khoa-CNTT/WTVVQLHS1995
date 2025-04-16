@@ -152,9 +152,10 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
       return null;
     }
     
+    const appointment = result.rows[0];
+    
     // Nếu trạng thái chuyển thành 'confirmed', đánh dấu slot tương ứng là đã đặt
     if (status === 'confirmed') {
-      const appointment = result.rows[0];
       try {
         await db.query(
           `UPDATE LawyerAvailability 
@@ -165,6 +166,23 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
           [appointment.lawyer_id, appointment.start_time, appointment.end_time]
         );
         console.log(`Đã cập nhật trạng thái slot thành 'booked' cho lịch hẹn ${appointmentId}`);
+      } catch (updateErr) {
+        console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
+        // Tiếp tục xử lý mà không dừng lại
+      }
+    }
+    // Nếu trạng thái chuyển thành 'cancelled', đánh dấu slot tương ứng là trống trở lại
+    else if (status === 'cancelled') {
+      try {
+        await db.query(
+          `UPDATE LawyerAvailability 
+           SET status = 'available' 
+           WHERE lawyer_id = $1 
+           AND start_time <= $2 
+           AND end_time >= $3
+           AND status = 'booked'`,
+          [appointment.lawyer_id, appointment.start_time, appointment.end_time]
+        );
       } catch (updateErr) {
         console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
         // Tiếp tục xử lý mà không dừng lại
@@ -302,6 +320,18 @@ const deleteAppointment = async (appointmentId, reason = '') => {
     // Đảm bảo reason luôn là string, tránh lỗi kiểu dữ liệu
     const cancelReason = reason ? `\nLý do huỷ: ${reason}` : '';
     
+    // Lấy thông tin lịch hẹn trước khi cập nhật để có thể dùng cho việc cập nhật LawyerAvailability
+    const appointmentQuery = await db.query(
+      `SELECT * FROM Appointments WHERE id = $1`,
+      [appointmentId]
+    );
+    
+    if (appointmentQuery.rows.length === 0) {
+      return null;
+    }
+    
+    const appointment = appointmentQuery.rows[0];
+    
     const result = await db.query(
       `UPDATE Appointments 
        SET status = 'cancelled', notes = COALESCE(notes, '') || $2
@@ -312,6 +342,22 @@ const deleteAppointment = async (appointmentId, reason = '') => {
     
     if (result.rows.length === 0) {
       return null;
+    }
+    
+    // Cập nhật lịch trống tương ứng về trạng thái available
+    try {
+      await db.query(
+        `UPDATE LawyerAvailability 
+         SET status = 'available' 
+         WHERE lawyer_id = $1 
+         AND start_time <= $2 
+         AND end_time >= $3
+         AND status = 'booked'`,
+        [appointment.lawyer_id, appointment.start_time, appointment.end_time]
+      );
+    } catch (updateErr) {
+      console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
+      // Tiếp tục xử lý mà không dừng lại
     }
     
     return result.rows[0];
