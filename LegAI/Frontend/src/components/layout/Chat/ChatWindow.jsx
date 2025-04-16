@@ -10,12 +10,58 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState(chatId);
   const messagesEndRef = useRef(null);
 
-  // Thêm tin nhắn chào mừng khi mở chat
+  // Kiểm tra phiên chat hiện có và lấy tin nhắn
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      if (chatType === 'ai') {
+    const checkExistingChat = async () => {
+      if (isOpen && chatType === 'human') {
+        setLoading(true);
+        try {
+          // Nếu đã có chatId được truyền vào, sử dụng nó
+          if (chatId) {
+            setCurrentChatId(chatId);
+            await fetchMessages(chatId);
+          } else {
+            // Nếu không có chatId, kiểm tra xem có phiên chat nào đang hoạt động không
+            const response = await chatService.getChats();
+            const activeChats = response.data.filter(chat => 
+              chat.status !== 'closed' && chat.customer_id === authService.getCurrentUser()?.id
+            );
+            
+            if (activeChats.length > 0) {
+              // Sử dụng phiên chat đang hoạt động gần nhất
+              const mostRecentChat = activeChats[0];
+              setCurrentChatId(mostRecentChat.id);
+              await fetchMessages(mostRecentChat.id);
+            } else if (chatId) {
+              // Nếu không có phiên chat đang hoạt động nhưng có chatId
+              setCurrentChatId(chatId);
+              await fetchMessages(chatId);
+            } else {
+              // Hiển thị tin nhắn chào mừng mặc định nếu không có phiên chat nào
+              const welcomeMessage = {
+                type: 'system',
+                text: 'Xin chào! Đội ngũ tư vấn của LegAI đang sẵn sàng hỗ trợ bạn.',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              };
+              setMessages([welcomeMessage]);
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi khi kiểm tra phiên chat hiện có:', error);
+          // Hiển thị tin nhắn chào mừng mặc định nếu có lỗi
+          const welcomeMessage = {
+            type: 'system',
+            text: 'Xin chào! Đội ngũ tư vấn của LegAI đang sẵn sàng hỗ trợ bạn.',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          setMessages([welcomeMessage]);
+        } finally {
+          setLoading(false);
+        }
+      } else if (isOpen && chatType === 'ai' && messages.length === 0) {
         // Tin nhắn chào mừng cho AI
         const welcomeMessage = {
           type: 'system',
@@ -23,20 +69,22 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages([welcomeMessage]);
-      } else if (chatId) {
-        // Đối với chat với luật sư, lấy tin nhắn từ server
-        fetchMessages();
-      } else {
-        // Nếu không có chatId (trường hợp không thể kết nối server)
-      const welcomeMessage = {
-        type: 'system',
-          text: 'Xin chào! Đội ngũ tư vấn của LegAI đang sẵn sàng hỗ trợ bạn.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages([welcomeMessage]);
+      }
+    };
+
+    if (isOpen) {
+      checkExistingChat();
     }
+  }, [isOpen, chatType]);
+
+  // Thiết lập polling để cập nhật tin nhắn
+  useEffect(() => {
+    if (isOpen && chatType === 'human' && currentChatId) {
+      // Thiết lập polling để cập nhật tin nhắn
+      const interval = setInterval(() => fetchMessages(currentChatId), 5000); // cập nhật mỗi 5 giây
+      return () => clearInterval(interval);
     }
-  }, [isOpen, chatType, chatId, messages.length]);
+  }, [isOpen, chatType, currentChatId]);
 
   // Lắng nghe sự kiện toggleChat từ Navbar
   useEffect(() => {
@@ -62,23 +110,13 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     }
   }, [messages, isMinimized]);
 
-  // Lấy tin nhắn từ server nếu là chat với luật sư
-  useEffect(() => {
-    if (chatType === 'human' && chatId && isOpen) {
-      // Thiết lập polling để cập nhật tin nhắn
-      const interval = setInterval(fetchMessages, 5000); // cập nhật mỗi 5 giây
-      return () => clearInterval(interval);
-    }
-  }, [chatType, chatId, isOpen]);
-
   // Hàm để lấy tin nhắn từ server
-  const fetchMessages = async () => {
+  const fetchMessages = async (chatId) => {
     if (!chatId) return;
-    
+
     try {
-      setLoading(true);
       const response = await chatService.getMessages(chatId);
-      
+
       if (response.status === 'success') {
         // Chuyển đổi dữ liệu từ API sang định dạng tin nhắn cho component
         const currentUser = authService.getCurrentUser();
@@ -95,62 +133,66 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
             isCurrentUser: isCurrentUser
           };
         });
-        
+
         setMessages(formattedMessages);
       }
     } catch (error) {
       console.error('Lỗi khi lấy tin nhắn:', error);
       // Không hiển thị toast để tránh làm phiền người dùng
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (inputValue.trim() === '') return;
-
-    // Thêm tin nhắn của người dùng
-    const userMessage = {
+    
+    if (!inputValue.trim()) return;
+    
+    // Hiển thị tin nhắn ngay lập tức với thời gian hiện tại
+    const newMessage = {
       type: 'user',
       text: inputValue,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isCurrentUser: true
     };
     
-    setMessages([...messages, userMessage]);
-    const messageSent = inputValue; // Lưu lại tin nhắn đã gửi
+    setMessages(prev => [...prev, newMessage]);
     setInputValue('');
-
-    if (chatType === 'ai') {
-      // Giả lập phản hồi AI sau 1 giây
-    setTimeout(() => {
-      const responseMessage = {
-        type: 'system',
-          text: getSimulatedResponse(messageSent, chatType),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, responseMessage]);
-    }, 1000);
-    } else if (chatType === 'human' && chatId) {
-      // Gửi tin nhắn đến server nếu là chat với luật sư
-      try {
-        setLoading(true);
-        console.log('Đang gửi tin nhắn:', messageSent, 'tới chat ID:', chatId);
-        
-        const response = await chatService.sendMessage(chatId, messageSent);
-        console.log('Phản hồi khi gửi tin nhắn:', response);
-        
-        // Sau khi gửi thành công, cập nhật lại danh sách tin nhắn
-        await fetchMessages();
-      } catch (error) {
-        console.error('Lỗi khi gửi tin nhắn:', error);
-        if (error.response) {
-          console.error('Chi tiết lỗi:', error.response.status, error.response.data);
+    
+    try {
+      setLoading(true);
+      
+      if (chatType === 'ai') {
+        // Giả lập phản hồi AI sau 1 giây
+        setTimeout(() => {
+          const aiResponse = {
+            type: 'system',
+            text: getSimulatedResponse(inputValue, 'ai'),
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          setMessages(prev => [...prev, aiResponse]);
+          setLoading(false);
+        }, 1000);
+      } else {
+        // Gửi tin nhắn đến server nếu là chat với người hỗ trợ
+        if (currentChatId) {
+          await chatService.sendMessage(currentChatId, inputValue);
+          await fetchMessages(currentChatId);
+        } else {
+          // Nếu chưa có chatId, tạo phiên chat mới
+          const response = await chatService.createChat();
+          if (response.status === 'success') {
+            const newChatId = response.data.id;
+            setCurrentChatId(newChatId);
+            await chatService.sendMessage(newChatId, inputValue);
+            await fetchMessages(newChatId);
+          }
         }
-        toast.error('Không thể gửi tin nhắn. Vui lòng thử lại sau.');
-      } finally {
         setLoading(false);
       }
+    } catch (error) {
+      console.error('Lỗi khi gửi tin nhắn:', error);
+      toast.error('Không thể gửi tin nhắn. Vui lòng thử lại sau.');
+      setLoading(false);
     }
   };
 
@@ -178,16 +220,16 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   };
 
   const handleEndChat = async () => {
-    if (chatType === 'human' && chatId) {
+    if (chatType === 'human' && currentChatId) {
       try {
-        await chatService.closeChat(chatId);
+        await chatService.closeChat(currentChatId);
         toast.success('Đã kết thúc phiên chat');
       } catch (error) {
         console.error('Lỗi khi kết thúc phiên chat:', error);
         toast.error('Không thể kết thúc phiên chat. Vui lòng thử lại sau.');
       }
     }
-    
+
     onClose();
   };
 
@@ -200,12 +242,12 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     <>
       {/* Button chat mini luôn hiển thị khi cửa sổ chat bị thu nhỏ */}
       {isMinimized && (
-        <div 
-          className={styles.chatMiniButton} 
+        <div
+          className={styles.chatMiniButton}
           onClick={handleMaximize}
           style={miniButtonStyle}
         >
-          <i className={chatType === 'ai' ? 'fas fa-robot' : 'fas fa-user-headset'}></i>
+          <i className={chatType === 'ai' ? 'fas fa-robot' : 'fas fa-user'}></i>
           <span className={styles.miniButtonBadge}>{messages.length > 0 ? messages.length : ''}</span>
         </div>
       )}
@@ -235,7 +277,7 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
               </button>
             </div>
           </div>
-            
+
           <div className={styles.chatWindowBody}>
             {loading && messages.length === 0 ? (
               <div className={styles.loadingMessages}>
@@ -243,26 +285,29 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                 <p>Đang tải tin nhắn...</p>
               </div>
             ) : (
-            <div className={styles.messagesContainer}>
-              {messages.map((message, index) => (
+              <div className={styles.messagesContainer}>
+                {messages.length === 0 && (
+                  <p className={styles.systemText}>Xin chào tôi có thể giúp gì cho bạn?</p>
+                )}
+                {messages.map((message, index) => (
                   <div key={index} className={`${styles.messageItem} ${message.isCurrentUser ? styles.userMessage : styles.systemMessage}`}>
-                  <div className={styles.messageAvatar}>
-                      <i className={message.isCurrentUser ? 'fas fa-user' : (chatType === 'ai' ? 'fas fa-robot' : 'fas fa-user-tie')}></i>
-                  </div>
-                  <div className={styles.messageContent}>
+                    <div className={styles.messageAvatar}>
+                      <i className={message.isCurrentUser ? 'fas fa-user' : (chatType === 'ai' ? 'fas fa-robot' : 'fas fa-user')}></i>
+                    </div>
+                    <div className={styles.messageContent}>
                       {!message.isCurrentUser && (
                         <div className={styles.senderName}>{message.sender_name}</div>
                       )}
-                    <p className={styles.messageText}>{message.text}</p>
-                    <div className={styles.messageTime}>{message.time}</div>
+                      <p className={styles.messageText}>{message.text}</p>
+                      <div className={styles.messageTime}>{message.time}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             )}
           </div>
-              
+
           <div className={styles.chatWindowFooter}>
             <form className={styles.chatForm} onSubmit={handleSubmit}>
               <input
@@ -273,8 +318,8 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                 className={styles.chatInput}
                 disabled={loading}
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={styles.sendButton}
                 disabled={!inputValue.trim() || loading}
               >

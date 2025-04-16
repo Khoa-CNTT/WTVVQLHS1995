@@ -14,7 +14,8 @@
   overflow: hidden;
   transform-origin: bottom right;
   opacity: 1;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    opacity 0.3s ease;
 }
 
 .chatWindowContainer.open {
@@ -145,18 +146,18 @@
 .statusDot {
   width: 8px;
   height: 8px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   border-radius: 50%;
   margin-right: 5px;
   position: relative;
 }
 
 .statusDot::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 8px;
   height: 8px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   border-radius: 50%;
   animation: pulse 1.5s infinite;
 }
@@ -177,7 +178,9 @@
   align-items: center;
 }
 
-.minimizeButton, .maximizeButton, .closeButton {
+.minimizeButton,
+.maximizeButton,
+.closeButton {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.7);
@@ -193,7 +196,9 @@
   transition: all 0.2s ease;
 }
 
-.minimizeButton:hover, .maximizeButton:hover, .closeButton:hover {
+.minimizeButton:hover,
+.maximizeButton:hover,
+.closeButton:hover {
   color: #ffcc00;
 }
 
@@ -247,20 +252,21 @@
   color: #ffcc00;
 }
 
-.messageContent {
+.messageContent :not(.messageTime, .senderName) {
   background-color: rgba(255, 255, 255, 0.1);
   padding: 10px 15px;
   border-radius: 15px;
   position: relative;
 }
 
-.userMessage .messageContent {
+.userMessage .messageContent :not(.messageTime) {
   background-color: rgba(255, 204, 0, 0.2);
   border-top-right-radius: 3px;
-  text-align: right;
+  text-align: left;
 }
 
-.systemMessage .messageContent {
+.systemMessage .messageContent :not(.messageTime,.senderName) {
+  background-color: rgba(255, 255, 255, 0.2);
   border-top-left-radius: 3px;
   text-align: left;
 }
@@ -270,22 +276,34 @@
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 4px;
   font-weight: 500;
+  margin-left: left;
 }
 
 .messageText {
   color: white;
   font-size: 0.9rem;
   line-height: 1.4;
+  overflow-wrap: break-word; /* Đảm bảo mỗi đoạn văn xuống dòng */
   word-wrap: break-word;
-}
+  white-space: normal;
+  max-width: 15rem;
 
+}
 .messageTime {
+  margin-top: -10px;
+}
+.userMessage .messageTime {
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.5);
   text-align: right;
-  margin-top: 5px;
+  margin-right: 5px;
 }
-
+.systemMessage .messageTime {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: left;
+  margin-left: 5px;
+}
 .chatWindowFooter {
   padding: 15px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -368,14 +386,14 @@
     bottom: 20px;
     height: 70vh;
   }
-  
+
   .chatMiniButton {
     bottom: 20px;
     right: 20px;
     width: 50px;
     height: 50px;
   }
-  
+
   .chatMiniButton i {
     font-size: 1.2rem;
   }
@@ -393,4 +411,10 @@
 
 .loadingMessages i {
   font-size: 2rem;
-} 
+}
+.systemText{
+  color: white;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 5px;
+}

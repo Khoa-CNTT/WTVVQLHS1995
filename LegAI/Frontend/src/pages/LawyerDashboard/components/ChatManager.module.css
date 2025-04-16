@@ -332,23 +332,60 @@
   }
   
   .messageContent {
-    padding: 12px 15px;
     border-radius: 15px;
     position: relative;
   }
   
   .receivedMessage .messageContent {
-    background-color: #e9ecef;
     border-top-left-radius: 0;
     text-align: left;
   }
   
-  .sentMessage .messageContent {
-    background-color: rgba(255, 215, 0, 0.2);
-    border-top-right-radius: 0;
-    text-align: right;
+  .receivedMessage .messageContent p {
+    background: linear-gradient(145deg, #f1f3f5, #dee2e6);
+    padding: 10px 14px;
+    border-radius: 0 10px 10px 10px;
+    margin: 2px 0;
+    color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    display: inline-block;
+    width: 15rem;
+    overflow-wrap: break-word; /* Đảm bảo mỗi đoạn văn xuống dòng */
+    word-wrap: break-word;
+    white-space: normal;
   }
   
+  .receivedMessage .messageContent p:hover {
+    background: linear-gradient(145deg, #e9ecef, #d8dbdf);
+  }
+  
+  .sentMessage .messageContent {
+    border-top-right-radius: 0;
+    text-align: left;
+  }
+  
+  .sentMessage .messageContent p {
+    background: linear-gradient(145deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15));
+    padding: 10px 14px;
+    border-radius: 10px 10px 0 10px;
+    margin: 2px 0;
+    color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    display: inline-block;
+    width: 15rem;
+    overflow-wrap: break-word; /* Đảm bảo mỗi đoạn văn xuống dòng */
+    word-wrap: break-word;
+    white-space: normal;
+  }
+  .sentMessage .messageContent p:hover {
+    background: linear-gradient(145deg, rgba(255, 215, 0, 0.4), rgba(255, 215, 0, 0.25));
+  }
   .senderInfo {
     display: flex;
     align-items: center;
@@ -360,8 +397,8 @@
     color: #666;
     font-weight: 500;
   }
-  
-  .messageContent p {
+
+  .messageContent p {    
     margin: 0 0 5px 0;
     font-size: 14px;
     color: #333;
@@ -369,13 +406,20 @@
     word-wrap: break-word;
   }
   
-  .messageTime {
+   .sentMessage .messageTime {
     font-size: 11px;
     color: #777;
     display: block;
     text-align: right;
+    margin-right: 5px;
   }
-  
+  .receivedMessage .messageTime {
+    font-size: 11px;
+    color: #777;
+    display: block;
+    text-align: left;
+    margin-left: 5px;
+  }
   .chatInputForm {
     display: flex !important;
     align-items: center;

@@ -183,6 +183,7 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
            AND status = 'booked'`,
           [appointment.lawyer_id, appointment.start_time, appointment.end_time]
         );
+        console.log(`Đã cập nhật trạng thái slot thành 'available' cho lịch hẹn đã huỷ ${appointmentId}`);
       } catch (updateErr) {
         console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
         // Tiếp tục xử lý mà không dừng lại
@@ -355,6 +356,7 @@ const deleteAppointment = async (appointmentId, reason = '') => {
          AND status = 'booked'`,
         [appointment.lawyer_id, appointment.start_time, appointment.end_time]
       );
+      console.log(`Đã cập nhật trạng thái slot thành 'available' cho lịch hẹn đã huỷ ${appointmentId}`);
     } catch (updateErr) {
       console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
       // Tiếp tục xử lý mà không dừng lại
