@@ -52,18 +52,32 @@ const Navbar = () => {
     setIsSideMenuOpen(!isSideMenuOpen);
   };
 
-  const toggleChat = (e) => {
+  const toggleChat = (e, chatType) => {
     e.preventDefault();
     
-    // Gửi event với giá trị state mới (sau khi toggle)
+    // Nếu không chỉ định loại chat, thì mở menu buttons
+    if (!chatType) {
+      // Gửi event hiển thị các nút chat
+      const event = new CustomEvent('toggleChat', { 
+        detail: { 
+          action: 'open',
+          chatType: 'buttons' // Hiển thị các nút chat
+        } 
+      });
+      window.dispatchEvent(event);
+      return;
+    }
+    
+    // Nếu có chỉ định loại chat (ai hoặc human), mở cửa sổ chat tương ứng
     const newChatOpenState = !isChatOpen;
     setIsChatOpen(newChatOpenState);
     
-    // Thông báo cho ChatManager thông qua một event
+    // Thông báo cho ChatManager thông qua một event với loại chat
     const event = new CustomEvent('toggleChat', { 
       detail: { 
         isOpen: newChatOpenState,
-        action: newChatOpenState ? 'open' : 'close'
+        action: newChatOpenState ? 'open' : 'close',
+        chatType: chatType  // 'ai' hoặc 'human'
       } 
     });
     window.dispatchEvent(event);
@@ -153,13 +167,23 @@ const Navbar = () => {
         </div>
         
         <div className={styles.rightControls}>
-          <a href="#" 
-            className={`${styles.icon} ${styles.messageIcon} ${isChatOpen ? styles.active : ''}`}
-            onClick={toggleChat}
-          >
-            <i className="fas fa-comment-dots"></i>
-            <span className={styles.iconLabel}>Nhắn tin</span>
-          </a>
+          <div className={styles.chatDropdownContainer}>
+            <a href="#" 
+              className={`${styles.icon} ${styles.messageIcon} ${isChatOpen ? styles.active : ''}`}
+              onClick={(e) => toggleChat(e)}
+            >
+              <i className="fas fa-comment-dots"></i>
+              <span className={styles.iconLabel}>Nhắn tin</span>
+            </a>
+            <div className={styles.chatDropdown}>
+              <div className={styles.chatMenuItem} onClick={(e) => toggleChat(e, 'ai')}>
+                <i className="fas fa-robot"></i> Chat với AI
+              </div>
+              <div className={styles.chatMenuItem} onClick={(e) => toggleChat(e, 'human')}>
+                <i className="fas fa-user"></i> Chat với người hỗ trợ
+              </div>
+            </div>
+          </div>
           
           {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
             <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>

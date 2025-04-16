@@ -1,0 +1,78 @@
+/* ChatManager.module.css */
+.chatButtonsContainer {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 9999;
+}
+
+.chatButton {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  font-size: 1.5rem;
+  color: white;
+  animation: bounceIn 0.5s;
+}
+
+.chatButton:hover {
+  transform: scale(1.05);
+}
+
+.aiButton {
+  background-color: #0d6efd;
+}
+
+.aiButton:hover {
+  background-color: #0b5ed7;
+}
+
+.humanButton {
+  background-color: #198754;
+}
+
+.humanButton:hover {
+  background-color: #157347;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .chatButtonsContainer {
+    bottom: 20px;
+    right: 20px;
+    gap: 10px;
+  }
+  
+  .chatButton {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+} 

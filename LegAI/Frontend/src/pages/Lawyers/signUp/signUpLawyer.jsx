@@ -287,7 +287,7 @@ function LawyerRegisterForm() {
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>Đăng Ký Trở Thành Luật Sư</h2>
-      
+      <span className={styles.backToLogin} onClick={() => navigate('/')}> Trở về</span>
       {message.text && (
         <div className={`${styles.message} ${styles[message.type]}`}>
           {message.text}
