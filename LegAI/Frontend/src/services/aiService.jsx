@@ -1,5 +1,39 @@
-const API_KEY = "AIzaSyBeSbDIfNps07XyGzamYJTjwflaA-hlppQ";
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";
+const API_KEY = "AIzaSyCvF2ZiBEliIFc729xeqsxYM0VyQkwgVlc";
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+import axios from 'axios';
+import { API_URL as BASE_API_URL } from '../config/constants';
+
+// Thông tin cơ bản về các dịch vụ pháp lý
+const LEGAL_SERVICES = {
+  civil: 'Tư vấn dân sự: hợp đồng, tranh chấp đất đai, thừa kế, hôn nhân, bồi thường thiệt hại',
+  criminal: 'Tư vấn hình sự: bào chữa, bảo vệ quyền lợi, tham gia tố tụng, xin giảm nhẹ hình phạt',
+  intellectual: 'Sở hữu trí tuệ: bảo hộ nhãn hiệu, bản quyền, sáng chế, xử lý xâm phạm'
+};
+
+// Các thủ tục pháp lý cơ bản
+const LEGAL_PROCEDURES = [
+  'Đăng ký kết hôn: CMND/CCCD, Giấy xác nhận tình trạng hôn nhân, nộp hồ sơ tại UBND cấp xã', 
+  'Ly hôn: nộp đơn tại tòa án nơi bị đơn cư trú, hòa giải, xét xử, thời gian 2-4 tháng',
+  'Khai sinh: trong 60 ngày kể từ ngày sinh, mang giấy chứng sinh đến UBND cấp xã',
+  'Đăng ký thừa kế: công chứng di chúc tại phòng công chứng, nộp thuế thu nhập cá nhân',
+  'Tranh chấp đất đai: hòa giải tại địa phương, khởi kiện tại tòa án có thẩm quyền'
+];
+
+// Hàm lấy danh sách luật sư để cung cấp cho AI
+const getLawyersData = async () => {
+  try {
+    const response = await axios.get(`${BASE_API_URL}/auth/lawyers?limit=5`);
+    if (response.data && response.data.data && response.data.data.lawyers) {
+      return response.data.data.lawyers.map(lawyer => 
+        `${lawyer.fullName} (${lawyer.specialization || 'Chuyên gia pháp lý'}, ${lawyer.rating}/5 sao)`
+      ).join('; ');
+    }
+    return '';
+  } catch (error) {
+    console.log('Không thể lấy dữ liệu luật sư:', error);
+    return '';
+  }
+};
 
 /**
  * Gửi tin nhắn đến Gemini API và nhận phản hồi
@@ -9,10 +43,20 @@ const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-
  */
 const sendMessageToAI = async (message, history = []) => {
   try {
-    // Chuẩn bị lịch sử trò chuyện nếu có
+    // Lấy thông tin luật sư nếu là lần đầu chat
+    let systemContext = '';
+    if (history.length === 0) {
+      const lawyersData = await getLawyersData();
+      systemContext = `Bạn là LegAI, trợ lý pháp lý AI. Dịch vụ: ${Object.values(LEGAL_SERVICES).join('. ')}. Thủ tục: ${LEGAL_PROCEDURES.join('. ')}. Luật sư hàng đầu: ${lawyersData}. Trả lời ngắn gọn, súc tích,dễ thương và thân thiện.`;
+    }
+
+    // Chuẩn bị lịch sử trò chuyện và thêm context
     const contents = history.length > 0 
-      ? [...history, { role: "user", parts: [{ text:'Bạn là LegAI một trợ lý AI về WEBSITE TƯ VẤN VÀ QUẢN LÝ HỒ SƠ PHÁP LÝ TÍCH HỢP AI ĐỂ NÂNG CAO HIỆU QUẢ TRA CỨU, Hãy nói chuyện ngắn gọn, không xuống dòng nhiều nếu chỉ hỏi đơn giản và hài hước với người dùng nhé! sau đây là các yêu cầu của người dùng: '+ message }] }]
-      : [{ role: "user", parts: [{ text: message }] }];
+      ? [...history, { role: "user", parts: [{ text: message }] }]
+      : [
+          { role: "model", parts: [{ text: systemContext }] },
+          { role: "user", parts: [{ text: message }] }
+        ];
 
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: "POST",

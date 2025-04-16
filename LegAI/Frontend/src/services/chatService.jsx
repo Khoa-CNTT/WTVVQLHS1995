@@ -55,7 +55,6 @@ const getChats = async (status = null, page = 1, limit = 10) => {
     
     try {
       const response = await axios.get(url, getHeaders());
-      console.log('Phản hồi từ server:', response.data);
       return response.data;
     } catch (error) {
       console.error('Lỗi khi lấy danh sách phiên chat:', error);
@@ -171,7 +170,6 @@ const sendMessage = async (chatId, message) => {
       getHeaders()
     );
     
-    console.log('Phản hồi từ server:', response.data);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi gửi tin nhắn:', error);

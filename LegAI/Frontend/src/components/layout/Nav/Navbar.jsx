@@ -167,7 +167,7 @@ const Navbar = () => {
         </div>
         
         <div className={styles.rightControls}>
-          <div className={styles.chatDropdownContainer}>
+          {/* <div className={styles.chatDropdownContainer}>
             <a href="#" 
               className={`${styles.icon} ${styles.messageIcon} ${isChatOpen ? styles.active : ''}`}
               onClick={(e) => toggleChat(e)}
@@ -183,7 +183,7 @@ const Navbar = () => {
                 <i className="fas fa-user"></i> Chat với người hỗ trợ
               </div>
             </div>
-          </div>
+          </div> */}
           
           {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
             <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>

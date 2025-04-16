@@ -39,21 +39,21 @@ const AIPrompt = ({ isVisible, onClose }) => {
           <div className={styles.promptIcon}>
             <i className="fas fa-lightbulb"></i>
           </div>
-          <p>Hỏi các vấn đề pháp lý cơ bản</p>
+          <p>Hỏi về dịch vụ tư vấn dân sự, hình sự, sở hữu trí tuệ</p>
         </div>
         
         <div className={styles.promptItem}>
           <div className={styles.promptIcon}>
             <i className="fas fa-search"></i>
           </div>
-          <p>Tìm hiểu về dịch vụ luật sư</p>
+          <p>Tìm hiểu về luật sư hàng đầu của chúng tôi</p>
         </div>
         
         <div className={styles.promptItem}>
           <div className={styles.promptIcon}>
             <i className="fas fa-file-alt"></i>
           </div>
-          <p>Xin thông tin về thủ tục pháp lý</p>
+          <p>Hỏi về thủ tục kết hôn, ly hôn, thừa kế, tranh chấp đất đai</p>
         </div>
       </div>
       
