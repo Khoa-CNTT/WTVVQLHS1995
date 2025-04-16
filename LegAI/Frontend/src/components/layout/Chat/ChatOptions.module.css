@@ -4,12 +4,13 @@
   bottom: 100px;
   right: 30px;
   width: 400px;
-  background-color: rgba(0, 0, 0, 0.95);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   overflow: hidden;
   animation: slideInUp 0.3s ease;
+  border: 1px solid #eaeaea;
 }
 
 @keyframes slideInUp {
@@ -28,27 +29,29 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #eaeaea;
+  background-color: #f8f9fa;
 }
 
 .chatOptionsHeader h3 {
-  color: #ffcc00;
+  color: #212529;
   margin: 0;
   font-size: 1.2rem;
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
 
 .closeButton {
   background: none;
   border: none;
-  color: white;
+  color: #6c757d;
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .closeButton:hover {
-  color: #ffcc00;
+  color: #0d6efd;
   transform: rotate(90deg);
 }
 
@@ -60,27 +63,28 @@
   display: flex;
   align-items: center;
   padding: 15px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #eaeaea;
 }
 
 .chatOption:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #f8f9fa;
   transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .chatOption.selected {
-  background-color: rgba(255, 204, 0, 0.1);
-  border-color: #ffcc00;
+  background-color: rgba(13, 110, 253, 0.05);
+  border-color: #0d6efd;
 }
 
 .optionIcon {
   width: 50px;
   height: 50px;
-  background-color: rgba(255, 204, 0, 0.1);
+  background-color: rgba(13, 110, 253, 0.1);
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -90,7 +94,7 @@
 
 .optionIcon i {
   font-size: 1.5rem;
-  color: #ffcc00;
+  color: #0d6efd;
 }
 
 .optionInfo {
@@ -99,42 +103,43 @@
 
 .optionInfo h4 {
   margin: 0 0 5px 0;
-  color: white;
+  color: #212529;
   font-size: 1.1rem;
 }
 
 .optionInfo p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.7);
+  color: #6c757d;
   font-size: 0.9rem;
   line-height: 1.4;
 }
 
 .chatOptionsFooter {
   padding: 15px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #eaeaea;
   display: flex;
   justify-content: flex-end;
+  background-color: #f8f9fa;
 }
 
 .startChatButton {
-  background-color: #ffcc00;
-  color: #000;
+  background-color: #0d6efd;
+  color: #fff;
   border: none;
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .startChatButton:hover {
-  background-color: #e6b800;
+  background-color: #0b5ed7;
 }
 
 .startChatButton.disabled {
-  background-color: #4a4a4a;
-  color: #888;
+  background-color: #6c757d;
+  color: #e9ecef;
   cursor: not-allowed;
 }
 

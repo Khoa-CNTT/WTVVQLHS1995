@@ -1,0 +1,128 @@
+.promptContainer {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  width: 300px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  z-index: 99999999;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+  border: 1px solid #eaeaea;
+}
+
+.fadeOut {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.promptHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  border-bottom: 1px solid #eaeaea;
+  background-color: #0d6efd;
+}
+
+.promptHeader h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.closeButton:hover {
+  transform: rotate(90deg);
+}
+
+.promptContent {
+  padding: 15px;
+}
+
+.promptItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.promptItem:last-child {
+  margin-bottom: 0;
+}
+
+.promptIcon {
+  width: 30px;
+  height: 30px;
+  background-color: rgba(13, 110, 253, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  color: #0d6efd;
+}
+
+.promptIcon i {
+  font-size: 14px;
+}
+
+.promptItem p {
+  margin: 0;
+  font-size: 14px;
+  color: #212529;
+}
+
+.promptFooter {
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eaeaea;
+}
+
+.promptFooter p {
+  margin: 0;
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .promptContainer {
+    width: calc(100% - 40px);
+    bottom: 60px;
+  }
+}
