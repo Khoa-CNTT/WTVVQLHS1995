@@ -396,7 +396,7 @@ const AppointmentsPage = () => {
                     : 'Bạn chưa huỷ lịch hẹn nào.'}
               </p>
               <Link to="/lawyers" className={styles.bookButton}>
-                <i className="fas fa-search"></i> Đặt lịch hẹn
+                <i className="fas fa-search"></i>
               </Link>
             </div>
           </div>
