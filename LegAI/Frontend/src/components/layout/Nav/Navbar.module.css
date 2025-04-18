@@ -1,77 +1,120 @@
 /* Navbar.module.css */
 .navbar {
+  width: 100%;
+  height: 80px;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 50px;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
   z-index: 1000;
-  transition: all 0.3s ease;
+  transition: all var(--transition-medium) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--text-light);
+  box-shadow: var(--box-shadow);
+}
+
+.navbarContainer {
+  width: 100%;
+  max-width: 1400px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.homeNavbar {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.homeNavbar .navLink,
+.homeNavbar .logoText,
+.homeNavbar .icon {
+  color: var(--text-light);
+}
+
+.homeNavbar .bar {
+  background-color: var(--text-light);
+}
+
+.homeNavbar .navbarScrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--box-shadow);
+}
+
+.homeNavbar.navbarScrolled .navLink,
+.homeNavbar.navbarScrolled .logoText,
+.homeNavbar.navbarScrolled .icon {
+  color: #333;
+}
+
+.homeNavbar.navbarScrolled .bar {
+  background-color: #333;
 }
 
 .navbarScrolled {
-  background-color: rgba(0, 0, 0, 0.9);
-  padding: 15px 50px;
+  height: 70px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--box-shadow-hover);
 }
 
 .logo {
   display: flex;
   align-items: center;
+  text-decoration: none;
 }
 
 .logoImg {
   height: 40px;
-  width: auto;
+  margin-right: 10px;
 }
 
 .logoText {
-  color: white;
+  color: var(--text-dark);
   font-size: 1.5rem;
-  font-weight: 600;
-  margin-left: 10px;
+  font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+  transition: color var(--transition-fast) ease;
 }
 
 .navLinks {
   display: flex;
   gap: 30px;
+  list-style: none;
+  font-weight: 500;
 }
 
 .navLink {
-  color: white;
+  color: var(--text-dark);
   text-decoration: none;
   font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   font-weight: 500;
   position: relative;
   padding: 5px 0;
+  transition: all var(--transition-fast) ease;
 }
 
 .navLink::after {
   content: '';
   position: absolute;
-  width: 0;
-  height: 2px;
   bottom: 0;
   left: 0;
-  background-color: #ffcc00;
-  transition: width 0.3s ease;
+  width: 0;
+  height: 2px;
+  background-color: var(--primary-color);
+  transition: width var(--transition-fast) ease;
 }
 
-.navLink:hover::after {
+.navLink:hover::after,
+.navLink.active::after {
   width: 100%;
 }
 
 .navIcons {
   display: flex;
-  gap: 20px;
   align-items: center;
 }
 
@@ -82,52 +125,65 @@
 }
 
 .icon {
-  color: white;
-  font-size: 1.2rem;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  width: 60px;
   background: none;
   border: none;
+  font-size: 1.125rem;
+  color: var(--text-dark);
+  margin-left: 10px;
   cursor: pointer;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast) ease;
+}
+
+.icon:hover {
+  color: var(--primary-color);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+
 }
 
 .iconLabel {
-  font-size: 0.9rem;
+  position: absolute;
+  top: 0;
+  transform: translateY(-120%);
+  transition: all 0.3s ease;
+  font-size: 0.65rem;
   font-weight: 500;
 }
 
 .messageIcon {
-  color: white;
-  background-color: #ffcc00;
+  color: var(--text-dark);
+  background-color: var(--primary-color);
   padding: 8px 15px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  border-radius: var(--border-radius-medium);
+  transition: all var(--transition-fast) ease;
 }
 
 .messageIcon i {
-  color: #333;
+  color: var(--text-dark);
 }
 
 .messageIcon span {
-  color: #333;
+  color: var(--text-dark);
 }
 
 .messageIcon:hover {
-  background-color: #e6b800;
-  transform: scale(1.05);
+  background-color: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: var(--box-shadow);
 }
 
 .messageIcon.active {
-  background-color: white;
+  background-color: var(--text-light);
   transform: scale(1.05);
 }
 
 .messageIcon.active:hover {
-  background-color: #ffcc00;
+  background-color: var(--primary-color);
 }
 
 .searchWrapper {
@@ -138,16 +194,16 @@
   position: absolute;
   top: 45px;
   right: 0;
-  background-color: white;
-  border-radius: 4px;
+  background-color: var(--text-light);
+  border-radius: var(--border-radius-medium);
   padding: 10px;
   width: 300px;
   display: flex;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--box-shadow);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .searchActive .searchDropdown {
@@ -162,22 +218,22 @@
   padding: 10px;
   outline: none;
   font-size: 0.9rem;
-  border-radius: 4px 0 0 4px;
-  background-color: #f1f1f1;
+  border-radius: var(--border-radius-small) 0 0 var(--border-radius-small);
+  background-color: var(--background-gray);
 }
 
 .searchBtn {
-  background-color: #ffcc00;
-  color: #333;
+  background-color: var(--primary-color);
+  color: var(--text-dark);
   border: none;
   padding: 10px 15px;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--border-radius-small) var(--border-radius-small) 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .searchBtn:hover {
-  background-color: #e6b800;
+  background-color: var(--primary-dark);
 }
 
 .menuButton {
@@ -203,9 +259,9 @@
 .bar {
   width: 100%;
   height: 3px;
-  background-color: white;
+  background-color: var(--text-light);
   border-radius: 2px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .active .bar:nth-child(1) {
@@ -232,7 +288,7 @@
   gap: 20px;
   align-items: center;
   z-index: 1000;
-  animation: slideDown 0.3s ease;
+  animation: slideDown var(--transition-fast) ease;
 }
 
 @keyframes slideDown {
@@ -290,7 +346,7 @@
   background-color: rgba(0, 0, 0, 0.95);
   box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
   z-index: 1100;
-  transition: right 0.3s ease;
+  transition: right var(--transition-medium) ease;
   overflow-y: auto;
   padding: 20px 0;
 }
@@ -309,7 +365,7 @@
 }
 
 .sideMenuHeader h3 {
-  color: #ffcc00;
+  color: var(--primary-color);
   font-size: 1.5rem;
   margin: 0;
   letter-spacing: 1px;
@@ -318,14 +374,14 @@
 .closeButton {
   background: none;
   border: none;
-  color: #ffffff;
+  color: var(--text-light);
   font-size: 1.2rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .closeButton:hover {
-  color: #ffcc00;
+  color: var(--primary-color);
   transform: rotate(90deg);
 }
 
@@ -340,13 +396,13 @@
   color: white;
   text-decoration: none;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
   position: relative;
   cursor: pointer;
 }
 
 .sideMenuItem:hover {
-  color: #ffcc00;
+  color: var(--primary-color);
   transform: translateX(10px);
 }
 
@@ -397,9 +453,9 @@
 .bar {
   width: 100%;
   height: 3px;
-  background-color: white;
+  background-color: black;
   border-radius: 2px;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .active .bar:nth-child(1) {
@@ -444,26 +500,26 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #ffcc00;
+  background-color: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  border: 2px solid var(--text-light);
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-fast) ease;
   user-select: none;
 }
 
 .userAvatar:hover {
   transform: scale(1.05);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--box-shadow-hover);
 }
 
 .userInitial {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .userDropdown {
@@ -471,12 +527,12 @@
   top: 50px;
   right: 0;
   width: 240px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: var(--text-light);
+  border-radius: var(--border-radius-medium);
+  box-shadow: var(--box-shadow);
   z-index: 1000;
   padding: 15px 0;
-  animation: dropdownFadeIn 0.3s ease;
+  animation: dropdownFadeIn var(--transition-fast) ease;
 }
 
 @keyframes dropdownFadeIn {
@@ -521,10 +577,10 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  color: #333;
+  color: var(--text-dark);
   text-decoration: none;
   background: transparent;
-  transition: background-color 0.2s;
+  transition: all var(--transition-fast) ease;
   cursor: pointer;
   border: none;
   background: none;
@@ -541,6 +597,10 @@
   background: transparent;
 }
 
+.userMenuItem:hover {
+  color: var(--primary-color);
+  padding-left: 20px;
+}
 
 .sideMenuUser {
   display: flex;
@@ -619,15 +679,15 @@
   top: 50px;
   right: 0;
   width: 220px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: var(--text-light);
+  border-radius: var(--border-radius-medium);
+  box-shadow: var(--box-shadow);
   z-index: 1000;
   padding: 10px 0;
-  animation: dropdownFadeIn 0.3s ease;
+  animation: dropdownFadeIn var(--transition-fast) ease;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .chatDropdownContainer:hover .chatDropdown {
@@ -639,14 +699,15 @@
   display: flex;
   align-items: center;
   padding: 12px 15px;
-  color: #333;
-  transition: all 0.3s ease;
+  color: var(--text-dark);
+  transition: all var(--transition-fast) ease;
   cursor: pointer;
 }
 
 .chatMenuItem:hover {
-  background-color: #f8f9fa;
-  color: #0d6efd;
+  background-color: var(--background-gray);
+  color: var(--primary-color);
+  padding-left: 20px;
 }
 
 .chatMenuItem i {

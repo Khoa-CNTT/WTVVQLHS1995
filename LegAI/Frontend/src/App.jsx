@@ -3,9 +3,12 @@ import Loading from './components/layout/Loading/Loading';
 import { checkTokenExpiration } from './config/axios';
 import authService from './services/authService';
 import userService from './services/userService';
+import './App.css';
+import { useLocation } from 'react-router-dom';
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -134,6 +137,11 @@ function App() {
       document.removeEventListener('visibilitychange', handleUserActivity);
     };
   }, []);
+
+  // Cuộn lên đầu trang mỗi khi chuyển route
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
 
   if (loading) {
     return <Loading />;

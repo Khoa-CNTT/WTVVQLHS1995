@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import SideMenu from './SideMenu';
 import NavLink from './NavLink';
@@ -14,6 +14,7 @@ const Navbar = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Lấy thông tin người dùng từ localStorage
@@ -29,15 +30,23 @@ const Navbar = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
+    
+    // Đảm bảo đóng menus khi chuyển trang
+    setIsMenuOpen(false);
+    setIsSearchOpen(false);
+    setIsSideMenuOpen(false);
+    setShowUserDropdown(false);
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [location.pathname]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
     if (!isMenuOpen) {
       setIsSearchOpen(false);
+      setShowUserDropdown(false);
     }
   };
 
@@ -45,11 +54,15 @@ const Navbar = () => {
     setIsSearchOpen(!isSearchOpen);
     if (!isSearchOpen) {
       setIsMenuOpen(false);
+      setShowUserDropdown(false);
     }
   };
 
   const toggleSideMenu = () => {
     setIsSideMenuOpen(!isSideMenuOpen);
+    if (!isSideMenuOpen) {
+      setShowUserDropdown(false);
+    }
   };
 
   const toggleChat = (e, chatType) => {
@@ -85,6 +98,10 @@ const Navbar = () => {
 
   const toggleUserDropdown = () => {
     setShowUserDropdown(!showUserDropdown);
+    if (!showUserDropdown) {
+      setIsMenuOpen(false);
+      setIsSearchOpen(false);
+    }
   };
 
   const handleLogout = () => {
@@ -122,8 +139,15 @@ const Navbar = () => {
     return currentUser?.username?.charAt(0).toUpperCase() || 'U';
   };
 
+  const isHomePage = location.pathname === '/';
+
   return (
-    <nav className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ''}`}>
+    <nav className={`
+      ${styles.navbar} 
+      ${isScrolled ? styles.navbarScrolled : ''} 
+      ${isHomePage ? styles.homeNavbar : ''}
+    `}>
+      <div className={styles.navbarContainer}>
       <Link to="/" className={styles.logo}>
         <img 
           src="/logo.png" 
@@ -155,36 +179,18 @@ const Navbar = () => {
       
       <div className={styles.navIcons}>
         <div className={`${styles.searchWrapper} ${isSearchOpen ? styles.searchActive : ''}`}>
-          <button onClick={toggleSearch} className={styles.icon}>
+            <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
             <i className="fas fa-search"></i>
           </button>
           <div className={styles.searchDropdown}>
             <input type="text" placeholder="Tìm kiếm..." className={styles.searchInput} />
-            <button className={styles.searchBtn}>
+              <button className={styles.searchBtn} aria-label="Tìm kiếm">
               <i className="fas fa-search"></i>
             </button>
           </div>
         </div>
         
         <div className={styles.rightControls}>
-          {/* <div className={styles.chatDropdownContainer}>
-            <a href="#" 
-              className={`${styles.icon} ${styles.messageIcon} ${isChatOpen ? styles.active : ''}`}
-              onClick={(e) => toggleChat(e)}
-            >
-              <i className="fas fa-comment-dots"></i>
-              <span className={styles.iconLabel}>Nhắn tin</span>
-            </a>
-            <div className={styles.chatDropdown}>
-              <div className={styles.chatMenuItem} onClick={(e) => toggleChat(e, 'ai')}>
-                <i className="fas fa-robot"></i> Chat với AI
-              </div>
-              <div className={styles.chatMenuItem} onClick={(e) => toggleChat(e, 'human')}>
-                <i className="fas fa-user"></i> Chat với người hỗ trợ
-              </div>
-            </div>
-          </div> */}
-          
           {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
             <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>
               <i className="fas fa-tachometer-alt"></i>
@@ -236,13 +242,14 @@ const Navbar = () => {
             </Link>
           )}
           
-          <button onClick={toggleSideMenu} className={styles.menuButton}>
+            <button onClick={toggleSideMenu} className={styles.menuButton} aria-label="Menu">
             <div className={`${styles.hamburger} ${isSideMenuOpen ? styles.active : ''}`}>
               <span className={styles.bar}></span>
               <span className={styles.bar}></span>
               <span className={styles.bar}></span>
             </div>
           </button>
+          </div>
         </div>
       </div>
 

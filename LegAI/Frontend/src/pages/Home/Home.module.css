@@ -1,16 +1,22 @@
 /* Home.module.css */
 .container {
-  position: relative;
   width: 100%;
-  overflow: hidden;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
+/* Hero Section */
 .heroSection {
-  position: relative;
   height: 100vh;
-  width: 100%;
-  background-color: #000;
-  color: white;
+  min-height: 780px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 5%;
+  background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
   overflow: hidden;
 }
 
@@ -21,441 +27,1153 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.heroBackgroundOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
-  opacity: 0.7;
 }
 
 .heroContent {
+  max-width: 600px;
+  text-align: left;
+  margin-right: auto;
   position: relative;
-  z-index: 2;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 0 20px;
-}
-
-.trustSwiper {
-  height: 50px;
-  width: 100%;
-  margin-bottom: 1rem;
-}
-
-.trustSlide {
-  text-align: center;
-}
-
-.trustIcon {
-  margin-right: 10px;
-  font-size: 1.2rem;
-  color: #ffcc00;
-}
-
-.heroSubtitle {
-  font-size: 1.2rem;
-  font-weight: 300;
-  letter-spacing: 4px;
-  margin-bottom: 1rem;
-  animation: fadeIn 1s ease-in;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  z-index: 10;
+  animation: fadeIn 1s ease-in-out;
 }
 
 .heroTitle {
-  font-size: 5rem;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.heroTitleSecondary {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #ffcc00;
+  margin-bottom: 0.5rem;
+}
+
+.heroTitlePrimary {
+  font-size: 3rem;
   font-weight: 700;
-  margin-bottom: 2rem;
+  color: #ffffff;
   line-height: 1.2;
-  letter-spacing: 2px;
   text-transform: uppercase;
-  animation: slideUp 1.2s ease-out;
-  background: linear-gradient(45deg, #fff, #ffcc00);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.heroDescription {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 2rem;
 }
 
 .heroBtnGroup {
   display: flex;
-  gap: 20px;
-  animation: fadeIn 1.5s ease-in;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
-.exploreButton {
-  padding: 12px 40px;
-  background-color: transparent;
-  color: white;
-  border: 2px solid white;
-  font-size: 1rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.exploreButton:hover {
-  background-color: white;
-  color: black;
-}
-
-.contactButton {
-  padding: 12px 40px;
+.primaryButton {
   background-color: #ffcc00;
-  color: black;
-  border: 2px solid #ffcc00;
+  color: #333;
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
   font-size: 1rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  padding: 0.875rem 2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  text-transform: uppercase;
 }
 
-.contactButton:hover {
-  background-color: #e6b800;
-  border-color: #e6b800;
+.primaryButton:hover {
+  background-color: #ffd700;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
+.outlineButton {
+  background-color: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.875rem 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.outlineButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Hero Stats */
 .heroStats {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
   display: flex;
-  justify-content: space-around;
-  background-color: rgba(0, 0, 0, 0.7);
+  gap: 3rem;
+  margin-top: 3rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 1.5rem 2rem;
+  border-radius: 15px;
   backdrop-filter: blur(10px);
-  padding: 20px 0;
-  z-index: 2;
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .statItem {
-  text-align: center;
-  animation: fadeIn 2s ease-in;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .statNumber {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #ffcc00;
-  margin-bottom: 5px;
+  margin-bottom: 0.5rem;
 }
 
 .statText {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  color: #ffffff;
+  font-weight: 600;
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
-/* Trust Detail Section */
-.trustDetailSection {
-  padding: 100px 50px;
+/* App Steps Preview */
+.appPreviewContainer {
+  position: absolute;
+  right: 5%;
+  max-width: 500px;
+  width: 40%;
+  z-index: 10;
+}
+
+.appStepsContainer {
   background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease;
+}
+
+.appStepsContainer.animate {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.appStepNumbers {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.stepNumber {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  border: 2px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stepNumber.activeStep {
+  background-color: #ffcc00;
+  color: #333;
+  border-color: #ffcc00;
+}
+
+.appPreview {
+  position: relative;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 2rem;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.appStep {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease;
+  text-align: center;
+}
+
+.appStep i {
+  font-size: 3rem;
+  color: #003366;
+  margin-bottom: 1rem;
+}
+
+.appStep h4 {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.activeAppStep {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.restartButton {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.restartButton:hover {
+  background-color: #e0e0e0;
+}
+
+.restartButton i {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Features Section */
+.featuresSection {
+  background-color: #ffffff;
+  padding: 5rem 5%;
+  position: relative;
 }
 
 .sectionHeader {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 3rem;
 }
 
 .sectionTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  text-align: center;
-  margin-bottom: 20px;
-  text-transform: uppercase;
   color: #333;
+  margin-bottom: 1rem;
+  position: relative;
 }
 
-.titleBar {
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(to right, #ffcc00, #ff9900);
+.sectionDescription {
+  font-size: 1.25rem;
+  color: #666;
+  max-width: 600px;
   margin: 0 auto;
 }
 
-.trustDetailSwiper {
-  padding: 50px 0;
+/* Feature Swiper */
+.featuresContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 0;
+  position: relative;
 }
 
-.trustDetailSlide {
-  width: 300px;
-  height: 300px;
-}
-
-.trustCard {
-  background-color: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 30px 20px;
-  text-align: center;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  transition: transform 0.3s ease;
-}
-
-.trustCard:hover {
-  transform: translateY(-10px);
-}
-
-.trustIconWrapper {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #ffcc00, #ff9900);
-  border-radius: 50%;
+.serviceNavigation {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-.trustIconWrapper i {
-  font-size: 2rem;
-  color: white;
+.navArrow {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #003366;
+  font-size: 1.25rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  z-index: 10;
 }
 
-.trustCardTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
+.navArrow:hover {
+  background-color: #003366;
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.trustCardText {
-  color: #666;
-  line-height: 1.5;
-}
-
-/* Features Section */
-.featuresSection {
-  padding: 100px 50px;
-  background-color: #f8f8f8;
-}
-
-.featureGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 40px;
-  max-width: 1200px;
+.featureSwiper {
+  width: 100%;
+  max-width: 800px;
+  padding-bottom: 4rem;
   margin: 0 auto;
+  overflow: visible;
+}
+
+.featureSwiperSlide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  transition: transform 0.5s ease;
+  opacity: 0.5;
+  transform: scale(0.85);
+}
+
+.swiper-slide-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
 }
 
 .featureCard {
-  background-color: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: linear-gradient(135deg, #2193b0, #6dd5ed);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  height: 100%;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  color: white;
 }
 
 .featureCard:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
 }
 
-.featureImageContainer {
-  position: relative;
-  height: 220px;
-  overflow: hidden;
-}
-
-.featureImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.featureOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-}
-
-.featureCard:hover .featureImage {
-  transform: scale(1.1);
-}
-
-.featureContent {
-  padding: 25px;
-}
-
-.featureTitle {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.featureDescription {
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
-
-.featureLink {
-  display: inline-flex;
+.featureIconContainer {
+  height: 90px;
+  width: 90px;
+  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
+  border-radius: 50%;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  color: #ffcc00;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.featureLink:hover {
-  gap: 15px;
-  color: #ff9900;
-}
-
-/* Swiper Section */
-.swiper {
-  width: 100%;
-  height: 500px;
-}
-
-.swiperSlide {
-  width: 100%;
-  height: 100%;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
   position: relative;
-}
-
-.swiperImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.slideOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
   z-index: 1;
 }
 
-.slideContent {
+.featureIconContainer::before {
+  content: '';
   position: absolute;
-  bottom: 60px;
-  left: 60px;
-  color: white;
-  z-index: 2;
-  max-width: 500px;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0.2;
+  animation: pulse 2s infinite;
 }
 
-.slideTitle {
+.featureIconContainer i {
   font-size: 2.5rem;
+  color: #ffffff;
+}
+
+.featureTitle {
   font-weight: 700;
-  margin-bottom: 15px;
-  text-transform: uppercase;
+  font-size: 1.4rem;
+  color: #333;
+  margin-bottom: 1rem;
 }
 
-.slideDescription {
-  font-size: 1.1rem;
-  margin-bottom: 20px;
+.featureDescription {
+  font-size: 1rem;
+  color: #666;
   line-height: 1.6;
+  margin-bottom: 1.5rem;
 }
 
-.slideButton {
-  padding: 12px 30px;
-  background-color: white;
-  color: black;
+.featureButton {
+  margin-top: auto;
+  background-color: #003366;
+  color: #fff;
   border: none;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.875rem 2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  align-self: center;
 }
 
-.slideButton:hover {
+.featureButton:hover {
+  background-color: #002855;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.serviceIndicators {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.serviceIndicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.activeIndicator {
+  width: 30px;
+  height: 12px;
+  border-radius: 10px;
+  background-color: #003366;
+}
+
+/* Exchange/Categories Section */
+.exchangeSection {
+  background-color: #f8f9fa;
+  padding: 5rem 5%;
+  position: relative;
+}
+
+.exchangeContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.legalCategoriesSwiper {
+  padding-bottom: 4rem;
+  overflow: visible;
+}
+
+.legalCategorySlide {
+  height: auto;
+  transition: all 0.4s ease;
+}
+
+.legalCategoryCard {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  margin: 1rem;
+  min-height: 280px;
+  height: 100%;
+}
+
+.legalCategoryCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.categoryIcon {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+
+.categoryIcon i {
+  font-size: 1.75rem;
+  color: #ffffff;
+}
+
+.categoryContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.categoryTitle {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #333;
+  margin-bottom: 0.75rem;
+}
+
+.categoryDescription {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+/* Card Feature Section */
+.cardFeatureSection {
+  padding: 5rem 5%;
+  background-color: #ffffff;
+}
+
+.cardFeatureContainer {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 5%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.cardImageContainer {
+  flex: 1;
+  position: relative;
+}
+
+.cardImage {
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.cardContent {
+  flex: 1;
+  padding: 2rem 0;
+}
+
+.cardTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.cardDescription {
+  font-size: 1.125rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.cardFeatureList {
+  margin-bottom: 2.5rem;
+}
+
+.cardFeatureList li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  color: #333;
+}
+
+.cardFeatureList li i {
+  color: #ffcc00;
+  margin-right: 1rem;
+  font-size: 1.25rem;
+}
+
+.cardButton {
+  background-color: #003366;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cardButton:hover {
+  background-color: #002855;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Testimonials Section */
+.testimonialsSection {
+  background-color: #f8f9fa;
+  padding: 5rem 5%;
+}
+
+.testimonialsSwiper {
+  padding: 2rem 1rem 4rem;
+  margin-bottom: 2rem;
+  overflow: visible;
+}
+
+.testimonialSlide {
+  height: auto;
+  opacity: 0.7;
+  transform: scale(0.9);
+  transition: all 0.4s ease;
+}
+
+.swiper-slide-active.testimonialSlide {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.testimonialCard {
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  height: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.testimonialCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.testimonialHeader {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+}
+
+.testimonialAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+}
+
+.testimonialInfo {
+  flex: 1;
+}
+
+.testimonialName {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.testimonialRole {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.testimonialContent {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.testimonialRating {
+  color: #ffcc00;
+  font-size: 1.125rem;
+}
+
+.testimonialQuote {
+  font-size: 2rem;
+  color: #ffcc00;
+  opacity: 0.6;
+  margin-bottom: 1rem;
+}
+
+.featureIconWrapper {
+  height: 80px;
+  width: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2.5rem;
+}
+
+.featureIcon {
+  font-size: 2rem;
+  color: white;
+}
+
+/* Get Started Section */
+.getStartedSection {
+  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
+  padding: 5rem 5%;
+  text-align: center;
+  color: #fff;
+}
+
+.getStartedContent {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.getStartedTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.getStartedDescription {
+  font-size: 1.25rem;
+  margin-bottom: 2.5rem;
+  opacity: 0.9;
+}
+
+.getStartedButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.registerButton {
   background-color: #ffcc00;
+  color: #333;
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 1rem 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.registerButton:hover {
+  background-color: #ffd700;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.loginButton {
+  background-color: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 1rem 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.loginButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.appLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.appLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-weight: 500;
+  font-size: 1rem;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.appLink:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.appLink i {
+  font-size: 1.25rem;
+}
+
+/* Awards Section */
+.awardsSection {
+  background-color: #fff;
+  padding: 3rem 5%;
+  border-top: 1px solid #f0f0f0;
+}
+
+.awardContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.award {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.award i {
+  font-size: 1.5rem;
+  color: #ffcc00;
 }
 
 /* Animations */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+}
+
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Media Queries */
-@media (max-width: 992px) {
-  .heroTitle {
-    font-size: 4rem;
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .heroTitlePrimary {
+    font-size: 2.5rem;
   }
   
+  .cardFeatureContainer {
+    flex-direction: column;
+  }
+  
+  .cardImageContainer, 
+  .cardContent {
+    flex: none;
+    width: 100%;
+  }
+  
+  .cardImageContainer {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .heroSection {
+    padding-top: 5rem;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .heroContent {
+    margin: 0 auto;
+    text-align: center;
+    padding: 2rem 0;
+  }
+  
+  .appPreviewContainer {
+    position: relative;
+    right: auto;
+    width: 90%;
+    max-width: 500px;
+    margin: 2rem auto;
+  }
+
   .heroStats {
     flex-wrap: wrap;
-    gap: 20px;
+    justify-content: center;
+    gap: 1.5rem;
   }
-  
+
   .statItem {
-    width: 45%;
+    width: 40%;
   }
 }
 
 @media (max-width: 768px) {
-  .heroTitle {
-    font-size: 3rem;
+  .heroTitlePrimary {
+    font-size: 2rem;
   }
   
   .heroBtnGroup {
     flex-direction: column;
-    width: 100%;
-    max-width: 300px;
+    gap: 1rem;
   }
   
-  .trustDetailSection,
-  .featuresSection {
-    padding: 60px 20px;
+  .getStartedButtons {
+    flex-direction: column;
+    gap: 1rem;
   }
   
-  .featureGrid {
-    grid-template-columns: 1fr;
+  .award {
+    flex-basis: 45%;
+    justify-content: center;
   }
-  
-  .slideContent {
-    bottom: 30px;
-    left: 30px;
+
+  .heroStats {
+    padding: 1rem;
   }
-  
-  .slideTitle {
-    font-size: 1.8rem;
-  }
-  
+
   .statItem {
     width: 100%;
+  }
+
+  .statNumber {
+    font-size: 1.5rem;
+  }
+
+  .featureSwiper {
+    max-width: 90%;
+  }
+  
+  .navArrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .serviceIndicator {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .activeIndicator {
+    width: 25px;
+    height: 10px;
+  }
+
+  .legalCategoryCard {
+    min-height: 240px;
+  }
+  
+  .testimonialCard {
+    min-height: 240px;
+  }
+  
+  .categoryControls, 
+  .testimonialControls {
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .primaryButton, 
+  .outlineButton, 
+  .registerButton, 
+  .loginButton {
+    width: 100%;
+  }
+  
+  .sectionTitle {
+    font-size: 2rem;
+  }
+  
+  .cardTitle {
+    font-size: 2rem;
+  }
+  
+  .appLinks {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .heroStats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .legalCategoryCard {
+    min-height: 200px;
+  }
+}
+
+/* Cập nhật kiểu dáng cho lĩnh vực pháp lý */
+.categoryControls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.categoryButton {
+  background-color: transparent;
+  border: 1px solid #003366;
+  color: #003366;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-top: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
+
+.categoryButton:hover {
+  background-color: #003366;
+  color: white;
+}
+
+/* Cập nhật cho phần testimonials */
+.testimonialControls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.testimonialCard {
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  height: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.testimonialHeader {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+}
+
+.testimonialQuote {
+  font-size: 2rem;
+  color: #ffcc00;
+  opacity: 0.6;
+  margin-bottom: 1rem;
+}
+
+.featureIconWrapper {
+  height: 80px;
+  width: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2.5rem;
+}
+
+.featureIcon {
+  font-size: 2rem;
+  color: white;
+}
+
+/* Đảm bảo các thành phần có độ cao đồng đều */
+.featureSwiperSlide {
+  height: auto;
+}
+
+.featureCard {
+  background: linear-gradient(135deg, #2193b0, #6dd5ed);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  height: 100%;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.featureCard h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.featureCard p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .legalCategoryCard {
+    min-height: 240px;
+  }
+  
+  .testimonialCard {
+    min-height: 240px;
+  }
+  
+  .categoryControls, 
+  .testimonialControls {
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+  
+  .navArrow {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 576px) {
+  .legalCategoryCard {
+    min-height: 200px;
   }
 } 
