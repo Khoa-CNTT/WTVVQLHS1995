@@ -5,7 +5,30 @@
 
 ## Công Nghệ Sử Dụng
 
-![ReactJS](https://img.shields.io/badge/ReactJS-61DAFB?logo=react&logoColor=white&style=flat-square) ![NodeJS](https://img.shields.io/badge/NodeJS-339933?logo=nodedotjs&logoColor=white&style=flat-square) ![ExpressJS](https://img.shields.io/badge/ExpressJS-000000?logo=express&logoColor=white&style=flat-square) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=flat-square) ![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white&style=flat-square) ![Rasa](https://img.shields.io/badge/Rasa-5A17B2?logo=rasa&logoColor=white&style=flat-square) ![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white&style=flat-square) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=flat-square) ![GitHub](https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white&style=flat-square)
+### Frontend
+![ReactJS](https://img.shields.io/badge/ReactJS-61DAFB?logo=react&logoColor=white&style=flat-square) 
+![ViteJS](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white&style=flat-square) 
+![React Router](https://img.shields.io/badge/React_Router-CA4245?logo=react-router&logoColor=white&style=flat-square) 
+![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white&style=flat-square)
+![CSS Modules](https://img.shields.io/badge/CSS_Modules-000000?logo=css3&logoColor=white&style=flat-square)
+![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white&style=flat-square)
+
+### Backend
+![NodeJS](https://img.shields.io/badge/NodeJS-339933?logo=nodedotjs&logoColor=white&style=flat-square)
+![ExpressJS](https://img.shields.io/badge/ExpressJS-000000?logo=express&logoColor=white&style=flat-square)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white&style=flat-square)
+![Nodemailer](https://img.shields.io/badge/Nodemailer-22B573?logo=gmail&logoColor=white&style=flat-square)
+![Bcrypt](https://img.shields.io/badge/Bcrypt-003A70?logo=lock&logoColor=white&style=flat-square)
+
+### DevOps & Tools
+![Git](https://img.shields.io/badge/Git-F05032?logo=git&logoColor=white&style=flat-square)
+![GitHub](https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white&style=flat-square)
+![Postman](https://img.shields.io/badge/Postman-FF6C37?logo=postman&logoColor=white&style=flat-square)
+![VSCode](https://img.shields.io/badge/VSCode-007ACC?logo=visualstudiocode&logoColor=white&style=flat-square)
+
+### AI & Search (Đang Triển Khai)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white&style=flat-square)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white&style=flat-square)
 
 ---
 
@@ -15,8 +38,119 @@
 
 - **Tên dự án**: Website Tư Vấn và Quản Lý Hồ Sơ Pháp Lý Tích Hợp AI Để Nâng Cao Hiệu Quả Tra Cứu  
 - **Mã dự án**: LegAI  
-- **Thời gian thực hiện**: 17/03/2025 - 15/05/2025  
+- **Thời gian thực hiện**: 17/03/2023 - 15/05/2023  
 - **Đơn vị thực hiện**: Khoa Công nghệ Thông tin - Đại học Duy Tân  
+
+---
+
+## Tiến Độ Dự Án Hiện Tại
+
+### Giai Đoạn Hiện Tại: Sprint 3/5 (67% hoàn thành)
+
+#### Đã Hoàn Thành:
+- ✅ **Database**: Thiết kế và triển khai cơ sở dữ liệu PostgreSQL với 12 bảng tích hợp ràng buộc khóa ngoại
+- ✅ **Backend API**: 
+  - Hệ thống xác thực JWT và quản lý phiên làm việc
+  - API đăng ký, đăng nhập, quên mật khẩu
+  - Endpoints quản lý thông tin người dùng
+  - API quản lý cuộc hẹn giữa khách hàng và luật sư
+  - Hệ thống gửi email tự động với Nodemailer (8 template khác nhau)
+- ✅ **Frontend**: 
+  - Các trang: Trang chủ, Đăng nhập/Đăng ký, Danh sách luật sư, Chi tiết luật sư
+  - Trang profile người dùng với chức năng cập nhật thông tin, đổi avatar
+  - Form đặt lịch hẹn với luật sư
+  - Giao diện quản lý lịch hẹn cho khách hàng
+  - Giao diện quản lý lịch hẹn cho luật sư
+  - Form liên hệ với hệ thống gửi email tự động
+- ✅ **Security**: 
+  - Mã hóa mật khẩu với bcrypt
+  - Xác thực email OTP
+  - Bảo vệ route với middleware kiểm tra JWT
+
+#### Đang Triển Khai (Sprint 1): 
+- 🔄 **Chat System**:
+  - Giao diện chat giữa khách hàng và luật sư (pass)
+  - Tích hợp Socket.IO cho giao tiếp thời gian thực
+  - Lưu trữ lịch sử chat vào cơ sở dữ liệu (pass)
+  - Thông báo tin nhắn mới (process)
+- 🔄 **Document Management**:
+  - Tải lên và lưu trữ tài liệu pháp lý
+  - Phân loại tài liệu theo loại và người dùng
+  - API quản lý quyền truy cập tài liệu
+  - Xem và tải xuống tài liệu
+- 🔄 **Admin Dashboard**:
+  - Giao diện quản lý người dùng(pass)
+  - Thống kê cơ bản về lịch hẹn và người dùng (pass)
+  - Quản lý danh sách luật sư
+
+#### Sắp Triển Khai (Sprint 2):
+- ⏳ **AI Integration**:
+  - Tích hợp OpenAI API cho tư vấn cơ bản
+  - Tích hợp Elasticsearch cho tìm kiếm văn bản pháp luật
+  - Phân loại tài liệu tự động dựa trên nội dung
+- ⏳ **Payment System**:
+  - Tích hợp cổng thanh toán (VNPAY/MoMo)
+  - Quản lý hóa đơn và lịch sử thanh toán
+  - Khuyến mãi và mã giảm giá
+- ⏳ **Contract Management**:
+  - Tạo hợp đồng từ template
+  - Quản lý trạng thái hợp đồng
+  - Tạo PDF cho hợp đồng
+
+---
+
+## Chi Tiết Công Nghệ
+
+### Frontend
+- **ReactJS**: Framework JavaScript cho phát triển giao diện người dùng
+- **Vite**: Công cụ build nhanh, thay thế cho Create React App
+- **React Router v6**: Quản lý định tuyến trong ứng dụng React
+- **Axios**: Thư viện HTTP client để gọi API
+- **CSS Modules**: Tổ chức và scope CSS cho component
+- **react-toastify**: Hiển thị thông báo và cảnh báo
+- **date-fns**: Xử lý định dạng ngày tháng
+- **jwt-decode**: Giải mã token JWT ở client
+- **react-icons**: Thư viện icon cho giao diện
+
+### Backend
+- **Node.js**: Môi trường runtime JavaScript phía server
+- **Express.js**: Web framework cho Node.js
+- **PostgreSQL**: Hệ quản trị cơ sở dữ liệu quan hệ
+- **Nodemailer**: Thư viện gửi email từ Node.js
+- **Bcrypt**: Mã hóa mật khẩu
+- **JWT**: JSON Web Token cho xác thực
+- **Multer**: Xử lý upload file
+- **pg-promise**: Thư viện kết nối PostgreSQL với Node.js
+- **cors**: Middleware xử lý Cross-Origin Resource Sharing
+- **dotenv**: Quản lý biến môi trường
+
+### DevOps
+- **Git & GitHub**: Quản lý phiên bản và cộng tác
+- **ESLint**: Linting JavaScript code
+- **Prettier**: Format code
+- **Postman**: Testing API endpoints
+
+---
+
+## Vấn Đề Hiện Tại và Kế Hoạch Khắc Phục
+
+### Vấn Đề Đã Xác Định:
+1. **UI/UX trên thiết bị di động**: Một số trang chưa hiển thị tốt trên màn hình nhỏ
+   - **Kế hoạch**: Áp dụng Media Queries và thiết kế responsive cho tất cả các trang
+   - **Deadline**: Sprint 3 (đang thực hiện)
+
+2. **Hiệu suất tải trang**: Một số trang có thời gian tải lâu
+   - **Kế hoạch**: Tối ưu hóa việc tải hình ảnh, sử dụng lazy loading, và cải thiện tối ưu hóa bundle
+   - **Deadline**: Sprint 4
+
+3. **Lỗi import trong một số module**: Phát hiện lỗi import trong AppointmentsPage.jsx
+   - **Kế hoạch**: Đã sửa lỗi import authService, cần kiểm tra lại tất cả các file
+   - **Deadline**: Sprint 3 (đã hoàn thành một phần)
+
+### Kế Hoạch Tối Ưu Hóa:
+1. **Cải thiện SEO**: Thêm metadata và cấu trúc dữ liệu có cấu trúc
+2. **Thực hiện testing**: Viết unit tests và integration tests
+3. **Triển khai CI/CD**: Cài đặt GitHub Actions cho tự động hóa quy trình
 
 ---
 
@@ -106,51 +240,12 @@ LegAI/
 
 ---
 
-## .gitignore
-
-```
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-build/
-
-# Environment variables
-.env
-.env.local
-.env.development
-.env.production
-
-# Logs
-*.log
-npm-debug.log*
-
-# IDE files
-.vscode/
-.idea/
-
-# OS generated files
-.DS_Store
-Thumbs.db
-```
-
----
-
-## Chiến Lược Branching trên GitHub
-
-- **main**: Nhánh chính, chứa code ổn định, sẵn sàng triển khai.  
-- **develop**: Nhánh tích hợp, chứa code từ các tính năng đã hoàn thiện để kiểm tra trước khi merge vào `main`.  
-- **feature/[tên-tính-năng]**: Nhánh tạm thời cho từng tính năng (ví dụ: `feature/chatbot-ai`).  
-- **bugfix/[mô-tả-lỗi]**: Nhánh sửa lỗi (ví dụ: `bugfix/login-error`).  
-
----
-
 ## Hướng Dẫn Cài Đặt
 
 ### Yêu Cầu Hệ Thống
 - Hệ điều hành: Windows 10+, Ubuntu 20.04+, hoặc MacOS 12+  
-- Phần mềm: NodeJS (v18+), Python 3.9+, PostgreSQL 14+, Docker  
+- Phần mềm: NodeJS (v16+), PostgreSQL 14+  
+- NPM (v8+) hoặc PNPM (v7+)  
 - Kết nối Internet  
 
 ### Các Bước Cài Đặt
@@ -161,79 +256,76 @@ git clone https://github.com/your-team/legai.git
 cd legai
 ```
 
-#### 2. Cài Đặt Frontend
+#### 2. Cài Đặt Backend
 ```bash
-cd frontend
+cd Backend
 npm install
-npm run build
+
+# Tạo file .env từ mẫu
+cp .env.example .env
+
+# Cập nhật thông tin cấu hình trong .env
+# PORT=8000
+# DB_HOST=localhost
+# DB_USER=your_user
+# DB_PASSWORD=your_password
+# DB_NAME=legai_db
+# DB_PORT=5432
+# JWT_SECRET=your_secret_key
+# MAIL_HOST=smtp.gmail.com
+# MAIL_PORT=587
+# MAIL_USER=your-email@gmail.com
+# MAIL_PASS=your-app-password
+# MAIL_FROM=LegAI <your-email@gmail.com>
+# ADMIN_EMAIL=admin@legai.vn
+
+# Khởi tạo cơ sở dữ liệu
+npm run migrate
+npm run seed  # tùy chọn, tạo dữ liệu mẫu
+
+# Khởi chạy ở chế độ development
+npm run dev
 ```
 
-- **Cấu hình môi trường**: Tạo file `.env` trong `frontend/`:
-  ```
-  VITE_API_URL=http://localhost:5000/api
-  VITE_CHATBOT_URL=http://localhost:5005
-  ```
-
-#### 3. Cài Đặt Backend
+#### 3. Cài Đặt Frontend
 ```bash
-cd ../backend
+cd ../Frontend
 npm install
+
+# Tạo file .env từ mẫu
+cp .env.example .env
+
+# Cập nhật biến môi trường trong .env
+# VITE_API_URL=http://localhost:8000/api
+# VITE_UPLOAD_URL=http://localhost:8000/uploads
+
+# Khởi chạy ở chế độ development
+npm run dev
 ```
 
-- **Cấu hình môi trường**: Tạo file `.env` trong `backend/`:
-  ```
-  PORT=5000
-  DB_HOST=localhost
-  DB_USER=your_user
-  DB_PASSWORD=your_password
-  DB_NAME=legai_db
-  DB_PORT=5432
-  JWT_SECRET=your_jwt_secret
-  ```
-
-- **Khởi tạo database**:
-  ```bash
-  psql -U your_user -c "CREATE DATABASE legai_db;"
-  npm run migrate
-  ```
-
-#### 4. Cài Đặt Chatbot AI (Rasa)
-```bash
-cd ../ai
-pip install rasa
-rasa train
-```
-
-#### 5. Chạy Elasticsearch với Docker
-```bash
-docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 \
-  -e "discovery.type=single-node" elasticsearch:8.5.0
-```
-
-#### 6. Chạy Ứng Dụng
-- **Frontend**: `cd frontend && npm run dev`  
-- **Backend**: `cd backend && npm run dev`  
-- **Chatbot**: `cd ai && rasa run --enable-api`  
-
-#### 7. Truy Cập
-- Frontend: `http://localhost:5173` (Vite default port)  
-- Backend API: `http://localhost:5000/api`  
-- Chatbot: `http://localhost:5005`  
-- Elasticsearch: `http://localhost:9200`  
+#### 4. Truy Cập Ứng Dụng
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000/api`
+- API Documentation: `http://localhost:8000/api-docs` (nếu đã cài đặt Swagger)
 
 ---
 
-## Thành Viên Nhóm
+## Đóng Góp và Phát Triển
+Xem [CONTRIBUTING.md](CONTRIBUTING.md) để biết cách đóng góp vào dự án.
 
-| Họ Tên                | Mã Sinh Viên   | Vai Trò           | Email                    | Số Điện Thoại   |
-|-----------------------|----------------|-------------------|--------------------------|-----------------|
-| **Huỳnh Văn Quý**     | 27211201995    | Scrum Master      | huynhquy674@gmail.com    | 0354459574      |
-| **Phạm Minh Quân**    | 27211202256    | Product Owner     | minhquan151023@gmail.com | 0395316109      |
-| **Trần Kim Thịnh**    | 27211235618    | Team Member       | trankimthinh23@gmail.com | 0384160548      |
-| **Lê Hoàng Phúc**     | 27211202366    | Team Member       | lonis0405@gmail.com      | 0347589055      |
-| **Nguyễn Ngọc Kỳ Phương** | 27204321839 | Team Member       | kingkuty724@gmail.com    | 0905141089      |
+---
 
-**Giảng viên hướng dẫn**: ThS. Lưu Văn Hiền (luuvanhien@dtu.edu.vn, 0779500029)  
+## Thành Viên Nhóm và Phân Công
+
+| Họ Tên                | Mã Sinh Viên   | Vai Trò           | Phụ Trách                | Thành Tựu                          |
+|-----------------------|----------------|-------------------|--------------------------|-----------------------------------|
+| **Huỳnh Văn Quý**     | 27211201995    | Scrum Master      | Backend, Database        | API Endpoints, Database Schema     |
+| **Phạm Minh Quân**    | 27211202256    | Product Owner     | Frontend, UI/UX          | React Components, Responsive Design|
+| **Trần Kim Thịnh**    | 27211235618    | Developer         | Email System, Frontend,Database   | Email Templates, UI Components     |
+| **Lê Hoàng Phúc**     | 27211202366    | Developer         | Backend, API             | Authentication, File Upload Logic  |
+| **Nguyễn Ngọc Kỳ Phương** | 27204321839 | Developer       | Testing, Documentation   | Bug Fixes, Documentation           |
+
+**Giảng viên hướng dẫn**: ThS. Lưu Văn Hiền (luuvanhien@dtu.edu.vn, 0779800029)  
 
 ---
 
@@ -245,8 +337,10 @@ Dự án sử dụng **MIT License**. Xem file `LICENSE` để biết thêm chi 
 
 ## Liên Hệ
 
-- **Người liên hệ**: Trần Kim Thịnh  
-- **Email**: trankimthinh23@gmail.com  
-- **Số điện thoại**: 0384160548  
+- **GitHub Repository**: [github.com/your-team/legai](https://github.com/your-team/legai)  
+- **Email Dự Án**: legai.project@gmail.com  
+- **Người Liên Hệ Chính**: Trần Kim Thịnh, trankimthinh23@gmail.com, 0384160548  
 
-Cảm ơn bạn đã quan tâm đến **LegAI**!
+---
+
+Cập nhật cuối: 20/04/2023
