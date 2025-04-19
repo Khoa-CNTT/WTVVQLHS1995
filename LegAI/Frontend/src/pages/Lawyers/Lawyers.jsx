@@ -304,7 +304,7 @@ function Lawyers() {
             <div className={styles.starRating}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <i
-                  key={star}
+                  key={`review-star-${selectedLawyer.id}-${star}`}
                   className={`fas fa-star ${star <= userRating ? styles.selected : ''}`}
                   onClick={() => setUserRating(star)}
                 ></i>
@@ -381,7 +381,7 @@ function Lawyers() {
                           ? lawyer.specialization.split(',')
                           : lawyer.specialization || []
                         ).slice(0, 2).map((specialty, index) => (
-                          <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                          <span key={`${lawyer.id}-specialty-${index}`} className={styles.specialtyTag}>{specialty}</span>
                         ))}
                       </div>
                       <div className={styles.experience}>
@@ -393,7 +393,7 @@ function Lawyers() {
                       <div className={styles.rating}>
                         <div className={styles.stars}>
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
+                            <i key={`lawyer-star-${lawyer.id}-${star}`} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
                           ))}
                         </div>
                         <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
@@ -474,7 +474,7 @@ function Lawyers() {
                         <div className={styles.rating}>
                           <div className={styles.stars}>
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
+                              <i key={`card-star-${lawyer.id}-${star}`} className={`fas fa-star ${star <= Math.round(parseFloat(lawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
                             ))}
                           </div>
                           <span>{parseFloat(lawyer.rating || 0).toFixed(1)}</span>
@@ -484,7 +484,7 @@ function Lawyers() {
                             ? lawyer.specialization.split(',')
                             : lawyer.specialization || []
                           ).slice(0, 2).map((specialty, index) => (
-                            <span key={index} className={styles.specialtyTag}>{specialty}</span>
+                            <span key={`${lawyer.id}-specialty-${index}`} className={styles.specialtyTag}>{specialty}</span>
                           ))}
                           {(lawyer.specialization &&
                             ((typeof lawyer.specialization === 'string'
@@ -572,7 +572,7 @@ function Lawyers() {
                     <div className={styles.ratingDetail}>
                       <div className={styles.stars}>
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <i key={star} className={`fas fa-star ${star <= Math.round(parseFloat(selectedLawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
+                          <i key={`detail-star-${selectedLawyer.id}-${star}`} className={`fas fa-star ${star <= Math.round(parseFloat(selectedLawyer.rating || 0)) ? styles.filled : styles.empty}`}></i>
                         ))}
                       </div>
                       <span>{parseFloat(selectedLawyer.rating || 0).toFixed(1)} ({selectedLawyer.reviews || 0} đánh giá)</span>
@@ -609,7 +609,7 @@ function Lawyers() {
                       ? selectedLawyer.specialization.split(',')
                       : selectedLawyer.specialization || []
                     ).map((specialty, index) => (
-                      <span key={index} className={styles.specialtyTagLarge}>{specialty}</span>
+                      <span key={`modal-specialty-${index}`} className={styles.specialtyTagLarge}>{specialty}</span>
                     ))}
                   </div>
                 </div>
@@ -624,7 +624,7 @@ function Lawyers() {
                     <h3>Thành tựu nổi bật</h3>
                     <ul className={styles.achievementsList}>
                       {selectedLawyer.achievements.map((achievement, index) => (
-                        <li key={index}>
+                        <li key={`achievement-${index}`}>
                           <i className="fas fa-trophy"></i>
                           <span>{achievement}</span>
                         </li>
@@ -641,21 +641,11 @@ function Lawyers() {
         )}
 
         {showAppointmentModal && selectedLawyer && (
-          <div className={styles.modalOverlay}>
-            <div className={`${styles.modal} ${styles.appointmentModal}`}>
-              <button 
-                className={styles.closeButton} 
-                onClick={() => setShowAppointmentModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-              <AppointmentForm 
-                lawyer={selectedLawyer} 
-                onClose={() => setShowAppointmentModal(false)}
-                onSuccess={handleAppointmentSuccess}
-              />
-            </div>
-          </div>
+          <AppointmentForm 
+            lawyer={selectedLawyer} 
+            onClose={() => setShowAppointmentModal(false)}
+            onSuccess={handleAppointmentSuccess}
+          />
         )}
 
         {/* CTA Section */}

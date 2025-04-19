@@ -293,6 +293,9 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h3>Đặt lịch hẹn với {lawyer.full_name}</h3>
+          <button onClick={onClose} className={styles.closeButton}>
+            <i className="fas fa-times"></i>
+          </button>
         </div>
 
         {!isLoggedIn ? (
@@ -309,14 +312,13 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
           </div>
         ) : error ? (
           <div className={styles.errorMessage}>
-            <i style={{cursor: 'pointer'}} onClick={onClose} className="fas fa-times"></i>
             <i className="fas fa-exclamation-circle"></i> {error}
           </div>
         ) : availableDates.length === 0 ? (
           <div className={styles.noAvailabilityWarning}>
             <i className="fas fa-calendar-times"></i>
             <p>Hiện tại luật sư chưa có lịch trống nào</p>
-                <i style={{cursor: 'pointer'}} onClick={onClose} className="fas fa-times"></i>
+
           </div>
         ) : (
           <form onSubmit={handleSubmit} className={styles.appointmentForm}>

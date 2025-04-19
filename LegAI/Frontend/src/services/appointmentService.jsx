@@ -29,7 +29,6 @@ const createAppointment = async (appointmentData) => {
       };
     }
 
-    console.log('createAppointment - Dữ liệu đầu vào:', appointmentData);
 
     // Chuẩn bị dữ liệu cho appointment
     const appointment = {
@@ -42,7 +41,6 @@ const createAppointment = async (appointmentData) => {
       notes: appointmentData.notes || ''
     };
 
-    console.log('Gửi dữ liệu tạo lịch hẹn:', appointment);
 
     // Tạo cuộc hẹn mới
     try {
@@ -52,7 +50,6 @@ const createAppointment = async (appointmentData) => {
         { headers: getHeaders() }
       );
 
-      console.log('Phản hồi từ API khi tạo lịch hẹn:', response.data);
   
       // Kiểm tra phản hồi
       if (response.data) {
@@ -145,13 +142,11 @@ const getAppointments = async (status = null) => {
     const currentUser = JSON.parse(localStorage.getItem('user')) || {};
     const isLawyer = currentUser.role?.toLowerCase() === 'lawyer';
     
-    console.log(`Lấy lịch hẹn với vai trò: ${isLawyer ? 'luật sư' : 'khách hàng'}, ID: ${currentUser.id}`);
     
     const url = status ? 
       `${API_URL}/appointments?status=${status}` : 
       `${API_URL}/appointments`;
     
-    console.log(`Gọi API: ${url}`);
     const response = await axios.get(url, { headers: getHeaders() });
     
     if (!response.data) {
@@ -159,7 +154,6 @@ const getAppointments = async (status = null) => {
       throw new Error('Không thể lấy danh sách lịch hẹn');
     }
 
-    console.log(`Nhận được ${response.data.data?.length || 0} lịch hẹn từ API`);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy danh sách lịch hẹn:', error);
@@ -234,7 +228,6 @@ const cancelAppointment = async (id, reason = '') => {
 
     // Đảm bảo reason luôn là string
     const cancelReason = reason ? String(reason) : '';
-    console.log(`Huỷ lịch hẹn ID ${id} với lý do: "${cancelReason}"`);
 
     const response = await axios.delete(
       `${API_URL}/appointments/${id}`, 
@@ -257,7 +250,6 @@ const cancelAppointment = async (id, reason = '') => {
       return response.data;
     }
     
-    console.log('Huỷ lịch hẹn thành công');
     return response.data;
   } catch (error) {
     console.error('Lỗi ngoại lệ khi huỷ lịch hẹn:', error);
@@ -289,33 +281,31 @@ const getLawyerAvailability = async (lawyerId) => {
       };
     }
 
-    console.log('Đang lấy lịch trống cho luật sư ID:', lawyerId);
     
     const response = await axios.get(
       `${API_URL}/appointments/lawyer/${lawyerId}/availability`,
       { headers: getHeaders() }
     );
 
-    console.log('Phản hồi API getLawyerAvailability:', response.data);
 
     // DEBUG: Kiểm tra chi tiết từng slot trong dữ liệu trả về
-    if (response.data && response.data.data && Array.isArray(response.data.data)) {
-      console.log('DEBUG - Chi tiết các slot từ API:');
-      response.data.data.forEach((slot, index) => {
-        console.log(`Slot #${index + 1} - ID: ${slot.id}`);
-        console.log(`- Status: "${slot.status}"`);
-        console.log(`- Start: ${new Date(slot.start_time).toLocaleString()}`);
-        console.log(`- End: ${new Date(slot.end_time).toLocaleString()}`);
-      });
-    } else if (response.data && Array.isArray(response.data)) {
-      console.log('DEBUG - Chi tiết các slot từ API (direct array):');
-      response.data.forEach((slot, index) => {
-        console.log(`Slot #${index + 1} - ID: ${slot.id}`);
-        console.log(`- Status: "${slot.status}"`);
-        console.log(`- Start: ${new Date(slot.start_time).toLocaleString()}`);
-        console.log(`- End: ${new Date(slot.end_time).toLocaleString()}`);
-      });
-    }
+    // if (response.data && response.data.data && Array.isArray(response.data.data)) {
+    //   console.log('DEBUG - Chi tiết các slot từ API:');
+    //   response.data.data.forEach((slot, index) => {
+    //     console.log(`Slot #${index + 1} - ID: ${slot.id}`);
+    //     console.log(`- Status: "${slot.status}"`);
+    //     console.log(`- Start: ${new Date(slot.start_time).toLocaleString()}`);
+    //     console.log(`- End: ${new Date(slot.end_time).toLocaleString()}`);
+    //   });
+    // } else if (response.data && Array.isArray(response.data)) {
+    //   console.log('DEBUG - Chi tiết các slot từ API (direct array):');
+    //   response.data.forEach((slot, index) => {
+    //     console.log(`Slot #${index + 1} - ID: ${slot.id}`);
+    //     console.log(`- Status: "${slot.status}"`);
+    //     console.log(`- Start: ${new Date(slot.start_time).toLocaleString()}`);
+    //     console.log(`- End: ${new Date(slot.end_time).toLocaleString()}`);
+    //   });
+    // }
 
     // Kiểm tra và chuẩn hóa phản hồi
     if (response.data) {
@@ -397,7 +387,6 @@ export const addAvailability = async (availabilityData) => {
 
     // Kiểm tra xem có slot trùng không
     const existingSlots = await getLawyerAvailability(availabilityData.lawyer_id);
-    console.log('Lịch trống hiện tại khi kiểm tra trùng lặp:', existingSlots);
     
     // Chỉ kiểm tra nếu có dữ liệu
     if (existingSlots && existingSlots.status === 'success' && Array.isArray(existingSlots.data) && existingSlots.data.length > 0) {
@@ -415,14 +404,12 @@ export const addAvailability = async (availabilityData) => {
       }
     }
 
-    console.log('Gửi dữ liệu thêm lịch trống:', dataToSend);
     const response = await axios.post(
       `${API_URL}/appointments/availability`,
       dataToSend,
       { headers: getHeaders() }
     );
     
-    console.log('Phản hồi khi thêm lịch trống:', response.data);
 
     // Xử lý phản hồi với nhiều trường hợp khác nhau
     if (response.data) {
@@ -569,8 +556,6 @@ const adjustTimeForVietnamTimezone = (dateTimeString) => {
   const vietnamDate = new Date(utcDate);
   vietnamDate.setHours(vietnamDate.getHours() + offsetHours);
   
-  console.log(`Thời gian gốc: ${dateTimeString}`);
-  console.log(`Thời gian Việt Nam: ${vietnamDate.toISOString()}`);
   
   // Trả về chuỗi ISO để lưu vào database
   return vietnamDate.toISOString();

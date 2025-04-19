@@ -16,7 +16,7 @@
   position: relative;
   height: 50vh;
   min-height: 300px;
-  background-image: url("https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop");
+  background-image: linear-gradient(135deg, #003366 0%, #001f3f 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -24,6 +24,7 @@
   justify-content: center;
   text-align: center;
   color: white;
+  overflow: hidden;
 }
 
 .bannerOverlay {
@@ -32,7 +33,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+  background: linear-gradient(to right, rgba(0, 31, 63, 0.8), rgba(0, 51, 102, 0.6));
   z-index: 1;
 }
 
@@ -50,12 +51,15 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   animation: fadeIn 1s ease;
+  color: #ffffff;
+  margin-top: 100px;
 }
 
 .banner p {
   font-size: 1.2rem;
   line-height: 1.6;
   animation: slideUp 1.2s ease;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Section Header */
@@ -70,12 +74,13 @@
   color: #333;
   margin-bottom: 15px;
   text-transform: uppercase;
+  position: relative;
 }
 
 .titleBar {
   width: 80px;
   height: 4px;
-  background: linear-gradient(to right, #ffcc00, #ff9900);
+  background: linear-gradient(to right, #003366, #001f3f);
   margin: 0 auto 15px;
 }
 
@@ -100,7 +105,7 @@
 
 .featuredCard {
   background-color: white;
-  border-radius: 10px;
+  border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -136,7 +141,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  background: linear-gradient(to top, rgba(0, 31, 63, 0.8), transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,7 +158,7 @@
   background-color: #ffcc00;
   color: #333;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -161,7 +166,7 @@
 }
 
 .viewProfileButton:hover {
-  background-color: #ff9900;
+  background-color: #ffd700;
   transform: scale(1.05);
 }
 
@@ -238,7 +243,7 @@
 /* Search Section */
 .searchSection {
   padding: 50px 0;
-  background-color: #f8f8f8;
+  background-color: #f8f9fa;
 }
 
 .searchContainer {
@@ -264,7 +269,7 @@
 
 .searchBox input:focus {
   outline: none;
-  border-color: #ffcc00;
+  border-color: #003366;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -290,9 +295,10 @@
 }
 
 .clearButton:hover {
-  color: #ff9900;
+  color: #003366;
 }
 
+/* Specialty Tabs */
 .specialtyTabs {
   display: flex;
   justify-content: center;
@@ -313,14 +319,14 @@
 }
 
 .specialtyTab:hover {
-  border-color: #ffcc00;
-  color: #ffcc00;
+  border-color: #003366;
+  color: #003366;
 }
 
 .specialtyTab.active {
-  background-color: #ffcc00;
-  border-color: #ffcc00;
-  color: #333;
+  background-color: #003366;
+  border-color: #003366;
+  color: white;
 }
 
 /* Lawyers List */
@@ -337,13 +343,14 @@
 
 .lawyerCard {
   background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  border: 1px solid #f0f0f0;
 }
 
 .lawyerCard:hover {
@@ -399,12 +406,13 @@
   align-items: center;
   margin-top: auto;
   padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .specialtyTagMore {
   padding: 5px 12px;
-  background-color: #ffcc00;
-  color: #333;
+  background-color: #003366;
+  color: white;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 500;
@@ -436,17 +444,18 @@
 
 .noResults button {
   padding: 10px 25px;
-  background-color: #ffcc00;
-  color: #333;
+  background-color: #003366;
+  color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .noResults button:hover {
-  background-color: #ff9900;
+  background-color: #002855;
+  transform: translateY(-2px);
 }
 
 /* Modal */
@@ -469,7 +478,7 @@
   width: 100%;
   max-width: 900px;
   background-color: white;
-  border-radius: 10px;
+  border-radius: 15px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   position: relative;
@@ -478,23 +487,25 @@
 }
 
 .modalHeader {
-  background-color: white;
-  border-bottom: 1px solid #eaeaea;
-  padding: 15px 20px;
+  padding: 18px 25px;
+  border-bottom: 1px solid #f0f0f0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  border-radius: 15px 15px 0 0;
+  z-index: 10;
+  position: relative;
 }
 
 .modalHeader h3 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   color: #333;
   font-weight: 600;
 }
 
 .closeButton {
-  position: fixed;
   background: none;
   border: none;
   color: #666;
@@ -504,21 +515,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  float: right;
   transition: all 0.3s ease;
 }
 
 .closeButton:hover {
-  color: #ffc400;
-  transform: scale(1.3) rotate(360deg);
-  transition: all 0.3s ease;
+  color: #003366;
+  transform: scale(1.2);
 }
 
 .lawyerProfile {
   display: flex;
   gap: 30px;
-  flex: 1;
-  min-width: 300px;
+  padding: 30px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .lawyerProfile img {
@@ -538,7 +547,7 @@
   font-size: 1.8rem;
   font-weight: 700;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .infoItem {
@@ -550,7 +559,7 @@
 }
 
 .infoItem i {
-  color: #ffcc00;
+  color: #003366;
   font-size: 1.1rem;
 }
 
@@ -562,18 +571,18 @@
 }
 
 .lawyerActions {
-  min-width: 300px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 200px;
 }
 
 .appointmentButton {
-  padding: 15px 25px;
-  background-color: #ffcc00;
-  color: #333;
+  padding: 12px 25px;
+  background-color: #003366;
+  color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -585,15 +594,17 @@
 }
 
 .appointmentButton:hover {
-  background-color: #ff9900;
+  background-color: #002855;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .contactInfo {
-  background-color: transparent;
+  background-color: #f8f9fa;
   display: flex;
   gap: 50px;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 15px;
 }
 
 .contactItem {
@@ -604,7 +615,7 @@
 }
 
 .contactItem i {
-  color: #ffcc00;
+  color: #003366;
 }
 
 .contactItem a {
@@ -614,11 +625,11 @@
 }
 
 .contactItem a:hover {
-  color: #ffcc00;
+  color: #003366;
 }
 
 .modalBody {
-  padding: 40px;
+  padding: 30px;
 }
 
 .specialtySection,
@@ -634,7 +645,7 @@
   font-weight: 700;
   color: #333;
   margin-bottom: 15px;
-  border-left: 4px solid #ffcc00;
+  border-left: 4px solid #003366;
   padding-left: 15px;
 }
 
@@ -671,8 +682,9 @@
   gap: 15px;
   padding: 15px;
   background-color: #f9f9f9;
-  border-radius: 10px;
+  border-radius: 15px;
   margin-bottom: 15px;
+  border: 1px solid #f0f0f0;
 }
 
 .achievementsList li:last-child {
@@ -680,7 +692,7 @@
 }
 
 .achievementsList li i {
-  color: #ffcc00;
+  color: #003366;
   font-size: 1.2rem;
   margin-top: 3px;
 }
@@ -694,7 +706,7 @@
 .ctaSection {
   position: relative;
   padding: 100px 0;
-  background-image: url("https://images.unsplash.com/photo-1589391886645-d51c27aff2b6?q=80&w=2070&auto=format&fit=crop");
+  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
   background-size: cover;
   background-position: center;
   color: white;
@@ -707,7 +719,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7));
+  background: rgba(0, 31, 63, 0.7);
   z-index: 1;
 }
 
@@ -727,6 +739,7 @@
 .ctaContent p {
   font-size: 1.2rem;
   margin-bottom: 30px;
+  opacity: 0.9;
 }
 
 .ctaButtons {
@@ -738,7 +751,7 @@
 .primaryButton,
 .secondaryButton {
   padding: 15px 30px;
-  border-radius: 5px;
+  border-radius: 30px;
   font-size: 1rem;
   font-weight: 600;
   display: flex;
@@ -755,8 +768,10 @@
 }
 
 .primaryButton:hover {
-  background-color: #ff9900;
-  border-color: #ff9900;
+  background-color: #ffd700;
+  border-color: #ffd700;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 .secondaryButton {
@@ -767,8 +782,8 @@
 }
 
 .secondaryButton:hover {
-  background-color: white;
-  color: #333;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 /* Animations */
@@ -918,7 +933,7 @@
 /* Phần đánh giá luật sư */
 .reviewSection {
   margin-top: 2rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #f0f0f0;
   padding-top: 2rem;
 }
 
@@ -926,6 +941,9 @@
   margin-bottom: 1.5rem;
   font-size: 1.3rem;
   color: #333;
+  font-weight: 700;
+  border-left: 4px solid #003366;
+  padding-left: 15px;
 }
 
 .reviewForm {
@@ -966,24 +984,25 @@
 .reviewTextarea {
   padding: 1rem;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 15px;
   resize: vertical;
   min-height: 120px;
   font-family: inherit;
   font-size: 0.95rem;
+  transition: all 0.3s ease;
 }
 
 .reviewTextarea:focus {
   outline: none;
-  border-color: #203a43;
-  box-shadow: 0 0 0 1px rgba(32, 58, 67, 0.2);
+  border-color: #003366;
+  box-shadow: 0 0 0 1px rgba(0, 51, 102, 0.2);
 }
 
 .submitReviewButton {
-  background: linear-gradient(to right, #0f2027, #203a43);
+  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 30px;
   padding: 0.8rem 1.5rem;
   font-weight: 600;
   cursor: pointer;
@@ -992,52 +1011,42 @@
 }
 
 .submitReviewButton:hover {
-  background: linear-gradient(to right, #152d35, #2c5364);
+  background: linear-gradient(135deg, #002855 0%, #001a33 100%);
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .submitReviewButton:disabled {
   background: #9e9e9e;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .reviewSuccess {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #2e7d32;
+  background-color: rgba(0, 51, 102, 0.1);
+  color: #003366;
   padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 15px;
+  border: 1px solid rgba(0, 51, 102, 0.3);
   animation: fadeIn 0.4s ease;
 }
 
 .reviewSuccess i {
   font-size: 1.5rem;
-  color: #4caf50;
+  color: #003366;
 }
 
-@media (max-width: 768px) {
-  .ratingSelect {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .submitReviewButton {
-    align-self: stretch;
-  }
-}
-
-/* Thêm CSS cho phần thông báo đăng nhập để đánh giá */
 .loginToReview {
-  padding: 1.2rem;
-  background-color: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 15px;
   text-align: center;
   margin-top: 1rem;
+  border: 1px solid #f0f0f0;
 }
 
 .loginToReview p {
@@ -1046,14 +1055,15 @@
 }
 
 .loginLink {
-  color: #203a43;
+  color: #003366;
   font-weight: 600;
   text-decoration: underline;
   margin: 0 0.3rem;
+  transition: all 0.3s ease;
 }
 
 .loginLink:hover {
-  color: #0f2027;
+  color: #002855;
 }
 
 .topRatedBadge {
@@ -1090,6 +1100,7 @@
     transform: scale(1);
   }
 }
+
 /* Phần phân trang */
 .pagination {
   display: flex;
@@ -1101,39 +1112,38 @@
   color: #333;
 }
 
-/* Nút phân trang (Trước/Sau) */
 .paginationButton {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background-color: #007bff; /* Màu nền nút */
+  padding: 10px 20px;
+  background-color: #003366;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.1s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
-/* Hiệu ứng hover cho nút phân trang */
 .paginationButton:hover {
-  background-color: #0056b3; /* Màu nền khi hover */
-  transform: translateY(-2px); /* Hiệu ứng nhấc lên nhẹ */
+  background-color: #002855;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Trạng thái disabled cho nút phân trang */
 .paginationButton.disabled {
-  background-color: #cccccc; /* Màu nền khi disabled */
+  background-color: #e0e0e0;
+  color: #999;
   cursor: not-allowed;
-  transform: none; /* Không áp dụng hiệu ứng nhấc lên */
+  transform: none;
+  box-shadow: none;
 }
 
-/* Icon trong nút phân trang */
 .paginationButton i {
   font-size: 14px;
 }
 
-/* Văn bản hiển thị trang hiện tại (Trang X / Y) */
 .pagination span {
   font-weight: 500;
   color: #555;
@@ -1144,6 +1154,8 @@
   position: fixed;
   width: 100%;
   height: 100%;
+  top: 0;
+  left: 0;
   background-color: transparent;
   display: flex;
   align-items: center;
@@ -1164,23 +1176,37 @@
 
 .modalContent {
   background-color: white;
-  border-radius: 12px;
+  border-radius: 15px;
   width: 95%;
   max-width: 550px;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+  animation: slideUpModal 0.3s ease;
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modalHeader {
   padding: 18px 25px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #f9f9f9;
-  border-radius: 12px 12px 0 0;
+  background-color: #f8f9fa;
+  border-radius: 15px 15px 0 0;
   z-index: 10;
+  position: relative;
 }
 
 .appointmentForm {
@@ -1190,7 +1216,7 @@
 
 .appointmentForm h3 {
   margin-bottom: 20px;
-  color: #2c3e50;
+  color: #333;
   font-weight: 600;
   font-size: 1.4rem;
   text-align: left;
@@ -1204,7 +1230,7 @@
 .formSection h4 {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #333;
   margin-bottom: 12px;
   text-align: left;
   display: flex;
@@ -1216,7 +1242,7 @@
   display: inline-block;
   width: 4px;
   height: 16px;
-  background-color: #3498db;
+  background-color: #003366;
   margin-right: 8px;
   border-radius: 2px;
 }
@@ -1233,10 +1259,10 @@
   padding: 12px 15px;
   border: 1px solid #e0e0e0;
   background-color: white;
-  border-radius: 8px;
+  border-radius: 15px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-align: left;
   display: block;
   width: 100%;
@@ -1264,19 +1290,19 @@
 
 .selectedDate {
   background-color: #e3f2fd;
-  border-color: #2196f3;
-  color: #0d47a1;
+  border-color: #003366;
+  color: #003366;
   font-weight: 600;
-  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 51, 102, 0.15);
 }
 
 .selectedDate::before {
-  color: #2196f3;
+  color: #003366;
 }
 
 .selectedDate:hover {
   background-color: #bbdefb;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.2);
 }
 
 .timeSlotList {
@@ -1289,10 +1315,10 @@
   padding: 10px 12px;
   border: 1px solid #e0e0e0;
   background-color: white;
-  border-radius: 8px;
+  border-radius: 15px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-align: left;
   position: relative;
   padding-left: 30px;
@@ -1318,32 +1344,31 @@
 
 .selectedTimeSlot {
   background-color: #e8f5e9;
-  border-color: #4caf50;
-  color: #1b5e20;
+  border-color: #003366;
+  color: #003366;
   font-weight: 600;
-  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 51, 102, 0.15);
 }
 
 .selectedTimeSlot::before {
-  color: #4caf50;
+  color: #003366;
 }
 
 .selectedTimeSlot:hover {
   background-color: #c8e6c9;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.2);
 }
 
 .formGroup {
   margin-bottom: 20px;
   text-align: left;
-  width: 60%;
 }
 
 .formGroup label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #333;
   font-size: 1rem;
   text-align: left;
 }
@@ -1353,17 +1378,17 @@
   width: 100%;
   padding: 12px 15px;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 15px;
   font-size: 0.95rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s ease;
   margin-bottom: 5px;
   outline: none;
 }
 
 .formGroup select:focus,
 .formGroup textarea:focus {
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: #003366;
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
 }
 
 .formActions {
@@ -1376,11 +1401,11 @@
 .cancelButton,
 .submitButton {
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: 30px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1388,7 +1413,7 @@
 
 .cancelButton {
   background-color: #f5f5f5;
-  color: #2c3e50;
+  color: #333;
   border: 1px solid #e0e0e0;
   flex-grow: 1;
   justify-content: center;
@@ -1396,7 +1421,8 @@
 
 .cancelButton:hover {
   background-color: #e0e0e0;
-  color: #1a202c;
+  color: #333;
+  transform: translateY(-2px);
 }
 
 .cancelButton i {
@@ -1404,7 +1430,7 @@
 }
 
 .submitButton {
-  background-color: #2196f3;
+  background-color: #003366;
   color: white;
   border: none;
   flex-grow: 2;
@@ -1412,14 +1438,16 @@
 }
 
 .submitButton:hover {
-  background-color: #1976d2;
+  background-color: #002855;
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .submitButton:disabled {
-  background-color: #90caf9;
+  background-color: #9e9e9e;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .submitButton i {
@@ -1428,28 +1456,30 @@
 
 .errorMessage {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #e6ffed 0%, #d4f7dc 100%);
-  color: #1a3c34;
-  border-radius: 12px;
+  background-color: rgba(0, 51, 102, 0.1);
+  color: #003366;
+  border-radius: 15px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin: 20px;
   text-align: left;
-  box-shadow: 0 4px 12px rgba(0, 128, 0, 0.1);
-  border: 1px solid #a8e6b6;
-  font-family: "Inter", sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.1);
+  border: 1px solid rgba(0, 51, 102, 0.3);
   font-weight: 500;
   animation: slideIn 0.3s ease-out;
+  position: relative;
 }
 
 .errorMessage i {
   font-size: 1.3rem;
-  color: #28a745;
+  color: #003366;
 }
+
 .errorMessage i.fa-times {
   color: #6c757d;
   transition: color 0.2s ease;
+  cursor: pointer;
 }
 
 .errorMessage i.fa-times:hover {
@@ -1466,38 +1496,42 @@
     opacity: 1;
   }
 }
+
 .successMessage {
   padding: 15px;
   background-color: #e8f5e9;
-  color: #43a047;
-  border-radius: 8px;
+  color: #2e7d32;
+  border-radius: 15px;
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 20px;
   text-align: left;
-  border-left: 4px solid #43a047;
+  border-left: 4px solid #2e7d32;
 }
 
 .loginRequired {
   padding: 30px 20px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 15px;
   background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
+  border: 1px solid #f0f0f0;
+  margin: 20px;
+  position: relative;
 }
 
 .loginRequired i {
   font-size: 3rem;
-  color: #ff9800;
+  color: #003366;
   margin-bottom: 10px;
 }
 
 .loginRequired p {
-  color: #2c3e50;
+  color: #333;
   margin-bottom: 15px;
   font-size: 1.05rem;
 }
@@ -1506,77 +1540,46 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #2196f3;
+  background-color: #003366;
   color: white;
   padding: 12px 25px;
-  border-radius: 8px;
+  border-radius: 30px;
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .loginButton:hover {
-  background-color: #1976d2;
+  background-color: #002855;
   transform: translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .appointmentModal {
-    padding: 10px;
-    align-items: flex-end;
-  }
-
-  .modalContent {
-    max-height: 92vh;
-    width: 100%;
-  }
-
-  .dateList {
-    max-height: 30vh;
-    overflow-y: auto;
-  }
-
-  .timeSlotList {
-    grid-template-columns: 1fr;
-    max-height: 30vh;
-    overflow-y: auto;
-  }
-
-  .formActions {
-    flex-direction: column-reverse;
-    gap: 10px;
-  }
-
-  .cancelButton,
-  .submitButton {
-    width: 100%;
-  }
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .noAvailabilityWarning {
   padding: 30px 20px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 15px;
   background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  margin: 20px 0;
+  margin: 20px;
+  border: 1px solid #f0f0f0;
+  position: relative;
 }
 
 .noAvailabilityWarning i {
   font-size: 3rem;
-  color: #ff9800;
+  color: #003366;
   margin-bottom: 10px;
 }
 
 .noAvailabilityWarning p {
-  color: #2c3e50;
+  color: #333;
   font-size: 1.05rem;
 }
 
-/* Cập nhật style cho khung giờ đã được đặt */
 .bookedTimeSlot {
   background-color: #f5f5f5;
   border-color: #e0e0e0;
@@ -1606,13 +1609,13 @@
 .loading {
   padding: 30px;
   text-align: center;
-  color: #2c3e50;
+  color: #333;
   font-size: 1rem;
 }
 
 .loading i {
   margin-right: 10px;
-  color: #3498db;
+  color: #003366;
   animation: spin 1s infinite linear;
 }
 
@@ -1625,13 +1628,12 @@
   }
 }
 
-/* Thêm indicator cho slot còn trống */
 .slotAvailable {
   position: relative;
 }
 
 .slotAvailable i {
-  color: #4caf50;
+  color: #003366;
   margin-left: 5px;
   font-size: 0.8rem;
 }
