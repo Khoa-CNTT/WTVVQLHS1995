@@ -217,26 +217,72 @@ exports.updateAppointmentStatus = asyncHandler(async (req, res, next) => {
   );
 
   // Gửi email thông báo cho khách hàng - bỏ qua nếu có lỗi
-  // try {
-  //   const customer = await userModel.findById(existingAppointment.customer_id);
-  //   const lawyer = await userModel.findById(existingAppointment.lawyer_id);
-
-  //   await emailService.sendAppointmentStatusUpdateToCustomer(
-  //     customer.email,
-  //     customer.full_name,
-  //     {
-  //       appointmentId: updatedAppointment.id,
-  //       lawyerName: lawyer.full_name,
-  //       startTime: updatedAppointment.start_time,
-  //       endTime: updatedAppointment.end_time,
-  //       status: updatedAppointment.status,
-  //       notes: updatedAppointment.notes
-  //     }
-  //   );
-  // } catch (error) {
-  //   console.error('Không thể gửi email thông báo cập nhật trạng thái:', error);
-  //   // Bỏ qua lỗi email
-  // }
+  try {
+    // Lấy thông tin chi tiết khách hàng và luật sư
+    const customerResult = await db.query(
+      'SELECT id, email, full_name FROM Users WHERE id = $1',
+      [existingAppointment.customer_id]
+    );
+    
+    const lawyerResult = await db.query(
+      'SELECT id, email, full_name FROM Users WHERE id = $1',
+      [existingAppointment.lawyer_id]
+    );
+    
+    if (customerResult.rows.length > 0 && lawyerResult.rows.length > 0) {
+      const customer = customerResult.rows[0];
+      const lawyer = lawyerResult.rows[0];
+      
+      // Nếu trạng thái là "cancelled" - đã hủy
+      if (status === 'cancelled') {
+        await emailService.sendAppointmentCancellationToCustomer(
+          customer.email,
+          customer.full_name,
+          {
+            appointmentId: updatedAppointment.id,
+            lawyerName: lawyer.full_name,
+            startTime: updatedAppointment.start_time,
+            endTime: updatedAppointment.end_time,
+            reason: notes || 'Lịch hẹn đã bị hủy bởi luật sư'
+          }
+        );
+      } 
+      // Nếu trạng thái là "completed" - đã hoàn thành
+      else if (status === 'completed') {
+        // Gửi email thông báo hoàn thành cho khách hàng
+        await emailService.sendAppointmentStatusUpdateToCustomer(
+          customer.email,
+          customer.full_name,
+          {
+            appointmentId: updatedAppointment.id,
+            lawyerName: lawyer.full_name,
+            startTime: updatedAppointment.start_time,
+            endTime: updatedAppointment.end_time,
+            status: 'completed',
+            notes: notes || 'Cuộc hẹn đã hoàn thành'
+          }
+        );
+      }
+      // Nếu là trạng thái khác (confirmed, pending)
+      else {
+        await emailService.sendAppointmentStatusUpdateToCustomer(
+          customer.email,
+          customer.full_name,
+          {
+            appointmentId: updatedAppointment.id,
+            lawyerName: lawyer.full_name,
+            startTime: updatedAppointment.start_time,
+            endTime: updatedAppointment.end_time,
+            status: updatedAppointment.status,
+            notes: updatedAppointment.notes
+          }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Không thể gửi email thông báo cập nhật trạng thái:', error.message);
+    // Bỏ qua lỗi email, không ảnh hưởng đến việc cập nhật trạng thái
+  }
 
   res.status(200).json({
     status: 'success',

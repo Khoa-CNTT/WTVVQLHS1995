@@ -13,6 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const mailRoutes = require('./routes/mailRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 
 // Kiểm tra biến môi trường JWT_SECRET
@@ -61,6 +62,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/mail', mailRoutes);
 
 // Route chào mừng
 app.get('/', (req, res) => {

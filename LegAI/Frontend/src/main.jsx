@@ -4,14 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 import AppRouter from './router';
-import { emailjsInit } from './services/emailService';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/global.css';
 import { checkTokenExpiration } from './config/axios';
 
 // Khởi tạo EmailJS
-emailjsInit();
 
 // Kiểm tra token hết hạn khi ứng dụng khởi động
 checkTokenExpiration();

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './AppointmentsPage.module.css';
 import appointmentService from '../../../services/appointmentService';
+import * as emailService from '../../../services/emailService';
 import { DEFAULT_AVATAR } from '../../../config/constants';
 import { toast } from 'react-toastify';
+import authService from '../../../services/authService';
 
 const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
@@ -21,6 +23,11 @@ const AppointmentsPage = () => {
   // State cho modal thông tin liên hệ luật sư
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactLawyer, setContactLawyer] = useState(null);
+  // State cho modal gửi email
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
@@ -69,11 +76,34 @@ const AppointmentsPage = () => {
       console.log('Phản hồi từ API khi huỷ lịch hẹn:', response);
 
       if (response && response.status === 'success') {
+        // Cập nhật trạng thái trong state
         setAppointments((prevAppointments) =>
           prevAppointments.map((app) =>
             app.id === selectedAppointment.id ? { ...app, status: 'cancelled' } : app
           )
         );
+
+        // Gửi email thông báo hủy lịch hẹn đến luật sư
+        try {
+          // Đảm bảo có thông tin luật sư
+          if (selectedAppointment.lawyer_email) {
+            await emailService.sendAppointmentCancellation({
+              email: selectedAppointment.lawyer_email,
+              name: selectedAppointment.lawyer_name || 'Luật sư',
+              appointmentDetails: {
+                date: new Date(selectedAppointment.start_time).toLocaleDateString('vi-VN'),
+                time: new Date(selectedAppointment.start_time).toLocaleTimeString('vi-VN'),
+                customerName: authService.getCurrentUser()?.fullName || 'Khách hàng',
+                service: selectedAppointment.purpose || 'Tư vấn pháp lý',
+                reason: reason || 'Khách hàng đã hủy cuộc hẹn'
+              }
+            });
+            console.log('Đã gửi email thông báo hủy lịch hẹn tới luật sư');
+          }
+        } catch (emailError) {
+          console.error('Lỗi khi gửi email thông báo cho luật sư:', emailError);
+          // Không hiển thị lỗi gửi email cho người dùng
+        }
 
         toast.success('Lịch hẹn đã được huỷ thành công!');
         setSuccessMessage('Lịch hẹn đã được huỷ thành công.');
@@ -146,7 +176,10 @@ const AppointmentsPage = () => {
       name: appointment.lawyer_name,
       email: appointment.lawyer_email,
       phone: appointment.lawyer_phone,
-      specialization: appointment.specialization
+      specialization: appointment.specialization,
+      appointmentId: appointment.id,
+      startTime: appointment.start_time,
+      purpose: appointment.purpose || 'Tư vấn pháp lý'
     });
     setShowContactModal(true);
   };
@@ -155,6 +188,59 @@ const AppointmentsPage = () => {
   const handleCloseContactModal = () => {
     setShowContactModal(false);
     setContactLawyer(null);
+  };
+
+  // Hàm mở modal email
+  const handleEmailModalOpen = (lawyer) => {
+    setContactLawyer(lawyer);
+    setEmailSubject(`Về cuộc hẹn #${lawyer.appointmentId}`);
+    setEmailMessage(`Kính gửi Luật sư ${lawyer.name},\n\nTôi muốn trao đổi thêm về cuộc hẹn #${lawyer.appointmentId}. `);
+    setShowEmailModal(true);
+    setShowContactModal(false);
+  };
+
+  // Hàm đóng modal email
+  const handleEmailModalClose = () => {
+    setShowEmailModal(false);
+    setEmailSubject('');
+    setEmailMessage('');
+  };
+
+  // Hàm gửi email
+  const handleSendEmail = async () => {
+    if (!contactLawyer || !emailSubject || !emailMessage) {
+      toast.error('Vui lòng nhập đầy đủ thông tin email');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Lấy thông tin cuộc hẹn từ selected appointment
+      const appointment = appointments.find(app => app.id === contactLawyer.appointmentId);
+      const currentStatus = appointment ? appointment.status : 'pending';
+      const currentPurpose = appointment ? (appointment.purpose || contactLawyer.purpose) : (contactLawyer.purpose || 'Tư vấn pháp lý');
+
+      // Gửi email đến luật sư
+      await emailService.sendAppointmentStatusUpdate({
+        email: contactLawyer.email,
+        name: contactLawyer.name,
+        appointmentDetails: {
+          date: new Date(contactLawyer.startTime).toLocaleDateString('vi-VN'),
+          time: new Date(contactLawyer.startTime).toLocaleTimeString('vi-VN'),
+          service: currentPurpose,
+          status: currentStatus,
+          notes: emailMessage
+        }
+      });
+
+      toast.success('Đã gửi email thành công!');
+      handleEmailModalClose();
+    } catch (error) {
+      console.error('Lỗi khi gửi email:', error);
+      toast.error('Không thể gửi email. Vui lòng thử lại sau.');
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   // Hàm copy email vào clipboard
@@ -568,13 +654,20 @@ const AppointmentsPage = () => {
               </div>
               
               <div className={styles.contactActions}>
+                <button 
+                  className={styles.emailButton}
+                  onClick={() => handleEmailModalOpen(contactLawyer)}
+                >
+                  <i className="fas fa-envelope"></i> Gửi email qua hệ thống
+                </button>
+
                 <a 
-                  href='https://mail.google.com/mail/u/0/#inbox?compose=new'
+                  href={`mailto:${contactLawyer.email}`}
                   className={styles.emailButton}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <i className="fas fa-envelope"></i> Gửi email
+                  <i className="fas fa-envelope"></i> Gửi qua Gmail
                 </a>
                 
                 {contactLawyer.phone && (
@@ -587,6 +680,68 @@ const AppointmentsPage = () => {
                     <i className="fas fa-phone"></i> Gọi điện
                   </a>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal gửi email */}
+      {showEmailModal && contactLawyer && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Gửi email tới luật sư</h3>
+              <button className={styles.closeButton} onClick={handleEmailModalClose}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
+                <label>Người nhận:</label>
+                <input 
+                  type="text" 
+                  value={`${contactLawyer.name} <${contactLawyer.email}>`} 
+                  disabled 
+                  className={styles.formControl}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Tiêu đề:</label>
+                <input 
+                  type="text" 
+                  value={emailSubject} 
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className={styles.formControl}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Nội dung:</label>
+                <textarea 
+                  value={emailMessage} 
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  className={styles.formControl}
+                  rows={6}
+                />
+              </div>
+              
+              <div className={styles.modalFooter}>
+                <button 
+                  className={styles.cancelModalButton} 
+                  onClick={handleEmailModalClose}
+                  disabled={sendingEmail}
+                >
+                  Hủy
+                </button>
+                <button 
+                  className={styles.confirmCancelButton} 
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                >
+                  {sendingEmail ? 'Đang gửi...' : 'Gửi email'}
+                </button>
               </div>
             </div>
           </div>

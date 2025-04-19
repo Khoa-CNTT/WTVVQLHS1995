@@ -280,6 +280,7 @@
   margin-bottom: 20px;  /* Giảm margin */
   max-width: 90%;
   opacity: 0.9;
+  color: #d3d3d3;
 }
 
 .loginButton {

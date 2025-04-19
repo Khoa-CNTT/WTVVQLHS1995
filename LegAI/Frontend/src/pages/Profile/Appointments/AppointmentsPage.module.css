@@ -536,38 +536,63 @@
 }
 
 .emailButton, .phoneButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 15px;
+  padding: 10px 16px;
   border-radius: 4px;
-  font-weight: 500;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   text-decoration: none;
-  transition: all 0.3s;
-  width: 48%;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
 }
 
 .emailButton {
-  background-color: #003366;
+  background-color: #1e88e5;
   color: white;
 }
 
 .emailButton:hover {
-  background-color: #002244;
-  transform: translateY(-2px);
+  background-color: #1976d2;
 }
 
 .phoneButton {
-  background-color: #28a745;
+  background-color: #43a047;
   color: white;
 }
 
 .phoneButton:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
+  background-color: #388e3c;
 }
 
 .phoneButton i, .emailButton i {
   margin-right: 8px;
+}
+
+/* Style cho form elements trong modal */
+.formControl {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  margin-top: 5px;
+}
+
+.formControl:focus {
+  border-color: #1e88e5;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.1);
+}
+
+.formControl[disabled] {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+textarea.formControl {
+  resize: vertical;
+  min-height: 120px;
 }

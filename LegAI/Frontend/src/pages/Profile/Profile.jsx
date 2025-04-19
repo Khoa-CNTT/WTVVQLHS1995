@@ -9,6 +9,7 @@ import ChangePasswordPage from './ChangePassword/ChangePasssword';
 import ChatManager from '../../components/layout/Chat/ChatManager';
 import AppointmentsPage from './Appointments/AppointmentsPage';
 import AppointmentsManager from '../../pages/LawyerDashboard/components/AppointmentsManager';
+import ContactForm from '../Contact/ContactForm';
 
 function Profile() {
   const navigate = useNavigate();
@@ -341,6 +342,16 @@ function Profile() {
   const passwordRequirements = validatePassword(passwordData.newPassword);
   const isPasswordValid = Object.values(passwordRequirements).every(Boolean);
 
+  const sections = [
+    { id: 'personal-info', label: 'Thông tin cá nhân', icon: 'user' },
+    { id: 'documents', label: 'Tài liệu', icon: 'file-alt' },
+    { id: 'appointments', label: 'Cuộc hẹn', icon: 'calendar-alt' },
+    { id: 'transactions', label: 'Lịch sử giao dịch', icon: 'money-bill-wave' },
+    { id: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
+    { id: 'contact', label: 'Liên hệ hỗ trợ', icon: 'phone-alt' },
+    { id: 'delete-account', label: 'Xóa tài khoản', icon: 'trash-alt', className: styles.dangerSection }
+  ];
+
   const renderContent = () => {
     if (activeTab === 'appointments') {
       if (user && user.role && user.role.toLowerCase() === 'lawyer') {
@@ -590,6 +601,18 @@ function Profile() {
     }
   };
 
+  const renderContact = () => (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Liên hệ hỗ trợ</h2>
+      <p className={styles.sectionDescription}>
+        Gửi thông tin liên hệ đến bộ phận hỗ trợ của LegAI.
+      </p>
+      <div className={styles.contactWrapper}>
+        <ContactForm />
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Navbar />
@@ -626,10 +649,10 @@ function Profile() {
                   </label>
                 )}
               </div>
-              <h2>{user.fullName || user.username}</h2>
+              <h2>{user?.fullName || user?.username}</h2>
               <div className={styles.userRole}>
                 <FaBalanceScale />
-                <span>{user.role || 'Người dùng'}</span>
+                <span>{user?.role || 'Người dùng'}</span>
               </div>
               
               <div className={styles.userStats}>
@@ -675,6 +698,12 @@ function Profile() {
               >
                 <FaFileAlt /> Hoạt động
               </button>
+              <button 
+                className={`${styles.menuItem} ${activeTab === 'contact' ? styles.active : ''}`} 
+                onClick={() => setActiveTab('contact')}
+              >
+                <FaEnvelope /> Liên hệ hỗ trợ
+              </button>
             </div>
           </div>
           
@@ -682,7 +711,7 @@ function Profile() {
             {error && <div className={styles.errorMessage}>{error}</div>}
             {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
             
-            {renderContent()}
+            {activeTab === 'contact' ? renderContact() : renderContent()}
           </div>
         </div>
       </div>

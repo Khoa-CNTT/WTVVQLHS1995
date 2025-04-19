@@ -4,20 +4,9 @@ import styles from './Contact.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import PageTransition from '../../components/layout/TransitionPage/PageTransition';
 import ChatManager from '../../components/layout/Chat/ChatManager';
+import ContactForm from './ContactForm';
 
 function Contact() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: ''
-  });
-
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
   // Danh sách văn phòng
   const offices = [
     {
@@ -42,83 +31,6 @@ function Contact() {
       hours: 'Thứ 2 - Thứ 6: 8:00 - 17:30'
     }
   ];
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
-    }
-    
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!/^[0-9]{10,11}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
-      newErrors.phone = 'Số điện thoại không hợp lệ';
-    }
-    
-    if (!formData.subject.trim()) newErrors.subject = 'Vui lòng nhập tiêu đề';
-    if (!formData.message.trim()) newErrors.message = 'Vui lòng nhập nội dung tin nhắn';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Xóa lỗi khi người dùng đang nhập
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: null
-      });
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setLoading(true);
-    
-    try {
-      // Mô phỏng gửi form (sẽ thay bằng API thực khi có)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Gửi thông tin liên hệ thành công! Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.');
-      setSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
-    } catch (error) {
-      toast.error('Có lỗi xảy ra khi gửi thông tin. Vui lòng thử lại sau!');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setSubmitted(false);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
-  };
 
   return (
     <PageTransition>
@@ -183,115 +95,7 @@ function Contact() {
             <div className={styles.contactGrid}>
               {/* Form liên hệ */}
               <div className={styles.contactForm}>
-                <div className={styles.formHeader}>
-                  <h2>Gửi tin nhắn cho chúng tôi</h2>
-                  <p>Hãy điền thông tin vào form dưới đây, chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất</p>
-                </div>
-                
-                {submitted ? (
-                  <div className={styles.successMessage}>
-                    <div className={styles.successIcon}>
-                      <i className="fa-solid fa-check-circle"></i>
-                    </div>
-                    <h3>Cảm ơn bạn đã liên hệ!</h3>
-                    <p>Chúng tôi đã nhận được thông tin và sẽ phản hồi trong thời gian sớm nhất.</p>
-                    <button onClick={resetForm} className={styles.resetButton}>
-                      Gửi yêu cầu khác
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit}>
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor="name">Họ và tên <span className={styles.required}>*</span></label>
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          placeholder="Nhập họ và tên"
-                          value={formData.name}
-                          onChange={handleChange}
-                          className={errors.name ? styles.inputError : ''}
-                        />
-                        {errors.name && <span className={styles.errorMessage}>{errors.name}</span>}
-                      </div>
-                      
-                      <div className={styles.formGroup}>
-                        <label htmlFor="email">Email <span className={styles.required}>*</span></label>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          placeholder="Nhập địa chỉ email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          className={errors.email ? styles.inputError : ''}
-                        />
-                        {errors.email && <span className={styles.errorMessage}>{errors.email}</span>}
-                      </div>
-                    </div>
-                    
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor="phone">Số điện thoại <span className={styles.required}>*</span></label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          placeholder="Nhập số điện thoại"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          className={errors.phone ? styles.inputError : ''}
-                        />
-                        {errors.phone && <span className={styles.errorMessage}>{errors.phone}</span>}
-                      </div>
-                      
-                      <div className={styles.formGroup}>
-                        <label htmlFor="subject">Tiêu đề <span className={styles.required}>*</span></label>
-                        <input
-                          type="text"
-                          id="subject"
-                          name="subject"
-                          placeholder="Nhập tiêu đề"
-                          value={formData.subject}
-                          onChange={handleChange}
-                          className={errors.subject ? styles.inputError : ''}
-                        />
-                        {errors.subject && <span className={styles.errorMessage}>{errors.subject}</span>}
-                      </div>
-                    </div>
-                    
-                    <div className={styles.formGroup}>
-                      <label htmlFor="message">Nội dung tin nhắn <span className={styles.required}>*</span></label>
-                      <textarea
-                        id="message"
-                        name="message"
-                        rows="5"
-                        placeholder="Nhập nội dung tin nhắn"
-                        value={formData.message}
-                        onChange={handleChange}
-                        className={errors.message ? styles.inputError : ''}
-                      ></textarea>
-                      {errors.message && <span className={styles.errorMessage}>{errors.message}</span>}
-                    </div>
-                    
-                    <button 
-                      type="submit" 
-                      className={styles.submitButton}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <i className="fa-solid fa-spinner fa-spin"></i> Đang gửi...
-                        </>
-                      ) : (
-                        <>
-                          Gửi tin nhắn <i className="fa-solid fa-paper-plane"></i>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                )}
+                <ContactForm />
               </div>
               
               {/* Google Map */}

@@ -566,4 +566,197 @@ button:disabled {
 
 .phoneButton i, .emailButton i {
   margin-right: 8px;
+}
+
+/* Thêm styles cho modal email */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 600px;
+  overflow: hidden;
+  animation: modalFadeIn 0.3s ease;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #1e88e5;
+  color: white;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.modalBody {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #555;
+}
+
+.formControl {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.formControl:focus {
+  border-color: #1e88e5;
+  outline: none;
+}
+
+.formControl[disabled] {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+textarea.formControl {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancelButton,
+.confirmButton {
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.cancelButton {
+  background-color: #f5f5f5;
+  color: #555;
+}
+
+.cancelButton:hover {
+  background-color: #e0e0e0;
+}
+
+.confirmButton {
+  background-color: #1e88e5;
+  color: white;
+}
+
+.confirmButton:hover {
+  background-color: #1976d2;
+}
+
+.confirmButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.customerInfo {
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.customerInfo p {
+  margin: 8px 0;
+}
+
+.contactActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.emailButton,
+.phoneButton {
+  padding: 10px 16px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emailButton {
+  background-color: #1e88e5;
+  color: white;
+  border: none;
+}
+
+.emailButton:hover {
+  background-color: #1976d2;
+}
+
+.phoneButton {
+  background-color: #43a047;
+  color: white;
+}
+
+.phoneButton:hover {
+  background-color: #388e3c;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 } 

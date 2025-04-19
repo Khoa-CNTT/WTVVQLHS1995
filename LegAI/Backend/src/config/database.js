@@ -1,24 +1,17 @@
 require('dotenv').config();
+const { dbConfig } = require('./env');
 const { Pool } = require('pg');
 
-// Tạo các giá trị mặc định nếu không có biến môi trường
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '123456',
-    database: process.env.DB_NAME || 'legai',
-    port: process.env.DB_PORT || 5432,
-};
+// Cấu hình kết nối database từ file env.js
+const pool = new Pool({
+    host: dbConfig.DB_HOST,
+    user: dbConfig.DB_USER,
+    password: dbConfig.DB_PASSWORD,
+    database: dbConfig.DB_NAME,
+    port: dbConfig.DB_PORT,
+});
 
-// console.log('Cấu hình Database:', {
-//     host: dbConfig.host,
-//     user: dbConfig.user,
-//     database: dbConfig.database,
-//     port: dbConfig.port,
-// });
-
-const pool = new Pool(dbConfig);
-
+// Kiểm tra kết nối
 pool.connect((err, client, release) => {
     if (err) {
         console.error('Lỗi kết nối database:', err.stack);

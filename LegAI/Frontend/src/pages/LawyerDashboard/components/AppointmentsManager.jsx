@@ -4,6 +4,7 @@ import appointmentService from '../../../services/appointmentService';
 import { DEFAULT_AVATAR } from '../../../config/constants';
 import authService from '../../../services/authService';
 import { toast } from 'react-toastify';
+import * as emailService from '../../../services/emailService';
 
 const AppointmentsManager = () => {
   const [appointments, setAppointments] = useState([]);
@@ -20,6 +21,10 @@ const AppointmentsManager = () => {
   const [appointmentsPerPage] = useState(4);
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactCustomer, setContactCustomer] = useState(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
@@ -227,40 +232,73 @@ const AppointmentsManager = () => {
 
   const handleContactCustomerClick = (appointment) => {
     setContactCustomer({
-      name: appointment.customer_name,
-      email: appointment.customer_email,
-      phone: appointment.customer_phone
+      name: appointment.customer_name || appointment.client_name || 'Khách hàng',
+      email: appointment.customer_email || appointment.client_email || 'Chưa có email',
+      phone: appointment.customer_phone || appointment.client_phone || '',
+      startTime: appointment.start_time,
+      purpose: appointment.purpose || 'Chưa xác định',
+      appointmentId: appointment.id
     });
     setShowContactModal(true);
   };
 
-  const handleCloseContactModal = () => {
+  const handleContactModalClose = () => {
     setShowContactModal(false);
     setContactCustomer(null);
   };
 
-  const handleCopyEmail = (email) => {
-    navigator.clipboard.writeText(email)
-      .then(() => {
-        toast.success('Đã sao chép email vào clipboard');
-      })
-      .catch(err => {
-        console.error('Không thể sao chép: ', err);
-        toast.error('Không thể sao chép email');
-      });
+  const handleEmailModalOpen = (customer) => {
+    setContactCustomer(customer);
+    setEmailSubject(`Liên hệ về lịch hẹn #${customer.appointmentId}`);
+    setEmailMessage(`Kính gửi ${customer.name},\n\nTôi là luật sư phụ trách lịch hẹn #${customer.appointmentId} của bạn. `);
+    setShowEmailModal(true);
   };
 
-  const handleCopyPhone = (phone) => {
-    if (!phone) return;
-    
-    navigator.clipboard.writeText(phone)
-      .then(() => {
-        toast.success('Đã sao chép số điện thoại vào clipboard');
-      })
-      .catch(err => {
-        console.error('Không thể sao chép: ', err);
-        toast.error('Không thể sao chép số điện thoại');
+  const handleEmailModalClose = () => {
+    setShowEmailModal(false);
+    setEmailSubject('');
+    setEmailMessage('');
+  };
+
+  const handleSendEmail = async () => {
+    if (!contactCustomer || !emailSubject || !emailMessage) {
+      toast.error('Vui lòng nhập đầy đủ thông tin email');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Lấy thông tin cuộc hẹn hiện tại từ danh sách
+      const appointment = appointments.find(app => app.id === contactCustomer.appointmentId);
+      const currentStatus = appointment ? appointment.status : 'confirmed';
+      const currentPurpose = appointment ? (appointment.purpose || contactCustomer.purpose) : (contactCustomer.purpose || 'Tư vấn pháp lý');
+      
+      // Lấy thông tin luật sư từ người dùng hiện tại
+      const user = authService.getCurrentUser();
+      const lawyerName = user ? (user.fullName || 'Luật sư LegAI') : 'Luật sư LegAI';
+
+      // Gửi email đến khách hàng
+      await emailService.sendAppointmentStatusUpdate({
+        email: contactCustomer.email,
+        name: contactCustomer.name,
+        appointmentDetails: {
+          date: new Date(contactCustomer.startTime).toLocaleDateString('vi-VN'),
+          time: new Date(contactCustomer.startTime).toLocaleTimeString('vi-VN'),
+          lawyerName: lawyerName,
+          service: currentPurpose,
+          status: currentStatus,
+          notes: emailMessage
+        }
       });
+
+      toast.success('Đã gửi email thành công!');
+      handleEmailModalClose();
+    } catch (error) {
+      console.error('Lỗi khi gửi email:', error);
+      toast.error('Không thể gửi email. Vui lòng thử lại sau.');
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const currentAppointments = getCurrentAppointments();
@@ -516,66 +554,36 @@ const AppointmentsManager = () => {
       )}
 
       {showContactModal && contactCustomer && (
-        <div className={styles.modalOverlay}>
+        <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
-              <h3>Thông tin liên hệ khách hàng</h3>
-              <button
-                className={styles.closeButton}
-                onClick={handleCloseContactModal}
-              >
-                <i className="fas fa-times"></i>
-              </button>
+              <h3>Liên hệ khách hàng</h3>
+              <button className={styles.closeButton} onClick={handleContactModalClose}>×</button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.contactInfo}>
-                <div className={styles.contactItem}>
-                  <i className="fas fa-user"></i>
-                  <span>Tên khách hàng:</span>
-                  <span>{contactCustomer.name || 'Chưa cung cấp'}</span>
-                </div>
-
-                <div className={styles.contactItem}>
-                  <i className="fas fa-envelope"></i>
-                  <span>Email:</span>
-                  <div className={styles.copyableField}>
-                    <span>{contactCustomer.email}</span>
-                    <button 
-                      className={styles.copyButton}
-                      onClick={() => handleCopyEmail(contactCustomer.email)}
-                      title="Sao chép email"
-                    >
-                      <i className="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
-
+              <div className={styles.customerInfo}>
+                <p><strong>Khách hàng:</strong> {contactCustomer.name}</p>
+                <p><strong>Email:</strong> {contactCustomer.email}</p>
                 {contactCustomer.phone && (
-                  <div className={styles.contactItem}>
-                    <i className="fas fa-phone"></i>
-                    <span>Số điện thoại:</span>
-                    <div className={styles.copyableField}>
-                      <span>{contactCustomer.phone}</span>
-                      <button 
-                        className={styles.copyButton}
-                        onClick={() => handleCopyPhone(contactCustomer.phone)}
-                        title="Sao chép số điện thoại"
-                      >
-                        <i className="fas fa-copy"></i>
-                      </button>
-                    </div>
-                  </div>
+                  <p><strong>Số điện thoại:</strong> {contactCustomer.phone}</p>
                 )}
               </div>
               
               <div className={styles.contactActions}>
+                <button 
+                  className={styles.emailButton}
+                  onClick={() => handleEmailModalOpen(contactCustomer)}
+                >
+                  <i className="fas fa-envelope"></i> Gửi email qua hệ thống
+                </button>
+                
                 <a 
-                  href='https://mail.google.com/mail/u/0/#inbox?compose=new'
+                  href={`mailto:${contactCustomer.email}`}
                   className={styles.emailButton}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <i className="fas fa-envelope"></i> Gửi email
+                  <i className="fas fa-envelope"></i> Gửi qua Gmail
                 </a>
                 
                 {contactCustomer.phone && (
@@ -588,6 +596,65 @@ const AppointmentsManager = () => {
                     <i className="fas fa-phone"></i> Gọi điện
                   </a>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEmailModal && contactCustomer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Gửi email tới khách hàng</h3>
+              <button className={styles.closeButton} onClick={handleEmailModalClose}>×</button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
+                <label>Người nhận:</label>
+                <input 
+                  type="text" 
+                  value={`${contactCustomer.name} <${contactCustomer.email}>`} 
+                  disabled 
+                  className={styles.formControl}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Tiêu đề:</label>
+                <input 
+                  type="text" 
+                  value={emailSubject} 
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className={styles.formControl}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Nội dung:</label>
+                <textarea 
+                  value={emailMessage} 
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  className={styles.formControl}
+                  rows={6}
+                />
+              </div>
+              
+              <div className={styles.modalFooter}>
+                <button 
+                  className={styles.cancelButton} 
+                  onClick={handleEmailModalClose}
+                  disabled={sendingEmail}
+                >
+                  Hủy
+                </button>
+                <button 
+                  className={styles.confirmButton} 
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                >
+                  {sendingEmail ? 'Đang gửi...' : 'Gửi email'}
+                </button>
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import chatService from '../../services/chatService';
 import AppointmentsManager from './components/AppointmentsManager';
 import AvailabilityManager from './components/AvailabilityManager';
 import ChatManager from './components/ChatManager';
+import ContactForm from '../Contact/ContactForm';
 
 const LawyerDashboard = () => {
   const [activeMenu, setActiveMenu] = useState('overview');
@@ -139,6 +140,7 @@ const LawyerDashboard = () => {
     { id: 'documents', label: 'Tài liệu', icon: 'file-alt', count: documentCount },
     { id: 'contracts', label: 'Hợp đồng', icon: 'file-signature' },
     { id: 'clients', label: 'Khách hàng', icon: 'users' },
+    { id: 'contact', label: 'Liên hệ', icon: 'phone' },
     { id: 'transactions', label: 'Giao dịch', icon: 'money-bill-wave' },
     { id: 'specialties', label: 'Chuyên môn', icon: 'graduation-cap' },
   ];
@@ -298,6 +300,18 @@ const LawyerDashboard = () => {
     </div>
   );
   
+  const renderContact = () => (
+    <div>
+      <h1 className={styles.sectionTitle}>Liên hệ hỗ trợ</h1>
+      <p className={styles.sectionDescription}>
+        Gửi thông tin liên hệ đến bộ phận hỗ trợ của LegAI.
+      </p>
+      <div className={styles.contactWrapper} style={{ maxWidth: '800px', margin: '30px auto' }}>
+        <ContactForm />
+      </div>
+    </div>
+  );
+  
   const renderContent = () => {
     switch (activeMenu) {
       case 'messages':
@@ -310,6 +324,8 @@ const LawyerDashboard = () => {
         return renderAvailability();
       case 'documents':
         return renderDocuments();
+      case 'contact':
+        return renderContact();
       default:
         return renderOverview();
     }
