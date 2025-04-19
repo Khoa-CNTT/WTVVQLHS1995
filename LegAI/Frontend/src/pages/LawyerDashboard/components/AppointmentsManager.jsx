@@ -18,6 +18,8 @@ const AppointmentsManager = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [appointmentsPerPage] = useState(4);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactCustomer, setContactCustomer] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -223,6 +225,44 @@ const AppointmentsManager = () => {
     return statusTransitions[currentStatus] || [];
   };
 
+  const handleContactCustomerClick = (appointment) => {
+    setContactCustomer({
+      name: appointment.customer_name,
+      email: appointment.customer_email,
+      phone: appointment.customer_phone
+    });
+    setShowContactModal(true);
+  };
+
+  const handleCloseContactModal = () => {
+    setShowContactModal(false);
+    setContactCustomer(null);
+  };
+
+  const handleCopyEmail = (email) => {
+    navigator.clipboard.writeText(email)
+      .then(() => {
+        toast.success('Đã sao chép email vào clipboard');
+      })
+      .catch(err => {
+        console.error('Không thể sao chép: ', err);
+        toast.error('Không thể sao chép email');
+      });
+  };
+
+  const handleCopyPhone = (phone) => {
+    if (!phone) return;
+    
+    navigator.clipboard.writeText(phone)
+      .then(() => {
+        toast.success('Đã sao chép số điện thoại vào clipboard');
+      })
+      .catch(err => {
+        console.error('Không thể sao chép: ', err);
+        toast.error('Không thể sao chép số điện thoại');
+      });
+  };
+
   const currentAppointments = getCurrentAppointments();
 
   return (
@@ -350,12 +390,12 @@ const AppointmentsManager = () => {
                         </>
                       )}
                       
-                      <a 
-                        href={`mailto:${appointment.customer_email}`} 
+                      <button 
                         className={styles.contactButton}
+                        onClick={() => handleContactCustomerClick(appointment)}
                       >
                         <i className="fas fa-envelope"></i> Liên hệ khách hàng
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -470,6 +510,85 @@ const AppointmentsManager = () => {
               >
                 {processing ? 'Đang xử lý...' : 'Cập nhật'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showContactModal && contactCustomer && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Thông tin liên hệ khách hàng</h3>
+              <button
+                className={styles.closeButton}
+                onClick={handleCloseContactModal}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.contactInfo}>
+                <div className={styles.contactItem}>
+                  <i className="fas fa-user"></i>
+                  <span>Tên khách hàng:</span>
+                  <span>{contactCustomer.name || 'Chưa cung cấp'}</span>
+                </div>
+
+                <div className={styles.contactItem}>
+                  <i className="fas fa-envelope"></i>
+                  <span>Email:</span>
+                  <div className={styles.copyableField}>
+                    <span>{contactCustomer.email}</span>
+                    <button 
+                      className={styles.copyButton}
+                      onClick={() => handleCopyEmail(contactCustomer.email)}
+                      title="Sao chép email"
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {contactCustomer.phone && (
+                  <div className={styles.contactItem}>
+                    <i className="fas fa-phone"></i>
+                    <span>Số điện thoại:</span>
+                    <div className={styles.copyableField}>
+                      <span>{contactCustomer.phone}</span>
+                      <button 
+                        className={styles.copyButton}
+                        onClick={() => handleCopyPhone(contactCustomer.phone)}
+                        title="Sao chép số điện thoại"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className={styles.contactActions}>
+                <a 
+                  href='https://mail.google.com/mail/u/0/#inbox?compose=new'
+                  className={styles.emailButton}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="fas fa-envelope"></i> Gửi email
+                </a>
+                
+                {contactCustomer.phone && (
+                  <a 
+                    href={`tel:${contactCustomer.phone}`}
+                    className={styles.phoneButton}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i className="fas fa-phone"></i> Gọi điện
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>

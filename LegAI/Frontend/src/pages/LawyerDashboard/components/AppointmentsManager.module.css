@@ -483,4 +483,87 @@ button:disabled {
   .appointmentsList {
     grid-template-columns: 1fr;
   }
+}
+
+.contactInfo {
+  margin-bottom: 20px;
+}
+
+.contactItem {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.contactItem i {
+  width: 24px;
+  margin-right: 10px;
+  color: #003366;
+}
+
+.contactItem span:first-of-type {
+  font-weight: 600;
+  width: 120px;
+  margin-right: 8px;
+}
+
+.copyableField {
+  display: flex;
+  flex-direction: row;
+}
+
+.copyButton {
+  transform: translateX(200%);
+  background: none;
+  border: none;
+  color: #0056b3;
+  cursor: pointer;
+  margin-left: 10px;
+  padding: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+
+.contactActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.emailButton, .phoneButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s;
+  width: 48%;
+}
+
+.emailButton {
+  background-color: #003366;
+  color: white;
+}
+
+.emailButton:hover {
+  background-color: #002244;
+  transform: translateY(-2px);
+}
+
+.phoneButton {
+  background-color: #28a745;
+  color: white;
+}
+
+.phoneButton:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.phoneButton i, .emailButton i {
+  margin-right: 8px;
 } 

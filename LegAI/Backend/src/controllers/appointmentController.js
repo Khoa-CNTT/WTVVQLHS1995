@@ -9,7 +9,7 @@ const db = require('../config/database');
 // @route   POST /api/appointments
 // @access  Private (User)
 exports.createAppointment = async (req, res) => {
-  const { lawyer_id, start_time, end_time, notes, type, meet_link } = req.body;
+  const { lawyer_id, start_time, end_time, notes, type, meet_link, purpose } = req.body;
   const customer_id = req.user.id;
 
   try {
@@ -81,7 +81,8 @@ exports.createAppointment = async (req, res) => {
       end_time: endDate.toISOString(),
       notes,
       type,
-      meet_link
+      meet_link,
+      purpose
     });
 
     // Gửi email thông báo cho luật sư - bỏ qua nếu có lỗi
@@ -96,7 +97,8 @@ exports.createAppointment = async (req, res) => {
         endTime: endDate.toISOString(),
         notes: notes || '',
         type: type || 'Tư vấn',
-        meetLink: meet_link || ''
+        meetLink: meet_link || '',
+        purpose: purpose || ''
       });
     } catch (emailError) {
       console.error('Không thể gửi email thông báo cho luật sư:', emailError.message);

@@ -17,7 +17,10 @@ const AppointmentsPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   // Trạng thái phân trang
   const [currentPage, setCurrentPage] = useState(1);
-  const [appointmentsPerPage] = useState(2);
+  const [appointmentsPerPage] = useState(3);
+  // State cho modal thông tin liên hệ luật sư
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactLawyer, setContactLawyer] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -135,6 +138,49 @@ const AppointmentsPage = () => {
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
+  };
+
+  // Hàm xử lý mở modal liên hệ luật sư
+  const handleContactLawyerClick = (appointment) => {
+    setContactLawyer({
+      name: appointment.lawyer_name,
+      email: appointment.lawyer_email,
+      phone: appointment.lawyer_phone,
+      specialization: appointment.specialization
+    });
+    setShowContactModal(true);
+  };
+
+  // Hàm đóng modal liên hệ
+  const handleCloseContactModal = () => {
+    setShowContactModal(false);
+    setContactLawyer(null);
+  };
+
+  // Hàm copy email vào clipboard
+  const handleCopyEmail = (email) => {
+    navigator.clipboard.writeText(email)
+      .then(() => {
+        toast.success('Đã sao chép email vào clipboard');
+      })
+      .catch(err => {
+        console.error('Không thể sao chép: ', err);
+        toast.error('Không thể sao chép email');
+      });
+  };
+
+  // Hàm copy số điện thoại vào clipboard
+  const handleCopyPhone = (phone) => {
+    if (!phone) return;
+    
+    navigator.clipboard.writeText(phone)
+      .then(() => {
+        toast.success('Đã sao chép số điện thoại vào clipboard');
+      })
+      .catch(err => {
+        console.error('Không thể sao chép: ', err);
+        toast.error('Không thể sao chép số điện thoại');
+      });
   };
 
   // Format date cho người dùng Việt Nam
@@ -346,9 +392,12 @@ const AppointmentsPage = () => {
                         </button>
                       )}
                       {appointment.lawyer_email && (
-                        <a href={`mailto:${appointment.lawyer_email}`} className={styles.contactButton}>
+                        <button 
+                          className={styles.contactButton}
+                          onClick={() => handleContactLawyerClick(appointment)}
+                        >
                           <i className="fas fa-envelope"></i> Liên hệ luật sư
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -451,6 +500,94 @@ const AppointmentsPage = () => {
               >
                 {processingCancel ? 'Đang xử lý...' : 'Xác nhận huỷ'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal thông tin liên hệ luật sư */}
+      {showContactModal && contactLawyer && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Thông tin liên hệ luật sư</h3>
+              <button
+                className={styles.closeButton}
+                onClick={handleCloseContactModal}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.contactInfo}>
+                <div className={styles.contactItem}>
+                  <i className="fas fa-user"></i>
+                  <span>Tên luật sư:</span>
+                  <span>{contactLawyer.name || 'Chưa cung cấp'}</span>
+                </div>
+                
+                {contactLawyer.specialization && (
+                  <div className={styles.contactItem}>
+                    <i className="fas fa-briefcase"></i>
+                    <span>Chuyên môn:</span>
+                    <span>{contactLawyer.specialization}</span>
+                  </div>
+                )}
+
+                <div className={styles.contactItem}>
+                  <i className="fas fa-envelope"></i>
+                  <span>Email:</span>
+                  <div className={styles.copyableField}>
+                    <span>{contactLawyer.email}</span>
+                    <button 
+                      className={styles.copyButton}
+                      onClick={() => handleCopyEmail(contactLawyer.email)}
+                      title="Sao chép email"
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {contactLawyer.phone && (
+                  <div className={styles.contactItem}>
+                    <i className="fas fa-phone"></i>
+                    <span>Số điện thoại:</span>
+                    <div className={styles.copyableField}>
+                      <span>{contactLawyer.phone}</span>
+                      <button 
+                        className={styles.copyButton}
+                        onClick={() => handleCopyPhone(contactLawyer.phone)}
+                        title="Sao chép số điện thoại"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className={styles.contactActions}>
+                <a 
+                  href='https://mail.google.com/mail/u/0/#inbox?compose=new'
+                  className={styles.emailButton}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="fas fa-envelope"></i> Gửi email
+                </a>
+                
+                {contactLawyer.phone && (
+                  <a 
+                    href={`tel:${contactLawyer.phone}`}
+                    className={styles.phoneButton}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i className="fas fa-phone"></i> Gọi điện
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
