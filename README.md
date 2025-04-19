@@ -48,7 +48,7 @@
 ### Giai Đoạn Hiện Tại: Sprint 3/5 (67% hoàn thành)
 
 #### Đã Hoàn Thành:
-- ✅ **Database**: Thiết kế và triển khai cơ sở dữ liệu PostgreSQL với 12 bảng tích hợp ràng buộc khóa ngoại
+- ✅ **Database**: Thiết kế và triển khai cơ sở dữ liệu PostgreSQL với 16 bảng tích hợp ràng buộc khóa ngoại
 - ✅ **Backend API**: 
   - Hệ thống xác thực JWT và quản lý phiên làm việc
   - API đăng ký, đăng nhập, quên mật khẩu
