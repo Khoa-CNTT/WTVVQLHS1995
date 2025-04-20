@@ -19,7 +19,12 @@ import Profile from '../pages/Profile/Profile';
 import ChangePasswordPage from '../pages/Profile/ChangePassword/ChangePasssword';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
+import SearchResults from '../pages/Search/SearchResults';
+import DocumentDetail from '../pages/Documents/DocumentDetail';
+import Templates from '../pages/Templates/Templates';
+import TemplateDetail from '../pages/Templates/TemplateDetail';
 import authService from '../services/authService';
+import Documents from '../pages/Documents/Documents';
 
 // Kiểm tra xem người dùng đã đăng nhập chưa
 const isAuthenticated = () => authService.isAuthenticated();
@@ -73,6 +78,41 @@ const PublicRoutes = () => {
         <Route path="/forgot-password" element={
           <PageTransition custom="fade">
             <ForgotPassword />
+          </PageTransition>
+        } />
+        <Route path="/search" element={
+          <PageTransition custom="fade">
+            <SearchResults />
+          </PageTransition>
+        } />
+        <Route path="/legal/documents/:id" element={
+          <PageTransition custom="fade">
+            <DocumentDetail />
+          </PageTransition>
+        } />
+        <Route path="/legal/templates/:id" element={
+          <PageTransition custom="fade">
+            <TemplateDetail />
+          </PageTransition>
+        } />
+        <Route path="/documents/:id" element={
+          <PageTransition custom="fade">
+            <DocumentDetail />
+          </PageTransition>
+        } />
+        <Route path="/templates" element={
+          <PageTransition custom="fade">
+            <Templates />
+          </PageTransition>
+        } />
+        <Route path="/templates/:id" element={
+          <PageTransition custom="fade">
+            <TemplateDetail />
+          </PageTransition>
+        } />
+        <Route path="/documents" element={
+          <PageTransition custom="fade">
+            <Documents />
           </PageTransition>
         } />
         <Route path="/test" element={<TestApiConnection />} />

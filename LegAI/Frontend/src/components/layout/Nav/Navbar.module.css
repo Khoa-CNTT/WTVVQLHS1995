@@ -98,7 +98,7 @@
 }
 
 .navLink::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -143,7 +143,6 @@
   color: var(--primary-color);
   transform: translateY(-2px);
   transition: all 0.3s ease;
-
 }
 
 .iconLabel {
@@ -198,7 +197,8 @@
   border-radius: var(--border-radius-medium);
   padding: 10px;
   width: 300px;
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   box-shadow: var(--box-shadow);
   opacity: 0;
   visibility: hidden;
@@ -209,11 +209,11 @@
 .searchActive .searchDropdown {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateY(0);  
+
 }
 
 .searchInput {
-  flex: 1;
   border: none;
   padding: 10px;
   outline: none;
@@ -307,7 +307,7 @@
   .iconLabel {
     display: none;
   }
-  
+
   .messageIcon {
     padding: 8px;
   }
@@ -317,19 +317,19 @@
   .navbar {
     padding: 15px 20px;
   }
-  
+
   .navbarScrolled {
     padding: 10px 20px;
   }
-  
+
   .navLinks {
     display: none;
   }
-  
+
   .logoText {
     font-size: 1.2rem;
   }
-  
+
   .searchDropdown {
     width: 260px;
     right: -100px;
@@ -349,10 +349,13 @@
   transition: right var(--transition-medium) ease;
   overflow-y: auto;
   padding: 20px 0;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .sideMenuOpen {
   right: 0;
+  transform: translateZ(0);
 }
 
 .sideMenuHeader {
@@ -428,6 +431,7 @@
   z-index: 1050;
   backdrop-filter: blur(3px);
   animation: fadeIn 0.3s ease;
+  will-change: opacity;
 }
 
 @keyframes fadeIn {
@@ -437,6 +441,10 @@
   to {
     opacity: 1;
   }
+}
+
+body.menu-open {
+  overflow: hidden;
 }
 
 /* Điều chỉnh lại hamburger cho menu phải */

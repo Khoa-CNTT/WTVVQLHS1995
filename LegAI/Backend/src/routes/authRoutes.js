@@ -51,4 +51,22 @@ router.get('/check-constraints/:tableName', authenticateToken, userController.ch
 router.get('/lawyers', userController.getAllLawyers);
 router.get('/lawyers/:id', userController.getLawyerById);
 
+// Route kiểm tra token
+router.get('/verify-token', authenticateToken, (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Token hợp lệ',
+        user: req.user
+    });
+});
+
+// Route ví dụ cần bảo vệ
+router.get('/protected', authenticateToken, (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Đây là route được bảo vệ',
+        user: req.user
+    });
+});
+
 module.exports = router;

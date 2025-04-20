@@ -13,6 +13,7 @@ const Navbar = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,6 +63,9 @@ const Navbar = () => {
     setIsSideMenuOpen(!isSideMenuOpen);
     if (!isSideMenuOpen) {
       setShowUserDropdown(false);
+      document.body.classList.add('menu-open');
+    } else {
+      document.body.classList.remove('menu-open');
     }
   };
 
@@ -139,6 +143,22 @@ const Navbar = () => {
     return currentUser?.username?.charAt(0).toUpperCase() || 'U';
   };
 
+  // Xử lý sự kiện tìm kiếm
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Điều hướng đến trang search ngay cả khi không có từ khóa
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+      setIsSearchOpen(false);
+      setSearchTerm('');
+  };
+  
+  // Xử lý sự kiện nhấn phím trong ô tìm kiếm
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   const isHomePage = location.pathname === '/';
 
   return (
@@ -169,6 +189,12 @@ const Navbar = () => {
             <NavLink to="/lawyers">Luật sư</NavLink>
           </li>
           <li>
+            <NavLink to="/documents">Văn bản</NavLink>
+          </li>
+          <li>
+            <NavLink to="/templates">Mẫu văn bản</NavLink>
+          </li>
+          <li>
             <NavLink to="/news">Tin tức</NavLink>
           </li>
           <li>
@@ -179,14 +205,27 @@ const Navbar = () => {
       
       <div className={styles.navIcons}>
         <div className={`${styles.searchWrapper} ${isSearchOpen ? styles.searchActive : ''}`}>
-            <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
+          <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
             <i className="fas fa-search"></i>
           </button>
           <div className={styles.searchDropdown}>
-            <input type="text" placeholder="Tìm kiếm..." className={styles.searchInput} />
-              <button className={styles.searchBtn} aria-label="Tìm kiếm">
-              <i className="fas fa-search"></i>
-            </button>
+            <form onSubmit={handleSearch}>
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm văn bản pháp luật, mẫu đơn..." 
+                className={styles.searchInput}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+              />
+              <button 
+                type="submit"
+                className={styles.searchBtn} 
+                aria-label="Tìm kiếm"
+              >
+                <i className="fas fa-search"></i>
+              </button>
+            </form>
           </div>
         </div>
         
