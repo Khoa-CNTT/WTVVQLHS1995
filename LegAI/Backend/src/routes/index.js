@@ -8,6 +8,7 @@ const reviewRoutes = require('./reviewRoutes');
 const appointmentRoutes = require('./appointmentRoutes');
 const chatRoutes = require('./chatRoutes');
 const mailRoutes = require('./mailRoutes');
+const legalRoutes = require('./legalRoutes');
 
 // Sử dụng các route
 router.use('/auth', authRoutes);
@@ -16,5 +17,5 @@ router.use('/reviews', reviewRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/chats', chatRoutes);
 router.use('/mail', mailRoutes);
-
+router.use('/legal', legalRoutes);
 module.exports = router;

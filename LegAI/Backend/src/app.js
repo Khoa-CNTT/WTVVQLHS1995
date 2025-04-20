@@ -8,12 +8,7 @@ const app = express();
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const reviewRoutes = require('./routes/reviewRoutes');
-const appointmentRoutes = require('./routes/appointmentRoutes');
-const chatRoutes = require('./routes/chatRoutes');
-const mailRoutes = require('./routes/mailRoutes');
+const routes = require('./routes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 
 // Kiểm tra biến môi trường JWT_SECRET
@@ -56,37 +51,14 @@ app.use('/uploads', express.static(uploadsDir, {
     }
 }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/appointments', appointmentRoutes);
-app.use('/api/chats', chatRoutes);
-app.use('/api/mail', mailRoutes);
+// Sử dụng tất cả các routes từ routes/index.js
+app.use('/api', routes);
 
 // Route chào mừng
 app.get('/', (req, res) => {
     res.json({
         status: 'success',
         message: 'Chào mừng đến với API LegAI'
-    });
-});
-
-// Route kiểm tra token
-app.get('/api/auth/verify-token', authenticateToken, (req, res) => {
-    res.json({
-        status: 'success',
-        message: 'Token hợp lệ',
-        user: req.user
-    });
-});
-
-// Route ví dụ cần bảo vệ
-app.get('/api/protected', authenticateToken, (req, res) => {
-    res.json({
-        status: 'success',
-        message: 'Đây là route được bảo vệ',
-        user: req.user
     });
 });
 
