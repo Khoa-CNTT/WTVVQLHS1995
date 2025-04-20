@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
 import authService from '../../services/authService';
+import 'animate.css';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -19,7 +20,6 @@ function Dashboard() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Lấy thông tin người dùng khi component mount
     const user = authService.getCurrentUser();
     if (!user) {
       navigate('/login');
@@ -27,28 +27,20 @@ function Dashboard() {
     }
     setCurrentUser(user);
 
-    // Mô phỏng hiệu ứng đếm số mượt hơn
     const targetCounts = { documents: 15, cases: 5, appointments: 3, contracts: 2 };
-    const duration = 1500; // ms
-    const frameDuration = 1000 / 60; // 60 fps
+    const duration = 1500;
+    const frameDuration = 1000 / 60;
     const totalFrames = Math.round(duration / frameDuration);
 
     let frame = 0;
     const timer = setInterval(() => {
       frame++;
       const progress = frame / totalFrames;
-      const updatedCounts = {};
-
-      Object.keys(targetCounts).forEach(key => {
-        updatedCounts[key] = Math.floor(progress * targetCounts[key]);
-        if (frame === totalFrames) {
-          updatedCounts[key] = targetCounts[key];
-        }
-      });
-
-      setStatCounts(updatedCounts);
-
+      setStatCounts(Object.fromEntries(
+        Object.keys(targetCounts).map(key => [key, Math.floor(progress * targetCounts[key])])
+      ));
       if (frame === totalFrames) {
+        setStatCounts(targetCounts);
         clearInterval(timer);
       }
     }, frameDuration);
@@ -56,250 +48,125 @@ function Dashboard() {
     return () => clearInterval(timer);
   }, [navigate]);
 
-  // Hàm chuyển đến trang chủ
-  const goToHomePage = () => {
-    navigate('/');
-  };
-
-  // Hàm xử lý đăng xuất
+  const goToHomePage = () => navigate('/');
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
+  const toggleSidebar = () => setMenuVisible(!menuVisible);
+  const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
+  const goToProfilePage = () => navigate('/profile');
 
-  // Hàm toggle sidebar
-  const toggleSidebar = () => {
-    setMenuVisible(!menuVisible);
-  };
-
-  // Hàm mở/đóng menu người dùng
-  const toggleUserMenu = () => {
-    setUserMenuOpen(!userMenuOpen);
-  };
-
-  // Hàm chuyển đến trang hồ sơ
-  const goToProfilePage = () => {
-    navigate('/profile');
-  };
-
-  // Danh sách menu dựa trên cấu trúc cơ sở dữ liệu
   const menuItems = [
     { id: 'tổng-quan', label: 'Tổng Quan', icon: '⚖️' },
     { id: 'người-dùng', label: 'Tài Khoản', icon: '👨‍⚖️', table: 'Users, UserProfiles' },
     { id: 'tài-liệu-pháp-lý', label: 'Tài Liệu Pháp Lý', icon: '📜', table: 'LegalDocuments, DocumentTemplates' },
     { id: 'vụ-án', label: 'Vụ Án Pháp Lý', icon: '🏛️', table: 'LegalCases' },
     { id: 'hợp-đồng', label: 'Hợp Đồng', icon: '📋', table: 'Contracts, DigitalSignatures' },
-    { id: 'lịch-hẹn', label: 'Lịch Hẹn', icon: '📅', table: 'Appointments, LawyerAvailability' },
     { id: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: '🤖', table: 'AIConsultations' },
     { id: 'tin-nhắn', label: 'Tin Nhắn', icon: '💬', table: 'LiveChats' },
     { id: 'giao-dịch', label: 'Giao Dịch', icon: '💰', table: 'Transactions, FeeReferences' }
   ];
 
-  // Nội dung giả lập cho Tổng Quan
-  const renderDashboardOverview = () => {
-    return (
-      <>
-        <h2 className={styles.sectionTitle}>Tổng Quan Hoạt Động</h2>
-        <div className={styles.legalQuote}>
-          "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy là đang được thực thi"
-        </div>
-
-        <div className={styles.cardGrid}>
-          <div className={styles.card}>
+  const renderDashboardOverview = () => (
+    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <h2 className={styles.sectionTitle}>Tổng Quan Hoạt Động</h2>
+      <div className={styles.legalQuote}>
+        "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy là đang được thực thi"
+      </div>
+      <div className={styles.cardGrid}>
+        {[
+          { icon: '📄', title: 'Tài Liệu Pháp Lý', stat: statCounts.documents, desc: 'tài liệu mới được cập nhật', subDesc: 'Văn bản, luật, nghị định, mẫu hợp đồng', menu: 'tài-liệu-pháp-lý' },
+          { icon: '⚖️', title: 'Vụ Án Đang Xử Lý', stat: statCounts.cases, desc: 'vụ án đang chờ xử lý', subDesc: 'Các vụ án pháp lý đang được theo dõi và xử lý', menu: 'vụ-án' },
+          { icon: '📅', title: 'Lịch Hẹn Sắp Tới', stat: statCounts.appointments, desc: 'cuộc hẹn trong tuần này', subDesc: 'Các cuộc hẹn tư vấn với luật sư đã được đặt lịch', menu: 'lịch-hẹn' },
+          { icon: '📋', title: 'Hợp Đồng Mới', stat: statCounts.contracts, desc: 'hợp đồng cần xem xét', subDesc: 'Các hợp đồng mới cần xem xét và ký kết', menu: 'hợp-đồng' }
+        ].map(({ icon, title, stat, desc, subDesc, menu }, index) => (
+          <div key={index} className={styles.card}>
             <div className={styles.cardTitle}>
-              <span className={styles.legalIcon}>📄</span>
-              Tài Liệu Pháp Lý
+              <span className={styles.legalIcon}>{icon}</span>
+              {title}
             </div>
             <div className={styles.cardContent}>
-              <p><span className={styles.statNumber}>{statCounts.documents}</span> tài liệu mới được cập nhật</p>
-              <small>Văn bản, luật, nghị định, mẫu hợp đồng</small>
+              <p><span className={styles.statNumber}>{stat}</span> {desc}</p>
+              <small>{subDesc}</small>
             </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu('tài-liệu-pháp-lý')}>
+            <button className={styles.actionButton} onClick={() => setActiveMenu(menu)}>
               Xem Chi Tiết <span>→</span>
             </button>
           </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>
-              <span className={styles.legalIcon}>⚖️</span>
-              Vụ Án Đang Xử Lý
-            </div>
-            <div className={styles.cardContent}>
-              <p><span className={styles.statNumber}>{statCounts.cases}</span> vụ án đang chờ xử lý</p>
-              <small>Các vụ án pháp lý đang được theo dõi và xử lý</small>
-            </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu('vụ-án')}>
-              Xem Chi Tiết <span>→</span>
-            </button>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>
-              <span className={styles.legalIcon}>📅</span>
-              Lịch Hẹn Sắp Tới
-            </div>
-            <div className={styles.cardContent}>
-              <p><span className={styles.statNumber}>{statCounts.appointments}</span> cuộc hẹn trong tuần này</p>
-              <small>Các cuộc hẹn tư vấn với luật sư đã được đặt lịch</small>
-            </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu('lịch-hẹn')}>
-              Xem Chi Tiết <span>→</span>
-            </button>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>
-              <span className={styles.legalIcon}>📋</span>
-              Hợp Đồng Mới
-            </div>
-            <div className={styles.cardContent}>
-              <p><span className={styles.statNumber}>{statCounts.contracts}</span> hợp đồng cần xem xét</p>
-              <small>Các hợp đồng mới cần xem xét và ký kết</small>
-            </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu('hợp-đồng')}>
-              Xem Chi Tiết <span>→</span>
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.legalDivider}></div>
-
-        <h2 className={styles.sectionTitle}>Hoạt Động Gần Đây</h2>
-        <div className={styles.recentActivities}>
-          <div className={styles.activityItem}>
-            <span className={styles.activityIcon}>📝</span>
+        ))}
+      </div>
+      <div className={styles.legalDivider}></div>
+      <h2 className={styles.sectionTitle}>Hoạt Động Gần Đây</h2>
+      <div className={styles.recentActivities}>
+        {[
+          { icon: '📝', title: 'Tài liệu pháp lý "Luật doanh nghiệp 2023" được thêm vào', time: '2 giờ trước' },
+          { icon: '👨‍⚖️', title: 'Cuộc hẹn với Luật sư Nguyễn Văn A về vụ án kinh doanh', time: 'Hôm qua, 15:30' },
+          { icon: '💰', title: 'Giao dịch thanh toán tư vấn luật sư hoàn tất - 2.500.000đ', time: '3 ngày trước' },
+          { icon: '📋', title: 'Hợp đồng mua bán đã được ký kết với chữ ký điện tử', time: '5 ngày trước' }
+        ].map(({ icon, title, time }, index) => (
+          <div key={index} className={`${styles.activityItem} animate__animated animate__slideInUp`} style={{ animationDelay: `${index * 0.1}s` }}>
+            <span className={styles.activityIcon}>{icon}</span>
             <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>Tài liệu pháp lý "Luật doanh nghiệp 2023" được thêm vào</div>
-              <div className={styles.activityTime}>2 giờ trước</div>
+              <div className={styles.activityTitle}>{title}</div>
+              <div className={styles.activityTime}>{time}</div>
             </div>
           </div>
-          <div className={styles.activityItem}>
-            <span className={styles.activityIcon}>👨‍⚖️</span>
-            <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>Cuộc hẹn với Luật sư Nguyễn Văn A về vụ án kinh doanh</div>
-              <div className={styles.activityTime}>Hôm qua, 15:30</div>
-            </div>
-          </div>
-          <div className={styles.activityItem}>
-            <span className={styles.activityIcon}>💰</span>
-            <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>Giao dịch thanh toán tư vấn luật sự hoàn tất - 2.500.000đ</div>
-              <div className={styles.activityTime}>3 ngày trước</div>
-            </div>
-          </div>
-          <div className={styles.activityItem}>
-            <span className={styles.activityIcon}>📋</span>
-            <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>Hợp đồng mua bán đã được ký kết với chữ ký điện tử</div>
-              <div className={styles.activityTime}>5 ngày trước</div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
+        ))}
+      </div>
+    </div>
+  );
 
-  // Nội dung cho phần tài khoản dựa vào bảng Users và UserProfiles
-  const renderUserProfile = () => {
-    return (
-      <>
-        <h2 className={styles.sectionTitle}>Quản lý tài khoản người dùng</h2>
-        <UsersManagerPage />
-      </>
-    );
-  };
+  const renderUserProfile = () => (
+    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <h2 className={styles.sectionTitle}>Quản lý tài khoản người dùng</h2>
+      <UsersManagerPage />
+    </div>
+  );
 
-  // Hiển thị nội dung tương ứng với menu được chọn
   const renderContent = () => {
-    switch (activeMenu) {
-      case 'tổng-quan':
-        return <div className={styles.contentSection}>{renderDashboardOverview()}</div>;
-      case 'người-dùng':
-        return (
-          <div className={styles.contentSection}>
-            {renderUserProfile()}
-          </div>
-        );
-      case 'tài-liệu-pháp-lý':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Tài Liệu Pháp Lý</h2>
-          </div>
-        );
-      case 'vụ-án':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Vụ Án Pháp Lý</h2>
-          </div>
-        );
-      case 'hợp-đồng':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng</h2>
-          </div>
-        );
-      case 'lịch-hẹn':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Lịch Hẹn</h2>
-          </div>
-        );
-      case 'tư-vấn-ai':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Tư Vấn AI</h2>
-          </div>
-        );
-      case 'tin-nhắn':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Tin Nhắn</h2>
-          </div>
-        );
-      case 'giao-dịch':
-        return (
-          <div className={styles.contentSection}>
-            <h2 className={styles.sectionTitle}>Giao Dịch</h2>
-          </div>
-        );
-      default:
-        return <div className={styles.contentSection}>Chọn một mục từ menu</div>;
-    }
+    const sections = {
+      'tổng-quan': renderDashboardOverview(),
+      'người-dùng': renderUserProfile(),
+      'tài-liệu-pháp-lý': <h2 className={styles.sectionTitle}>Tài Liệu Pháp Lý</h2>,
+      'vụ-án': <h2 className={styles.sectionTitle}>Vụ Án Pháp Lý</h2>,
+      'hợp-đồng': <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng</h2>,
+      'tư-vấn-ai': <h2 className={styles.sectionTitle}>Tư Vấn AI</h2>,
+      'tin-nhắn': <h2 className={styles.sectionTitle}>Tin Nhắn</h2>,
+      'giao-dịch': <h2 className={styles.sectionTitle}>Giao Dịch</h2>
+    };
+    return (
+      <div className={styles.contentSection}>
+        {sections[activeMenu] || 'Chọn một mục từ menu'}
+      </div>
+    );
   };
 
-  const getCurrentDate = () => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date().toLocaleDateString('vi-VN', options);
-  };
+  const getCurrentDate = () => new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
 
-  // Hiển thị chữ cái đầu từ họ tên người dùng cho avatar
   const getUserInitials = () => {
     if (currentUser?.fullName) {
       const nameParts = currentUser.fullName.split(' ');
-      if (nameParts.length > 1) {
-        return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase();
-      }
-      return currentUser.fullName.charAt(0).toUpperCase();
+      return nameParts.length > 1
+        ? `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase()
+        : currentUser.fullName.charAt(0).toUpperCase();
     }
     return currentUser?.username?.substring(0, 2).toUpperCase() || 'ND';
   };
 
   return (
-    <div className={`${styles.dashboardContainer} ${menuVisible ? '' : styles.sidebarCollapsed}`}>
-      {/* Sidebar */}
+    <div className={`${styles.dashboardContainer} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
       <div className={`${styles.sidebar} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
-        <div
-          className={styles.logoContainer}
-          onClick={goToHomePage}
-          title="Về trang chủ"
-        >
+        <div className={styles.logoContainer} onClick={goToHomePage} title="Về trang chủ">
           <h2>LegAI</h2>
         </div>
         <div className={styles.menuContainer}>
           {menuItems.map(item => (
             <div
               key={item.id}
-              className={`${styles.menuItem} ${activeMenu === item.id ? styles.active : ''}`}
+              className={`${styles.menuItem} ${activeMenu === item.id ? styles.active : ''} animate__animated animate__fadeIn`}
               onClick={() => setActiveMenu(item.id)}
               title={item.table ? `Bảng dữ liệu: ${item.table}` : item.label}
             >
@@ -314,15 +181,11 @@ function Dashboard() {
           </button>
         </div>
       </div>
-
-      {/* Toggle Button for Sidebar - đặt bên ngoài sidebar */}
       <button className={styles.menuToggle} onClick={toggleSidebar}>
         {menuVisible ? '◀' : '▶'}
       </button>
-
-      {/* Main Content */}
       <div className={styles.mainContent}>
-        <div className={styles.header}>
+        <div className={`${styles.header} animate__animated animate__fadeInDown`}>
           <div>
             <h1>HỆ THỐNG QUẢN LÝ PHÁP LÝ</h1>
             <div className={styles.currentDate}>{getCurrentDate()}</div>
@@ -335,18 +198,17 @@ function Dashboard() {
             <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
             <div className={styles.userAvatar} onClick={toggleUserMenu}>
               {getUserInitials()}
-
               {userMenuOpen && (
-                <div className={styles.userDropdownMenu} onClick={e => e.stopPropagation()}>
-                  <div className={styles.userMenuItem} onClick={() => navigate('/')}>
-                    <i className="fas fa-home"></i> Trang chủ
-                  </div>
-                  <div className={styles.userMenuItem} onClick={goToProfilePage}>
-                    <i className="fas fa-user"></i> Hồ sơ
-                  </div>
-                  <div className={styles.userMenuItem} onClick={handleLogout}>
-                    <i className="fas fa-sign-out-alt"></i> Đăng xuất
-                  </div>
+                <div className={`${styles.userDropdownMenu} animate__animated animate__fadeIn`}>
+                  {[
+                    { icon: '🏠', label: 'Trang chủ', onClick: () => navigate('/') },
+                    { icon: '👤', label: 'Hồ sơ', onClick: goToProfilePage },
+                    { icon: '🚪', label: 'Đăng xuất', onClick: handleLogout }
+                  ].map(({ icon, label, onClick }, index) => (
+                    <div key={index} className={styles.userMenuItem} onClick={onClick}>
+                      <span>{icon}</span> {label}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

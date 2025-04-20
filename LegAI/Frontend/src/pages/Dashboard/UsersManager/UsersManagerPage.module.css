@@ -270,9 +270,7 @@
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  margin: auto;
 }
 
 .statusActive {

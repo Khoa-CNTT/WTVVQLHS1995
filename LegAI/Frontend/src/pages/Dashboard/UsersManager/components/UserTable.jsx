@@ -42,7 +42,6 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
                 <td data-label="Trạng Thái">
                   <span className={user.is_locked ? styles.statusLocked : styles.statusActive}>
                     <i className={user.is_locked ? "fas fa-lock" : "fas fa-lock-open"}></i>
-                    {user.is_locked ? ' Đã khóa' : ' Hoạt động'}
                   </span>
                 </td>
                 <td data-label="Hành Động" className={styles.actionButtons}>
