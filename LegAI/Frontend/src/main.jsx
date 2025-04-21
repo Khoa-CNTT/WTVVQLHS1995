@@ -9,7 +9,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import './styles/global.css';
 import { checkTokenExpiration } from './config/axios';
 
-// Khởi tạo EmailJS
 
 // Kiểm tra token hết hạn khi ứng dụng khởi động
 checkTokenExpiration();

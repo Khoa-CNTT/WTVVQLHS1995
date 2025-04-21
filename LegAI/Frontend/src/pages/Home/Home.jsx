@@ -25,14 +25,14 @@ const Home = () => {
   const featureSwiperRef = useRef(null);
   const testimonialSwiperRef = useRef(null);
   const categorySwiperRef = useRef(null);
-  
+
   // Kiểm tra đăng nhập khi component được render
   useEffect(() => {
     const checkAuth = () => {
       const loggedIn = authService.isAuthenticated();
       setIsLoggedIn(loggedIn);
     };
-    
+
     checkAuth();
     // Khởi động animation cho "App step" sau khi trang đã load
     const timer = setTimeout(() => {
@@ -40,7 +40,7 @@ const Home = () => {
     }, 1000);
 
     setLoading(false);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -137,50 +137,50 @@ const Home = () => {
   return (
     <>
       <Navbar />
-    <div className={styles.container}>
-      {/* Hero Section */}
-      <section className={styles.heroSection}>
-        <video className={styles.videoBackground} autoPlay loop muted>
+      <div className={styles.container}>
+        {/* Hero Section */}
+        <section className={styles.heroSection}>
+          <video className={styles.videoBackground} autoPlay loop muted>
             <source src="/video/2.mp4" type="video/mp4" />
-        </video>
+          </video>
           <div className={styles.heroBackgroundOverlay}></div>
-        <div className={styles.heroContent}>
+          <div className={styles.heroContent}>
             <div className={styles.glowCircle}></div>
             <h1 className={styles.heroTitle}>
               <span className={styles.heroTitleSecondary}>Quản lý hồ sơ pháp lý</span>
-              <span className={styles.heroTitlePrimary}>TƯ VẤN PHÁP LUẬT <br/>TÍCH HỢP TRÍ TUỆ NHÂN TẠO</span>
+              <span className={styles.heroTitlePrimary}>TƯ VẤN PHÁP LUẬT <br />TÍCH HỢP TRÍ TUỆ NHÂN TẠO</span>
             </h1>
             <p className={styles.heroDescription}>
               Nền tảng pháp lý toàn diện cho cá nhân và doanh nghiệp với công nghệ AI hiện đại
             </p>
-          <div className={styles.heroBtnGroup}>
-              <button 
-                className={styles.primaryButton} 
+            <div className={styles.heroBtnGroup}>
+              <button
+                className={styles.primaryButton}
                 onClick={() => navigate('/lawyers')}
               >
                 <i className="fas fa-rocket"></i> Dùng ngay
               </button>
-              <button 
+              <button
                 className={styles.outlineButton}
                 onClick={() => navigate('/services')}
               >
                 <i className="fas fa-info-circle"></i> Tìm hiểu thêm
-            </button>
+              </button>
+            </div>
           </div>
-        </div>
-        
+
           <div className={styles.appPreviewContainer}>
             <div className={`${styles.appStepsContainer} ${animateApp ? styles.animate : ''}`}>
               <div className={styles.appStepNumbers}>
                 {[1, 2, 3, 4, 5].map(step => (
-                  <div 
-                    key={step} 
+                  <div
+                    key={step}
                     className={`${styles.stepNumber} ${currentStep === step ? styles.activeStep : ''}`}
                     onClick={() => setCurrentStep(step)}
                   >
                     {step < currentStep ? <i className="fas fa-check"></i> : step}
-            </div>
-          ))}
+                  </div>
+                ))}
               </div>
               <div className={styles.appPreview}>
                 <div className={`${styles.appStep} ${currentStep === 1 ? styles.activeAppStep : ''}`}>
@@ -203,19 +203,19 @@ const Home = () => {
                   <i className="fas fa-check-circle"></i>
                   <h4>Giải quyết vấn đề</h4>
                 </div>
-                
+
                 <button className={styles.restartButton} onClick={() => setCurrentStep(1)}>
                   <i className="fas fa-redo"></i>
                 </button>
               </div>
             </div>
-        </div>
-      </section>
+          </div>
+        </section>
 
         {/* Features Section */}
         <section className={styles.featuresSection} id="features">
           <div className={styles.featuresContainer}>
-        <div className={styles.sectionHeader}>
+            <div className={styles.sectionHeader}>
               <h2>Tính năng nổi bật</h2>
               <p>
                 Khám phá các tính năng giúp bạn tiếp cận dịch vụ pháp lý một cách
@@ -224,30 +224,30 @@ const Home = () => {
             </div>
 
             <div className={styles.serviceNavigation}>
-              <div 
-                className={styles.navArrow} 
+              <div
+                className={styles.navArrow}
                 onClick={() => featureSwiperRef.current.slidePrev()}
               >
                 <FaChevronLeft />
               </div>
-              <div 
-                className={styles.navArrow} 
+              <div
+                className={styles.navArrow}
                 onClick={() => featureSwiperRef.current.slideNext()}
               >
                 <FaChevronRight />
               </div>
-        </div>
-        
-        <Swiper
+            </div>
+
+            <Swiper
               onSwiper={(swiper) => (featureSwiperRef.current = swiper)}
               effect={"coverflow"}
-          grabCursor={true}
-          centeredSlides={true}
+              grabCursor={true}
+              centeredSlides={true}
               slidesPerView={"auto"}
-          coverflowEffect={{
+              coverflowEffect={{
                 rotate: 0,
-            stretch: 0,
-            depth: 100,
+                stretch: 0,
+                depth: 100,
                 modifier: 1.5,
                 slideShadows: false,
               }}
@@ -272,41 +272,41 @@ const Home = () => {
                     <div className={styles.featureIconWrapper}>{feature.icon}</div>
                     <h3>{feature.title}</h3>
                     <p>{feature.description}</p>
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
             <div className="service-pagination"></div>
           </div>
-      </section>
+        </section>
 
         {/* Lĩnh vực pháp lý */}
         <section className={styles.exchangeSection}>
-        <div className={styles.sectionHeader}>
+          <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
               <span className={styles.titleHighlight}>Lĩnh vực pháp lý</span>
             </h2>
             <p className={styles.sectionDescription}>
               Đội ngũ luật sư chuyên nghiệp trong nhiều lĩnh vực
             </p>
-        </div>
-        
+          </div>
+
           <div className={styles.exchangeContainer}>
             <div className={styles.categoryControls}>
-              <div 
-                className={styles.navArrow} 
+              <div
+                className={styles.navArrow}
                 onClick={() => categorySwiperRef.current.slidePrev()}
               >
                 <FaChevronLeft />
               </div>
-              <div 
-                className={styles.navArrow} 
+              <div
+                className={styles.navArrow}
                 onClick={() => categorySwiperRef.current.slideNext()}
               >
                 <FaChevronRight />
               </div>
             </div>
-            
+
             <Swiper
               onSwiper={(swiper) => (categorySwiperRef.current = swiper)}
               modules={[Pagination, Autoplay, Navigation]}
@@ -319,9 +319,9 @@ const Home = () => {
                 960: { slidesPerView: 3 },
                 1200: { slidesPerView: 4 }
               }}
-              autoplay={{ 
-                delay: 5000, 
-                disableOnInteraction: false 
+              autoplay={{
+                delay: 5000,
+                disableOnInteraction: false
               }}
               className={styles.legalCategoriesSwiper}
             >
@@ -342,17 +342,17 @@ const Home = () => {
                 </SwiperSlide>
               ))}
             </Swiper>
-        </div>
-      </section>
+          </div>
+        </section>
 
         {/* Card Feature Section */}
         <section className={styles.cardFeatureSection}>
           <div className={styles.cardFeatureContainer}>
             <div className={styles.cardImageContainer}>
               <div className={styles.cardImageOverlay}></div>
-              <img 
-                src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1912&auto=format&fit=crop" 
-                alt="AI Legal Assistant" 
+              <img
+                src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1912&auto=format&fit=crop"
+                alt="AI Legal Assistant"
                 className={styles.cardImage}
               />
             </div>
@@ -361,7 +361,7 @@ const Home = () => {
                 <span className={styles.titleHighlight}>Trợ lý AI</span> pháp lý của bạn
               </h2>
               <p className={styles.cardDescription}>
-                Công nghệ AI tiên tiến giúp bạn tra cứu nhanh chóng, phân tích hồ sơ và đề xuất giải pháp pháp lý phù hợp. 
+                Công nghệ AI tiên tiến giúp bạn tra cứu nhanh chóng, phân tích hồ sơ và đề xuất giải pháp pháp lý phù hợp.
                 Tiết kiệm thời gian và chi phí với trí tuệ nhân tạo được đào tạo bởi các chuyên gia pháp lý hàng đầu.
               </p>
               <ul className={styles.cardFeatureList}>
@@ -370,7 +370,7 @@ const Home = () => {
                 <li><i className="fas fa-check-circle"></i> Soạn thảo văn bản pháp lý</li>
                 <li><i className="fas fa-check-circle"></i> Đề xuất phương án giải quyết</li>
               </ul>
-              <button 
+              <button
                 className={styles.cardButton}
                 onClick={() => navigate('/services')}
               >
@@ -390,14 +390,14 @@ const Home = () => {
           </div>
 
           <div className={styles.testimonialControls}>
-            <div 
-              className={styles.navArrow} 
+            <div
+              className={styles.navArrow}
               onClick={() => testimonialSwiperRef.current.slidePrev()}
             >
               <FaChevronLeft />
             </div>
-            <div 
-              className={styles.navArrow} 
+            <div
+              className={styles.navArrow}
               onClick={() => testimonialSwiperRef.current.slideNext()}
             >
               <FaChevronRight />
@@ -450,9 +450,9 @@ const Home = () => {
                     <i className="fas fa-star"></i>
                   </div>
                   <div className={styles.testimonialHeader}>
-                    <img 
-                      src={testimonial.avatar} 
-                      alt={testimonial.name} 
+                    <img
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
                       className={styles.testimonialAvatar}
                     />
                     <div className={styles.testimonialInfo}>
@@ -460,10 +460,10 @@ const Home = () => {
                       <p className={styles.testimonialRole}>{testimonial.role}</p>
                     </div>
                   </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </section>
 
         {/* Get Started Section - Chỉ hiển thị khi chưa đăng nhập */}
@@ -475,13 +475,13 @@ const Home = () => {
                 Hơn 1000+ khách hàng đã tin tưởng sử dụng dịch vụ của chúng tôi
               </p>
               <div className={styles.getStartedButtons}>
-                <button 
+                <button
                   className={styles.registerButton}
                   onClick={() => navigate('/register')}
                 >
                   <i className="fas fa-user-plus"></i> Đăng ký
                 </button>
-                <button 
+                <button
                   className={styles.loginButton}
                   onClick={() => navigate('/login')}
                 >

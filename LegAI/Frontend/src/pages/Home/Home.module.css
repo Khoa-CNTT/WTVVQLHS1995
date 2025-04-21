@@ -21,7 +21,7 @@
 }
 
 .videoBackground {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -552,7 +552,10 @@
 /* Card Feature Section */
 .cardFeatureSection {
   padding: 5rem 5%;
-  background-color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.352);
+  position: relative;
+  z-index: 10;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
 }
 
 .cardFeatureContainer {
@@ -584,13 +587,13 @@
 .cardTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #333;
+  color: #ffffff;
   margin-bottom: 1.5rem;
 }
 
 .cardDescription {
   font-size: 1.125rem;
-  color: #666;
+  color: #ede4e4;
   line-height: 1.6;
   margin-bottom: 2rem;
 }
@@ -604,7 +607,7 @@
   align-items: center;
   margin-bottom: 1rem;
   font-size: 1.125rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .cardFeatureList li i {
@@ -614,7 +617,7 @@
 }
 
 .cardButton {
-  background-color: #003366;
+  background-color: #ffa600c9;
   color: #fff;
   border: none;
   border-radius: 30px;
@@ -626,7 +629,7 @@
 }
 
 .cardButton:hover {
-  background-color: #002855;
+  background-color: #ffa600;
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
@@ -634,7 +637,8 @@
 /* Testimonials Section */
 .testimonialsSection {
   background-color: #f8f9fa;
-  padding: 5rem 5%;
+  padding: 5rem 5%;  position: relative;
+  z-index: 10;
 }
 
 .testimonialsSwiper {
@@ -745,6 +749,8 @@
   padding: 5rem 5%;
   text-align: center;
   color: #fff;
+  position: relative;
+  z-index: 10;
 }
 
 .getStartedContent {
@@ -838,6 +844,8 @@
   background-color: #fff;
   padding: 3rem 5%;
   border-top: 1px solid #f0f0f0;
+  position: relative;
+  z-index: 10;
 }
 
 .awardContainer {
