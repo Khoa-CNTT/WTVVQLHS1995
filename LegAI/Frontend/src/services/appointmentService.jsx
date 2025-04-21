@@ -495,7 +495,11 @@ const deleteAvailability = async (id) => {
       };
     }
 
-    const response = await axios.delete(`${API_URL}/appointments/availability/${id}`, getHeaders());
+    // Sửa: Truyền đúng headers vào config thay vì tham số thứ hai
+    const response = await axios.delete(
+      `${API_URL}/appointments/availability/${id}`, 
+      { headers: getHeaders() }
+    );
     
     return {
       success: true,

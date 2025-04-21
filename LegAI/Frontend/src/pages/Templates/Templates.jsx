@@ -336,27 +336,7 @@ const Templates = () => {
                     </span>
                   </div>
                   <p className={styles['template-description']}>
-                    {template.content ? (
-                      (() => {
-                        // Xử lý nội dung HTML
-                        let plainText = template.content
-                          // Loại bỏ tất cả các thẻ HTML
-                          .replace(/<[^>]*>/g, ' ')
-                          // Loại bỏ các ký tự điều khiển HTML như   < >
-                          .replace(/&[^;]+;/g, ' ')
-                          // Chuyển nhiều khoảng trắng thành một
-                          .replace(/\s+/g, ' ')
-                          // Loại bỏ khoảng trắng ở đầu và cuối
-                          .trim();
-                        
-                        // Cắt ngắn nếu cần thiết
-                        if (plainText.length > 150) {
-                          plainText = plainText.substring(0, 150) + '...';
-                        }
-                        
-                        return plainText || 'Không có nội dung';
-                      })()
-                    ) : 'Không có nội dung'}
+                    <button className={styles['view-details-button']}>Xem chi tiết</button>
                   </p>
                 </div>
               ))}

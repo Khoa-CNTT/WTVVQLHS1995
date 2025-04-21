@@ -117,16 +117,182 @@ const DocumentDetail = () => {
   };
 
   // Xử lý khi người dùng muốn tải xuống văn bản
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (document?.id) {
       try {
-        legalService.downloadLegalDocument(document.id);
+        // Hiển thị thông báo đang chuẩn bị
+        toast.info('Đang chuẩn bị tệp tải xuống...');
+        
+        // Tạo HTML trực tiếp từ client side để đảm bảo nội dung tiếng Việt hiển thị đúng
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html lang="vi">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${document.title}</title>
+            <style>
+              @media print {
+                @page {
+                  size: A4;
+                  margin: 2cm;
+                }
+              }
+              
+              body {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #000;
+                margin: 0;
+                padding: 20px;
+                background-color: #fff;
+              }
+              
+              .document-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #fff;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              
+              .header {
+                text-align: center;
+                margin-bottom: 20px;
+              }
+              
+              .title {
+                font-weight: bold;
+                font-size: 18px;
+                text-align: center;
+                margin: 20px 0;
+              }
+              
+              .metadata {
+                margin-bottom: 20px;
+                font-style: italic;
+              }
+              
+              .content {
+                text-align: justify;
+              }
+              
+              .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+              }
+              
+              hr {
+                border: none;
+                border-top: 1px solid #ccc;
+                margin: 20px 0;
+              }
+              
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+              }
+              
+              th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+              }
+              
+              th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+              }
+              
+              .page-number {
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="document-container">
+              <div class="header">
+                <strong>VĂN BẢN PHÁP LUẬT</strong>
+              </div>
+              
+              <div class="title">${document.title}</div>
+              
+              <div class="metadata">
+                <p>Loại văn bản: ${document.document_type}</p>
+                <p>Ngày ban hành: ${new Date(document.issued_date).toLocaleDateString("vi-VN")}</p>
+                ${document.document_number ? `<p>Số hiệu: ${document.document_number}</p>` : ""}
+              </div>
+              
+              <hr>
+              
+              <div class="content">
+                ${document.content || ''}
+              </div>
+              
+              <div class="footer">
+                <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString("vi-VN")}</p>
+              </div>
+            </div>
+            
+            <script>
+              // Script để tạo nút in khi tài liệu được mở
+              window.onload = function() {
+                if (typeof window.print === 'function') {
+                  const printButton = document.createElement('button');
+                  printButton.innerText = 'In tài liệu';
+                  printButton.style.padding = '8px 16px';
+                  printButton.style.margin = '20px auto';
+                  printButton.style.display = 'block';
+                  printButton.style.backgroundColor = '#4CAF50';
+                  printButton.style.color = 'white';
+                  printButton.style.border = 'none';
+                  printButton.style.borderRadius = '4px';
+                  printButton.style.cursor = 'pointer';
+                  printButton.onclick = function() { window.print(); };
+                  document.body.appendChild(printButton);
+                }
+              };
+            </script>
+          </body>
+          </html>
+        `;
+        
+        // Tạo Blob HTML
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        
+        // Tạo URL để tải xuống
+        const url = URL.createObjectURL(blob);
+        
+        // Tạo thẻ a để tải xuống
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${document.title.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.html`;
+        a.style.display = 'none';
+        
+        // Thêm vào body, click và xóa
+        document.body.appendChild(a);
+        a.click();
+        
+        // Dọn dẹp
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 1000);
+        
+        toast.success('Tải xuống tài liệu thành công!');
       } catch (error) {
         console.error('Lỗi khi tải xuống tài liệu:', error);
         toast.error('Không thể tải xuống tài liệu. Vui lòng thử lại sau.');
       }
     } else {
-      toast.error('Không thể tải xuống tài liệu. Vui lòng thử lại sau.');
+      toast.error('Không thể tải xuống tài liệu. Không tìm thấy ID tài liệu.');
     }
   };
 

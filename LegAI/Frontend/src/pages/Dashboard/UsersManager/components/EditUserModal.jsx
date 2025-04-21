@@ -126,8 +126,8 @@ const EditUserModal = ({ user, onSave, onClose }) => {
           </button>
         </div>
         
-        <div style={{
-          display: 'flex',
+            <div style={{ 
+              display: 'flex', 
           flexWrap: 'wrap',
           gap: '10px',
           marginBottom: '15px',
@@ -137,39 +137,39 @@ const EditUserModal = ({ user, onSave, onClose }) => {
           textAlign: 'left'
         }}>
           <div style={{ flex: '1', minWidth: '200px' }}>
-            <span style={{
+              <span style={{ 
               display: 'inline-block',
-              backgroundColor: formData.is_verified ? '#d4edda' : '#f8d7da',
+                backgroundColor: formData.is_verified ? '#d4edda' : '#f8d7da',
               color: formData.is_verified ? '#155724' : '#721c24',
               padding: '4px 8px',
               borderRadius: '4px',
               fontSize: '0.85rem',
               marginRight: '5px'
-            }}>
-              <i className={formData.is_verified ? "fas fa-check-circle" : "fas fa-times-circle"} style={{ marginRight: '5px' }}></i>
-              {formData.is_verified ? 'Đã xác minh' : 'Chưa xác minh'}
-            </span>
-            <span style={{
+              }}>
+                <i className={formData.is_verified ? "fas fa-check-circle" : "fas fa-times-circle"} style={{ marginRight: '5px' }}></i>
+                {formData.is_verified ? 'Đã xác minh' : 'Chưa xác minh'}
+              </span>
+              <span style={{ 
               display: 'inline-block',
-              backgroundColor: formData.is_locked ? '#ffe9e9' : '#e3faef',
+                backgroundColor: formData.is_locked ? '#ffe9e9' : '#e3faef',
               color: formData.is_locked ? '#e53e3e' : '#38a169',
               padding: '4px 8px',
               borderRadius: '4px',
               fontSize: '0.85rem'
-            }}>
-              <i className={formData.is_locked ? "fas fa-lock" : "fas fa-lock-open"} style={{ marginRight: '5px' }}></i>
-              {formData.is_locked ? 'Đã khóa' : 'Đang hoạt động'}
-            </span>
+              }}>
+                <i className={formData.is_locked ? "fas fa-lock" : "fas fa-lock-open"} style={{ marginRight: '5px' }}></i>
+                {formData.is_locked ? 'Đã khóa' : 'Đang hoạt động'}
+              </span>
           </div>
           
           <div style={{ flex: '1', minWidth: '200px', fontSize: '0.85rem' }}>
             <div><strong>ID:</strong> {formData.id}</div>
             <div><strong>Ngày tạo:</strong> {formatDateTime(formData.created_at)}</div>
-          </div>
+            </div>
           
           <div style={{ flex: '1', minWidth: '200px', fontSize: '0.85rem' }}>
-            <div><strong>Lần đăng nhập cuối:</strong> {formatDateTime(formData.last_login)}</div>
-            <div><strong>Số lần đăng nhập thất bại:</strong> {formData.failed_attempts}</div>
+              <div><strong>Lần đăng nhập cuối:</strong> {formatDateTime(formData.last_login)}</div>
+              <div><strong>Số lần đăng nhập thất bại:</strong> {formData.failed_attempts}</div>
           </div>
         </div>
 
@@ -184,11 +184,11 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Tên đăng nhập
               </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                disabled
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  disabled
                 style={{
                   width: '100%',
                   padding: '8px',
@@ -196,18 +196,18 @@ const EditUserModal = ({ user, onSave, onClose }) => {
                   borderRadius: '4px',
                   backgroundColor: '#f9f9f9'
                 }}
-              />
-            </div>
+                />
+              </div>
               
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Email
               </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                disabled
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  disabled
                 style={{
                   width: '100%',
                   padding: '8px',
@@ -215,48 +215,48 @@ const EditUserModal = ({ user, onSave, onClose }) => {
                   borderRadius: '4px',
                   backgroundColor: '#f9f9f9'
                 }}
-              />
-            </div>
+                />
+              </div>
               
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Họ tên <span style={{ color: '#e53e3e' }}>*</span>
               </label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
                 style={{
                   width: '100%',
                   padding: '8px',
                   border: `1px solid ${errors.full_name ? '#e53e3e' : '#ddd'}`,
                   borderRadius: '4px'
                 }}
-              />
+                />
               {errors.full_name && (
                 <small style={{ color: '#e53e3e', fontSize: '0.8rem', display: 'block', marginTop: '3px' }}>
                   {errors.full_name}
                 </small>
               )}
-            </div>
+              </div>
               
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Số điện thoại
               </label>
-              <input
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
                 style={{
                   width: '100%',
                   padding: '8px',
                   border: `1px solid ${errors.phone ? '#e53e3e' : '#ddd'}`,
                   borderRadius: '4px'
                 }}
-              />
+                />
               {errors.phone && (
                 <small style={{ color: '#e53e3e', fontSize: '0.8rem', display: 'block', marginTop: '3px' }}>
                   {errors.phone}
@@ -268,39 +268,39 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Địa chỉ
               </label>
-              <input
-                type="text"
-                name="address"
+                <input
+                  type="text"
+                  name="address"
                 value={formData.address}
-                onChange={handleChange}
+                  onChange={handleChange}
                 style={{
                   width: '100%',
                   padding: '8px',
                   border: '1px solid #ddd',
                   borderRadius: '4px'
                 }}
-              />
-            </div>
+                />
+              </div>
               
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Vai trò
               </label>
-              <select 
-                name="role" 
-                value={formData.role} 
-                onChange={handleChange} 
+                <select 
+                  name="role" 
+                  value={formData.role} 
+                  onChange={handleChange} 
                 style={{
                   width: '100%',
                   padding: '8px',
                   border: '1px solid #ddd',
                   borderRadius: '4px'
                 }}
-              >
-                <option value="Admin">Admin</option>
-                <option value="User">User</option>
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="User">User</option>
                 <option value="Lawyer">Luật sư</option>
-              </select>
+                </select>
             </div>
           </div>
           

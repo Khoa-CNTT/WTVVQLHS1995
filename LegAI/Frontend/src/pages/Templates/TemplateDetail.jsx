@@ -4,6 +4,8 @@ import { FaArrowLeft, FaCalendarAlt, FaGlobe, FaRegFileAlt, FaDownload, FaEdit, 
 import styles from './TemplateDetail.module.css';
 import legalService from '../../services/legalService';
 import Navbar from '../../components/layout/Nav/Navbar';
+import { API_URL } from '../../config/constants';
+import { toast } from 'react-toastify';
 
 const TemplateDetail = () => {
   const { id } = useParams();
@@ -33,17 +35,188 @@ const TemplateDetail = () => {
     navigate('/templates');
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (template?.id) {
       try {
-        legalService.downloadDocumentTemplate(template.id);
+        // Hiển thị thông báo đang chuẩn bị
+        toast.info('Đang chuẩn bị tệp tải xuống...');
+        
+        // Tạo HTML trực tiếp từ client side để đảm bảo nội dung tiếng Việt hiển thị đúng
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html lang="vi">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${template.title}</title>
+            <style>
+              @media print {
+                @page {
+                  size: A4;
+                  margin: 2cm;
+                }
+              }
+              
+              body {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #000;
+                margin: 0;
+                padding: 20px;
+                background-color: #fff;
+              }
+              
+              .document-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #fff;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              
+              .header {
+                text-align: center;
+                margin-bottom: 20px;
+              }
+              
+              .title {
+                font-weight: bold;
+                font-size: 18px;
+                text-align: center;
+                margin: 20px 0;
+                text-transform: uppercase;
+              }
+              
+              .metadata {
+                margin-bottom: 20px;
+                font-style: italic;
+              }
+              
+              .content {
+                text-align: justify;
+              }
+              
+              .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+              }
+              
+              hr {
+                border: none;
+                border-top: 1px solid #ccc;
+                margin: 20px 0;
+              }
+              
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+              }
+              
+              th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+              }
+              
+              th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+              }
+              
+              .page-number {
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+                margin-top: 20px;
+              }
+              
+              .contract-box {
+                border: 1px solid #000;
+                padding: 15px;
+                margin: 20px 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="document-container">
+              <div class="header">
+                <strong>MẪU VĂN BẢN</strong>
+              </div>
+              
+              <div class="title">${template.title}</div>
+              
+              <div class="metadata">
+                <p>Loại mẫu: ${template.template_type}</p>
+                <p>Ngày tạo: ${new Date(template.created_at).toLocaleDateString("vi-VN")}</p>
+              </div>
+              
+              <hr>
+              
+              <div class="content">
+                ${template.content || ''}
+              </div>
+              
+              <div class="footer">
+                <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString("vi-VN")}</p>
+              </div>
+            </div>
+            
+            <script>
+              // Script để tạo nút in khi tài liệu được mở
+              window.onload = function() {
+                if (typeof window.print === 'function') {
+                  const printButton = document.createElement('button');
+                  printButton.innerText = 'In tài liệu';
+                  printButton.style.padding = '8px 16px';
+                  printButton.style.margin = '20px auto';
+                  printButton.style.display = 'block';
+                  printButton.style.backgroundColor = '#4CAF50';
+                  printButton.style.color = 'white';
+                  printButton.style.border = 'none';
+                  printButton.style.borderRadius = '4px';
+                  printButton.style.cursor = 'pointer';
+                  printButton.onclick = function() { window.print(); };
+                  document.body.appendChild(printButton);
+                }
+              };
+            </script>
+          </body>
+          </html>
+        `;
+        
+        // Tạo Blob HTML
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        
+        // Tạo URL để tải xuống
+        const url = URL.createObjectURL(blob);
+        
+        // Tạo thẻ a để tải xuống
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mau_${template.title.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.html`;
+        a.style.display = 'none';
+        
+        // Thêm vào body, click và xóa
+        document.body.appendChild(a);
+        a.click();
+        
+        // Dọn dẹp
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 1000);
+        
+        toast.success('Tải xuống mẫu văn bản thành công!');
       } catch (error) {
         console.error('Lỗi khi tải xuống mẫu văn bản:', error);
-        // Thêm thông báo lỗi nếu hệ thống có
-        alert('Không thể tải xuống mẫu văn bản. Vui lòng thử lại sau.');
+        toast.error('Không thể tải xuống mẫu văn bản. Vui lòng thử lại sau.');
       }
     } else {
-      alert('Không thể tải xuống mẫu văn bản. Vui lòng thử lại sau.');
+      toast.error('Không thể tải xuống mẫu văn bản. Không tìm thấy ID mẫu.');
     }
   };
 
@@ -132,7 +305,7 @@ const TemplateDetail = () => {
               <FaGlobe /> Ngôn ngữ: {template.language || 'Tiếng Việt'}
             </span>
             <span className={styles['template-format']}>
-              <FaRegFileAlt /> Định dạng: {template.format || 'DOCX'}
+              <FaRegFileAlt /> Định dạng: {template.format || 'PDF'}
             </span>
           </div>
         </div>

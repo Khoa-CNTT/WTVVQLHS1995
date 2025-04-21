@@ -717,7 +717,7 @@ const convertTextToHtml = (text) => {
 };
 
 /**
- * @desc    Tải xuống văn bản pháp luật dưới dạng PDF
+ * @desc    Tải xuống văn bản pháp luật dưới dạng HTML
  * @route   GET /api/legal/documents/:id/download
  * @access  Public
  */
@@ -733,142 +733,169 @@ const downloadLegalDocument = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Tạo thư mục tạm nếu chưa tồn tại
-    const tempDir = path.join(__dirname, "../../uploads/temp");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
-    // Tạo tên file PDF
+    // Tạo tên file HTML an toàn 
     const safeName = document.title.replace(/[^a-zA-Z0-9]/g, "_");
-    const fileName = `${safeName}_${Date.now()}.pdf`;
-    const filePath = path.join(tempDir, fileName);
+    const fileName = `${safeName}_${Date.now()}.html`;
 
-    // Tạo HTML để chuyển thành PDF
+    // Đặt header cho response để tải về dưới dạng HTML
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    // Tạo HTML với định dạng và nội dung đầy đủ
     const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="vi">
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${document.title}</title>
         <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 2cm;
+            }
+          }
+          
           body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
+            font-size: 14px;
             line-height: 1.5;
             color: #000;
-            margin: 30px;
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
           }
+          
+          .document-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          
           .header {
             text-align: center;
             margin-bottom: 20px;
           }
+          
           .title {
             font-weight: bold;
+            font-size: 18px;
             text-align: center;
             margin: 20px 0;
-            font-size: 14pt;
           }
+          
           .metadata {
             margin-bottom: 20px;
             font-style: italic;
           }
+          
           .content {
             text-align: justify;
           }
+          
           .footer {
             margin-top: 30px;
             text-align: center;
-            font-size: 10pt;
+            font-size: 12px;
+            color: #666;
           }
+          
+          hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 20px 0;
+          }
+          
           table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
           }
+          
           th, td {
-            border: 1px solid #000;
+            border: 1px solid #ddd;
             padding: 8px;
+            text-align: left;
           }
+          
           th {
             background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          
+          .page-number {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <strong>VĂN BẢN PHÁP LUẬT</strong>
+        <div class="document-container">
+          <div class="header">
+            <strong>VĂN BẢN PHÁP LUẬT</strong>
+          </div>
+          
+          <div class="title">${document.title}</div>
+          
+          <div class="metadata">
+            <p>Loại văn bản: ${document.document_type}</p>
+            <p>Ngày ban hành: ${new Date(document.issued_date).toLocaleDateString("vi-VN")}</p>
+            ${document.document_number ? `<p>Số hiệu: ${document.document_number}</p>` : ""}
+          </div>
+          
+          <hr>
+          
+          <div class="content">
+            ${document.content || ''}
+          </div>
+          
+          <div class="footer">
+            <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString("vi-VN")}</p>
+          </div>
         </div>
-        <div class="title">${document.title}</div>
-        <div class="metadata">
-          <p>Loại văn bản: ${document.document_type}</p>
-          <p>Ngày ban hành: ${new Date(document.issued_date).toLocaleDateString(
-            "vi-VN"
-          )}</p>
-          ${
-            document.document_number
-              ? `<p>Số hiệu: ${document.document_number}</p>`
-              : ""
-          }
-        </div>
-        <div class="content">${document.content}</div>
-        <div class="footer">
-          <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString(
-            "vi-VN"
-          )}</p>
-        </div>
+        
+        <script>
+          // Script để tạo số trang khi in
+          window.onload = function() {
+            if (typeof window.print === 'function') {
+              const printButton = document.createElement('button');
+              printButton.innerText = 'In tài liệu';
+              printButton.style.padding = '8px 16px';
+              printButton.style.margin = '20px auto';
+              printButton.style.display = 'block';
+              printButton.style.backgroundColor = '#4CAF50';
+              printButton.style.color = 'white';
+              printButton.style.border = 'none';
+              printButton.style.borderRadius = '4px';
+              printButton.style.cursor = 'pointer';
+              printButton.onclick = function() { window.print(); };
+              document.body.appendChild(printButton);
+            }
+          };
+        </script>
       </body>
       </html>
     `;
 
-    // Sử dụng puppeteer để tạo PDF
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-    // Tạo PDF với cài đặt phù hợp cho văn bản pháp luật
-    await page.pdf({
-      path: filePath,
-      format: "A4",
-      margin: {
-        top: "20mm",
-        right: "20mm",
-        bottom: "20mm",
-        left: "20mm",
-      },
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: "<div></div>",
-      footerTemplate:
-        '<div style="width: 100%; text-align: center; font-size: 8pt; color: #777;">Trang <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
-      preferCSSPageSize: true,
-    });
-
-    await browser.close();
-
-    // Đặt header cho response
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
-
-    // Đọc file PDF và trả về cho user
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    // Xóa file sau khi gửi
-    fileStream.on("end", () => {
-      fs.unlinkSync(filePath);
-    });
+    // Gửi HTML
+    res.send(htmlContent);
+    
   } catch (error) {
-    console.error("Lỗi khi tạo PDF:", error);
+    console.error("Lỗi khi tạo file HTML:", error);
     return res.status(500).json({
       status: "error",
-      message: "Không thể tạo file PDF",
+      message: "Không thể tạo file HTML",
     });
   }
 });
 
 /**
- * @desc    Tải xuống mẫu văn bản dưới dạng PDF
+ * @desc    Tải xuống mẫu văn bản dưới dạng HTML
  * @route   GET /api/legal/templates/:id/download
  * @access  Public
  */
@@ -884,141 +911,169 @@ const downloadDocumentTemplate = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Tạo thư mục tạm nếu chưa tồn tại
-    const tempDir = path.join(__dirname, "../../uploads/temp");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
-    // Tạo tên file PDF
+    // Tạo tên file HTML an toàn
     const safeName = template.title.replace(/[^a-zA-Z0-9]/g, "_");
-    const fileName = `mau_${safeName}_${Date.now()}.pdf`;
-    const filePath = path.join(tempDir, fileName);
+    const fileName = `mau_${safeName}_${Date.now()}.html`;
 
-    // Tạo HTML để chuyển thành PDF
+    // Đặt header cho response để tải về dưới dạng HTML
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    // Tạo HTML với định dạng và nội dung đầy đủ
     const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="vi">
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${template.title}</title>
         <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 2cm;
+            }
+          }
+          
           body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
+            font-size: 14px;
             line-height: 1.5;
             color: #000;
-            margin: 30px;
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
           }
+          
+          .document-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          
           .header {
             text-align: center;
             margin-bottom: 20px;
           }
+          
           .title {
             font-weight: bold;
+            font-size: 18px;
             text-align: center;
             margin: 20px 0;
-            font-size: 14pt;
             text-transform: uppercase;
           }
+          
           .metadata {
             margin-bottom: 20px;
             font-style: italic;
           }
+          
           .content {
             text-align: justify;
           }
+          
           .footer {
             margin-top: 30px;
             text-align: center;
-            font-size: 10pt;
+            font-size: 12px;
+            color: #666;
           }
-          .divider {
-            border-top: 1px solid #999;
+          
+          hr {
+            border: none;
+            border-top: 1px solid #ccc;
             margin: 20px 0;
           }
-          .contract-box {
-            border: 1px solid #000;
-            padding: 10px;
-            margin: 15px 0;
-          }
+          
           table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
           }
+          
           th, td {
-            border: 1px solid #000;
+            border: 1px solid #ddd;
             padding: 8px;
+            text-align: left;
           }
+          
           th {
             background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          
+          .page-number {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+          }
+          
+          .contract-box {
+            border: 1px solid #000;
+            padding: 15px;
+            margin: 20px 0;
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <strong>MẪU VĂN BẢN</strong>
+        <div class="document-container">
+          <div class="header">
+            <strong>MẪU VĂN BẢN</strong>
+          </div>
+          
+          <div class="title">${template.title}</div>
+          
+          <div class="metadata">
+            <p>Loại mẫu: ${template.template_type}</p>
+            <p>Ngày tạo: ${new Date(template.created_at).toLocaleDateString("vi-VN")}</p>
+          </div>
+          
+          <hr>
+          
+          <div class="content">
+            ${template.content || ''}
+          </div>
+          
+          <div class="footer">
+            <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString("vi-VN")}</p>
+          </div>
         </div>
-        <div class="title">${template.title}</div>
-        <div class="metadata">
-          <p>Loại mẫu: ${template.template_type}</p>
-          <p>Ngày tạo: ${new Date(template.created_at).toLocaleDateString(
-            "vi-VN"
-          )}</p>
-        </div>
-        <div class="content">${template.content}</div>
-        <div class="footer">
-          <p>Tải xuống từ Hệ thống LegAI - ${new Date().toLocaleDateString(
-            "vi-VN"
-          )}</p>
-        </div>
+        
+        <script>
+          // Script để tạo nút in khi tài liệu được mở
+          window.onload = function() {
+            if (typeof window.print === 'function') {
+              const printButton = document.createElement('button');
+              printButton.innerText = 'In tài liệu';
+              printButton.style.padding = '8px 16px';
+              printButton.style.margin = '20px auto';
+              printButton.style.display = 'block';
+              printButton.style.backgroundColor = '#4CAF50';
+              printButton.style.color = 'white';
+              printButton.style.border = 'none';
+              printButton.style.borderRadius = '4px';
+              printButton.style.cursor = 'pointer';
+              printButton.onclick = function() { window.print(); };
+              document.body.appendChild(printButton);
+            }
+          };
+        </script>
       </body>
       </html>
     `;
 
-    // Sử dụng puppeteer để tạo PDF
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-    // Tạo PDF với cài đặt phù hợp cho mẫu văn bản
-    await page.pdf({
-      path: filePath,
-      format: "A4",
-      margin: {
-        top: "20mm",
-        right: "20mm",
-        bottom: "20mm",
-        left: "20mm",
-      },
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: "<div></div>",
-      footerTemplate:
-        '<div style="width: 100%; text-align: center; font-size: 8pt; color: #777;">Trang <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
-      preferCSSPageSize: true,
-    });
-
-    await browser.close();
-
-    // Đặt header cho response
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
-
-    // Đọc file PDF và trả về cho user
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    // Xóa file sau khi gửi
-    fileStream.on("end", () => {
-      fs.unlinkSync(filePath);
-    });
+    // Gửi HTML
+    res.send(htmlContent);
+    
   } catch (error) {
-    console.error("Lỗi khi tạo PDF:", error);
+    console.error("Lỗi khi tạo file HTML:", error);
     return res.status(500).json({
       status: "error",
-      message: "Không thể tạo file PDF",
+      message: "Không thể tạo file HTML",
     });
   }
 });
