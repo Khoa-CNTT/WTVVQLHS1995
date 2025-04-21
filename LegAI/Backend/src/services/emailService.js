@@ -422,6 +422,9 @@ const sendVerificationEmail = async (email, username, otp) => {
   }
 };
 
+// Alias của sendVerificationEmail để tương thích với code đã có
+const sendOTPEmail = sendVerificationEmail;
+
 // Format thời gian để hiển thị đẹp hơn trong email
 const formatDateTime = (dateTimeStr) => {
   const date = new Date(dateTimeStr);
@@ -709,6 +712,7 @@ const sendAppointmentNotification = async (data) => {
 
 module.exports = {
   sendVerificationEmail,
+  sendOTPEmail,
   sendAppointmentNotification,
   sendAppointmentNotificationToLawyer,
   sendAppointmentStatusUpdateToCustomer,

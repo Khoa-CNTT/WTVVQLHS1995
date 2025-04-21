@@ -230,7 +230,7 @@ body {
 
 .currentDate {
   font-size: 0.9rem;
-  color: var(--text-light);
+  color: var(--text-dark);
   margin-top: 0.5rem;
 }
 

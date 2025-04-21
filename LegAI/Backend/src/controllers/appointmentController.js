@@ -152,11 +152,21 @@ exports.getAppointments = asyncHandler(async (req, res, next) => {
     appointments = await appointmentModel.getAppointmentsByCustomerId(userId, status);
   }
 
+  // Đảm bảo không có dữ liệu trùng lặp bằng cách sử dụng Set với ID
+  const uniqueIds = new Set();
+  const uniqueAppointments = [];
+  
+  for (const appointment of appointments) {
+    if (!uniqueIds.has(appointment.id)) {
+      uniqueIds.add(appointment.id);
+      uniqueAppointments.push(appointment);
+    }
+  }
 
   res.status(200).json({
     status: 'success',
-    count: appointments.length,
-    data: appointments
+    count: uniqueAppointments.length,
+    data: uniqueAppointments
   });
 });
 

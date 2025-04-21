@@ -39,6 +39,14 @@ CREATE TABLE LegalDocuments (
     language VARCHAR(50) NOT NULL
 );
 
+-- Bảng LegalKeywords
+CREATE TABLE LegalKeywords (
+    id SERIAL PRIMARY KEY,
+    document_id INT NOT NULL,
+    keyword VARCHAR(100) NOT NULL,
+    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE
+);
+
 -- Bảng LegalCases
 CREATE TABLE LegalCases (
     id SERIAL PRIMARY KEY,
@@ -150,7 +158,7 @@ CREATE TABLE LawyerDetails (
     lawyer_id INT NOT NULL,
     certification VARCHAR(255) NOT NULL,
     experience_years INT NOT NULL,
-    specialization VARCHAR(50) NOT NULL,
+    specialization VARCHAR(255) NOT NULL,
     rating DECIMAL(3,1) NOT NULL DEFAULT 0.0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
@@ -197,16 +205,6 @@ CREATE TABLE FeeReferences (
     description TEXT
 );
 
--- Bảng LegalKeywords
-CREATE TABLE LegalKeywords (
-    id SERIAL PRIMARY KEY,
-    keyword VARCHAR(100) NOT NULL,
-    document_id INT,
-    document_type VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE
-);
-
 -- Thêm index để tối ưu hóa truy vấn
 CREATE INDEX IF NOT EXISTS idx_appointments_customer_id ON Appointments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_lawyer_id ON Appointments(lawyer_id);
@@ -216,48 +214,11 @@ CREATE INDEX IF NOT EXISTS idx_livechats_customer_id ON LiveChats(customer_id);
 CREATE INDEX IF NOT EXISTS idx_livechats_lawyer_id ON LiveChats(lawyer_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON Transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_lawyer_id ON Transactions(lawyer_id);
-CREATE INDEX IF NOT EXISTS idx_legaldocuments_title ON LegalDocuments(title);
-CREATE INDEX IF NOT EXISTS idx_legaldocuments_document_type ON LegalDocuments(document_type);
-CREATE INDEX IF NOT EXISTS idx_legaldocuments_issued_date ON LegalDocuments(issued_date);
-CREATE INDEX IF NOT EXISTS idx_documenttemplates_title ON DocumentTemplates(title);
-CREATE INDEX IF NOT EXISTS idx_documenttemplates_template_type ON DocumentTemplates(template_type);
-CREATE INDEX IF NOT EXISTS idx_legalkeywords_keyword ON LegalKeywords(keyword);
 CREATE INDEX IF NOT EXISTS idx_legalkeywords_document_id ON LegalKeywords(document_id);
-CREATE INDEX IF NOT EXISTS idx_legalkeywords_document_type ON LegalKeywords(document_type);
+CREATE INDEX IF NOT EXISTS idx_legalkeywords_keyword ON LegalKeywords(keyword);
 
--- Cập nhật cấu trúc bảng Appointments (nếu cần)
-ALTER TABLE Appointments 
-    ADD COLUMN IF NOT EXISTS purpose TEXT DEFAULT '',
-    ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 
 -- Cập nhật dữ liệu hiện có trong bảng Appointments
 UPDATE Appointments 
 SET purpose = 'Tư vấn pháp luật', notes = 'Tạo tự động khi cập nhật cấu trúc bảng'
 WHERE purpose IS NULL OR notes IS NULL;
--- Thêm bảng UserFavorites để lưu trữ tài liệu yêu thích của người dùng
-CREATE TABLE IF NOT EXISTS UserFavorites (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    document_id INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE,
-    UNIQUE(user_id, document_id)
-);
-
--- Thêm bảng UserBookmarks để lưu trữ tài liệu đánh dấu của người dùng
-CREATE TABLE IF NOT EXISTS UserBookmarks (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    document_id INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE,
-    UNIQUE(user_id, document_id)
-);
-
--- Tạo chỉ mục để tối ưu hóa truy vấn
-CREATE INDEX IF NOT EXISTS idx_userfavorites_user_id ON UserFavorites(user_id);
-CREATE INDEX IF NOT EXISTS idx_userfavorites_document_id ON UserFavorites(document_id);
-CREATE INDEX IF NOT EXISTS idx_userbookmarks_user_id ON UserBookmarks(user_id);
-CREATE INDEX IF NOT EXISTS idx_userbookmarks_document_id ON UserBookmarks(document_id); 

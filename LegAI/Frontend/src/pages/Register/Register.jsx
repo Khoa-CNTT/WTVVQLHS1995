@@ -45,6 +45,7 @@ function RegisterPage() {
     if (showOTPModal) {
       setCountdown(900); // 15 phút
       setIsCountdownActive(true);
+      setOtpValue(''); // Reset OTP input khi mở modal
     }
   }, [showOTPModal]);
 
@@ -92,9 +93,30 @@ function RegisterPage() {
         fullName: formData.fullName
       });
 
-      setUserId(response.data.userId);
-      setShowOTPModal(true);
+
+      // Kiểm tra dữ liệu phản hồi
+      if (!response || !response.user) {
+        console.error("Phản hồi không hợp lệ:", response);
+        setError('Phản hồi từ server không hợp lệ');
+        return;
+      }
+
+      // Lấy userId từ response
+      const userId = response.user.id;
+
+      // Kiểm tra xem đã có userId chưa
+      if (userId) {
+        setUserId(userId);
+        // Hiển thị modal OTP
+        setShowOTPModal(true);
+        toast.success('Đăng ký thành công! Vui lòng nhập mã OTP đã được gửi đến email của bạn.');
+      } else {
+        // Nếu không có userId, hiển thị thông báo lỗi
+        console.error("Không thể xác định userId từ phản hồi:", response);
+        setError('Không thể xác định ID người dùng. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
+      }
     } catch (err) {
+      console.error("Lỗi khi đăng ký:", err);
       setError(err.message || 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -271,8 +293,37 @@ function RegisterPage() {
 
       {/* Modal xác minh OTP */}
       {showOTPModal && (
-        <div className={styles.otpModal} onClick={(e) => e.target === e.currentTarget && setShowOTPModal(false)}>
-          <div className={styles.otpContent}>
+        <div 
+          className={styles.otpModal} 
+          style={{
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)'
+          }}
+        >
+          <div className={styles.otpContent} style={{position: 'relative', maxWidth: '400px', width: '90%'}}>
+            <button 
+              onClick={() => setShowOTPModal(false)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '10px',
+                background: 'none',
+                border: 'none',
+                fontSize: '18px',
+                cursor: 'pointer',
+                zIndex: 1
+              }}
+            >
+              ×
+            </button>
             <div className={styles.otpHeader}>
               <h3 className={styles.otpTitle}>Xác minh tài khoản</h3>
             </div>
@@ -288,11 +339,11 @@ function RegisterPage() {
                   <input
                     type="text"
                     className={styles.otpInput}
-                  value={otpValue}
-                  onChange={handleOtpChange}
-                  placeholder="Nhập mã OTP 6 chữ số"
-                  maxLength={6}
-                  autoFocus
+                    value={otpValue}
+                    onChange={handleOtpChange}
+                    placeholder="Nhập mã OTP 6 chữ số"
+                    maxLength={6}
+                    autoFocus
                   />
               </div>
 

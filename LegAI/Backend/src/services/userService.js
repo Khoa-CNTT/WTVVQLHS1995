@@ -20,6 +20,16 @@ const createUser = async (username, password, email, phone, fullName, role = 'us
     try {
         await client.query('BEGIN');
         
+        // Reset sequence để tránh lỗi duplicate key
+        const maxIdResult = await client.query('SELECT MAX(id) FROM users');
+        const maxId = maxIdResult.rows[0].max || 0;
+        await client.query(`ALTER SEQUENCE users_id_seq RESTART WITH ${maxId + 1}`);
+        
+        // Reset sequence cho UserProfiles
+        const maxProfileIdResult = await client.query('SELECT MAX(id) FROM userprofiles');
+        const maxProfileId = maxProfileIdResult.rows[0].max || 0;
+        await client.query(`ALTER SEQUENCE userprofiles_id_seq RESTART WITH ${maxProfileId + 1}`);
+        
         // Mã hóa mật khẩu
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -559,6 +569,33 @@ const updateLastLogin = async (userId) => {
     }
 };
 
+// Reset sequence của bảng Users
+const resetUsersSequence = async () => {
+    try {
+        // Lấy giá trị ID lớn nhất hiện tại của bảng Users
+        const maxIdResult = await pool.query('SELECT MAX(id) FROM users');
+        const maxId = maxIdResult.rows[0].max || 0;
+        
+        // Reset sequence của bảng Users
+        await pool.query(`ALTER SEQUENCE users_id_seq RESTART WITH ${maxId + 1}`);
+        
+        // Lấy giá trị ID lớn nhất hiện tại của bảng UserProfiles
+        const maxProfileIdResult = await pool.query('SELECT MAX(id) FROM userprofiles');
+        const maxProfileId = maxProfileIdResult.rows[0].max || 0;
+        
+        // Reset sequence của bảng UserProfiles
+        await pool.query(`ALTER SEQUENCE userprofiles_id_seq RESTART WITH ${maxProfileId + 1}`);
+        
+        return { 
+            success: true, 
+            users: { nextValue: maxId + 1 },
+            profiles: { nextValue: maxProfileId + 1 }
+        };
+    } catch (error) {
+        throw new Error(`Lỗi reset sequence: ${error.message}`);
+    }
+};
+
 module.exports = {
     checkUserExists,
     createUser,
@@ -577,5 +614,6 @@ module.exports = {
     verifyPasswordResetToken,
     updateFailedLoginAttempts,
     resetFailedLoginAttempts,
-    updateLastLogin
+    updateLastLogin,
+    resetUsersSequence
 }; 

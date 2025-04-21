@@ -3,226 +3,83 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Documents.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
+import { BsJournalText, BsCalendar3 } from 'react-icons/bs';
+import { FaTag } from 'react-icons/fa';
+import Loader from '../../components/layout/Loading/Loading';
 
-// Dữ liệu mẫu dựa trên cấu trúc bảng từ database.sql
-const mockLegalDocuments = [
-  {
-    id: 1,
-    title: 'Luật hình sự số 100/2015/QH13',
-    document_type: 'Luật',
-    version: '2015',
-    summary: 'Luật hình sự quy định về tội phạm và hình phạt, được Quốc hội nước Cộng hòa Xã hội Chủ nghĩa Việt Nam thông qua năm 2015 và có hiệu lực từ ngày 01/01/2018.',
-    issued_date: '2015-11-27',
-    language: 'Tiếng Việt',
-    keywords: ['Luật hình sự', 'Tội phạm', 'Hình phạt']
-  },
-  {
-    id: 2,
-    title: 'Luật dân sự số 91/2015/QH13',
-    document_type: 'Luật',
-    version: '2015',
-    summary: 'Bộ luật dân sự quy định địa vị pháp lý, chuẩn mực pháp lý cho cách ứng xử của cá nhân, pháp nhân, chủ thể khác; quyền và nghĩa vụ của các chủ thể về nhân thân và tài sản.',
-    issued_date: '2015-11-24',
-    language: 'Tiếng Việt',
-    keywords: ['Luật dân sự', 'Quyền và nghĩa vụ', 'Tài sản']
-  },
-  {
-    id: 3,
-    title: 'Nghị định 102/2020/NĐ-CP',
-    document_type: 'Nghị định',
-    version: '2020',
-    summary: 'Quy định về chế độ hưu trí đối với quân nhân trực tiếp tham gia kháng chiến chống Mỹ cứu nước từ ngày 30/4/1975 trở về trước.',
-    issued_date: '2020-09-01',
-    language: 'Tiếng Việt',
-    keywords: ['Chế độ hưu trí', 'Quân nhân', 'Kháng chiến']
-  },
-  {
-    id: 4,
-    title: 'Quyết định 28/2021/QĐ-TTg',
-    document_type: 'Quyết định',
-    version: '2021',
-    summary: 'Về việc thực hiện chính sách hỗ trợ người lao động và người sử dụng lao động bị ảnh hưởng bởi đại dịch COVID-19.',
-    issued_date: '2021-10-01',
-    language: 'Tiếng Việt',
-    keywords: ['COVID-19', 'Hỗ trợ', 'Lao động']
-  },
-  {
-    id: 5,
-    title: 'Thông tư 41/2022/TT-BTC',
-    document_type: 'Thông tư',
-    version: '2022',
-    summary: 'Hướng dẫn chế độ kế toán áp dụng cho doanh nghiệp siêu nhỏ.',
-    issued_date: '2022-06-28',
-    language: 'Tiếng Việt',
-    keywords: ['Kế toán', 'Doanh nghiệp siêu nhỏ', 'Tài chính']
-  },
-  {
-    id: 6,
-    title: 'Luật đất đai số 45/2013/QH13',
-    document_type: 'Luật',
-    version: '2013',
-    summary: 'Quy định về chế độ sở hữu đất đai, quyền hạn và trách nhiệm của Nhà nước đại diện chủ sở hữu toàn dân về đất đai và thống nhất quản lý về đất đai.',
-    issued_date: '2013-11-29',
-    language: 'Tiếng Việt',
-    keywords: ['Đất đai', 'Sở hữu', 'Quyền sử dụng đất']
-  },
-  {
-    id: 7,
-    title: 'Luật doanh nghiệp số 59/2020/QH14',
-    document_type: 'Luật',
-    version: '2020',
-    summary: 'Quy định về thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp.',
-    issued_date: '2020-06-17',
-    language: 'Tiếng Việt',
-    keywords: ['Doanh nghiệp', 'Quản lý', 'Thành lập']
-  },
-  {
-    id: 8,
-    title: 'Nghị định 15/2022/NĐ-CP',
-    document_type: 'Nghị định',
-    version: '2022',
-    summary: 'Quy định chính sách miễn, giảm thuế theo Nghị quyết số 43/2022/QH15 của Quốc hội về chính sách tài khóa, tiền tệ hỗ trợ Chương trình phục hồi và phát triển kinh tế - xã hội.',
-    issued_date: '2022-01-28',
-    language: 'Tiếng Việt',
-    keywords: ['Thuế', 'Miễn giảm', 'Phục hồi kinh tế']
-  },
-  {
-    id: 9,
-    title: 'Hiến pháp nước Cộng hòa Xã hội Chủ nghĩa Việt Nam năm 2013',
-    document_type: 'Hiến pháp',
-    version: '2013',
-    summary: 'Hiến pháp là luật cơ bản của nước Cộng hòa xã hội chủ nghĩa Việt Nam, có hiệu lực pháp lý cao nhất.',
-    issued_date: '2013-11-28',
-    language: 'Tiếng Việt',
-    keywords: ['Hiến pháp', 'Luật cơ bản', 'Nhà nước']
-  },
-  {
-    id: 10,
-    title: 'Bộ luật lao động số 45/2019/QH14',
-    document_type: 'Luật',
-    version: '2019',
-    summary: 'Quy định về tiêu chuẩn lao động; quyền, nghĩa vụ, trách nhiệm của người lao động, người sử dụng lao động, tổ chức đại diện người lao động tại cơ sở, tổ chức đại diện người sử dụng lao động trong quan hệ lao động và các quan hệ khác liên quan trực tiếp đến quan hệ lao động.',
-    issued_date: '2019-11-20',
-    language: 'Tiếng Việt',
-    keywords: ['Lao động', 'Quan hệ lao động', 'Quyền lợi người lao động']
-  }
-];
-
-// Danh sách loại văn bản
-const documentTypesList = [
-  { id: 1, name: 'Luật' },
-  { id: 2, name: 'Nghị định' },
-  { id: 3, name: 'Quyết định' },
-  { id: 4, name: 'Thông tư' },
-  { id: 5, name: 'Hiến pháp' }
-];
-
+/**
+ * Trang hiển thị danh sách văn bản pháp luật
+ */
 const Documents = () => {
-  const [documents, setDocuments] = useState([]);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [documentTypes, setDocumentTypes] = useState([]);
-  const [filters, setFilters] = useState({
-    type: '',
-    fromDate: '',
-    toDate: ''
+  const [documents, setDocuments] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
   });
-  
-  const navigate = useNavigate();
-  const limit = 5; // Số văn bản hiển thị trên mỗi trang
+  const [filters, setFilters] = useState({
+    search: '',
+    document_type: '',
+    from_date: '',
+    to_date: ''
+  });
+  const [documentTypes, setDocumentTypes] = useState([]);
 
-  // Lấy danh sách văn bản pháp luật từ API
+  // Tải danh sách văn bản pháp luật khi component được tải hoặc khi filter/pagination thay đổi
   useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        setLoading(true);
-        
-        // Gọi API lấy danh sách văn bản pháp luật
-        const response = await legalService.searchLegalDocuments({
-          q: '',
-          type: filters.type,
-          fromDate: filters.fromDate,
-          toDate: filters.toDate,
-          page: currentPage,
-          limit: limit
-        });
-        
-        if (response && response.data) {
-          setDocuments(response.data);
-          
-          // Cập nhật thông tin phân trang
-          if (response.pagination) {
-            setTotalPages(response.pagination.totalPages || 1);
-          }
-        } else {
-          setDocuments([]);
-          setTotalPages(1);
-        }
-        
-        setError(null);
-      } catch (error) {
-        console.error('Lỗi khi lấy danh sách văn bản pháp luật:', error);
-        setError('Đã xảy ra lỗi khi tải danh sách văn bản. Vui lòng thử lại sau.');
-        
-        // Tạm thời dùng dữ liệu mẫu nếu API không hoạt động
-        let filteredData = [...mockLegalDocuments];
-        
-        if (filters.type) {
-          filteredData = filteredData.filter(doc => doc.document_type === filters.type);
-        }
-        
-        if (filters.fromDate) {
-          const fromDate = new Date(filters.fromDate);
-          filteredData = filteredData.filter(doc => new Date(doc.issued_date) >= fromDate);
-        }
-        
-        if (filters.toDate) {
-          const toDate = new Date(filters.toDate);
-          toDate.setHours(23, 59, 59, 999);
-          filteredData = filteredData.filter(doc => new Date(doc.issued_date) <= toDate);
-        }
-        
-        const totalItems = filteredData.length;
-        const totalPagesCount = Math.ceil(totalItems / limit);
-        setTotalPages(totalPagesCount);
-        
-        const startIndex = (currentPage - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedData = filteredData.slice(startIndex, endIndex);
-        
-        setDocuments(paginatedData);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    // Gọi API lấy danh sách loại văn bản
-    const fetchDocumentTypes = async () => {
-      try {
-        const response = await legalService.getDocumentTypes();
-        if (response && response.data) {
-          setDocumentTypes(response.data);
-        } else {
-          setDocumentTypes([]);
-        }
-      } catch (error) {
-        console.error('Lỗi khi lấy danh sách loại văn bản:', error);
-        // Dùng dữ liệu mẫu nếu API không hoạt động
-        setDocumentTypes([
-          { id: 1, name: 'Luật' },
-          { id: 2, name: 'Nghị định' },
-          { id: 3, name: 'Quyết định' },
-          { id: 4, name: 'Thông tư' },
-          { id: 5, name: 'Hiến pháp' }
-        ]);
-      }
-    };
-    
     fetchDocuments();
     fetchDocumentTypes();
-  }, [currentPage, filters]);
+  }, [pagination.page]);
+
+  // Hàm tìm kiếm văn bản pháp luật
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const queryParams = {
+        search: filters.search,
+        document_type: filters.document_type,
+        from_date: filters.from_date,
+        to_date: filters.to_date,
+        page: pagination.page,
+        limit: pagination.limit
+      };
+
+      const response = await legalService.getLegalDocuments(queryParams);
+      
+      if (response.status === 'success') {
+        setDocuments(response.data || []);
+        setPagination(response.pagination || {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0
+        });
+      } else {
+        setError('Không thể tải danh sách văn bản pháp luật');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách văn bản:', error);
+      setError('Đã xảy ra lỗi khi tải danh sách văn bản pháp luật');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lấy danh sách loại văn bản
+  const fetchDocumentTypes = async () => {
+    try {
+      const types = await legalService.getDocumentTypes();
+      setDocumentTypes(types || []);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách loại văn bản:', error);
+    }
+  };
 
   // Xử lý thay đổi bộ lọc
   const handleFilterChange = (e) => {
@@ -231,66 +88,83 @@ const Documents = () => {
       ...prevFilters,
       [name]: value
     }));
-    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi bộ lọc
   };
 
-  // Xử lý khi nhấn vào một văn bản
+  // Xử lý sự kiện submit form tìm kiếm
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Reset về trang đầu tiên khi áp dụng bộ lọc mới
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
+    fetchDocuments();
+  };
+
+  // Điều hướng đến trang chi tiết văn bản
   const handleDocumentClick = (documentId) => {
     navigate(`/legal/documents/${documentId}`);
   };
 
-  // Định dạng ngày
+  // Định dạng ngày tháng
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
-  // Tạo các nút phân trang
+  // Hiển thị phân trang
   const renderPagination = () => {
-    const pages = [];
+    const { page, totalPages } = pagination;
+    const pageButtons = [];
     
-    // Thêm nút Previous
-    pages.push(
-      <button 
-        key="prev" 
-        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-        disabled={currentPage === 1}
+    // Giới hạn số nút phân trang hiển thị
+    const maxPageButtons = 5;
+    const startPage = Math.max(1, page - Math.floor(maxPageButtons / 2));
+    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    
+    // Nút quay lại trang trước
+    pageButtons.push(
+      <button
+        key="prev"
         className={styles['pagination-button']}
+        disabled={page <= 1}
+        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
       >
         &laquo;
       </button>
     );
     
-    // Tạo các nút số trang
-    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-      pages.push(
+    // Các nút số trang
+    for (let i = startPage; i <= endPage; i++) {
+      pageButtons.push(
         <button
           key={i}
-          onClick={() => setCurrentPage(i)}
-          className={`${styles['pagination-button']} ${currentPage === i ? styles['active'] : ''}`}
+          className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
+          onClick={() => setPagination(prev => ({ ...prev, page: i }))}
         >
           {i}
         </button>
       );
     }
     
-    // Thêm nút Next
-    pages.push(
-      <button 
-        key="next" 
-        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-        disabled={currentPage === totalPages}
+    // Nút tiến đến trang sau
+    pageButtons.push(
+      <button
+        key="next"
         className={styles['pagination-button']}
+        disabled={page >= totalPages}
+        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
       >
         &raquo;
       </button>
     );
     
-    return (
-      <div className={styles['pagination']}>
-        {pages}
-      </div>
-    );
+    return pageButtons;
   };
 
   return (
@@ -298,92 +172,140 @@ const Documents = () => {
       <Navbar />
       <div className={styles['documents-container']}>
         <div className={styles['documents-header']}>
-          <h1>Văn bản pháp luật</h1>
-          <p>Danh sách tất cả văn bản pháp luật</p>
+          <h1>Văn bản pháp lý</h1>
+          <p>Tra cứu các văn bản pháp lý mới nhất</p>
         </div>
-        
+
         <div className={styles['filters-section']}>
-          <div className={styles['filter-controls']}>
-            <div className={styles['filter-group']}>
-              <label htmlFor="type">Loại văn bản:</label>
-              <select 
-                id="type" 
-                name="type" 
-                value={filters.type}
-                onChange={handleFilterChange}
-                className={styles['filter-select']}
-              >
-                <option value="">Tất cả</option>
-                {documentTypes.map((type, index) => (
-                  <option key={index} value={type.name}>{type.name}</option>
-                ))}
-              </select>
+          <form onSubmit={handleSubmit}>
+            <div className={styles['filter-controls']}>
+              <div className={styles['filter-group']}>
+                <label htmlFor="search">Từ khóa</label>
+                <input
+                  type="text"
+                  id="search"
+                  name="search"
+                  className={styles['filter-select']}
+                  value={filters.search}
+                  onChange={handleFilterChange}
+                  placeholder="Nhập từ khóa tìm kiếm..."
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="document_type">Loại văn bản</label>
+                <select
+                  id="document_type"
+                  name="document_type"
+                  className={styles['filter-select']}
+                  value={filters.document_type}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">Tất cả</option>
+                  {documentTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="from_date">Từ ngày</label>
+                <input
+                  type="date"
+                  id="from_date"
+                  name="from_date"
+                  className={styles['filter-select']}
+                  value={filters.from_date}
+                  onChange={handleFilterChange}
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="to_date">Đến ngày</label>
+                <input
+                  type="date"
+                  id="to_date"
+                  name="to_date"
+                  className={styles['filter-select']}
+                  value={filters.to_date}
+                  onChange={handleFilterChange}
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label>&nbsp;</label>
+                <button
+                  type="submit"
+                  className={styles['filter-select']}
+                >
+                  Tìm kiếm
+                </button>
+              </div>
             </div>
-            
-            <div className={styles['filter-group']}>
-              <label htmlFor="fromDate">Từ ngày:</label>
-              <input 
-                type="date" 
-                id="fromDate" 
-                name="fromDate" 
-                value={filters.fromDate}
-                onChange={handleFilterChange}
-                className={styles['filter-input']}
-              />
-            </div>
-            
-            <div className={styles['filter-group']}>
-              <label htmlFor="toDate">Đến ngày:</label>
-              <input 
-                type="date" 
-                id="toDate" 
-                name="toDate" 
-                value={filters.toDate}
-                onChange={handleFilterChange}
-                className={styles['filter-input']}
-              />
-            </div>
-          </div>
+          </form>
         </div>
-        
+
         {loading ? (
-          <div className={styles['loading']}>Đang tải danh sách văn bản...</div>
+          <div className={styles['loading']}>
+            <Loader />
+            <p>Đang tải dữ liệu...</p>
+          </div>
         ) : error ? (
-          <div className={styles['error']}>{error}</div>
+          <div className={styles['error']}>
+            <p>{error}</p>
+          </div>
         ) : documents.length === 0 ? (
-          <div className={styles['no-documents']}>Không có văn bản nào phù hợp với tiêu chí tìm kiếm</div>
+          <div className={styles['no-documents']}>
+            <p>Không tìm thấy văn bản pháp luật nào.</p>
+          </div>
         ) : (
           <>
             <div className={styles['documents-list']}>
-              {documents.map((document) => (
-                <div 
-                  key={document.id} 
+              {documents.map(document => (
+                <div
+                  key={document.id}
                   className={styles['document-item']}
                   onClick={() => handleDocumentClick(document.id)}
                 >
-                  <div className={styles['document-type-badge']}>{document.document_type}</div>
-                  <h2 className={styles['document-title']}>{document.title}</h2>
+                  <div className={styles['document-type-badge']}>
+                    {document.document_type}
+                  </div>
+                  <h3 className={styles['document-title']}>{document.title}</h3>
                   <div className={styles['document-meta']}>
-                    <span className={styles['document-date']}>
-                      <i className="far fa-calendar-alt"></i> {formatDate(document.issued_date)}
+                    <span>
+                      <BsJournalText /> Phiên bản: {document.version || 'N/A'}
                     </span>
-                    <span className={styles['document-number']}>
-                      <i className="fas fa-hashtag"></i> Phiên bản: {document.version || 'N/A'}
+                    <span>
+                      <BsCalendar3 /> Ngày ban hành: {formatDate(document.issued_date)}
                     </span>
                   </div>
-                  {document.summary && (
-                    <p className={styles['document-summary']}>{document.summary.substring(0, 200)}...</p>
+                  <p className={styles['document-summary']}>
+                    {document.summary ? (
+                      document.summary.length > 150 
+                        ? `${document.summary.substring(0, 150)}...` 
+                        : document.summary
+                    ) : 'Không có tóm tắt'}
+                  </p>
+                  {document.keywords && document.keywords.length > 0 && (
+                    <div className={styles['keywords-container']}>
+                      {document.keywords.slice(0, 5).map((keyword, index) => (
+                        <span key={index} className={styles['keyword-tag']}>
+                          <FaTag /> {keyword}
+                        </span>
+                      ))}
+                    </div>
                   )}
-                  <div className={styles['keywords-container']}>
-                    {document.keywords && document.keywords.map((keyword, idx) => (
-                      <span key={idx} className={styles['keyword-tag']}>{keyword}</span>
-                    ))}
-                  </div>
                 </div>
               ))}
             </div>
-            
-            {renderPagination()}
+
+            {pagination.totalPages > 1 && (
+              <div className={styles['pagination']}>
+                {renderPagination()}
+              </div>
+            )}
           </>
         )}
       </div>

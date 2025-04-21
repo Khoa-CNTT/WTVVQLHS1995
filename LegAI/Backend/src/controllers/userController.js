@@ -2,8 +2,8 @@ const userService = require('../services/userService');
 const authService = require('../services/authService');
 const bcryptjs = require('bcryptjs');
 const pool = require('../config/database');
-// Không cần emailService nữa vì gửi email sẽ được xử lý ở frontend
-// const emailService = require('../services/emailService');
+// Thêm emailService để gửi email
+const emailService = require('../services/emailService');
 
 // Tạo đường dẫn lưu file upload
 const fs = require('fs');
@@ -17,67 +17,64 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Đăng ký người dùng mới
 const register = async (req, res) => {
-    const { username, password, email, phone, fullName, role } = req.body;
-
-    // Kiểm tra thông tin đầu vào
-    if (!username || !password || !email || !phone || !fullName) {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Vui lòng cung cấp đầy đủ thông tin'
-        });
-    }
-    
-    // Kiểm tra độ dài mật khẩu
-    if (password.length < 6) {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Mật khẩu phải có ít nhất 6 ký tự'
-        });
-    }
-
     try {
-        // Kiểm tra username đã tồn tại chưa
+        const { username, email, password, confirmPassword, fullName, phone } = req.body;
+
+        // Validate đầu vào - chỉ kiểm tra các trường bắt buộc
+        if (!username || !email || !password) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Vui lòng nhập tên đăng nhập, email và mật khẩu'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Mật khẩu phải có ít nhất 6 ký tự'
+            });
+        }
+        
+        // Kiểm tra username và email đã tồn tại chưa
         const userExists = await userService.checkUserExists(username, email);
+        
         if (userExists) {
             return res.status(400).json({
                 status: 'error',
                 message: 'Tên đăng nhập hoặc email đã tồn tại'
             });
         }
-
-        // Chuẩn hóa role với chữ cái đầu viết hoa
-        let normalizedRole = 'User'; // Role mặc định là User
-        if (role) {
-            const roleToLower = role.toLowerCase();
-            // Chỉ chấp nhận các role hợp lệ và viết hoa chữ cái đầu
-            if (roleToLower === 'admin' || roleToLower === 'user' || roleToLower === 'lawyer') {
-                normalizedRole = roleToLower.charAt(0).toUpperCase() + roleToLower.slice(1);
-            }
-        }
-
-        // Tạo người dùng mới (chưa xác minh)
-        const user = await userService.createUser(username, password, email, phone, fullName, normalizedRole);
         
-        // Không tạo OTP ở backend nữa, việc này sẽ được xử lý ở frontend
-        // const otpInfo = await authService.generateAndStoreOTP(user.id, email);
-        
-        // Không gửi email từ backend nữa
-        // await emailService.sendVerificationEmail(email, user.username, otpInfo.otp);
+        // Reset sequence trước khi tạo người dùng để tránh lỗi duplicate key
+        await userService.resetUsersSequence();
 
-        res.status(201).json({
+        // Tạo người dùng mới với tên mặc định nếu không có
+        const actualFullName = fullName || username;
+        const user = await userService.createUser(username, password, email, phone || '', actualFullName);
+
+        // Tạo OTP và gửi email xác minh
+        const { otp, expiresAt } = await authService.generateAndStoreOTP(user.id, email, username);
+
+        // Gửi email xác minh - sử dụng sendVerificationEmail thay vì sendOTPEmail
+        const emailSent = await emailService.sendVerificationEmail(email, username, otp);
+        
+        // Phản hồi thành công ngay cả khi email không gửi được
+        return res.status(201).json({
             status: 'success',
-            message: 'Đăng ký thành công, vui lòng xác minh tài khoản',
-            data: { 
-                userId: user.id,
+            message: emailSent 
+                ? 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh tài khoản.' 
+                : 'Đăng ký thành công nhưng không thể gửi email xác minh. Vui lòng liên hệ bộ phận hỗ trợ.',
+            user: {
+                id: user.id,
                 username: user.username,
-                email: user.email,
-                role: user.role
+                email: user.email
             }
         });
     } catch (error) {
-        res.status(500).json({
+        console.error('Lỗi đăng ký người dùng:', error);
+        return res.status(500).json({
             status: 'error',
-            message: error.message
+            message: error.message || 'Lỗi server khi đăng ký người dùng'
         });
     }
 };
@@ -559,6 +556,25 @@ const checkDatabaseConstraints = async (req, res) => {
     }
 };
 
+// Controller để reset sequence của bảng Users
+const resetUserSequence = async (req, res) => {
+    try {
+        const result = await userService.resetUsersSequence();
+        
+        return res.status(200).json({
+            status: 'success',
+            message: 'Reset sequence bảng Users thành công',
+            data: result
+        });
+    } catch (error) {
+        console.error('Lỗi khi reset sequence:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: `Lỗi khi reset sequence: ${error.message}`
+        });
+    }
+};
+
 // Đăng ký làm luật sư
 const registerLawyer = async (req, res) => {
     try {
@@ -666,11 +682,25 @@ const registerLawyer = async (req, res) => {
                     [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, userId]
                 );
             } else {
-                // Thêm thông tin luật sư nếu chưa tồn tại
-                await pool.query(
-                    'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)',
-                    [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
-                );
+                try {
+                    // Thêm thông tin luật sư nếu chưa tồn tại
+                    await pool.query(
+                        'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)',
+                        [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
+                    );
+                } catch (insertError) {
+                    // Nếu lỗi vi phạm ràng buộc khóa chính, thử cập nhật thay vì thêm mới
+                    if (insertError.constraint === 'lawyerdetails_pkey') {
+                        console.log('Đã xảy ra lỗi khóa chính, chuyển sang cập nhật bản ghi');
+                        await pool.query(
+                            'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4 WHERE lawyer_id = $5',
+                            [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, userId]
+                        );
+                    } else {
+                        // Nếu là lỗi khác, ném lại lỗi
+                        throw insertError;
+                    }
+                }
             }
             
             return res.status(200).json({
@@ -746,10 +776,24 @@ const registerLawyer = async (req, res) => {
             };
             
             // Lưu thông tin luật sư vào database
-            const lawyerResult = await pool.query(
-                'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING *',
-                [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
-            );
+            try {
+                const lawyerResult = await pool.query(
+                    'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING *',
+                    [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
+                );
+            } catch (insertError) {
+                // Nếu lỗi vi phạm ràng buộc khóa chính, thử cập nhật thay vì thêm mới
+                if (insertError.constraint === 'lawyerdetails_pkey') {
+                    console.log('Đã xảy ra lỗi khóa chính trong đăng ký mới, chuyển sang cập nhật bản ghi');
+                    await pool.query(
+                        'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4 WHERE lawyer_id = $5',
+                        [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, newUser.id]
+                    );
+                } else {
+                    // Nếu là lỗi khác, ném lại lỗi
+                    throw insertError;
+                }
+            }
 
             // Lưu thông tin bổ sung vào UserMeta (nếu cần thiết)
             if (idCard || birthDate || truncatedLicenseNumber || truncatedBarAssociation || truncatedLawOffice) {
@@ -1050,6 +1094,7 @@ module.exports = {
     registerLawyer,
     getAllLawyers,
     getLawyerById,
-    uploadAvatar
+    uploadAvatar,
+    resetUserSequence
 };
 

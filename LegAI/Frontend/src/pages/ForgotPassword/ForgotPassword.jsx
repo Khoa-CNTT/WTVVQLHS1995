@@ -50,6 +50,7 @@ function ForgotPassword() {
                     try {
                         await sendOTPEmail(response.email, response.userName || email.split('@')[0], response.otp);
                         setStep(2);
+                        setOtp(''); // Reset giá trị OTP khi chuyển bước
                     } catch (emailError) {
                         setError('Có lỗi khi gửi email OTP: ' + emailError.message);
                     }
@@ -126,6 +127,7 @@ function ForgotPassword() {
     const handleResendOTP = async () => {
         setError('');
         setLoading(true);
+        setOtp(''); // Reset giá trị OTP khi gửi lại
 
         try {
             // Gửi lại yêu cầu đặt lại mật khẩu để nhận OTP mới
@@ -240,7 +242,10 @@ function ForgotPassword() {
                         </div>
 
                         <div className={styles.bottomRow}>
-                            <button type="button" className={styles.backButton} onClick={() => setStep(1)}>
+                            <button type="button" className={styles.backButton} onClick={() => {
+                                setStep(1);
+                                setOtp(''); // Reset giá trị OTP khi quay lại
+                            }}>
                                 Quay lại
                             </button>
                         </div>

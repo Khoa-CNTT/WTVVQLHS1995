@@ -143,11 +143,10 @@ const Navbar = () => {
   // Xử lý sự kiện tìm kiếm
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
-      setIsSearchOpen(false);
-      setSearchTerm('');
-    }
+    // Không cần kiểm tra searchTerm.trim() nữa
+    navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+    setIsSearchOpen(false);
+    setSearchTerm('');
   };
   
   // Xử lý sự kiện nhấn phím trong ô tìm kiếm
@@ -160,6 +159,9 @@ const Navbar = () => {
   // Điều hướng đến trang văn bản pháp luật
   const navigateToDocuments = () => {
     navigate('/documents');
+  };
+  const navigateToTemplates = () => {
+    navigate('/templates');
   };
 
   const isHomePage = location.pathname === '/';
@@ -192,7 +194,10 @@ const Navbar = () => {
             <NavLink to="/lawyers">Luật sư</NavLink>
           </li>
           <li>
-            <NavLink to="/documents">Văn bản pháp luật</NavLink>
+            <NavLink to="/documents">Pháp lý</NavLink>
+          </li>
+          <li>
+            <NavLink to="/templates">Mẫu</NavLink>
           </li>
           <li>
             <NavLink to="/news">Tin tức</NavLink>
@@ -230,10 +235,6 @@ const Navbar = () => {
           </div>
         </div>
         
-        <div className={styles.icon} onClick={navigateToDocuments} title="Văn bản pháp luật">
-          <i className="fas fa-file-alt"></i>
-          <span className={styles.iconLabel}>Văn bản</span>
-        </div>
         
         <div className={styles.rightControls}>
           {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (

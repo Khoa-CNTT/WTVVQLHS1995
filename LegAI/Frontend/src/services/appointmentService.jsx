@@ -153,6 +153,27 @@ const getAppointments = async (status = null) => {
       console.error('API trả về dữ liệu không hợp lệ');
       throw new Error('Không thể lấy danh sách lịch hẹn');
     }
+    
+    // Xử lý dữ liệu trùng lặp nếu có
+    if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+      // Lọc các ID trùng lặp
+      const uniqueAppointments = [];
+      const uniqueIds = new Set();
+      
+      response.data.data.forEach(app => {
+        if (!uniqueIds.has(app.id)) {
+          uniqueIds.add(app.id);
+          uniqueAppointments.push(app);
+        }
+      });
+      
+      // Ghi đè lại dữ liệu đã lọc
+      response.data.data = uniqueAppointments;
+      console.log(`Đã lọc ${response.data.data.length} lịch hẹn độc nhất từ ${response.data.count} bản ghi`);
+      
+      // Cập nhật count
+      response.data.count = uniqueAppointments.length;
+    }
 
     return response.data;
   } catch (error) {

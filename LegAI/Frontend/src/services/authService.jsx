@@ -98,50 +98,56 @@ const register = async (userData) => {
   try {
     // 1. Gửi request tạo người dùng chưa xác minh
     const response = await authAxios.post('/register', userData);
-    const userId = response.data.data.userId;
     
-    // 2. Tạo OTP
-    const { otp } = generateAndStoreOTP(userId, userData.email, userData.username);
+    // Kiểm tra response có đúng định dạng không
+    if (!response.data || !response.data.user) {
+      console.error('Phản hồi từ server không đúng định dạng:', response);
+      throw new Error('Phản hồi từ server không đúng định dạng');
+    }
     
-    // 3. Gửi email chứa OTP bằng EmailJS
-    await sendOTPEmail(userData.email, userData.username, otp);
+    const userId = response.data.user.id;
+    
+    // Kiểm tra userId có tồn tại không
+    if (!userId) {
+      console.error('Không tìm thấy userId trong phản hồi:', response.data);
+      throw new Error('Không nhận được ID người dùng từ server');
+    }
+    
+    // Lưu ý: Không cần tạo OTP mới, vì server đã tạo và gửi OTP
     
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Lỗi đăng ký tài khoản' };
+    console.error('Lỗi chi tiết khi đăng ký:', error);
+    throw error.response?.data || { message: 'Lỗi đăng ký tài khoản: ' + (error.message || 'Không xác định') };
   }
 };
 
 // Xác minh tài khoản với OTP
 const verifyAccount = async (userId, otp) => {
   try {
-    // 1. Xác minh OTP ở phía client
-    const verified = verifyOTP(userId, otp);
+    // Không xác minh OTP ở phía client, mà gửi trực tiếp lên server để xác minh
+    const response = await authAxios.post('/verify', { userId, otp });
     
-    if (verified) {
-      // 2. Gửi request cập nhật trạng thái xác minh
-      const response = await authAxios.post('/verify', { userId, otp });
+    if (response.data && response.data.status === 'success') {
       return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Mã OTP không hợp lệ');
     }
   } catch (error) {
-    throw error.response?.data || { message: error.message || 'Lỗi xác minh tài khoản' };
+    if (error.response && error.response.data) {
+      throw error.response.data;
+    }
+    throw { message: error.message || 'Lỗi xác minh tài khoản' };
   }
 };
 
 // Gửi lại mã OTP
 const resendOTP = async (userId, email) => {
   try {
-    // 1. Lấy thông tin người dùng
-    const userResponse = await authAxios.get(`/users/${userId}`);
-    const username = userResponse.data.data.username;
+    // Gửi yêu cầu tạo OTP mới và gửi lại email
+    const response = await authAxios.post('/resend-otp', { userId, email });
     
-    // 2. Tạo OTP mới
-    const { otp } = generateAndStoreOTP(userId, email, username);
-    
-    // 3. Gửi email chứa OTP bằng EmailJS
-    await sendOTPEmail(email, username, otp);
-    
-    return { status: 'success', message: 'Đã gửi lại mã OTP, vui lòng kiểm tra email' };
+    return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Lỗi gửi lại mã OTP' };
   }
@@ -181,7 +187,6 @@ const login = async (usernameOrEmail, password) => {
           // Gửi email chứa OTP
           await sendOTPEmail(email, username, otp);
           
-          console.log('Đã gửi OTP cho tài khoản chưa xác minh');
         } catch (otpError) {
           console.error('Lỗi khi gửi OTP:', otpError);
         }

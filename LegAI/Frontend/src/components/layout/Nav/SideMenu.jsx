@@ -88,7 +88,9 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
           <Link to="/documents" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-file-alt"></i> Xem tất cả văn bản
           </Link>
-          
+          <Link to="/templates" className={styles.sideMenuItem} onClick={onClose}>
+            <i className="fas fa-file-alt"></i> Xem tất cả mẫu
+          </Link>
           <Link to="/news" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-newspaper"></i> Tin tức
           </Link>

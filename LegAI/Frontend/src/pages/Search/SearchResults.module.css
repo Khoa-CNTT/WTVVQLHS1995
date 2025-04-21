@@ -184,6 +184,7 @@
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
 }
 
 .section-title {
@@ -253,10 +254,16 @@
 }
 
 .document-date,
+.document-number,
 .template-language {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.document-number {
+  color: #444;
+  font-weight: 500;
 }
 
 .document-summary {

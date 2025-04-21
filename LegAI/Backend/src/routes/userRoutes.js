@@ -99,4 +99,16 @@ router.get('/lawyers/:id', userController.getLawyerById);
 // Route upload avatar - sửa đường dẫn để đúng định dạng
 router.post('/:userId/avatar', authenticateToken, upload.single('avatar'), userController.uploadAvatar);
 
+// Route để reset sequence của bảng Users
+router.post('/reset-sequence', authenticateToken, (req, res, next) => {
+    // Kiểm tra quyền và chỉ cho phép admin thực hiện
+    if (req.user && req.user.role && req.user.role.toLowerCase() === 'admin') {
+        return next();
+    }
+    return res.status(403).json({
+        status: 'error',
+        message: 'Chỉ quản trị viên mới có quyền reset sequence'
+    });
+}, userController.resetUserSequence);
+
 module.exports = router;

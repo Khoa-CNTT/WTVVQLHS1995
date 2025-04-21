@@ -24,6 +24,7 @@ import DocumentDetail from '../pages/Documents/DocumentDetail';
 import Documents from '../pages/Documents/Documents';
 import authService from '../services/authService';
 import Templates from '../pages/Templates/Templates';
+import TemplateDetail from '../pages/Templates/TemplateDetail';
 
 // Kiểm tra xem người dùng đã đăng nhập chưa
 const isAuthenticated = () => authService.isAuthenticated();
@@ -101,7 +102,12 @@ const PublicRoutes = () => {
         } />
         <Route path="/legal/templates/:id" element={
           <PageTransition custom="fade">
-            <DocumentDetail />
+            <TemplateDetail />
+          </PageTransition>
+        } />
+        <Route path="/templates/:id" element={
+          <PageTransition custom="fade">
+            <TemplateDetail />
           </PageTransition>
         } />
         <Route path="/test" element={<TestApiConnection />} />
