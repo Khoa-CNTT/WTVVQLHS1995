@@ -237,7 +237,8 @@ body {
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  position: relative;
 }
 
 .notifications {
@@ -289,6 +290,7 @@ body {
   font-size: 1rem;
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
 }
 
 .userAvatar:hover {
@@ -297,14 +299,30 @@ body {
 }
 
 .userDropdownMenu {
-  position: absolute;
-  top: 60px;
-  right: 0;
-  width: 200px;
-  background: var(--card-bg);
+  position: fixed;
+  top: auto;
+  right: auto;
+  width: 220px;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: var(--shadow-md);
-  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 99999;
+  transition: all 0.2s ease;
+  padding: 8px 0;
+  overflow: visible;
+}
+
+.userDropdownMenu::before {
+  content: '';
+  position: absolute;
+  right: 110px; /* Căn chỉnh với avatar */
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff; /* Màu của menu */
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
 }
 
 .userMenuItem {
@@ -314,24 +332,35 @@ body {
   cursor: pointer;
   color: var(--text-dark);
   font-size: 0.9rem;
-  transition: var(--transition);
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.userMenuItem:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.userMenuItem:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
 }
 
 .userMenuItem span {
   margin-right: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .userMenuItem:hover {
-  background: rgba(255, 215, 0, 0.1);
+  background: rgba(255, 215, 0, 0.15);
+  transform: translateX(3px);
 }
-
-
 
 .contentSection {
   background: var(--card-bg);
   border-radius: var(--border-radius);
   padding: 2rem;
   box-shadow: var(--shadow-sm);
+  z-index: 10;
   transition: var(--transition);
 }
 
@@ -579,7 +608,6 @@ body {
   .userName {
     display: none;
   }
-
 
   .contentSection {
     padding: 1.5rem;

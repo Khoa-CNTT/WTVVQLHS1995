@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
@@ -6,6 +6,7 @@ import authService from '../../services/authService';
 import 'animate.css';
 import LegalDocumentsManager from './LegalDocuments/LegalDocumentsManager';
 import DocumentTemplatesManager from './DocumentTemplates/DocumentTemplatesManager';
+import UserMenuPortal from './components/UserMenuPortal';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ function Dashboard() {
   const [menuVisible, setMenuVisible] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuTimeoutRef = useRef(null);
+  const userAvatarRef = useRef(null);
+  const userDropdownRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -50,6 +55,20 @@ function Dashboard() {
     return () => clearInterval(timer);
   }, [navigate]);
 
+  useEffect(() => {
+    if (userMenuOpen && userAvatarRef.current) {
+      const rect = userAvatarRef.current.getBoundingClientRect();
+      
+      // Khoảng cách từ avatar đến menu
+      const verticalGap = 10;
+      
+      setDropdownPosition({
+        top: rect.bottom + verticalGap,
+        right: window.innerWidth - rect.right + (rect.width / 2 - 110) // Căn chỉnh để mũi tên trỏ đến avatar
+      });
+    }
+  }, [userMenuOpen]);
+
   const goToHomePage = () => navigate('/');
   const handleLogout = () => {
     authService.logout();
@@ -58,6 +77,19 @@ function Dashboard() {
   const toggleSidebar = () => setMenuVisible(!menuVisible);
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const goToProfilePage = () => navigate('/profile');
+
+  const handleUserMenuMouseEnter = () => {
+    if (userMenuTimeoutRef.current) {
+      clearTimeout(userMenuTimeoutRef.current);
+      userMenuTimeoutRef.current = null;
+    }
+  };
+
+  const handleUserMenuMouseLeave = () => {
+    userMenuTimeoutRef.current = setTimeout(() => {
+      setUserMenuOpen(false);
+    }, 500);
+  };
 
   const menuItems = [
     { id: 'tổng-quan', label: 'Tổng Quan', icon: '⚖️' },
@@ -68,6 +100,12 @@ function Dashboard() {
     { id: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: '🤖', table: 'AIConsultations' },
     { id: 'tin-nhắn', label: 'Tin Nhắn', icon: '💬', table: 'LiveChats' },
     { id: 'giao-dịch', label: 'Giao Dịch', icon: '💰', table: 'Transactions, FeeReferences' }
+  ];
+
+  const userMenuItems = [
+    { icon: '🏠', label: 'Trang chủ', onClick: () => navigate('/') },
+    { icon: '👤', label: 'Hồ sơ', onClick: goToProfilePage },
+    { icon: '🚪', label: 'Đăng xuất', onClick: handleLogout }
   ];
 
   const renderDashboardOverview = () => (
@@ -212,22 +250,24 @@ function Dashboard() {
               {notifications > 0 && <span className={styles.notificationBadge}>{notifications}</span>}
             </div>
             <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
-            <div className={styles.userAvatar} onClick={toggleUserMenu}>
+            <div 
+              ref={userAvatarRef}
+              className={styles.userAvatar} 
+              onClick={toggleUserMenu}
+              onMouseEnter={handleUserMenuMouseEnter}
+              onMouseLeave={handleUserMenuMouseLeave}
+            >
               {getUserInitials()}
-              {userMenuOpen && (
-                <div className={`${styles.userDropdownMenu} animate__animated animate__fadeIn`}>
-                  {[
-                    { icon: '🏠', label: 'Trang chủ', onClick: () => navigate('/') },
-                    { icon: '👤', label: 'Hồ sơ', onClick: goToProfilePage },
-                    { icon: '🚪', label: 'Đăng xuất', onClick: handleLogout }
-                  ].map(({ icon, label, onClick }, index) => (
-                    <div key={index} className={styles.userMenuItem} onClick={onClick}>
-                      <span>{icon}</span> {label}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+            
+            <UserMenuPortal 
+              isOpen={userMenuOpen}
+              position={dropdownPosition}
+              onMouseEnter={handleUserMenuMouseEnter}
+              onMouseLeave={handleUserMenuMouseLeave}
+              onClose={() => setUserMenuOpen(false)}
+              items={userMenuItems}
+            />
           </div>
         </div>
         <div className={styles.contentWrapper}>

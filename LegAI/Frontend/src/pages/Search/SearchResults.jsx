@@ -322,7 +322,7 @@ const SearchResults = () => {
 
   // Xử lý điều hướng đến trang "Xem tất cả văn bản"
   const handleViewAllDocuments = () => {
-    navigate('/legal/documents');
+    navigate('/documents');
   };
 
   const toggleSideMenu = () => {

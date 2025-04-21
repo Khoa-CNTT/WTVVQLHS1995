@@ -29,22 +29,29 @@ CREATE TABLE UserProfiles (
 -- Bảng LegalDocuments
 CREATE TABLE LegalDocuments (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    document_type VARCHAR(50) NOT NULL,
-    version VARCHAR(20) NOT NULL,
-    content TEXT NOT NULL,
-    summary TEXT,
-    issued_date DATE NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    language VARCHAR(50) NOT NULL
+    title TEXT NOT NULL,
+    document_type VARCHAR(100) NOT NULL,
+    document_number VARCHAR(100),         -- Số hiệu văn bản
+    issuing_body VARCHAR(200),            -- Cơ quan ban hành
+    version VARCHAR(20),                  -- Phiên bản văn bản
+    content TEXT NOT NULL,                -- Nội dung đầy đủ
+    summary TEXT,                         -- Tóm tắt nội dung
+    issued_date DATE NOT NULL,            -- Ngày ban hành
+    effective_date DATE,                  -- Ngày hiệu lực
+    expiry_date DATE,                     -- Ngày hết hiệu lực
+    language VARCHAR(10) NOT NULL,        -- Ngôn ngữ (vi, en, ...)
+    source_url TEXT,                      -- Link tham khảo nguồn văn bản
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Bảng LegalKeywords
 CREATE TABLE LegalKeywords (
     id SERIAL PRIMARY KEY,
-    document_id INT NOT NULL,
+    document_id INTEGER NOT NULL,
     keyword VARCHAR(100) NOT NULL,
-    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES LegalDocuments(id) ON DELETE CASCADE,
+    UNIQUE (document_id, keyword) -- Một keyword không được trùng trong cùng một tài liệu
 );
 
 -- Bảng LegalCases
