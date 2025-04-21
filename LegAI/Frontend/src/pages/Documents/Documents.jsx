@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Documents.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
-import { BsJournalText, BsCalendar3 } from 'react-icons/bs';
-import { FaTag } from 'react-icons/fa';
+import { BsJournalText, BsCalendar3, BsSearch } from 'react-icons/bs';
+import { FaTag, FaArrowRight, FaFilter, FaSpinner } from 'react-icons/fa';
 import Loader from '../../components/layout/Loading/Loading';
 
 /**
@@ -28,6 +28,7 @@ const Documents = () => {
     to_date: ''
   });
   const [documentTypes, setDocumentTypes] = useState([]);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Tải danh sách văn bản pháp luật khi component được tải hoặc khi filter/pagination thay đổi
   useEffect(() => {
@@ -68,6 +69,7 @@ const Documents = () => {
       setError('Đã xảy ra lỗi khi tải danh sách văn bản pháp luật');
     } finally {
       setLoading(false);
+      setIsResetting(false);
     }
   };
 
@@ -99,6 +101,26 @@ const Documents = () => {
       page: 1
     }));
     fetchDocuments();
+  };
+  
+  // Reset lại tất cả filter và tải lại dữ liệu
+  const resetFilters = () => {
+    setIsResetting(true);
+    setFilters({
+      search: '',
+      document_type: '',
+      from_date: '',
+      to_date: ''
+    });
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
+    
+    // Sử dụng setTimeout để đảm bảo state đã được cập nhật
+    setTimeout(() => {
+      fetchDocuments();
+    }, 100);
   };
 
   // Điều hướng đến trang chi tiết văn bản
@@ -173,14 +195,16 @@ const Documents = () => {
       <div className={styles['documents-container']}>
         <div className={styles['documents-header']}>
           <h1>Văn bản pháp lý</h1>
-          <p>Tra cứu các văn bản pháp lý mới nhất</p>
+          <p>Tra cứu các văn bản pháp lý mới nhất và cập nhật</p>
         </div>
 
         <div className={styles['filters-section']}>
           <form onSubmit={handleSubmit}>
             <div className={styles['filter-controls']}>
               <div className={styles['filter-group']}>
-                <label htmlFor="search">Từ khóa</label>
+                <label htmlFor="search">
+                  <BsSearch style={{ marginRight: '5px' }} /> Từ khóa
+                </label>
                 <input
                   type="text"
                   id="search"
@@ -193,7 +217,9 @@ const Documents = () => {
               </div>
 
               <div className={styles['filter-group']}>
-                <label htmlFor="document_type">Loại văn bản</label>
+                <label htmlFor="document_type">
+                  <FaFilter style={{ marginRight: '5px' }} /> Loại văn bản
+                </label>
                 <select
                   id="document_type"
                   name="document_type"
@@ -201,7 +227,7 @@ const Documents = () => {
                   value={filters.document_type}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Tất cả</option>
+                  <option value="">Tất cả loại văn bản</option>
                   {documentTypes.map(type => (
                     <option key={type.id} value={type.id}>
                       {type.name}
@@ -211,7 +237,9 @@ const Documents = () => {
               </div>
 
               <div className={styles['filter-group']}>
-                <label htmlFor="from_date">Từ ngày</label>
+                <label htmlFor="from_date">
+                  <BsCalendar3 style={{ marginRight: '5px' }} /> Từ ngày
+                </label>
                 <input
                   type="date"
                   id="from_date"
@@ -223,7 +251,9 @@ const Documents = () => {
               </div>
 
               <div className={styles['filter-group']}>
-                <label htmlFor="to_date">Đến ngày</label>
+                <label htmlFor="to_date">
+                  <BsCalendar3 style={{ marginRight: '5px' }} /> Đến ngày
+                </label>
                 <input
                   type="date"
                   id="to_date"
@@ -239,29 +269,69 @@ const Documents = () => {
                 <button
                   type="submit"
                   className={styles['filter-select']}
+                  disabled={loading}
                 >
-                  Tìm kiếm
+                  {loading ? (
+                    <>
+                      <FaSpinner className={styles['spinner-icon']} /> Đang tìm...
+                    </>
+                  ) : (
+                    <>Tìm kiếm</>
+                  )}
                 </button>
               </div>
             </div>
           </form>
+          
+          {(filters.search || filters.document_type || filters.from_date || filters.to_date) && (
+            <div className={styles['reset-filter-container']}>
+              <button 
+                className={styles['reset-filter-button']} 
+                onClick={resetFilters}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <>
+                    <FaSpinner className={styles['spinner-icon']} /> Đang đặt lại...
+                  </>
+                ) : (
+                  <>Đặt lại bộ lọc</>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {loading ? (
           <div className={styles['loading']}>
             <Loader />
-            <p>Đang tải dữ liệu...</p>
+            <p>Đang tải dữ liệu văn bản...</p>
           </div>
         ) : error ? (
           <div className={styles['error']}>
             <p>{error}</p>
+            <button 
+              className={styles['retry-button']} 
+              onClick={() => fetchDocuments()}
+            >
+              Thử lại
+            </button>
           </div>
         ) : documents.length === 0 ? (
           <div className={styles['no-documents']}>
-            <p>Không tìm thấy văn bản pháp luật nào.</p>
+            <p>Không tìm thấy văn bản pháp luật nào phù hợp với điều kiện tìm kiếm.</p>
+            {(filters.search || filters.document_type || filters.from_date || filters.to_date) && (
+              <button onClick={resetFilters}>
+                Xóa bộ lọc và hiển thị tất cả văn bản
+              </button>
+            )}
           </div>
         ) : (
           <>
+            <div className={styles['results-count']}>
+              Tìm thấy {pagination.total} văn bản pháp luật
+            </div>
+
             <div className={styles['documents-list']}>
               {documents.map(document => (
                 <div
@@ -275,28 +345,37 @@ const Documents = () => {
                   <h3 className={styles['document-title']}>{document.title}</h3>
                   <div className={styles['document-meta']}>
                     <span>
-                      <BsJournalText /> Phiên bản: {document.version || 'N/A'}
-                    </span>
-                    <span>
                       <BsCalendar3 /> Ngày ban hành: {formatDate(document.issued_date)}
                     </span>
                   </div>
                   <p className={styles['document-summary']}>
                     {document.summary ? (
-                      document.summary.length > 150 
-                        ? `${document.summary.substring(0, 150)}...` 
+                      document.summary.length > 200 
+                        ? `${document.summary.substring(0, 200)}...` 
                         : document.summary
-                    ) : 'Không có tóm tắt'}
+                    ) : 'Không có tóm tắt nội dung'}
                   </p>
-                  {document.keywords && document.keywords.length > 0 && (
-                    <div className={styles['keywords-container']}>
-                      {document.keywords.slice(0, 5).map((keyword, index) => (
-                        <span key={index} className={styles['keyword-tag']}>
-                          <FaTag /> {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  
+                  <div className={styles['document-footer']}>
+                    {document.keywords && document.keywords.length > 0 && (
+                      <div className={styles['keywords-container']}>
+                        {document.keywords.slice(0, 3).map((keyword, index) => (
+                          <span key={index} className={styles['keyword-tag']}>
+                            <FaTag /> {keyword}
+                          </span>
+                        ))}
+                        {document.keywords.length > 3 && (
+                          <span className={styles['keyword-tag']}>
+                            +{document.keywords.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    <button className={styles['read-more-button']}>
+                      Xem chi tiết <FaArrowRight />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

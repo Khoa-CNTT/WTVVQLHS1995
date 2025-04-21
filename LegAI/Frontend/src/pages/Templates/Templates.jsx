@@ -5,7 +5,7 @@ import styles from './Templates.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import Loader from '../../components/layout/Loading/Loading';
 import legalService from '../../services/legalService';
-import { FaRegFile, FaCalendarAlt, FaSearch, FaTag } from 'react-icons/fa';
+import { FaRegFile, FaCalendarAlt, FaSearch, FaFilter, FaLanguage, FaArrowRight, FaSpinner } from 'react-icons/fa';
 
 /**
  * Trang hiển thị danh sách mẫu văn bản
@@ -17,7 +17,7 @@ const Templates = () => {
   const [templates, setTemplates] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 12,
     total: 0,
     totalPages: 0
   });
@@ -26,6 +26,7 @@ const Templates = () => {
     template_type: ''
   });
   const [templateTypes, setTemplateTypes] = useState([]);
+  const [isResetting, setIsResetting] = useState(false);
   
   // Tải danh sách mẫu văn bản khi component được tải hoặc khi filter/pagination thay đổi
   useEffect(() => {
@@ -79,9 +80,9 @@ const Templates = () => {
         setTemplates(filteredTemplates);
         setPagination({
           page: response.pagination?.currentPage || 1,
-          limit: response.pagination?.limit || 10,
+          limit: response.pagination?.limit || 12,
           total: response.pagination?.total || filteredTemplates.length,
-          totalPages: response.pagination?.totalPages || Math.ceil(filteredTemplates.length / 10)
+          totalPages: response.pagination?.totalPages || Math.ceil(filteredTemplates.length / 12)
         });
       } else {
         setError('Không thể tải danh sách mẫu văn bản');
@@ -91,6 +92,7 @@ const Templates = () => {
       setError('Đã xảy ra lỗi khi tải danh sách mẫu văn bản');
     } finally {
       setLoading(false);
+      setIsResetting(false);
     }
   };
     
@@ -152,6 +154,24 @@ const Templates = () => {
       page: 1
     }));
     fetchTemplates();
+  };
+  
+  // Reset lại tất cả filter và tải lại dữ liệu
+  const resetFilters = () => {
+    setIsResetting(true);
+    setFilters({
+      search: '',
+      template_type: ''
+    });
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
+    
+    // Sử dụng setTimeout để đảm bảo state đã được cập nhật
+    setTimeout(() => {
+      fetchTemplates();
+    }, 100);
   };
 
   // Điều hướng đến trang chi tiết mẫu văn bản
@@ -234,15 +254,17 @@ const Templates = () => {
       <Navbar />
       <div className={styles['templates-container']}>
         <div className={styles['templates-header']}>
-          <h1>Mẫu văn bản</h1>
-          <p>Tra cứu các mẫu văn bản phổ biến</p>
+          <h1>Mẫu văn bản pháp lý</h1>
+          <p>Tra cứu và tải xuống các mẫu văn bản pháp lý phổ biến</p>
         </div>
         
         <div className={styles['filters-section']}>
           <form onSubmit={handleSubmit}>
             <div className={styles['filter-controls']}>
               <div className={styles['filter-group']}>
-                <label htmlFor="search">Từ khóa</label>
+                <label htmlFor="search">
+                  <FaSearch style={{ marginRight: '5px' }} /> Từ khóa
+                </label>
                 <input
                   type="text"
                   id="search"
@@ -255,7 +277,9 @@ const Templates = () => {
               </div>
               
               <div className={styles['filter-group']}>
-                <label htmlFor="template_type">Loại mẫu</label>
+                <label htmlFor="template_type">
+                  <FaFilter style={{ marginRight: '5px' }} /> Loại mẫu
+                </label>
                 <select
                   id="template_type"
                   name="template_type"
@@ -264,7 +288,7 @@ const Templates = () => {
                   onChange={handleFilterChange}
                   disabled={templateTypes.length === 0}
                 >
-                  <option value="">Tất cả</option>
+                  <option value="">Tất cả loại mẫu</option>
                   {templateTypes.length > 0 ? (
                     templateTypes.map(type => (
                       <option key={type.id || type.name} value={type.id || type.name}>
@@ -278,44 +302,77 @@ const Templates = () => {
               </div>
               
               <div className={styles['filter-group']}>
-                <label> </label>
+                <label>&nbsp;</label>
                 <button
                   type="submit"
                   className={styles['filter-select']}
+                  disabled={loading}
                 >
-                  Tìm kiếm
+                  {loading ? (
+                    <>
+                      <FaSpinner className={styles['spinner-icon']} /> Đang tìm...
+                    </>
+                  ) : (
+                    <>Tìm kiếm</>
+                  )}
                 </button>
               </div>
             </div>
           </form>
+          
+          {(filters.search || filters.template_type) && (
+            <div className={styles['reset-filter-container']}>
+              <button 
+                className={styles['reset-filter-button']} 
+                onClick={resetFilters}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <>
+                    <FaSpinner className={styles['spinner-icon']} /> Đang đặt lại...
+                  </>
+                ) : (
+                  <>Đặt lại bộ lọc</>
+                )}
+              </button>
+            </div>
+          )}
         </div>
         
         {loading ? (
           <div className={styles['loading']}>
             <Loader />
-            <p>Đang tải dữ liệu...</p>
+            <p>Đang tải dữ liệu mẫu văn bản...</p>
           </div>
         ) : error ? (
           <div className={styles['error']}>
             <p>{error}</p>
+            <button 
+              className={styles['retry-button']} 
+              onClick={() => fetchTemplates()}
+            >
+              Thử lại
+            </button>
           </div>
         ) : templates.length === 0 ? (
           <div className={styles['no-templates']}>
-            <p>Không tìm thấy mẫu văn bản nào.</p>
-            {filters.search || filters.template_type ? (
+            <p>Không tìm thấy mẫu văn bản nào phù hợp với điều kiện tìm kiếm.</p>
+            {(filters.search || filters.template_type) && (
               <button 
                 className={styles['reset-filter']} 
-                onClick={() => {
-                  setFilters({ search: '', template_type: '' });
-                  setTimeout(fetchTemplates, 100);
-                }}
+                onClick={resetFilters}
+                disabled={isResetting}
               >
-                Xóa bộ lọc và hiển thị tất cả
+                {isResetting ? 'Đang đặt lại...' : 'Xóa bộ lọc và hiển thị tất cả'}
               </button>
-            ) : null}
+            )}
           </div>
         ) : (
           <>
+            <div className={styles['results-count']}>
+              Tìm thấy {pagination.total} mẫu văn bản
+            </div>
+            
             <div className={styles['templates-list']}>
               {templates.map(template => (
                 <div 
@@ -324,6 +381,7 @@ const Templates = () => {
                   onClick={() => handleTemplateClick(template.id)}
                 >
                   <div className={styles['template-type-badge']}>
+                    <FaFilter style={{ marginRight: '5px' }} />
                     {template.template_type}
                   </div>
                   <h3 className={styles['template-title']}>{template.title}</h3>
@@ -332,12 +390,14 @@ const Templates = () => {
                       <FaCalendarAlt /> {formatDate(template.created_at)}
                     </span>
                     <span className={styles['template-language']}>
-                      <FaRegFile /> {template.language || 'Tiếng Việt'}
+                      <FaLanguage /> {template.language || 'Tiếng Việt'}
                     </span>
                   </div>
-                  <p className={styles['template-description']}>
-                    <button className={styles['view-details-button']}>Xem chi tiết</button>
-                  </p>
+                  <div className={styles['template-description']}>
+                    <button className={styles['view-details-button']}>
+                      Xem chi tiết
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
