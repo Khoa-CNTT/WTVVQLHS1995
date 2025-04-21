@@ -114,7 +114,7 @@ const getUsers = async (page = 1, limit = 10, searchTerm = '', role = '') => {
     try {
         const offset = (page - 1) * limit;
         let query = `
-            SELECT u.*, up.address, up.avatar_url, up.bio 
+            SELECT DISTINCT ON (u.id) u.*, up.address, up.avatar_url, up.bio 
             FROM users u 
             LEFT JOIN userprofiles up ON u.id = up.user_id 
             WHERE u.username NOT LIKE 'deleted_%'
@@ -142,7 +142,7 @@ const getUsers = async (page = 1, limit = 10, searchTerm = '', role = '') => {
         const totalUsers = parseInt(countResult.rows[0].count);
 
         // Lấy danh sách người dùng với phân trang
-        query += ` ORDER BY u.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        query += ` ORDER BY u.id, u.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(limit, offset);
 
         const result = await pool.query(query, params);

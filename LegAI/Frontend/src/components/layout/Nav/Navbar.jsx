@@ -215,7 +215,7 @@ const Navbar = () => {
             <span className={styles.iconLabel}>Tìm kiếm</span>
           </button>
           <div className={styles.searchDropdown}>
-            <form onSubmit={handleSearch}>
+            <form onSubmit={handleSearch} className={styles.searchForm}>
               <input 
                 type="text" 
                 placeholder="Tìm kiếm văn bản pháp luật, mẫu đơn..." 

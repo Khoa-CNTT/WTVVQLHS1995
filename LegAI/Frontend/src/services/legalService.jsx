@@ -184,6 +184,40 @@ const searchAll = async (searchParams = {}) => {
   }
 };
 
+/**
+ * Tải xuống văn bản pháp luật dưới dạng PDF
+ * @param {string|number} id - ID của văn bản
+ */
+const downloadLegalDocument = async (id) => {
+  try {
+    // Tạo URL tải xuống
+    const downloadUrl = `${API_URL}/legal/documents/${id}/download`;
+    
+    // Mở URL trong tab mới để tải xuống
+    window.open(downloadUrl, '_blank');
+  } catch (error) {
+    console.error(`Lỗi khi tải xuống văn bản có ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Tải xuống mẫu văn bản dưới dạng PDF
+ * @param {string|number} id - ID của mẫu văn bản
+ */
+const downloadDocumentTemplate = async (id) => {
+  try {
+    // Tạo URL tải xuống
+    const downloadUrl = `${API_URL}/legal/templates/${id}/download`;
+    
+    // Mở URL trong tab mới để tải xuống
+    window.open(downloadUrl, '_blank');
+  } catch (error) {
+    console.error(`Lỗi khi tải xuống mẫu văn bản có ID ${id}:`, error);
+    throw error;
+  }
+};
+
 export default {
   getLegalDocuments, 
   getLegalDocumentById,
@@ -192,5 +226,7 @@ export default {
   getDocumentTemplates,
   getDocumentTemplateById,
   getTemplateTypes,
-  searchAll
+  searchAll,
+  downloadLegalDocument,
+  downloadDocumentTemplate
 }; 

@@ -600,6 +600,285 @@ async function searchAll(options = {}) {
   }
 }
 
+/**
+ * Tạo văn bản pháp luật mới
+ * @param {Object} documentData - Dữ liệu văn bản
+ * @returns {Promise<Object>} Văn bản mới tạo
+ */
+const createLegalDocument = async (documentData) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const {
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      keywords = []
+    } = documentData;
+    
+    // Thêm văn bản mới
+    const documentQuery = `
+      INSERT INTO LegalDocuments(
+        title,
+        document_type,
+        version,
+        content,
+        summary,
+        issued_date,
+        language
+      )
+      VALUES($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    
+    const documentValues = [
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language
+    ];
+    
+    const documentResult = await client.query(documentQuery, documentValues);
+    const newDocument = documentResult.rows[0];
+    
+    // Thêm các từ khóa nếu có
+    if (keywords && keywords.length > 0) {
+      const keywordQuery = `
+        INSERT INTO LegalKeywords(document_id, keyword)
+        VALUES($1, $2)
+      `;
+      
+      for (const keyword of keywords) {
+        await client.query(keywordQuery, [newDocument.id, keyword]);
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    // Thêm từ khóa vào dữ liệu trả về
+    newDocument.keywords = keywords;
+    
+    return newDocument;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Lỗi khi tạo văn bản pháp luật:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Cập nhật văn bản pháp luật
+ * @param {number|string} documentId - ID văn bản
+ * @param {Object} documentData - Dữ liệu cập nhật
+ * @returns {Promise<Object>} Văn bản đã cập nhật
+ */
+const updateLegalDocument = async (documentId, documentData) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const {
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      keywords = []
+    } = documentData;
+    
+    // Cập nhật văn bản
+    const documentQuery = `
+      UPDATE LegalDocuments
+      SET
+        title = $1,
+        document_type = $2,
+        version = $3,
+        content = $4,
+        summary = $5,
+        issued_date = $6,
+        language = $7
+      WHERE id = $8
+      RETURNING *
+    `;
+    
+    const documentValues = [
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      documentId
+    ];
+    
+    const documentResult = await client.query(documentQuery, documentValues);
+    
+    if (documentResult.rows.length === 0) {
+      throw new Error(`Không tìm thấy văn bản có ID ${documentId}`);
+    }
+    
+    const updatedDocument = documentResult.rows[0];
+    
+    // Xóa từ khóa cũ
+    await client.query('DELETE FROM LegalKeywords WHERE document_id = $1', [documentId]);
+    
+    // Thêm từ khóa mới
+    if (keywords && keywords.length > 0) {
+      const keywordQuery = `
+        INSERT INTO LegalKeywords(document_id, keyword)
+        VALUES($1, $2)
+      `;
+      
+      for (const keyword of keywords) {
+        await client.query(keywordQuery, [documentId, keyword]);
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    // Thêm từ khóa vào dữ liệu trả về
+    updatedDocument.keywords = keywords;
+    
+    return updatedDocument;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Lỗi khi cập nhật văn bản pháp luật:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Xóa văn bản pháp luật
+ * @param {number|string} documentId - ID văn bản
+ * @returns {Promise<boolean>} Kết quả xóa
+ */
+const deleteLegalDocument = async (documentId) => {
+  try {
+    // Xóa văn bản (các từ khóa sẽ bị xóa theo do ràng buộc ON DELETE CASCADE)
+    const result = await pool.query(
+      'DELETE FROM LegalDocuments WHERE id = $1 RETURNING id',
+      [documentId]
+    );
+    
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Lỗi khi xóa văn bản pháp luật:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tạo mẫu văn bản mới
+ * @param {Object} templateData - Dữ liệu mẫu văn bản
+ * @returns {Promise<Object>} Mẫu văn bản mới tạo
+ */
+const createDocumentTemplate = async (templateData) => {
+  try {
+    const {
+      title,
+      template_type,
+      content,
+      language
+    } = templateData;
+    
+    const query = `
+      INSERT INTO DocumentTemplates(
+        title,
+        template_type,
+        content,
+        language
+      )
+      VALUES($1, $2, $3, $4)
+      RETURNING *
+    `;
+    
+    const values = [title, template_type, content, language];
+    
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Lỗi khi tạo mẫu văn bản:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cập nhật mẫu văn bản
+ * @param {number|string} templateId - ID mẫu văn bản
+ * @param {Object} templateData - Dữ liệu cập nhật
+ * @returns {Promise<Object>} Mẫu văn bản đã cập nhật
+ */
+const updateDocumentTemplate = async (templateId, templateData) => {
+  try {
+    const {
+      title,
+      template_type,
+      content,
+      language
+    } = templateData;
+    
+    const query = `
+      UPDATE DocumentTemplates
+      SET
+        title = $1,
+        template_type = $2,
+        content = $3,
+        language = $4
+      WHERE id = $5
+      RETURNING *
+    `;
+    
+    const values = [title, template_type, content, language, templateId];
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Không tìm thấy mẫu văn bản có ID ${templateId}`);
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Lỗi khi cập nhật mẫu văn bản:', error);
+    throw error;
+  }
+};
+
+/**
+ * Xóa mẫu văn bản
+ * @param {number|string} templateId - ID mẫu văn bản
+ * @returns {Promise<boolean>} Kết quả xóa
+ */
+const deleteDocumentTemplate = async (templateId) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM DocumentTemplates WHERE id = $1 RETURNING id',
+      [templateId]
+    );
+    
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Lỗi khi xóa mẫu văn bản:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getAllLegalDocuments,
   getLegalDocumentById,
@@ -610,5 +889,11 @@ module.exports = {
   getDocumentTemplates,
   getDocumentTemplateById,
   getTemplateTypes,
-  searchAll
+  searchAll,
+  createLegalDocument,
+  updateLegalDocument,
+  deleteLegalDocument,
+  createDocumentTemplate,
+  updateDocumentTemplate,
+  deleteDocumentTemplate
 }; 

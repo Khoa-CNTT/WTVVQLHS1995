@@ -4,6 +4,8 @@ import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
 import authService from '../../services/authService';
 import 'animate.css';
+import LegalDocumentsManager from './LegalDocuments/LegalDocumentsManager';
+import DocumentTemplatesManager from './DocumentTemplates/DocumentTemplatesManager';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -61,7 +63,7 @@ function Dashboard() {
     { id: 'tổng-quan', label: 'Tổng Quan', icon: '⚖️' },
     { id: 'người-dùng', label: 'Tài Khoản', icon: '👨‍⚖️', table: 'Users, UserProfiles' },
     { id: 'tài-liệu-pháp-lý', label: 'Tài Liệu Pháp Lý', icon: '📜', table: 'LegalDocuments, DocumentTemplates' },
-    { id: 'vụ-án', label: 'Vụ Án Pháp Lý', icon: '🏛️', table: 'LegalCases' },
+    { id: 'vụ-án', label: 'Mẫu văn bản', icon: '🏛️', table: 'LegalCases' },
     { id: 'hợp-đồng', label: 'Hợp Đồng', icon: '📋', table: 'Contracts, DigitalSignatures' },
     { id: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: '🤖', table: 'AIConsultations' },
     { id: 'tin-nhắn', label: 'Tin Nhắn', icon: '💬', table: 'LiveChats' },
@@ -124,12 +126,26 @@ function Dashboard() {
     </div>
   );
 
+  const renderLegalDocuments = () => (
+    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp lý</h2>
+      <LegalDocumentsManager />
+    </div>
+  );
+
+  const renderDocumentTemplates = () => (
+    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <h2 className={styles.sectionTitle}>Quản lý mẫu văn bản</h2>
+      <DocumentTemplatesManager />
+    </div>
+  );
+
   const renderContent = () => {
     const sections = {
       'tổng-quan': renderDashboardOverview(),
       'người-dùng': renderUserProfile(),
-      'tài-liệu-pháp-lý': <h2 className={styles.sectionTitle}>Tài Liệu Pháp Lý</h2>,
-      'vụ-án': <h2 className={styles.sectionTitle}>Vụ Án Pháp Lý</h2>,
+      'tài-liệu-pháp-lý': renderLegalDocuments(),
+      'vụ-án': renderDocumentTemplates(),
       'hợp-đồng': <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng</h2>,
       'tư-vấn-ai': <h2 className={styles.sectionTitle}>Tư Vấn AI</h2>,
       'tin-nhắn': <h2 className={styles.sectionTitle}>Tin Nhắn</h2>,

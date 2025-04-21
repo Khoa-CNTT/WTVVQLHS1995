@@ -118,7 +118,16 @@ const DocumentDetail = () => {
 
   // Xử lý khi người dùng muốn tải xuống văn bản
   const handleDownload = () => {
-    toast.info('Tính năng tải xuống đang được phát triển');
+    if (document?.id) {
+      try {
+        legalService.downloadLegalDocument(document.id);
+      } catch (error) {
+        console.error('Lỗi khi tải xuống tài liệu:', error);
+        toast.error('Không thể tải xuống tài liệu. Vui lòng thử lại sau.');
+      }
+    } else {
+      toast.error('Không thể tải xuống tài liệu. Vui lòng thử lại sau.');
+    }
   };
 
   // Xử lý khi người dùng muốn chia sẻ văn bản

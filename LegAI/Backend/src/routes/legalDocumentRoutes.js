@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const LegalDocumentModel = require('../models/legalDocumentModel');
+const legalDocumentController = require('../controllers/legalDocumentController');
+const { protect, authorize } = require('../middleware/auth');
 
 // Route lấy danh sách văn bản pháp luật
 router.get('/', async (req, res) => {
@@ -163,5 +165,14 @@ router.get('/search/all', async (req, res) => {
     res.status(500).json({ error: 'Lỗi khi tìm kiếm' });
   }
 });
+
+// Route cho việc tải xuống văn bản pháp luật dưới dạng PDF
+router.get('/documents/:id/download', legalDocumentController.downloadLegalDocument);
+
+// Route cho việc tải xuống mẫu văn bản dưới dạng PDF
+router.get('/templates/:id/download', legalDocumentController.downloadDocumentTemplate);
+
+// Route cho việc chuyển đổi HTML thành PDF
+router.post('/html-to-pdf', protect, legalDocumentController.convertHtmlToPdf);
 
 module.exports = router; 

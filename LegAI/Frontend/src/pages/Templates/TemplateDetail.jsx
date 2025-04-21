@@ -34,8 +34,17 @@ const TemplateDetail = () => {
   };
 
   const handleDownload = () => {
-    // Xử lý tải xuống mẫu tài liệu
-    alert('Tính năng tải xuống mẫu sẽ được thực hiện trong tương lai.');
+    if (template?.id) {
+      try {
+        legalService.downloadDocumentTemplate(template.id);
+      } catch (error) {
+        console.error('Lỗi khi tải xuống mẫu văn bản:', error);
+        // Thêm thông báo lỗi nếu hệ thống có
+        alert('Không thể tải xuống mẫu văn bản. Vui lòng thử lại sau.');
+      }
+    } else {
+      alert('Không thể tải xuống mẫu văn bản. Vui lòng thử lại sau.');
+    }
   };
 
 

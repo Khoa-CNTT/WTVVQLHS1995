@@ -187,6 +187,7 @@
 
 .searchWrapper {
   position: relative;
+  
 }
 
 .searchDropdown {
@@ -197,8 +198,7 @@
   border-radius: var(--border-radius-medium);
   padding: 10px;
   width: 300px;
-  display: flex !important;
-  flex-direction: row !important;
+
   box-shadow: var(--box-shadow);
   opacity: 0;
   visibility: hidden;
@@ -235,7 +235,10 @@
 .searchBtn:hover {
   background-color: var(--primary-dark);
 }
-
+.searchForm {
+  display: flex;
+  flex-direction: row;
+}
 .menuButton {
   display: flex;
   background: none;
