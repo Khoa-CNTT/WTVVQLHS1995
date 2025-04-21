@@ -156,7 +156,7 @@ const Home = () => {
             <div className={styles.heroBtnGroup}>
               <button
                 className={styles.primaryButton}
-                onClick={() => navigate('/lawyers')}
+                onClick={() => navigate('/documents')}
               >
                 <i className="fas fa-rocket"></i> Dùng ngay
               </button>

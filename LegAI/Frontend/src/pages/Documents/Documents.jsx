@@ -194,8 +194,8 @@ const Documents = () => {
       <Navbar />
       <div className={styles['documents-container']}>
         <div className={styles['documents-header']}>
-          <h1>Văn bản pháp lý</h1>
-          <p>Tra cứu các văn bản pháp lý mới nhất và cập nhật</p>
+          <h1>Tài liệu pháp lý</h1>
+          <p>Tra cứu các tài liệu pháp lý mới nhất và cập nhật</p>
         </div>
 
         <div className={styles['filters-section']}>
