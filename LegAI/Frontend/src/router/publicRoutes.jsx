@@ -21,10 +21,9 @@ import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import SearchResults from '../pages/Search/SearchResults';
 import DocumentDetail from '../pages/Documents/DocumentDetail';
-import Templates from '../pages/Templates/Templates';
-import TemplateDetail from '../pages/Templates/TemplateDetail';
-import authService from '../services/authService';
 import Documents from '../pages/Documents/Documents';
+import authService from '../services/authService';
+import Templates from '../pages/Templates/Templates';
 
 // Kiểm tra xem người dùng đã đăng nhập chưa
 const isAuthenticated = () => authService.isAuthenticated();
@@ -85,17 +84,12 @@ const PublicRoutes = () => {
             <SearchResults />
           </PageTransition>
         } />
+        <Route path="/documents" element={
+          <PageTransition custom="fade">
+            <Documents />
+          </PageTransition>
+        } />
         <Route path="/legal/documents/:id" element={
-          <PageTransition custom="fade">
-            <DocumentDetail />
-          </PageTransition>
-        } />
-        <Route path="/legal/templates/:id" element={
-          <PageTransition custom="fade">
-            <TemplateDetail />
-          </PageTransition>
-        } />
-        <Route path="/documents/:id" element={
           <PageTransition custom="fade">
             <DocumentDetail />
           </PageTransition>
@@ -105,14 +99,9 @@ const PublicRoutes = () => {
             <Templates />
           </PageTransition>
         } />
-        <Route path="/templates/:id" element={
+        <Route path="/legal/templates/:id" element={
           <PageTransition custom="fade">
-            <TemplateDetail />
-          </PageTransition>
-        } />
-        <Route path="/documents" element={
-          <PageTransition custom="fade">
-            <Documents />
+            <DocumentDetail />
           </PageTransition>
         } />
         <Route path="/test" element={<TestApiConnection />} />

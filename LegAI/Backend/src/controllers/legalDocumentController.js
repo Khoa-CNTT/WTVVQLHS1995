@@ -16,10 +16,6 @@ const getAllLegalDocuments = asyncHandler(async (req, res) => {
     limit = 10 
   } = req.query;
 
-  console.log('Nhận yêu cầu tìm kiếm với tham số:', { 
-    q, type, fromDate, toDate, page, limit 
-  });
-
   const results = await legalDocumentModel.getAllLegalDocuments({
     searchTerm: q,
     documentType: type,
@@ -42,32 +38,19 @@ const getAllLegalDocuments = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const getLegalDocumentById = asyncHandler(async (req, res) => {
-  try {
-    console.log('Controller nhận request với ID:', req.params.id);
-    
-    const document = await legalDocumentModel.getLegalDocumentById(req.params.id);
+  const document = await legalDocumentModel.getLegalDocumentById(req.params.id);
 
-    if (!document) {
-      console.log('Controller: Không tìm thấy văn bản với ID:', req.params.id);
-      return res.status(404).json({
-        status: 'error',
-        message: 'Không tìm thấy văn bản pháp luật'
-      });
-    }
-
-    console.log('Controller: Đã tìm thấy văn bản, trả về response');
-    res.status(200).json({
-      status: 'success',
-      data: document
-    });
-  } catch (error) {
-    console.error('Controller: Lỗi khi lấy văn bản pháp luật:', error);
-    res.status(500).json({
+  if (!document) {
+    return res.status(404).json({
       status: 'error',
-      message: 'Lỗi server khi lấy văn bản pháp luật',
-      error: error.message
+      message: 'Không tìm thấy văn bản pháp luật'
     });
   }
+
+  res.status(200).json({
+    status: 'success',
+    data: document
+  });
 });
 
 /**
@@ -196,30 +179,15 @@ const getTemplateTypes = asyncHandler(async (req, res) => {
 const searchAll = asyncHandler(async (req, res) => {
   const { 
     q = '', 
-    type = '',
-    fromDate = null,
-    toDate = null,
-    language = '',
     page = 1, 
     limit = 10 
   } = req.query;
 
-  console.log('Nhận yêu cầu tìm kiếm tổng hợp với tham số:', { 
-    q, type, fromDate, toDate, language, page, limit 
-  });
-
   const results = await legalDocumentModel.searchAll({
     searchTerm: q,
-    documentType: type,
-    fromDate: fromDate ? new Date(fromDate) : null,
-    toDate: toDate ? new Date(toDate) : null,
-    language,
     page: parseInt(page),
     limit: parseInt(limit)
   });
-
-  // Đảm bảo trả về thông tin phân trang đầy đủ
-  console.log('Trả về kết quả tìm kiếm với phân trang:', results.pagination);
 
   res.status(200).json({
     status: 'success',

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import styles from './SearchResults.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import SideMenu from '../../components/layout/Nav/SideMenu';
-import legalService from '../../services/legalService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSearch, 
@@ -22,18 +21,76 @@ import {
   faHome
 } from '@fortawesome/free-solid-svg-icons';
 
+// Dữ liệu mẫu dựa trên cấu trúc bảng từ database.sql
+const mockLegalDocuments = [
+  {
+    id: 1,
+    title: 'Luật hình sự số 100/2015/QH13',
+    document_type: 'Luật',
+    version: '2015',
+    summary: 'Luật hình sự quy định về tội phạm và hình phạt, được Quốc hội nước Cộng hòa Xã hội Chủ nghĩa Việt Nam thông qua năm 2015 và có hiệu lực từ ngày 01/01/2018.',
+    issued_date: '2015-11-27',
+    language: 'Tiếng Việt',
+    keywords: ['Luật hình sự', 'Tội phạm', 'Hình phạt']
+  },
+  {
+    id: 2,
+    title: 'Luật dân sự số 91/2015/QH13',
+    document_type: 'Luật',
+    version: '2015',
+    summary: 'Bộ luật dân sự quy định địa vị pháp lý, chuẩn mực pháp lý cho cách ứng xử của cá nhân, pháp nhân, chủ thể khác; quyền và nghĩa vụ của các chủ thể về nhân thân và tài sản.',
+    issued_date: '2015-11-24',
+    language: 'Tiếng Việt',
+    keywords: ['Luật dân sự', 'Quyền và nghĩa vụ', 'Tài sản']
+  },
+  {
+    id: 3,
+    title: 'Nghị định 102/2020/NĐ-CP',
+    document_type: 'Nghị định',
+    version: '2020',
+    summary: 'Quy định về chế độ hưu trí đối với quân nhân trực tiếp tham gia kháng chiến chống Mỹ cứu nước từ ngày 30/4/1975 trở về trước.',
+    issued_date: '2020-09-01',
+    language: 'Tiếng Việt',
+    keywords: ['Chế độ hưu trí', 'Quân nhân', 'Kháng chiến']
+  }
+];
+
+// Dữ liệu mẫu mẫu văn bản
+const mockDocumentTemplates = [
+  {
+    id: 1,
+    title: 'Mẫu hợp đồng mua bán hàng hóa',
+    template_type: 'Hợp đồng',
+    language: 'Tiếng Việt',
+    created_at: '2022-06-10'
+  },
+  {
+    id: 2,
+    title: 'Đơn xin cấp phép xây dựng',
+    template_type: 'Đơn',
+    language: 'Tiếng Việt',
+    created_at: '2022-08-15'
+  },
+  {
+    id: 3,
+    title: 'Mẫu hợp đồng lao động',
+    template_type: 'Hợp đồng',
+    language: 'Tiếng Việt',
+    created_at: '2022-07-05'
+  }
+];
+
 const SearchResults = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
   // State
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [results, setResults] = useState({ documents: [], templates: [] });
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     documentType: '',
@@ -42,7 +99,6 @@ const SearchResults = () => {
     language: ''
   });
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
 
   // Lấy query từ URL khi component được tải
   useEffect(() => {
@@ -50,85 +106,93 @@ const SearchResults = () => {
     const query = params.get('q') || '';
     setSearchQuery(query);
     
-    // Chỉ tìm kiếm khi có query
     if (query) {
-      fetchSearchResults(query, 1);
-      setHasSearched(true);
+      fetchSearchResults(query);
+    } else {
+      setLoading(false);
     }
   }, [location.search]);
 
-  // Thêm effect để gọi lại API khi thay đổi trang
-  useEffect(() => {
-    if (hasSearched) {
-      fetchSearchResults(searchQuery, currentPage);
-    }
-  }, [currentPage]);
-
-  // Gọi API thực tế để lấy kết quả tìm kiếm với phân trang
-  const fetchSearchResults = async (query, page = 1) => {
+  // Tìm kiếm trong dữ liệu mẫu
+  const fetchSearchResults = async (query) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Đảm bảo query luôn là chuỗi, không phải undefined hoặc null
-      const searchQuery = query || '';
+      // Giả lập độ trễ tìm kiếm
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      console.log('Đang tìm kiếm với từ khóa:', searchQuery, 'trang:', page);
+      // Tìm kiếm trong danh sách văn bản pháp luật
+      const matchedDocuments = mockLegalDocuments.filter(doc => {
+        const searchQuery = query.toLowerCase();
+        return (
+          doc.title.toLowerCase().includes(searchQuery) ||
+          doc.summary.toLowerCase().includes(searchQuery) ||
+          doc.document_type.toLowerCase().includes(searchQuery) ||
+          (doc.keywords && doc.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery)))
+        );
+      });
       
-      // Tạo query params
-      const params = {
-        q: searchQuery,
-        page: page,
-        limit: 10
-      };
+      // Tìm kiếm trong danh sách mẫu văn bản
+      const matchedTemplates = mockDocumentTemplates.filter(template => {
+        const searchQuery = query.toLowerCase();
+        return (
+          template.title.toLowerCase().includes(searchQuery) ||
+          template.template_type.toLowerCase().includes(searchQuery)
+        );
+      });
       
-      // Nếu đang áp dụng bộ lọc, thêm tham số tương ứng
-      if (activeTab === 'documents') {
-        if (filters.documentType) params.type = filters.documentType;
-        if (filters.dateFrom) params.fromDate = filters.dateFrom;
-        if (filters.dateTo) params.toDate = filters.dateTo;
-      }
-      
-      if (activeTab === 'templates' && filters.language) {
-        params.language = filters.language;
-      }
-      
-      console.log('Gửi request với tham số:', params);
-      
-      // Gọi API thực tế với tham số
-      const response = await legalService.searchAll(params);
-      
-      console.log('Nhận được response:', response);
-      
-      if (response && response.status === 'success') {
-        console.log(`Tìm thấy ${response.data.legalDocuments?.length || 0} văn bản pháp luật và ${response.data.documentTemplates?.length || 0} mẫu văn bản`);
+      // Lọc kết quả theo bộ lọc đã chọn
+      const filteredDocuments = matchedDocuments.filter(doc => {
+        if (filters.documentType && doc.document_type !== filters.documentType) return false;
         
-        // Cập nhật kết quả
-        setResults({
-          documents: response.data.legalDocuments || [],
-          templates: response.data.documentTemplates || []
-        });
-        
-        // Cập nhật thông tin phân trang
-        if (response.pagination) {
-          console.log('Thông tin phân trang nhận được:', response.pagination);
-          setTotalPages(response.pagination.totalPages || 1);
-          setCurrentPage(response.pagination.currentPage || 1);
-        } else {
-          console.warn('Không có thông tin phân trang trong response');
-          setTotalPages(1);
-          setCurrentPage(page);
+        if (filters.dateFrom) {
+          const fromDate = new Date(filters.dateFrom);
+          const docDate = new Date(doc.issued_date);
+          if (docDate < fromDate) return false;
         }
-      } else {
-        console.error('API trả về lỗi hoặc không đúng định dạng:', response);
-        setError('Không thể tải kết quả tìm kiếm. Dữ liệu không hợp lệ.');
+        
+        if (filters.dateTo) {
+          const toDate = new Date(filters.dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          const docDate = new Date(doc.issued_date);
+          if (docDate > toDate) return false;
+        }
+        
+        return true;
+      });
+      
+      const filteredTemplates = matchedTemplates.filter(template => {
+        if (filters.language && template.language !== filters.language) return false;
+        return true;
+      });
+      
+      // Phân trang
+      const itemsPerPage = 5;
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      
+      // Dữ liệu phân trang tùy thuộc vào tab đang chọn
+      let paginatedDocuments = [];
+      let paginatedTemplates = [];
+      
+      if (activeTab === 'all' || activeTab === 'documents') {
+        paginatedDocuments = filteredDocuments.slice(startIndex, startIndex + itemsPerPage);
       }
+      
+      if (activeTab === 'all' || activeTab === 'templates') {
+        paginatedTemplates = filteredTemplates.slice(startIndex, startIndex + itemsPerPage);
+      }
+      
+      setResults({
+        documents: paginatedDocuments,
+        templates: paginatedTemplates,
+        totalDocuments: filteredDocuments.length,
+        totalTemplates: filteredTemplates.length
+      });
+      
     } catch (err) {
-      console.error('Lỗi khi tìm kiếm:', err);
-      if (err.response) {
-        console.error('Chi tiết lỗi:', err.response.status, err.response.data);
-      }
-      setError(`Đã xảy ra lỗi khi tìm kiếm: ${err.message || 'Vui lòng thử lại sau.'}`);
+      console.error('Lỗi tìm kiếm:', err);
+      setError('Đã xảy ra lỗi khi tìm kiếm. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -137,17 +201,22 @@ const SearchResults = () => {
   // Submit form tìm kiếm
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    setHasSearched(true);
     
-    // Reset về trang 1 khi tìm kiếm mới
+    // Kiểm tra nếu người dùng không nhập gì thì không thực hiện tìm kiếm
+    if (!searchQuery.trim()) {
+      return;
+    }
+    
     setCurrentPage(1);
-    fetchSearchResults(searchQuery, 1);
+    fetchSearchResults(searchQuery);
   };
 
   // Xử lý thay đổi tab
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
+    // Gọi lại hàm tìm kiếm khi thay đổi tab để cập nhật kết quả
+    fetchSearchResults(searchQuery);
   };
 
   // Xử lý thay đổi bộ lọc
@@ -157,49 +226,26 @@ const SearchResults = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Reset về trang 1 và gọi lại API khi thay đổi bộ lọc
+    setCurrentPage(1);
+    
+    // Sử dụng setTimeout để tránh gọi API quá nhiều khi người dùng thay đổi nhiều bộ lọc liên tiếp
+    setTimeout(() => {
+      fetchSearchResults(searchQuery);
+    }, 300);
   };
-  
-  // Thêm hàm xử lý chuyển trang
+
+  // Xử lý chuyển trang
   const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    setCurrentPage(page);
+    fetchSearchResults(searchQuery);
   };
 
   // Tính toán tổng số kết quả
-  const totalResults = results.documents.length + results.templates.length;
+  const totalResults = (results.totalDocuments || 0) + (results.totalTemplates || 0);
+  const totalPages = Math.ceil(totalResults / 5);
   
-  // Lọc kết quả dựa theo tab và bộ lọc
-  const filteredResults = {
-    documents: results.documents.filter(doc => {
-      if (activeTab !== 'all' && activeTab !== 'documents') return false;
-      if (filters.documentType && doc.document_type !== filters.documentType) return false;
-      
-      // Lọc theo ngày
-      if (filters.dateFrom || filters.dateTo) {
-        const docDate = new Date(doc.issued_date);
-        
-        if (filters.dateFrom) {
-          const fromDate = new Date(filters.dateFrom);
-          if (docDate < fromDate) return false;
-        }
-        
-        if (filters.dateTo) {
-          const toDate = new Date(filters.dateTo);
-          toDate.setHours(23, 59, 59); // Đặt thời gian là cuối ngày
-          if (docDate > toDate) return false;
-        }
-      }
-      
-      return true;
-    }),
-    templates: results.templates.filter(template => {
-      if (activeTab !== 'all' && activeTab !== 'templates') return false;
-      if (filters.language && template.language !== filters.language) return false;
-      return true;
-    })
-  };
-
   // Xử lý điều hướng đến trang "Xem tất cả văn bản"
   const handleViewAllDocuments = () => {
     navigate('/documents');
@@ -211,107 +257,20 @@ const SearchResults = () => {
 
   // Sửa lại cách điều hướng khi click vào văn bản
   const handleDocumentClick = (document) => {
-    // Đảm bảo ID có định dạng đúng cho URL
-    let documentId = document.id;
-    if (typeof documentId === 'string' && documentId.startsWith('/')) {
-      documentId = documentId.substring(1);
-    }
-
+    // Kiểm tra loại văn bản để điều hướng đúng
     if (document.document_type) {
       // Đây là văn bản pháp luật
-      navigate(`/documents/${documentId}`);
-    } else if (document.template_type) {
-      // Đây là mẫu văn bản
-      navigate(`/templates/${documentId}`);
+      navigate(`/legal/documents/${document.id}`);
     } else {
-      // Fallback - Nếu không xác định được loại, dùng URL từ document nếu có
-      if (document.url) {
-        navigate(document.url);
-      } else {
-        // Nếu không có URL, cố gắng dùng ID
-        navigate(`/documents/${documentId}`);
-      }
+      // Đây là mẫu văn bản
+      navigate(`/legal/templates/${document.id}`);
     }
   };
-  
-  // Định dạng ngày
+
+  // Định dạng ngày tháng
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN');
-  };
-
-  // Thêm phần hiển thị phân trang
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    const pageNumbers = [];
-    const maxPagesToShow = 5;
-    
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i);
-    }
-
-    return (
-      <div className={styles.pagination}>
-        <button 
-          className={styles['pagination-button']} 
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          <FontAwesomeIcon icon={faChevronLeft} /> {t('Trang trước')}
-        </button>
-        
-        {startPage > 1 && (
-          <>
-            <button 
-              className={`${styles['pagination-button']} ${1 === currentPage ? styles.active : ''}`} 
-              onClick={() => handlePageChange(1)}
-            >
-              1
-            </button>
-            {startPage > 2 && <span className={styles['pagination-ellipsis']}>...</span>}
-          </>
-        )}
-        
-        {pageNumbers.map(number => (
-          <button
-            key={number}
-            className={`${styles['pagination-button']} ${number === currentPage ? styles.active : ''}`}
-            onClick={() => handlePageChange(number)}
-          >
-            {number}
-          </button>
-        ))}
-        
-        {endPage < totalPages && (
-          <>
-            {endPage < totalPages - 1 && <span className={styles['pagination-ellipsis']}>...</span>}
-            <button 
-              className={`${styles['pagination-button']} ${totalPages === currentPage ? styles.active : ''}`}
-              onClick={() => handlePageChange(totalPages)}
-            >
-              {totalPages}
-            </button>
-          </>
-        )}
-        
-        <button 
-          className={styles['pagination-button']} 
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          {t('Trang sau')} <FontAwesomeIcon icon={faChevronRight} />
-        </button>
-      </div>
-    );
   };
 
   return (
@@ -336,17 +295,17 @@ const SearchResults = () => {
                   Tìm kiếm
                 </button>
               </form>
-              {hasSearched && !loading && !error && (
+              {searchQuery && !loading && !error && (
                 <div className={styles['search-count']}>
-                  {searchQuery ? 
-                    `Tìm thấy ${totalResults} kết quả cho "${searchQuery}"` 
-                    : `Hiển thị tất cả ${totalResults} kết quả`}
+                  {totalResults > 0 
+                    ? `Tìm thấy ${totalResults} kết quả cho "${searchQuery}"`
+                    : `Không tìm thấy kết quả cho "${searchQuery}"`}
                 </div>
               )}
             </div>
           </div>
 
-          {hasSearched && (
+          {searchQuery && (
             <div className={styles['search-tabs']}>
               <button 
                 className={`${styles['tab-btn']} ${activeTab === 'all' ? styles.active : ''}`}
@@ -380,7 +339,7 @@ const SearchResults = () => {
             </div>
           )}
 
-          {hasSearched && !loading && !error && totalResults > 0 && (
+          {searchQuery && !loading && !error && totalResults > 0 && (
             <div className={styles.filters}>
               {(activeTab === 'all' || activeTab === 'documents') && (
                 <>
@@ -393,9 +352,11 @@ const SearchResults = () => {
                       onChange={handleFilterChange}
                     >
                       <option value="">Tất cả loại</option>
+                      <option value="Luật">Luật</option>
                       <option value="Nghị định">Nghị định</option>
                       <option value="Nghị quyết">Nghị quyết</option>
-                      <option value="Văn bản hợp nhất">Văn bản hợp nhất</option>
+                      <option value="Thông tư">Thông tư</option>
+                      <option value="Quyết định">Quyết định</option>
                     </select>
                   </div>
                   
@@ -455,7 +416,7 @@ const SearchResults = () => {
             </div>
           )}
 
-          {hasSearched && !loading && !error && totalResults === 0 && (
+          {!loading && !error && searchQuery && totalResults === 0 && (
             <div className={styles['no-results']}>
               <h3>Không tìm thấy kết quả phù hợp</h3>
               <p>Vui lòng thử lại với từ khóa khác hoặc xem các đề xuất dưới đây</p>
@@ -473,15 +434,15 @@ const SearchResults = () => {
             </div>
           )}
 
-          {hasSearched && !loading && !error && totalResults > 0 && (
+          {!loading && !error && searchQuery && totalResults > 0 && (
             <div className={styles['search-results']}>
-              {(activeTab === 'all' || activeTab === 'documents') && filteredResults.documents.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'documents') && results.documents && results.documents.length > 0 && (
                 <div className={styles['documents-section']}>
                   <h2 className={styles['section-title']}>
                     <FontAwesomeIcon icon={faFile} /> Văn bản pháp luật
                   </h2>
                   <div className={styles['documents-list']}>
-                    {filteredResults.documents.map((document) => (
+                    {results.documents.map((document) => (
                       <div 
                         key={document.id} 
                         className={styles["document-item"]}
@@ -496,20 +457,27 @@ const SearchResults = () => {
                             <FontAwesomeIcon icon={faCalendarAlt} /> {formatDate(document.issued_date)}
                           </span>
                         </div>
-                        <p className={styles['document-summary']}>{document.summary || 'Không có tóm tắt'}</p>
+                        <p className={styles['document-summary']}>{document.summary.substring(0, 200)}...</p>
+                        {document.keywords && (
+                          <div className={styles['keywords-container']}>
+                            {document.keywords.map((keyword, idx) => (
+                              <span key={idx} className={styles['keyword-tag']}>{keyword}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
               
-              {(activeTab === 'all' || activeTab === 'templates') && filteredResults.templates.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'templates') && results.templates && results.templates.length > 0 && (
                 <div className={styles['templates-section']}>
                   <h2 className={styles['section-title']}>
                     <FontAwesomeIcon icon={faFileAlt} /> Mẫu văn bản
                   </h2>
                   <div className={styles['templates-list']}>
-                    {filteredResults.templates.map(template => (
+                    {results.templates.map(template => (
                       <div 
                         key={template.id} 
                         className={styles['template-item']}
@@ -521,7 +489,7 @@ const SearchResults = () => {
                         <div className={styles['template-meta']}>
                           <span className={styles['template-type']}>{template.template_type}</span>
                           <span className={styles['template-language']}>
-                            <FontAwesomeIcon icon={faLanguage} /> {template.language || 'Tiếng Việt'}
+                            <FontAwesomeIcon icon={faLanguage} /> {template.language}
                           </span>
                         </div>
                       </div>
@@ -530,15 +498,47 @@ const SearchResults = () => {
                 </div>
               )}
               
-              {renderPagination()}
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button 
+                    className={styles['page-btn']} 
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                  >
+                    <FontAwesomeIcon icon={faChevronLeft} />
+                    Trước
+                  </button>
+                  
+                  <div className={styles['page-numbers']}>
+                    {Array.from({ length: totalPages }, (_, index) => (
+                      <button
+                        key={index + 1}
+                        className={`${styles['page-number']} ${currentPage === index + 1 ? styles.active : ''}`}
+                        onClick={() => handlePageChange(index + 1)}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    className={styles['page-btn']}
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                  >
+                    Tiếp
+                    <FontAwesomeIcon icon={faChevronRight} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
-
-          {!hasSearched && (
+          
+          {!searchQuery && !loading && (
             <div className={styles['initial-search-message']}>
               <FontAwesomeIcon icon={faSearch} size="3x" />
-              <h3>Nhập từ khóa và ấn nút tìm kiếm để bắt đầu</h3>
-              <p>Hoặc bạn có thể để trống để xem tất cả tài liệu có sẵn</p>
+              <h3>Tìm kiếm văn bản pháp luật</h3>
+              <p>Nhập từ khóa vào ô tìm kiếm phía trên để tìm kiếm văn bản pháp luật và mẫu đơn</p>
             </div>
           )}
         </div>

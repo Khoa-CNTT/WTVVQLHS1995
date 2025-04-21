@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCalendarAlt, faEye, faDownload } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
 import styles from './Templates.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
-import ChatManager from '../../components/layout/Chat/ChatManager';
-import { API_URL } from '../../config/constants';
+import legalService from '../../services/legalService';
 
 const Templates = () => {
   const [templates, setTemplates] = useState([]);
@@ -14,143 +10,140 @@ const Templates = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
   const [templateTypes, setTemplateTypes] = useState([]);
-  const [selectedType, setSelectedType] = useState('');
+  const [filters, setFilters] = useState({
+    type: '',
+    searchTerm: ''
+  });
   
   const navigate = useNavigate();
+  const limit = 5; // Số mẫu văn bản hiển thị trên mỗi trang
 
-    const fetchTemplates = async (page = 1) => {
+  // Lấy danh sách mẫu văn bản từ API
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
         setLoading(true);
-        try {
-            // Gọi API tìm kiếm mẫu văn bản với các tham số
-            const response = await axios.get(`${API_URL}/legal/templates`, {
-                params: {
-                    page,
-                    q: searchTerm, // Gửi searchTerm ngay cả khi rỗng
-                    type: selectedType || undefined
-                }
-            });
-
-            if (response.data && response.data.status === 'success') {
-                setTemplates(response.data.data || []);
-                setTotalPages(
-                    Math.ceil(response.data.pagination?.total / response.data.pagination?.limit) || 1
-                );
-                setError(null);
-            } else {
-                setError('Không thể tải mẫu văn bản. Vui lòng thử lại sau.');
-                console.error('API trả về lỗi:', response.data);
-            }
-        } catch (err) {
-            setError('Không thể tải mẫu văn bản. Vui lòng thử lại sau.');
-            console.error('Error fetching templates:', err);
-        } finally {
-            setLoading(false);
+        
+        // Gọi API lấy danh sách mẫu văn bản
+        const response = await legalService.searchDocumentTemplates({
+          q: filters.searchTerm,
+          type: filters.type,
+          page: currentPage,
+          limit: limit
+        });
+        
+        if (response && response.data) {
+          setTemplates(response.data);
+          
+          // Cập nhật thông tin phân trang
+          if (response.pagination) {
+            setTotalPages(response.pagination.totalPages || 1);
+          }
+        } else {
+          setTemplates([]);
+          setTotalPages(1);
         }
+        
+        setError(null);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách mẫu văn bản:', error);
+        setError('Đã xảy ra lỗi khi tải danh sách mẫu văn bản. Vui lòng thử lại sau.');
+      } finally {
+        setLoading(false);
+      }
     };
-
+    
+    // Gọi API lấy danh sách loại mẫu văn bản
     const fetchTemplateTypes = async () => {
-        try {
-            const response = await axios.get(`${API_URL}/legal/template-types`);
-            if (response.data && response.data.status === 'success') {
-                setTemplateTypes(response.data.data || []);
-            } else {
-                console.error('Không thể tải loại mẫu văn bản:', response.data);
-            }
-        } catch (err) {
-            console.error('Error fetching template types:', err);
+      try {
+        const response = await legalService.getTemplateTypes();
+        if (response) {
+          setTemplateTypes(response);
         }
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
+      }
     };
+    
+    fetchTemplates();
+    fetchTemplateTypes();
+  }, [currentPage, filters]);
 
-    // Tải dữ liệu ban đầu khi component được mount
-    useEffect(() => {
-        fetchTemplates(currentPage);
-        fetchTemplateTypes();
-    }, [currentPage]);
-
+  // Xử lý thay đổi bộ lọc
   const handleFilterChange = (e) => {
-    setSelectedType(e.target.value);
+    const { name, value } = e.target;
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      [name]: value
+    }));
+    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi bộ lọc
   };
 
-  const handleApplyFilter = () => {
-    setCurrentPage(1);
-    fetchTemplates(1);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchTemplates(1);
-  };
-
-  const handleSearchInputChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
+  // Xử lý khi nhấn vào một mẫu văn bản
   const handleTemplateClick = (templateId) => {
-    navigate(`/templates/${templateId}`);
+    navigate(`/legal/templates/${templateId}`);
   };
 
+  // Định dạng ngày
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+    return date.toLocaleDateString('vi-VN');
   };
 
+  // Xử lý tìm kiếm
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Reset trang về 1 khi tìm kiếm
+    setCurrentPage(1);
+  };
+
+  // Tạo các nút phân trang
   const renderPagination = () => {
     const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-
-    // Previous button
+    
+    // Thêm nút Previous
     pages.push(
-      <button
-        key="prev"
-        className={styles['pagination-button']}
-        onClick={() => handlePageChange(currentPage - 1)}
+      <button 
+        key="prev" 
+        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
         disabled={currentPage === 1}
+        className={styles['pagination-button']}
       >
-        &lt;
+        &laquo;
       </button>
     );
-
-    // Page buttons
-    for (let i = startPage; i <= endPage; i++) {
+    
+    // Tạo các nút số trang
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
       pages.push(
         <button
           key={i}
-          className={`${styles['pagination-button']} ${currentPage === i ? styles.active : ''}`}
-          onClick={() => handlePageChange(i)}
+          onClick={() => setCurrentPage(i)}
+          className={`${styles['pagination-button']} ${currentPage === i ? styles['active'] : ''}`}
         >
           {i}
         </button>
       );
     }
-
-    // Next button
+    
+    // Thêm nút Next
     pages.push(
-      <button
-        key="next"
-        className={styles['pagination-button']}
-        onClick={() => handlePageChange(currentPage + 1)}
+      <button 
+        key="next" 
+        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
         disabled={currentPage === totalPages}
+        className={styles['pagination-button']}
       >
-        &gt;
+        &raquo;
       </button>
     );
-
-    return pages;
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    
+    return (
+      <div className={styles['pagination']}>
+        {pages}
+      </div>
+    );
   };
 
   return (
@@ -158,97 +151,87 @@ const Templates = () => {
       <Navbar />
       <div className={styles['templates-container']}>
         <div className={styles['templates-header']}>
-          <h1>Mẫu Văn Bản Pháp Lý</h1>
-          <p>Tìm kiếm và sử dụng các mẫu văn bản pháp lý đã được biên soạn sẵn</p>
+          <h1>Mẫu văn bản pháp luật</h1>
+          <p>Danh sách tất cả mẫu văn bản pháp luật</p>
         </div>
-
-        <div className={styles['search-section']}>
-          <form className={styles['search-form']} onSubmit={handleSearch}>
-            <div className={styles['search-input-wrapper']}>
-              <input
-                type="text"
-                className={styles['search-input']}
-                placeholder="Tìm kiếm mẫu văn bản..."
-                value={searchTerm}
-                onChange={handleSearchInputChange}
-              />
-              <button type="submit" className={styles['search-button']}>
-                <FontAwesomeIcon icon={faSearch} />
-              </button>
-            </div>
-          </form>
-        </div>
-
+        
         <div className={styles['filters-section']}>
           <div className={styles['filter-controls']}>
             <div className={styles['filter-group']}>
-              <label htmlFor="templateType">Loại văn bản</label>
-              <select
-                id="templateType"
-                className={styles['filter-select']}
-                value={selectedType}
+              <label htmlFor="type">Loại mẫu văn bản:</label>
+              <select 
+                id="type" 
+                name="type" 
+                value={filters.type}
                 onChange={handleFilterChange}
+                className={styles['filter-select']}
               >
                 <option value="">Tất cả</option>
-                {templateTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
+                {templateTypes.map((type, index) => (
+                  <option key={index} value={type.id}>{type.name}</option>
                 ))}
               </select>
             </div>
-            <button onClick={handleApplyFilter} className={styles['filter-button']}>
-              Áp dụng
-            </button>
+            
+            <div className={styles['filter-group']}>
+              <label htmlFor="searchTerm">Tìm kiếm:</label>
+              <div className={styles['search-container']}>
+                <input 
+                  type="text" 
+                  id="searchTerm" 
+                  name="searchTerm" 
+                  value={filters.searchTerm}
+                  onChange={handleFilterChange}
+                  placeholder="Nhập từ khóa tìm kiếm"
+                  className={styles['filter-input']}
+                />
+                <button 
+                  onClick={handleSearch}
+                  className={styles['search-button']}
+                >
+                  <i className="fa fa-search"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
+        
         {loading ? (
-          <div className={styles.loading}>Đang tải mẫu văn bản...</div>
+          <div className={styles['loading']}>Đang tải danh sách mẫu văn bản...</div>
         ) : error ? (
-          <div className={styles.error}>{error}</div>
+          <div className={styles['error']}>{error}</div>
         ) : templates.length === 0 ? (
-          <div className={styles['no-templates']}>
-            Không tìm thấy mẫu văn bản nào. Vui lòng thử lại với từ khóa khác.
-          </div>
+          <div className={styles['no-templates']}>Không có mẫu văn bản nào phù hợp với tiêu chí tìm kiếm</div>
         ) : (
           <>
-            <div className={styles['templates-grid']}>
+            <div className={styles['templates-list']}>
               {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className={styles['template-card']}
+                <div 
+                  key={template.id} 
+                  className={styles['template-item']}
                   onClick={() => handleTemplateClick(template.id)}
                 >
-                  <div className={styles['template-type']}>
-                    {template.type_name || template.type || 'Mẫu văn bản'}
-                  </div>
-                  <h3 className={styles['template-title']}>{template.title}</h3>
+                  <div className={styles['template-type-badge']}>{template.template_type_name || 'Mẫu văn bản'}</div>
+                  <h2 className={styles['template-title']}>{template.title}</h2>
                   <div className={styles['template-meta']}>
                     <span className={styles['template-date']}>
-                      <FontAwesomeIcon icon={faCalendarAlt} /> {formatDate(template.created_at)}
+                      <i className="far fa-calendar-alt"></i> Ngày tạo: {formatDate(template.created_at)}
                     </span>
-                    <span className={styles['template-views']}>
-                      <FontAwesomeIcon icon={faEye} /> {template.views || 0}
+                    <span className={styles['template-date']}>
+                      <i className="far fa-calendar-plus"></i> Cập nhật: {formatDate(template.updated_at)}
                     </span>
                   </div>
-                  <p className={styles['template-description']}>{template.description}</p>
-                  <div className={styles['template-actions']}>
-                    <button className={styles['action-button']}>
-                      Xem chi tiết
-                    </button>
-                    <button className={styles['action-button']}>
-                      <FontAwesomeIcon icon={faDownload} /> Tải xuống
-                    </button>
-                  </div>
+                  {template.description && (
+                    <p className={styles['template-description']}>{template.description.substring(0, 200)}...</p>
+                  )}
                 </div>
               ))}
             </div>
-            <div className={styles.pagination}>{renderPagination()}</div>
+            
+            {renderPagination()}
           </>
         )}
       </div>
-      <ChatManager />
     </>
   );
 };

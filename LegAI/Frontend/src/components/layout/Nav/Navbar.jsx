@@ -63,9 +63,6 @@ const Navbar = () => {
     setIsSideMenuOpen(!isSideMenuOpen);
     if (!isSideMenuOpen) {
       setShowUserDropdown(false);
-      document.body.classList.add('menu-open');
-    } else {
-      document.body.classList.remove('menu-open');
     }
   };
 
@@ -146,10 +143,11 @@ const Navbar = () => {
   // Xử lý sự kiện tìm kiếm
   const handleSearch = (e) => {
     e.preventDefault();
-    // Điều hướng đến trang search ngay cả khi không có từ khóa
+    if (searchTerm.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
       setIsSearchOpen(false);
       setSearchTerm('');
+    }
   };
   
   // Xử lý sự kiện nhấn phím trong ô tìm kiếm
@@ -157,6 +155,11 @@ const Navbar = () => {
     if (e.key === 'Enter') {
       handleSearch(e);
     }
+  };
+
+  // Điều hướng đến trang văn bản pháp luật
+  const navigateToDocuments = () => {
+    navigate('/documents');
   };
 
   const isHomePage = location.pathname === '/';
@@ -189,10 +192,7 @@ const Navbar = () => {
             <NavLink to="/lawyers">Luật sư</NavLink>
           </li>
           <li>
-            <NavLink to="/documents">Văn bản</NavLink>
-          </li>
-          <li>
-            <NavLink to="/templates">Mẫu văn bản</NavLink>
+            <NavLink to="/documents">Văn bản pháp luật</NavLink>
           </li>
           <li>
             <NavLink to="/news">Tin tức</NavLink>
@@ -207,6 +207,7 @@ const Navbar = () => {
         <div className={`${styles.searchWrapper} ${isSearchOpen ? styles.searchActive : ''}`}>
           <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
             <i className="fas fa-search"></i>
+            <span className={styles.iconLabel}>Tìm kiếm</span>
           </button>
           <div className={styles.searchDropdown}>
             <form onSubmit={handleSearch}>
@@ -227,6 +228,11 @@ const Navbar = () => {
               </button>
             </form>
           </div>
+        </div>
+        
+        <div className={styles.icon} onClick={navigateToDocuments} title="Văn bản pháp luật">
+          <i className="fas fa-file-alt"></i>
+          <span className={styles.iconLabel}>Văn bản</span>
         </div>
         
         <div className={styles.rightControls}>

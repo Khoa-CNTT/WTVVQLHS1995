@@ -349,13 +349,10 @@
   transition: right var(--transition-medium) ease;
   overflow-y: auto;
   padding: 20px 0;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .sideMenuOpen {
   right: 0;
-  transform: translateZ(0);
 }
 
 .sideMenuHeader {
@@ -431,7 +428,6 @@
   z-index: 1050;
   backdrop-filter: blur(3px);
   animation: fadeIn 0.3s ease;
-  will-change: opacity;
 }
 
 @keyframes fadeIn {
@@ -441,10 +437,6 @@
   to {
     opacity: 1;
   }
-}
-
-body.menu-open {
-  overflow: hidden;
 }
 
 /* Điều chỉnh lại hamburger cho menu phải */
