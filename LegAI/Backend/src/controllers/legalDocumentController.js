@@ -7,36 +7,46 @@ const pdf = require("pdf-parse");
 const puppeteer = require("puppeteer");
 
 /**
- * @desc    Lấy tất cả văn bản pháp luật
+ * @desc    Lấy danh sách văn bản pháp luật
  * @route   GET /api/legal/documents
  * @access  Public
  */
 const getAllLegalDocuments = asyncHandler(async (req, res) => {
-  const {
-    search,
-    document_type,
-    from_date,
-    to_date,
-    page = 1,
-    limit = 10,
-  } = req.query;
+  try {
+    const {
+      search,
+      document_type,
+      from_date,
+      to_date,
+      page = 1,
+      limit = 10,
+      case_insensitive = 'true' // Mặc định sử dụng tìm kiếm không phân biệt hoa thường
+    } = req.query;
 
-  const options = {
-    searchTerm: search,
-    documentType: document_type,
-    fromDate: from_date,
-    toDate: to_date,
-    page: parseInt(page),
-    limit: parseInt(limit),
-  };
+    const options = {
+      searchTerm: search || '',
+      documentType: document_type || '',
+      fromDate: from_date ? new Date(from_date) : null,
+      toDate: to_date ? new Date(to_date) : null,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      caseInsensitive: case_insensitive === 'true' // Chuyển đổi thành boolean
+    };
 
-  const result = await LegalDocumentModel.getAllLegalDocuments(options);
+    const result = await LegalDocumentModel.getAllLegalDocuments(options);
 
-  res.status(200).json({
-    status: "success",
-    data: result.data,
-    pagination: result.pagination,
-  });
+    res.status(200).json({
+      status: "success",
+      data: result.data,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách văn bản pháp luật:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Lỗi khi lấy danh sách văn bản pháp luật",
+    });
+  }
 });
 
 /**

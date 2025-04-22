@@ -44,14 +44,16 @@ const Documents = () => {
 
       // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
       const normalizedSearch = filters.search ? filters.search.toLowerCase().trim() : '';
-
+      
+      // Giữ nguyên document_type vì phía backend đã xử lý không phân biệt hoa thường
       const queryParams = {
         search: normalizedSearch,
         document_type: filters.document_type,
         from_date: filters.from_date,
         to_date: filters.to_date,
         page: pagination.page,
-        limit: pagination.limit
+        limit: pagination.limit,
+        case_insensitive: true // Thêm flag để xử lý không phân biệt hoa thường
       };
 
       console.log("Tìm kiếm văn bản với từ khóa:", normalizedSearch);

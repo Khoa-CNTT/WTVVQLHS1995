@@ -9,6 +9,7 @@ const pool = require('../config/database');
  * @param {Date} options.toDate - Đến ngày
  * @param {number} options.page - Trang hiện tại
  * @param {number} options.limit - Số lượng kết quả mỗi trang
+ * @param {boolean} options.caseInsensitive - Có phân biệt hoa thường hay không
  * @returns {Promise<Array>} Danh sách văn bản pháp luật
  */
 const getAllLegalDocuments = async (options = {}) => {
@@ -19,7 +20,8 @@ const getAllLegalDocuments = async (options = {}) => {
       fromDate = null,
       toDate = null,
       page = 1,
-      limit = 10
+      limit = 10,
+      caseInsensitive = true
     } = options;
 
     // Xây dựng truy vấn từ database nội bộ
@@ -55,7 +57,11 @@ const getAllLegalDocuments = async (options = {}) => {
 
     // Thêm điều kiện tìm kiếm theo loại văn bản
     if (documentType) {
-      query += ` AND ld.document_type = $${paramIndex}`;
+      if (caseInsensitive) {
+        query += ` AND LOWER(ld.document_type) = LOWER($${paramIndex})`;
+      } else {
+        query += ` AND ld.document_type = $${paramIndex}`;
+      }
       queryParams.push(documentType);
       paramIndex++;
     }
@@ -74,24 +80,40 @@ const getAllLegalDocuments = async (options = {}) => {
     }
 
     // Truy vấn đếm tổng số bản ghi 
-    const countQuery = `
+    let countQuery = `
       SELECT COUNT(*) as total 
       FROM LegalDocuments ld
       WHERE 1=1
-      ${searchTerm ? ` AND (
+    `;
+
+    // Thêm điều kiện cho countQuery
+    if (searchTerm) {
+      countQuery += ` AND (
         ld.title ILIKE $1 
         OR ld.content ILIKE $1 
         OR ld.summary ILIKE $1
         OR ld.id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
-      )` : ''}
-      ${documentType ? ` AND ld.document_type = $${searchTerm ? 2 : 1}` : ''}
-      ${fromDate ? ` AND ld.issued_date >= $${searchTerm ? (documentType ? 3 : 2) : (documentType ? 2 : 1)}` : ''}
-      ${toDate ? ` AND ld.issued_date <= $${
-        (searchTerm ? 1 : 0) + 
-        (documentType ? 1 : 0) + 
-        (fromDate ? 1 : 0) + 
-        1}` : ''}
-    `;
+      )`;
+    }
+
+    if (documentType) {
+      const docTypeParamIndex = searchTerm ? 2 : 1;
+      if (caseInsensitive) {
+        countQuery += ` AND LOWER(ld.document_type) = LOWER($${docTypeParamIndex})`;
+      } else {
+        countQuery += ` AND ld.document_type = $${docTypeParamIndex}`;
+      }
+    }
+
+    if (fromDate) {
+      const fromDateParamIndex = (searchTerm ? 1 : 0) + (documentType ? 1 : 0) + 1;
+      countQuery += ` AND ld.issued_date >= $${fromDateParamIndex}`;
+    }
+
+    if (toDate) {
+      const toDateParamIndex = (searchTerm ? 1 : 0) + (documentType ? 1 : 0) + (fromDate ? 1 : 0) + 1;
+      countQuery += ` AND ld.issued_date <= $${toDateParamIndex}`;
+    }
 
     const countParams = [];
     if (searchTerm) countParams.push(`%${searchTerm}%`);
@@ -114,20 +136,20 @@ const getAllLegalDocuments = async (options = {}) => {
     
     // Lấy từ khóa cho mỗi văn bản
     const documentIds = documents.map(doc => doc.id);
-    let keywordsQuery = '';
-    let keywordsParams = [];
     
+    // Nếu có văn bản, lấy từ khóa cho mỗi văn bản
     if (documentIds.length > 0) {
-      keywordsQuery = `
+      // Sử dụng một truy vấn duy nhất để lấy tất cả từ khóa cho tất cả văn bản
+      const keywordsQuery = `
         SELECT document_id, keyword 
         FROM LegalKeywords 
-        WHERE document_id = ANY($1)
+        WHERE document_id = ANY($1::int[])
+        ORDER BY document_id, keyword
       `;
-      keywordsParams = [documentIds];
       
-      const keywordsResult = await pool.query(keywordsQuery, keywordsParams);
+      const keywordsResult = await pool.query(keywordsQuery, [documentIds]);
       
-      // Gán từ khóa vào từng văn bản
+      // Tạo map từ ID văn bản tới danh sách từ khóa
       const keywordsByDocId = {};
       keywordsResult.rows.forEach(row => {
         if (!keywordsByDocId[row.document_id]) {
@@ -136,10 +158,12 @@ const getAllLegalDocuments = async (options = {}) => {
         keywordsByDocId[row.document_id].push(row.keyword);
       });
       
+      // Gán từ khóa vào từng văn bản
       documents.forEach(doc => {
         doc.keywords = keywordsByDocId[doc.id] || [];
       });
     } else {
+      // Nếu không có văn bản, gán mảng rỗng cho tất cả
       documents.forEach(doc => {
         doc.keywords = [];
       });
@@ -225,9 +249,12 @@ const getLegalDocumentById = async (documentId) => {
       SELECT keyword 
       FROM LegalKeywords 
       WHERE document_id = $1
+      ORDER BY keyword
     `;
     
     const keywordsResult = await pool.query(keywordsQuery, [documentId]);
+    
+    // Đảm bảo document.keywords luôn là một mảng, không phụ thuộc vào kết quả truy vấn
     document.keywords = keywordsResult.rows.map(row => row.keyword);
     
     // Định dạng các trường ngày tháng nếu cần
@@ -243,7 +270,7 @@ const getLegalDocumentById = async (documentId) => {
 };
 
 /**
- * Lấy các loại văn bản pháp luật
+ * Lấy các loại văn bản pháp luật (nhóm theo tên không phân biệt hoa thường)
  * @returns {Promise<Array>} Danh sách loại văn bản
  */
 const getDocumentTypes = async () => {
@@ -256,10 +283,23 @@ const getDocumentTypes = async () => {
     
     const result = await pool.query(query);
     
-    return result.rows.map(row => ({
-      id: row.document_type,
-      name: row.document_type
-    }));
+    // Tạo map để nhóm các loại văn bản không phân biệt hoa thường
+    const documentTypeMap = new Map();
+    
+    result.rows.forEach(row => {
+      const lowerCaseType = row.document_type.toLowerCase();
+      // Nếu loại này chưa có trong map hoặc version hiện tại dài hơn, cập nhật
+      if (!documentTypeMap.has(lowerCaseType) || 
+          row.document_type.length > documentTypeMap.get(lowerCaseType).length) {
+        documentTypeMap.set(lowerCaseType, row.document_type);
+      }
+    });
+    
+    // Chuyển map thành array kết quả
+    return Array.from(documentTypeMap.values()).map(docType => ({
+      id: docType,
+      name: docType
+    })).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại văn bản:', error);
     throw error;
@@ -652,20 +692,27 @@ const createLegalDocument = async (documentData) => {
     
     // Thêm các từ khóa nếu có
     if (keywords && keywords.length > 0) {
-      const keywordQuery = `
-        INSERT INTO LegalKeywords(document_id, keyword)
-        VALUES($1, $2)
-      `;
+      // Loại bỏ các từ khóa trùng lặp và khoảng trắng
+      const uniqueKeywords = [...new Set(keywords)].filter(keyword => keyword.trim());
       
-      for (const keyword of keywords) {
-        await client.query(keywordQuery, [newDocument.id, keyword]);
+      if (uniqueKeywords.length > 0) {
+        const keywordQuery = `
+          INSERT INTO LegalKeywords(document_id, keyword)
+          VALUES($1, $2)
+        `;
+        
+        for (const keyword of uniqueKeywords) {
+          await client.query(keywordQuery, [newDocument.id, keyword.trim()]);
+        }
       }
     }
     
     await client.query('COMMIT');
     
-    // Thêm từ khóa vào dữ liệu trả về
-    newDocument.keywords = keywords;
+    // Thêm từ khóa đã xử lý vào dữ liệu trả về
+    newDocument.keywords = keywords && keywords.length > 0 
+      ? [...new Set(keywords)].filter(keyword => keyword.trim()).map(keyword => keyword.trim()) 
+      : [];
     
     return newDocument;
   } catch (error) {
@@ -737,22 +784,29 @@ const updateLegalDocument = async (documentId, documentData) => {
     // Xóa từ khóa cũ
     await client.query('DELETE FROM LegalKeywords WHERE document_id = $1', [documentId]);
     
-    // Thêm từ khóa mới
+    // Thêm từ khóa mới nếu có
     if (keywords && keywords.length > 0) {
-      const keywordQuery = `
-        INSERT INTO LegalKeywords(document_id, keyword)
-        VALUES($1, $2)
-      `;
+      // Loại bỏ các từ khóa trùng lặp
+      const uniqueKeywords = [...new Set(keywords)].filter(keyword => keyword.trim());
       
-      for (const keyword of keywords) {
-        await client.query(keywordQuery, [documentId, keyword]);
+      if (uniqueKeywords.length > 0) {
+        const keywordQuery = `
+          INSERT INTO LegalKeywords(document_id, keyword)
+          VALUES($1, $2)
+        `;
+        
+        for (const keyword of uniqueKeywords) {
+          await client.query(keywordQuery, [documentId, keyword.trim()]);
+        }
       }
     }
     
     await client.query('COMMIT');
     
-    // Thêm từ khóa vào dữ liệu trả về
-    updatedDocument.keywords = keywords;
+    // Thêm từ khóa vào dữ liệu trả về để hiển thị ngay cho người dùng
+    updatedDocument.keywords = keywords && keywords.length > 0 
+      ? [...new Set(keywords)].filter(keyword => keyword.trim()).map(keyword => keyword.trim()) 
+      : [];
     
     return updatedDocument;
   } catch (error) {

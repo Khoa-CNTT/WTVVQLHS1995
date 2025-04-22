@@ -133,9 +133,15 @@ const LegalDocumentsManager = () => {
 
     if (name === 'keywords') {
       // Xử lý từ khóa (chuỗi phân cách bằng dấu phẩy)
+      // Chia chuỗi thành mảng, loại bỏ khoảng trắng, loại bỏ phần tử rỗng, và loại bỏ trùng lặp
+      const keywordsArray = value.split(',')
+        .map(keyword => keyword.trim())
+        .filter(keyword => keyword)
+        .filter((value, index, self) => self.indexOf(value) === index);
+      
       setFormData({
         ...formData,
-        keywords: value.split(',').map(keyword => keyword.trim()).filter(keyword => keyword)
+        keywords: keywordsArray
       });
     } else {
       setFormData({

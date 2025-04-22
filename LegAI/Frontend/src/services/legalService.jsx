@@ -28,7 +28,15 @@ const getHeaders = () => {
  */
 const getLegalDocuments = async (searchParams = {}) => {
   try {
-    const { search, document_type, from_date, to_date, page = 1, limit = 10 } = searchParams;
+    const { 
+      search, 
+      document_type, 
+      from_date, 
+      to_date, 
+      page = 1, 
+      limit = 10,
+      case_insensitive = true  // Mặc định sử dụng tìm kiếm không phân biệt hoa thường
+    } = searchParams;
     
     // Xây dựng query string
     const queryParams = new URLSearchParams();
@@ -38,6 +46,7 @@ const getLegalDocuments = async (searchParams = {}) => {
     if (to_date) queryParams.append('to_date', to_date);
     queryParams.append('page', page);
     queryParams.append('limit', limit);
+    if (case_insensitive) queryParams.append('case_insensitive', 'true');
 
     const response = await axios.get(`${API_URL}/legal/documents?${queryParams.toString()}`, getHeaders());
     return response.data;

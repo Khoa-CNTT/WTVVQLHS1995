@@ -9,25 +9,25 @@ const getDocumentType = (title) => {
   const title_lower = title.toLowerCase();
   
   if (title_lower.includes('luật') || title_lower.includes('bộ luật')) 
-    return 'Luật';
+    return 'LUẬT';
   if (title_lower.includes('nghị định') || title_lower.includes('nđ-cp')) 
-    return 'Nghị định';
+    return 'NGHỊ ĐỊNH';
   if (title_lower.includes('thông tư')) 
-    return 'Thông tư';
+    return 'THÔNG TƯ';
   if (title_lower.includes('quyết định') || title_lower.startsWith('qđ')) 
-    return 'Quyết định';
+    return 'QUYẾT ĐỊNH';
   if (title_lower.includes('nghị quyết')) 
-    return 'Nghị quyết';
+    return 'NGHỊ QUYẾT';
   if (title_lower.includes('văn bản hợp nhất') || title_lower.includes('vbhn')) 
-    return 'Văn bản hợp nhất';
+    return 'VĂN BẢN HỢP NHẤT';
   if (title_lower.includes('công văn')) 
-    return 'Công văn';
+    return 'CÔNG VĂN';
   if (title_lower.includes('thông báo')) 
-    return 'Thông báo';
+    return 'THÔNG BÁO';
   if (title_lower.includes('dự thảo') || title_lower.includes('dự án')) 
-    return 'Dự thảo';
+    return 'DỰ THẢO';
   if (title_lower.includes('chỉ thị')) 
-    return 'Chỉ thị';
+    return 'CHỈ THỊ';
   
   return 'Văn bản khác';
 };
@@ -253,7 +253,7 @@ const scrapeContracts = async (limit = 10) => {
  */
 const scrapeLegalDocumentsFromAPI = async (limit = 10) => {
   try {
-    console.log(`Bắt đầu thu thập ${limit} văn bản pháp luật từ API thuvienphapluat.vn...`);
+    console.log(`Bắt đầu thu thập ${limit} văn bản pháp luật từ thuvienphapluat.vn...`);
     
     // API endpoint
     const apiUrl = 'https://thuvienphapluat.vn/api/GetVanBans?';
