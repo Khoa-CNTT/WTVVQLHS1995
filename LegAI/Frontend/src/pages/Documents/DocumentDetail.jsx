@@ -270,20 +270,20 @@ const DocumentDetail = () => {
         // Tạo URL để tải xuống
         const url = URL.createObjectURL(blob);
         
-        // Tạo thẻ a để tải xuống
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${document.title.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.html`;
-        a.style.display = 'none';
+        // Tạo thẻ a để tải xuống - sử dụng window.document thay vì document để tránh xung đột
+        const downloadLink = window.document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `${document.title.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.html`;
+        downloadLink.style.display = 'none';
         
         // Thêm vào body, click và xóa
-        document.body.appendChild(a);
-        a.click();
+        window.document.body.appendChild(downloadLink);
+        downloadLink.click();
         
         // Dọn dẹp
         setTimeout(() => {
           URL.revokeObjectURL(url);
-          document.body.removeChild(a);
+          window.document.body.removeChild(downloadLink);
         }, 1000);
         
         toast.success('Tải xuống tài liệu thành công!');

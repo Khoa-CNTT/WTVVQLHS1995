@@ -42,8 +42,11 @@ const Documents = () => {
       setLoading(true);
       setError(null);
 
+      // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
+      const normalizedSearch = filters.search ? filters.search.toLowerCase().trim() : '';
+
       const queryParams = {
-        search: filters.search,
+        search: normalizedSearch,
         document_type: filters.document_type,
         from_date: filters.from_date,
         to_date: filters.to_date,
@@ -51,6 +54,7 @@ const Documents = () => {
         limit: pagination.limit
       };
 
+      console.log("Tìm kiếm văn bản với từ khóa:", normalizedSearch);
       const response = await legalService.getLegalDocuments(queryParams);
       
       if (response.status === 'success') {
@@ -155,7 +159,7 @@ const Documents = () => {
         key="prev"
         className={styles['pagination-button']}
         disabled={page <= 1}
-        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+        onClick={() => handlePageChange(page - 1)}
       >
         &laquo;
       </button>
@@ -167,7 +171,7 @@ const Documents = () => {
         <button
           key={i}
           className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
-          onClick={() => setPagination(prev => ({ ...prev, page: i }))}
+          onClick={() => handlePageChange(i)}
         >
           {i}
         </button>
@@ -180,13 +184,26 @@ const Documents = () => {
         key="next"
         className={styles['pagination-button']}
         disabled={page >= totalPages}
-        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+        onClick={() => handlePageChange(page + 1)}
       >
         &raquo;
       </button>
     );
     
     return pageButtons;
+  };
+
+  // Thêm hàm xử lý chuyển trang để đảm bảo phân trang hoạt động đúng
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
+    
+    // Sau khi thay đổi trang, cuộn lên đầu trang
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

@@ -1,5 +1,5 @@
 // Templates.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Templates.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
@@ -28,21 +28,13 @@ const Templates = () => {
   const [templateTypes, setTemplateTypes] = useState([]);
   const [isResetting, setIsResetting] = useState(false);
   
-  // Tải danh sách mẫu văn bản khi component được tải hoặc khi filter/pagination thay đổi
-  useEffect(() => {
-    fetchTemplates();
-  }, [pagination.page]);
-  
-  // Tải danh sách loại mẫu khi component mount
-  useEffect(() => {
-    fetchTemplateTypes();
-  }, []);
-
   // Hàm tìm kiếm mẫu văn bản
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
-      setLoading(true);
       setError(null);
+
+      // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
+      const normalizedSearch = filters.search.trim() ? filters.search.trim().toLowerCase() : '';
 
       // Tạo bản sao của filter để tránh lỗi tham chiếu
       const queryParams = {
@@ -51,8 +43,8 @@ const Templates = () => {
       };
       
       // Chỉ thêm vào tham số khi có giá trị
-      if (filters.search.trim()) {
-        queryParams.search = filters.search.trim();
+      if (normalizedSearch) {
+        queryParams.search = normalizedSearch;
       }
       
       if (filters.template_type) {
@@ -65,25 +57,29 @@ const Templates = () => {
         // Lấy dữ liệu từ response
         let filteredTemplates = response.data || [];
         
-        // Lọc thêm ở client nếu cần
-        if (filters.search.trim()) {
-          const searchTerms = filters.search.trim().toLowerCase().split(/\s+/);
+        // Lọc thêm ở client nếu cần (chuyển đổi thành chữ thường để không phân biệt hoa thường)
+        if (normalizedSearch) {
+          const searchTerms = normalizedSearch.split(/\s+/);
           filteredTemplates = filteredTemplates.filter(template => {
-            // Chỉ tìm kiếm theo tiêu đề, không tìm theo nội dung
+            // Tìm kiếm theo tiêu đề và loại mẫu (chuyển cả hai thành chữ thường)
+            const normalizedTitle = template.title.toLowerCase();
+            const normalizedType = template.template_type ? template.template_type.toLowerCase() : '';
+            
             return searchTerms.every(term => 
-              template.title.toLowerCase().includes(term) || 
-              (template.template_type && template.template_type.toLowerCase().includes(term))
+              normalizedTitle.includes(term) || 
+              normalizedType.includes(term)
             );
           });
         }
         
         setTemplates(filteredTemplates);
-        setPagination({
-          page: response.pagination?.currentPage || 1,
-          limit: response.pagination?.limit || 12,
+        setPagination(prev => ({
+          ...prev,
+          page: response.pagination?.currentPage || prev.page,
+          limit: response.pagination?.limit || prev.limit,
           total: response.pagination?.total || filteredTemplates.length,
           totalPages: response.pagination?.totalPages || Math.ceil(filteredTemplates.length / 12)
-        });
+        }));
       } else {
         setError('Không thể tải danh sách mẫu văn bản');
       }
@@ -94,8 +90,18 @@ const Templates = () => {
       setLoading(false);
       setIsResetting(false);
     }
-  };
-    
+  }, [pagination.page, pagination.limit, filters]);
+  
+  // Tải danh sách mẫu văn bản khi component được tải hoặc khi filter/pagination thay đổi
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+  
+  // Tải danh sách loại mẫu khi component mount
+  useEffect(() => {
+    fetchTemplateTypes();
+  }, []);
+
   // Lấy danh sách loại mẫu văn bản
   const fetchTemplateTypes = async () => {
     try {
@@ -188,7 +194,6 @@ const Templates = () => {
     
     // Kiểm tra nếu ngày không hợp lệ (Invalid Date)
     if (isNaN(date.getTime())) {
-      console.log('Ngày không hợp lệ:', dateString);
       return 'N/A';
     }
     
@@ -197,6 +202,16 @@ const Templates = () => {
       month: '2-digit',
       year: 'numeric'
     });
+  };
+
+  // Xử lý sự kiện thay đổi trang
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
   };
 
   // Hiển thị phân trang
@@ -215,7 +230,7 @@ const Templates = () => {
         key="prev" 
         className={styles['pagination-button']}
         disabled={page <= 1}
-        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+        onClick={() => handlePageChange(page - 1)}
       >
         «
       </button>
@@ -227,7 +242,7 @@ const Templates = () => {
         <button
           key={i}
           className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
-          onClick={() => setPagination(prev => ({ ...prev, page: i }))}
+          onClick={() => handlePageChange(i)}
         >
           {i}
         </button>
@@ -240,7 +255,7 @@ const Templates = () => {
         key="next" 
         className={styles['pagination-button']}
         disabled={page >= totalPages}
-        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+        onClick={() => handlePageChange(page + 1)}
       >
         »
       </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styles from './SearchResults.module.css';
@@ -125,30 +125,45 @@ const SearchResults = () => {
     setError(null);
     
     try {
+      // Chuyển query thành chữ thường để không phân biệt hoa thường khi gửi lên server
+      const normalizedQuery = query.toLowerCase().trim();
+      
       const searchParams = {
-        search: query,
+        search: normalizedQuery,
         page: currentPage,
-        limit: 10,
+        limit: 50, // Tăng giới hạn để có nhiều kết quả hơn rồi lọc phía client
         document_type: filters.documentType || undefined,
         from_date: filters.dateFrom || undefined,
         to_date: filters.dateTo || undefined,
         language: filters.language || undefined
       };
       
+      
       // Gọi API searchAll từ legalService
       const response = await legalService.searchAll(searchParams);
-      console.log('API search response:', response);
       
       if (response && response.status === 'success') {
         // Phân loại kết quả tìm kiếm thành documents và templates
         const allResults = response.data || [];
-        console.log('Kết quả API nhận được:', allResults);
+        
+        // Tìm kiếm thêm ở phía client để bắt được nhiều kết quả hơn
+        const keywordsArray = normalizedQuery.split(/\s+/).filter(word => word.length > 1);
         
         // Phân loại kết quả dựa trên thuộc tính của đối tượng
         const documents = [];
         const templates = [];
         
         allResults.forEach(item => {
+          // Đảm bảo các trường dữ liệu
+          const title = item.title || '';
+          const content = item.content || '';
+          const summary = item.summary || '';
+          
+          // Kiểm tra xem item có phù hợp với từ khóa tìm kiếm không bằng cách tìm trong tiêu đề, nội dung và tóm tắt
+          const normalizedTitle = title.toLowerCase();
+          const normalizedContent = content.toLowerCase();
+          const normalizedSummary = summary.toLowerCase();
+          
           // Xác định loại dựa trên thuộc tính của item
           let isTemplate = false;
           if (item.result_type === 'template') {
@@ -193,8 +208,6 @@ const SearchResults = () => {
           }
         });
         
-        console.log('Documents sau khi lọc:', documents);
-        console.log('Templates sau khi lọc:', templates);
         
         setResults({
           documents: documents,
@@ -331,7 +344,6 @@ const SearchResults = () => {
 
   // Sửa lại cách điều hướng khi click vào văn bản
   const handleDocumentClick = (document) => {
-    console.log('Clicked document:', document);
     
     // Xác định loại dựa trên cả result_type và các đặc điểm khác
     let isTemplate = false;
@@ -353,7 +365,6 @@ const SearchResults = () => {
     }
     
     // Log để debug
-    console.log('Đã xác định là:', isTemplate ? 'Mẫu văn bản' : 'Văn bản pháp luật');
     
     // Điều hướng đến trang phù hợp
     if (isTemplate) {
@@ -366,10 +377,8 @@ const SearchResults = () => {
   // Định dạng ngày tháng
   const formatDate = (dateString) => {
     // Log giá trị ngày thực tế để debug
-    console.log('formatDate input:', dateString, typeof dateString);
     
     if (!dateString) {
-      console.log('Ngày trống');
       return 'N/A';
     }
     
@@ -393,13 +402,11 @@ const SearchResults = () => {
       
       // Kiểm tra nếu ngày không hợp lệ
       if (isNaN(date.getTime())) {
-        console.log('Ngày không hợp lệ:', dateString);
         return 'N/A';
       }
       
       // Format ngày theo locale Việt Nam
       const result = date.toLocaleDateString('vi-VN');
-      console.log('formatDate result:', result);
       return result;
     } catch (error) {
       console.error('Lỗi khi định dạng ngày:', error, dateString);

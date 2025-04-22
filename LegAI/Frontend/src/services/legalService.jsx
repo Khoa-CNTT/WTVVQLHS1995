@@ -135,9 +135,7 @@ const getDocumentTemplateById = async (id) => {
  */
 const getTemplateTypes = async () => {
   try {
-    console.log('Đang gọi API lấy loại mẫu văn bản');
     const response = await axios.get(`${API_URL}/legal/template-types`, getHeaders());
-    console.log('Kết quả API loại mẫu văn bản:', response.data);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
@@ -156,7 +154,7 @@ const searchAll = async (searchParams = {}) => {
     const { 
       search, 
       page = 1, 
-      limit = 10,
+      limit = 50, // Tăng giới hạn mặc định lên 50
       document_type,
       from_date,
       to_date,
@@ -165,7 +163,11 @@ const searchAll = async (searchParams = {}) => {
     
     // Xây dựng query string
     const queryParams = new URLSearchParams();
-    if (search) queryParams.append('search', search);
+    if (search) {
+      // Chuyển đổi từ khóa tìm kiếm thành chữ thường
+      queryParams.append('search', search.toLowerCase().trim());
+      console.log('Tìm kiếm với từ khóa (đã chuẩn hóa):', search.toLowerCase().trim());
+    }
     queryParams.append('page', page);
     queryParams.append('limit', limit);
     
@@ -177,6 +179,65 @@ const searchAll = async (searchParams = {}) => {
 
     const response = await axios.get(`${API_URL}/legal/search?${queryParams.toString()}`, getHeaders());
     console.log('API search URL:', `${API_URL}/legal/search?${queryParams.toString()}`);
+    
+    // Nếu không tìm thấy kết quả nào, thử tìm kiếm ngay cả khi chỉ có một phần của từ khóa
+    if (response.data && response.data.data && response.data.data.length === 0 && search && search.length > 3) {
+      // Thử tìm kiếm lại với từng từ trong câu tìm kiếm
+      const keywords = search.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+      
+      if (keywords.length > 0) {
+        console.log('Thử tìm kiếm lại với từng từ khóa:', keywords);
+        
+        // Tìm kiếm song song với từng từ khóa
+        const searchPromises = keywords.map(keyword => {
+          const newParams = new URLSearchParams();
+          newParams.append('search', keyword);
+          newParams.append('page', 1);
+          newParams.append('limit', 20);
+          
+          if (document_type) newParams.append('document_type', document_type);
+          if (from_date) newParams.append('from_date', from_date);
+          if (to_date) newParams.append('to_date', to_date);
+          if (language) newParams.append('language', language);
+          
+          return axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
+        });
+        
+        // Chờ tất cả các yêu cầu tìm kiếm hoàn thành
+        const results = await Promise.all(searchPromises);
+        
+        // Gộp kết quả và loại bỏ trùng lặp
+        const allResults = [];
+        const seenIds = new Set();
+        
+        results.forEach(result => {
+          if (result.data && result.data.data) {
+            result.data.data.forEach(item => {
+              if (!seenIds.has(item.id)) {
+                seenIds.add(item.id);
+                allResults.push(item);
+              }
+            });
+          }
+        });
+        
+        // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
+        if (allResults.length > 0) {
+          console.log(`Tìm thấy ${allResults.length} kết quả khi mở rộng tìm kiếm`);
+          return {
+            status: 'success',
+            data: allResults,
+            pagination: {
+              currentPage: 1,
+              totalPages: Math.ceil(allResults.length / limit),
+              total: allResults.length,
+              limit: limit
+            }
+          };
+        }
+      }
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tìm kiếm tổng hợp:', error);

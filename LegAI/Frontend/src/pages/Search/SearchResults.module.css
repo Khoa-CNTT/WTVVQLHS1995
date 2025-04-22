@@ -501,4 +501,11 @@
 .initial-search-message p {
   font-size: 1rem;
   color: #777;
+}
+
+.highlight {
+  background-color: rgba(255, 255, 0, 0.3);
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 2px;
 } 

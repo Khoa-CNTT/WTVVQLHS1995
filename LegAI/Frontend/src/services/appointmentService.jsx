@@ -396,7 +396,6 @@ export const addAvailability = async (availabilityData) => {
 
     // Kiểm tra xem người dùng có phải là luật sư không
     if (!currentUser || !currentUser.role || currentUser.role.toLowerCase() !== 'lawyer') {
-      console.log('Người dùng không phải là luật sư:', currentUser);
       return { success: false, message: 'Chỉ luật sư mới có thể thêm lịch trống', code: 403 };
     }
 
