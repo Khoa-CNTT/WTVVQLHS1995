@@ -23,7 +23,7 @@ const LegalDocumentsManager = () => {
   const [htmlContent, setHtmlContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const pdfFileRef = useRef(null);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     document_type: '',
@@ -46,17 +46,17 @@ const LegalDocumentsManager = () => {
       const params = new URLSearchParams();
       params.append('page', currentPage);
       params.append('limit', 10);
-      
+
       if (searchTerm) {
         params.append('search', searchTerm);
       }
-      
+
       if (selectedDocumentType) {
         params.append('document_type', selectedDocumentType);
       }
-      
+
       const response = await axiosInstance.get(`${API_URL}/legal/documents?${params.toString()}`);
-      
+
       if (response.data && response.data.status === 'success') {
         setDocuments(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
@@ -97,12 +97,21 @@ const LegalDocumentsManager = () => {
   };
 
   const openEditModal = (document) => {
+    const date = new Date(document.issued_date);
+    // Chuyển đổi ngày theo múi giờ Việt Nam
+    const formattedDate = date.toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).split('/').reverse().join('-'); // Định dạng YYYY-MM-DD
+
     const formattedDocument = {
       ...document,
-      issued_date: new Date(document.issued_date).toISOString().split('T')[0],
-      keywords: document.keywords || []
+      issued_date: formattedDate,
+      keywords: document.keywords || [],
     };
-    
+
     setSelectedDocument(document);
     setFormData(formattedDocument);
     setModalMode('edit');
@@ -121,7 +130,7 @@ const LegalDocumentsManager = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'keywords') {
       // Xử lý từ khóa (chuỗi phân cách bằng dấu phẩy)
       setFormData({
@@ -148,12 +157,12 @@ const LegalDocumentsManager = () => {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.document_type || !formData.content) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
-    
+
     try {
       if (modalMode === 'add') {
         const response = await axiosInstance.post(`${API_URL}/legal/documents`, formData);
@@ -164,7 +173,7 @@ const LegalDocumentsManager = () => {
         }
       } else {
         const response = await axiosInstance.put(
-          `${API_URL}/legal/documents/${selectedDocument.id}`, 
+          `${API_URL}/legal/documents/${selectedDocument.id}`,
           formData
         );
         if (response.data && response.data.status === 'success') {
@@ -196,32 +205,32 @@ const LegalDocumentsManager = () => {
   const handleUploadPdf = async (e) => {
     e.preventDefault();
     const fileInput = pdfFileRef.current;
-    
+
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
       toast.error('Vui lòng chọn file PDF để tải lên');
       return;
     }
-    
+
     const file = fileInput.files[0];
     if (file.type !== 'application/pdf') {
       toast.error('Vui lòng chỉ chọn file PDF');
       return;
     }
-    
+
     // Kiểm tra kích thước file (giới hạn 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       toast.error('Kích thước file vượt quá giới hạn 10MB');
       return;
     }
-    
+
     const formDataForUpload = new FormData();
     formDataForUpload.append('pdf_file', file);
-    
+
     try {
       setIsUploading(true);
       const response = await axiosInstance.post(
-        `${API_URL}/legal/upload-pdf`, 
+        `${API_URL}/legal/upload-pdf`,
         formDataForUpload,
         {
           headers: {
@@ -229,7 +238,7 @@ const LegalDocumentsManager = () => {
           }
         }
       );
-      
+
       if (response.data && response.data.status === 'success') {
         setHtmlContent(response.data.data.html);
         setFormData({
@@ -249,7 +258,7 @@ const LegalDocumentsManager = () => {
       } else {
         toast.error('Lỗi khi tải lên hoặc chuyển đổi file PDF');
       }
-      
+
       // Giữ modal mở để người dùng có thể chọn lại file
       setIsUploading(false);
       // Không đóng modal, reset file input để người dùng có thể chọn lại
@@ -294,11 +303,11 @@ const LegalDocumentsManager = () => {
     const maxPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
     let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    
+
     if (endPage - startPage + 1 < maxPagesToShow) {
       startPage = Math.max(1, endPage - maxPagesToShow + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
@@ -311,7 +320,7 @@ const LegalDocumentsManager = () => {
         </button>
       );
     }
-    
+
     return (
       <div className={styles.pagination}>
         <button

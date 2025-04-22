@@ -1,0 +1,18 @@
+Date: Tue, 22 Apr 2025 03:48:24 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private, max-age=86400
+Vary: Accept-Encoding
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: HIT
+Age: 62172
+Last-Modified: Mon, 21 Apr 2025 10:32:12 GMT
+Server-Timing: cfCacheStatus;desc="HIT"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=84535&min_rtt=71256&rtt_var=3428&sent=484&recv=322&lost=0&retrans=0&sent_bytes=591179&recv_bytes=10877&delivery_rate=1129961&cwnd=257&unsent_bytes=0&cid=dbd4b311c8294dca&ts=30027&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=FjEXmeeVlzABE5%2BSaLxYwkYonqnlD%2FLqTH4tT882tUjH2MNh3%2Bm6Ep9RBAEgWgMx4P2EOesHWRVX5%2BBBy6zqwTV7cSkt2BL3kZDPHE6QfcrB%2Fg3YRCRNqb9RodO2kXcTR4l9Gw%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 93422532dd9ffcdf-SIN
+Content-Encoding: gzip
+Alt-Svc: h3=":443"; ma=86400

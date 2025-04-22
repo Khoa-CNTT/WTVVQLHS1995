@@ -1,0 +1,16 @@
+Date: Tue, 22 Apr 2025 03:48:13 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private
+Location: /page/checkvb.aspx?ReturnUrl=%2fcontent.aspx%3fct%3dvc%26type%3dvan-ban%26field%3dQuyen-dan-su%26title%3dBo-luat-dan-su-2015%26lid%3d296215%26tab%3d1
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: BYPASS
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=77956&min_rtt=64067&rtt_var=18924&sent=785&recv=549&lost=0&retrans=0&sent_bytes=999392&recv_bytes=9504&delivery_rate=2459855&cwnd=373&unsent_bytes=0&cid=6fc9408eb02f5599&ts=19880&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=LpDHRv5iWLXcoo6F7WDBCcBeZUiriijz9uS9%2FqqvPJTupNqpPWczYh1XT1Wy%2F20%2FgQcHlnnSVzoLp1q0xhlWjOXTTYK1V4%2FkssEOvHeROFuRkrEubSnDnG2TBKduW3240W7V8w%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Vary: Accept-Encoding
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 934224f30b9ffe8e-SIN
+Alt-Svc: h3=":443"; ma=86400

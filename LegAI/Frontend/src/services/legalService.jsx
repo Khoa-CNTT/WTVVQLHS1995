@@ -164,9 +164,9 @@ const searchAll = async (searchParams = {}) => {
     // Xây dựng query string
     const queryParams = new URLSearchParams();
     if (search) {
-      // Chuyển đổi từ khóa tìm kiếm thành chữ thường
-      queryParams.append('search', search.toLowerCase().trim());
-      console.log('Tìm kiếm với từ khóa (đã chuẩn hóa):', search.toLowerCase().trim());
+      // Chuyển đổi từ khóa tìm kiếm thành chữ thường và loại bỏ dấu cách thừa
+      const normalizedSearch = search.toLowerCase().trim();
+      queryParams.append('search', normalizedSearch);
     }
     queryParams.append('page', page);
     queryParams.append('limit', limit);
@@ -178,62 +178,88 @@ const searchAll = async (searchParams = {}) => {
     if (language) queryParams.append('language', language);
 
     const response = await axios.get(`${API_URL}/legal/search?${queryParams.toString()}`, getHeaders());
-    console.log('API search URL:', `${API_URL}/legal/search?${queryParams.toString()}`);
     
-    // Nếu không tìm thấy kết quả nào, thử tìm kiếm ngay cả khi chỉ có một phần của từ khóa
-    if (response.data && response.data.data && response.data.data.length === 0 && search && search.length > 3) {
-      // Thử tìm kiếm lại với từng từ trong câu tìm kiếm
-      const keywords = search.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    // Nếu không tìm thấy kết quả nào và từ khóa tìm kiếm có độ dài > 0, thử tìm kiếm mở rộng
+    if (response.data && response.data.data && response.data.data.length === 0 && search && search.length > 0) {
       
-      if (keywords.length > 0) {
-        console.log('Thử tìm kiếm lại với từng từ khóa:', keywords);
+      // Nếu từ khóa có nhiều từ, thử tìm kiếm với từng từ riêng lẻ
+      if (search.includes(' ')) {
+        // Tách từ khóa thành các từ riêng lẻ, loại bỏ từ quá ngắn
+        const keywords = search.toLowerCase().split(/\s+/).filter(word => word.length > 1);
         
-        // Tìm kiếm song song với từng từ khóa
-        const searchPromises = keywords.map(keyword => {
-          const newParams = new URLSearchParams();
-          newParams.append('search', keyword);
-          newParams.append('page', 1);
-          newParams.append('limit', 20);
+        if (keywords.length > 0) {
           
-          if (document_type) newParams.append('document_type', document_type);
-          if (from_date) newParams.append('from_date', from_date);
-          if (to_date) newParams.append('to_date', to_date);
-          if (language) newParams.append('language', language);
+          // Tìm kiếm song song với từng từ khóa
+          const searchPromises = keywords.map(keyword => {
+            const newParams = new URLSearchParams();
+            newParams.append('search', keyword);
+            newParams.append('page', 1);
+            newParams.append('limit', 20);
+            
+            if (document_type) newParams.append('document_type', document_type);
+            if (from_date) newParams.append('from_date', from_date);
+            if (to_date) newParams.append('to_date', to_date);
+            if (language) newParams.append('language', language);
+            
+            return axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
+          });
           
-          return axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
-        });
-        
-        // Chờ tất cả các yêu cầu tìm kiếm hoàn thành
-        const results = await Promise.all(searchPromises);
-        
-        // Gộp kết quả và loại bỏ trùng lặp
-        const allResults = [];
-        const seenIds = new Set();
-        
-        results.forEach(result => {
-          if (result.data && result.data.data) {
-            result.data.data.forEach(item => {
-              if (!seenIds.has(item.id)) {
-                seenIds.add(item.id);
-                allResults.push(item);
-              }
-            });
-          }
-        });
-        
-        // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
-        if (allResults.length > 0) {
-          console.log(`Tìm thấy ${allResults.length} kết quả khi mở rộng tìm kiếm`);
-          return {
-            status: 'success',
-            data: allResults,
-            pagination: {
-              currentPage: 1,
-              totalPages: Math.ceil(allResults.length / limit),
-              total: allResults.length,
-              limit: limit
+          // Chờ tất cả các yêu cầu tìm kiếm hoàn thành
+          const results = await Promise.all(searchPromises);
+          
+          // Gộp kết quả và loại bỏ trùng lặp
+          const allResults = [];
+          const seenIds = new Set();
+          
+          results.forEach(result => {
+            if (result.data && result.data.data) {
+              result.data.data.forEach(item => {
+                if (!seenIds.has(item.id)) {
+                  seenIds.add(item.id);
+                  allResults.push(item);
+                }
+              });
             }
-          };
+          });
+          
+          // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
+          if (allResults.length > 0) {
+            console.log(`Tìm thấy ${allResults.length} kết quả khi mở rộng tìm kiếm theo từng từ`);
+            return {
+              status: 'success',
+              data: allResults,
+              pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(allResults.length / limit),
+                total: allResults.length,
+                limit: limit
+              }
+            };
+          }
+        }
+      }
+      
+      // Nếu từ khóa là một từ duy nhất và dài hơn 3 ký tự, thử tìm kiếm với một phần của từ
+      if (!search.includes(' ') && search.length > 3) {
+        // Lấy một phần đầu của từ khóa để tìm kiếm mở rộng
+        const partialSearch = search.substring(0, Math.max(3, Math.floor(search.length * 0.7)));
+        console.log('Thử tìm kiếm với một phần của từ khóa:', partialSearch);
+        
+        const newParams = new URLSearchParams();
+        newParams.append('search', partialSearch);
+        newParams.append('page', 1);
+        newParams.append('limit', 30);
+        
+        if (document_type) newParams.append('document_type', document_type);
+        if (from_date) newParams.append('from_date', from_date);
+        if (to_date) newParams.append('to_date', to_date);
+        if (language) newParams.append('language', language);
+        
+        const partialResult = await axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
+        
+        if (partialResult.data && partialResult.data.data && partialResult.data.data.length > 0) {
+          console.log(`Tìm thấy ${partialResult.data.data.length} kết quả khi tìm kiếm với một phần từ khóa`);
+          return partialResult.data;
         }
       }
     }

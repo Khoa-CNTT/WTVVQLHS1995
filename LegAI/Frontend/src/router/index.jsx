@@ -64,7 +64,7 @@ const AppRouter = () => {
         
         {/* Route dành cho admin */}
         <Route path="/dashboard" element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={hasRole['admin']}>
             <PageTransition custom="fade">
               <Dashboard />
             </PageTransition>
@@ -73,7 +73,7 @@ const AppRouter = () => {
         
         {/* Route quản lý người dùng */}
         <Route path="/dashboard/users" element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={hasRole['admin']}>
             <PageTransition custom="fade">
               <UsersManagerPage />
             </PageTransition>
@@ -82,7 +82,7 @@ const AppRouter = () => {
         
         {/* Route dành cho luật sư */}
         <Route path="/lawyer-dashboard" element={
-          <ProtectedRoute roles={['lawyer']}>
+          <ProtectedRoute roles={hasRole(['lawyer'])}>
             <PageTransition custom="fade">
               <LawyerDashboard />
             </PageTransition>

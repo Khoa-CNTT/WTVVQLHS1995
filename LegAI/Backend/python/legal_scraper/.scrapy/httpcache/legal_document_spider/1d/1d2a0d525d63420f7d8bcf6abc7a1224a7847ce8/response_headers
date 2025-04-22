@@ -1,0 +1,16 @@
+Date: Tue, 22 Apr 2025 03:48:23 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private
+Location: /page/checkvb.aspx?ReturnUrl=%2fcontent.aspx%3fct%3dvc%26type%3dvan-ban%26field%3dTrach-nhiem-hinh-su%26title%3dBo-luat-hinh-su-2015%26lid%3d296661%26tab%3d1
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: BYPASS
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=64951&min_rtt=59980&rtt_var=412&sent=859&recv=606&lost=0&retrans=1&sent_bytes=1091703&recv_bytes=9862&delivery_rate=2299224&cwnd=316&unsent_bytes=0&cid=867555145f7327b5&ts=29086&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=Zb4JGNHibklCSI8C6gQ2JCoH9CzFwIwvzuTih0JWUyMJ%2BKf%2BILzZnamBz%2FRPNC%2BlmJab48cbaF8MK7etoWf0XB9kujsEhEw8Ou9piklfYYuhb%2BmUpRC69cjjWeaknQlspnjlDQ%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Vary: Accept-Encoding
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 9342252c7a8d4042-SIN
+Alt-Svc: h3=":443"; ma=86400

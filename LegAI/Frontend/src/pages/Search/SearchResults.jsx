@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styles from './SearchResults.module.css';
@@ -130,14 +130,15 @@ const SearchResults = () => {
       
       const searchParams = {
         search: normalizedQuery,
-        page: currentPage,
-        limit: 50, // Tăng giới hạn để có nhiều kết quả hơn rồi lọc phía client
+        page: 1, // Luôn bắt đầu từ trang 1 khi tìm kiếm mới 
+        limit: 100, // Tăng giới hạn để có nhiều kết quả hơn
         document_type: filters.documentType || undefined,
         from_date: filters.dateFrom || undefined,
         to_date: filters.dateTo || undefined,
         language: filters.language || undefined
       };
       
+      console.log("Tìm kiếm với từ khóa:", normalizedQuery);
       
       // Gọi API searchAll từ legalService
       const response = await legalService.searchAll(searchParams);
@@ -145,9 +146,10 @@ const SearchResults = () => {
       if (response && response.status === 'success') {
         // Phân loại kết quả tìm kiếm thành documents và templates
         const allResults = response.data || [];
+        console.log(`Số kết quả từ API: ${allResults.length}`);
         
-        // Tìm kiếm thêm ở phía client để bắt được nhiều kết quả hơn
-        const keywordsArray = normalizedQuery.split(/\s+/).filter(word => word.length > 1);
+        // Tách query thành các từ khóa riêng lẻ để tìm kiếm
+        const keywordsArray = normalizedQuery.split(/\s+/).filter(word => word.length > 0);
         
         // Phân loại kết quả dựa trên thuộc tính của đối tượng
         const documents = [];
@@ -159,10 +161,51 @@ const SearchResults = () => {
           const content = item.content || '';
           const summary = item.summary || '';
           
-          // Kiểm tra xem item có phù hợp với từ khóa tìm kiếm không bằng cách tìm trong tiêu đề, nội dung và tóm tắt
+          // Chuẩn hóa dữ liệu thành chữ thường
           const normalizedTitle = title.toLowerCase();
           const normalizedContent = content.toLowerCase();
           const normalizedSummary = summary.toLowerCase();
+          
+          // Kiểm tra nếu item khớp với từ khóa tìm kiếm
+          let matchFound = false;
+          
+          // Kiểm tra cả cụm từ khóa
+          if (normalizedTitle.includes(normalizedQuery) || 
+              normalizedContent.includes(normalizedQuery) || 
+              normalizedSummary.includes(normalizedQuery)) {
+            matchFound = true;
+          }
+          
+          // Nếu không tìm thấy với cụm từ khóa, kiểm tra từng từ
+          if (!matchFound && keywordsArray.length > 0) {
+            // Nếu tất cả từ khóa đều có trong tiêu đề hoặc nội dung hoặc tóm tắt
+            const titleMatches = keywordsArray.every(keyword => normalizedTitle.includes(keyword));
+            const contentMatches = keywordsArray.every(keyword => normalizedContent.includes(keyword));
+            const summaryMatches = keywordsArray.every(keyword => normalizedSummary.includes(keyword));
+            
+            if (titleMatches || contentMatches || summaryMatches) {
+              matchFound = true;
+            }
+            
+            // Hoặc nếu có ít nhất một từ khóa khớp trong tiêu đề
+            if (!matchFound && keywordsArray.some(keyword => normalizedTitle.includes(keyword))) {
+              matchFound = true;
+            }
+          }
+          
+          // Nếu từ khóa chỉ có 1-3 ký tự, áp dụng quy tắc tìm kiếm nới lỏng hơn
+          if (!matchFound && normalizedQuery.length <= 3) {
+            // Tìm từ ngắn theo tiền tố ở đầu các từ trong tiêu đề
+            const words = normalizedTitle.split(/\s+/);
+            if (words.some(word => word.startsWith(normalizedQuery))) {
+              matchFound = true;
+            }
+          }
+          
+          // Nếu không khớp với bất kỳ điều kiện nào, bỏ qua item này
+          if (!matchFound) {
+            return;
+          }
           
           // Xác định loại dựa trên thuộc tính của item
           let isTemplate = false;
@@ -208,6 +251,7 @@ const SearchResults = () => {
           }
         });
         
+        console.log(`Sau khi lọc: Tìm thấy ${documents.length} văn bản và ${templates.length} mẫu`);
         
         setResults({
           documents: documents,
@@ -216,9 +260,8 @@ const SearchResults = () => {
           totalTemplates: templates.length
         });
         
-        // Cập nhật tổng số trang từ thông tin phân trang từ API
-        const calculatedTotalPages = response.pagination?.totalPages || Math.ceil((documents.length + templates.length) / 10) || 1;
-        setCurrentPage(response.pagination?.currentPage || currentPage);
+        // Reset về trang 1 khi có kết quả tìm kiếm mới
+        setCurrentPage(1);
       } else {
         setError('Không thể tải kết quả tìm kiếm');
       }

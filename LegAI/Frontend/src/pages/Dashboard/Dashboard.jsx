@@ -7,6 +7,8 @@ import 'animate.css';
 import LegalDocumentsManager from './LegalDocuments/LegalDocumentsManager';
 import DocumentTemplatesManager from './DocumentTemplates/DocumentTemplatesManager';
 import UserMenuPortal from './components/UserMenuPortal';
+import scraperService from '../../services/scraperService';
+import { toast } from 'react-toastify';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -77,6 +79,36 @@ function Dashboard() {
   const toggleSidebar = () => setMenuVisible(!menuVisible);
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const goToProfilePage = () => navigate('/profile');
+
+  const handleScrapeLegalDocuments = async () => {
+    try {
+      toast.info('Đang cập nhật dữ liệu văn bản pháp luật, vui lòng đợi...');
+      const result = await scraperService.scrapeLegalDocuments(20, true);
+      if (result && result.status === 'success') {
+        toast.success(`Đã cập nhật thành công ${result.count || 0} văn bản pháp luật`);
+      } else {
+        toast.warning('Cập nhật dữ liệu chạy trong nền, kết quả sẽ được cập nhật sau.');
+      }
+    } catch (error) {
+      console.error('Lỗi khi cập nhật dữ liệu văn bản pháp luật:', error);
+      toast.error('Không thể cập nhật dữ liệu văn bản pháp luật. Vui lòng thử lại sau.');
+    }
+  };
+
+  const handleScrapeContracts = async () => {
+    try {
+      toast.info('Đang cập nhật dữ liệu hợp đồng, vui lòng đợi...');
+      const result = await scraperService.scrapeContracts(20, true);
+      if (result && result.status === 'success') {
+        toast.success(`Đã cập nhật thành công ${result.count || 0} hợp đồng`);
+      } else {
+        toast.warning('Cập nhật dữ liệu chạy trong nền, kết quả sẽ được cập nhật sau.');
+      }
+    } catch (error) {
+      console.error('Lỗi khi cập nhật dữ liệu hợp đồng:', error);
+      toast.error('Không thể cập nhật dữ liệu hợp đồng. Vui lòng thử lại sau.');
+    }
+  };
 
   const handleUserMenuMouseEnter = () => {
     if (userMenuTimeoutRef.current) {
@@ -166,14 +198,18 @@ function Dashboard() {
 
   const renderLegalDocuments = () => (
     <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp lý</h2>
+      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp lý
+        <button className={styles.updateButton} onClick={handleScrapeLegalDocuments}>Cập nhật dữ liệu mới từ thư viện pháp luật</button>
+      </h2>
       <LegalDocumentsManager />
     </div>
   );
 
   const renderDocumentTemplates = () => (
     <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý mẫu văn bản</h2>
+      <h2 className={styles.sectionTitle}>Quản lý mẫu văn bản
+      <button className={styles.updateButton} onClick={handleScrapeContracts}>Cập nhật dữ liệu mới từ thư viện pháp luật</button>
+      </h2>
       <DocumentTemplatesManager />
     </div>
   );
@@ -184,7 +220,14 @@ function Dashboard() {
       'người-dùng': renderUserProfile(),
       'tài-liệu-pháp-lý': renderLegalDocuments(),
       'vụ-án': renderDocumentTemplates(),
-      'hợp-đồng': <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng</h2>,
+      'hợp-đồng': (
+        <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+          <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng
+            <button className={styles.updateButton} onClick={handleScrapeContracts}>Cập nhật hợp đồng mới từ thư viện pháp luật</button>
+          </h2>
+          <div className={styles.comingSoon}>Tính năng đang được phát triển</div>
+        </div>
+      ),
       'tư-vấn-ai': <h2 className={styles.sectionTitle}>Tư Vấn AI</h2>,
       'tin-nhắn': <h2 className={styles.sectionTitle}>Tin Nhắn</h2>,
       'giao-dịch': <h2 className={styles.sectionTitle}>Giao Dịch</h2>

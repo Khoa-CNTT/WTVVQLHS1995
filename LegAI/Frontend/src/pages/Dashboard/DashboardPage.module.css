@@ -644,3 +644,38 @@ body {
     justify-content: center;
   }
 }
+.updateButton {
+  margin-left: 15px;
+  padding: 8px 15px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  float: right;
+}
+
+.updateButton:hover { 
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comingSoon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 50px 20px;
+  margin: 20px 0;
+  color: #777;
+  font-size: 1.2rem;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  border: 1px dashed #ccc;
+}
