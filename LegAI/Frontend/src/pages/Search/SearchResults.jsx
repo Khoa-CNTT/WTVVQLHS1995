@@ -505,7 +505,7 @@ const SearchResults = () => {
               onClick={() => handleTabChange('documents')}
             >
               <FontAwesomeIcon icon={faFile} className={styles['tab-icon']} />
-              Văn bản pháp lý
+              Văn bản pháp luật
             </button>
             <button 
               className={`${styles['tab-btn']} ${activeTab === 'templates' ? styles.active : ''}`}
@@ -554,7 +554,7 @@ const SearchResults = () => {
               <div className={styles['suggestion-buttons']}>
                 <button onClick={() => navigate('/legal/documents')}>
                   <FontAwesomeIcon icon={faBook} />
-                  Danh sách văn bản pháp lý
+                  Danh sách văn bản pháp luật
                 </button>
                 <button onClick={() => navigate('/legal/templates')}>
                   <FontAwesomeIcon icon={faFileContract} />
@@ -569,7 +569,7 @@ const SearchResults = () => {
               {(activeTab === 'all' || activeTab === 'documents') && displayedDocuments.length > 0 && (
                 <div className={styles['documents-section']}>
                   <h2 className={styles['section-title']}>
-                    <FontAwesomeIcon icon={faFile} /> Văn bản pháp lý
+                    <FontAwesomeIcon icon={faFile} /> Văn bản pháp luật
                   </h2>
                   <div className={styles['documents-list']}>
                     {displayedDocuments.map((document) => (
