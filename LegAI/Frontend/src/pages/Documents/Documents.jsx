@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Documents.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
@@ -12,6 +12,7 @@ import Loader from '../../components/layout/Loading/Loading';
  */
 const Documents = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -30,11 +31,51 @@ const Documents = () => {
   const [documentTypes, setDocumentTypes] = useState([]);
   const [isResetting, setIsResetting] = useState(false);
 
+  // Đọc trạng thái filter từ URL khi trang được tải
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const urlFilters = {
+      search: queryParams.get('search') || '',
+      document_type: queryParams.get('document_type') || '',
+      from_date: queryParams.get('from_date') || '',
+      to_date: queryParams.get('to_date') || ''
+    };
+    
+    const urlPage = parseInt(queryParams.get('page')) || 1;
+    
+    setFilters(urlFilters);
+    setPagination(prev => ({
+      ...prev,
+      page: urlPage
+    }));
+    
+    // Không gọi fetchDocuments ở đây vì nó sẽ được gọi thông qua useEffect bên dưới
+  }, [location.search]);
+
   // Tải danh sách văn bản pháp luật khi component được tải hoặc khi filter/pagination thay đổi
   useEffect(() => {
     fetchDocuments();
     fetchDocumentTypes();
-  }, [pagination.page]);
+  }, [pagination.page, filters]);
+
+  // Cập nhật URL khi filters hoặc pagination thay đổi
+  useEffect(() => {
+    // Tạo object chứa tất cả tham số query hiện tại
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các filter có giá trị vào URL
+    if (filters.search) queryParams.set('search', filters.search);
+    if (filters.document_type) queryParams.set('document_type', filters.document_type);
+    if (filters.from_date) queryParams.set('from_date', filters.from_date);
+    if (filters.to_date) queryParams.set('to_date', filters.to_date);
+    
+    // Thêm thông tin trang hiện tại
+    if (pagination.page > 1) queryParams.set('page', pagination.page.toString());
+    
+    // Cập nhật URL mà không reload trang
+    const newUrl = `${location.pathname}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    navigate(newUrl, { replace: true });
+  }, [filters, pagination.page, navigate, location.pathname]);
 
   // Hàm tìm kiếm văn bản pháp luật
   const fetchDocuments = async () => {
@@ -106,7 +147,6 @@ const Documents = () => {
       ...prev,
       page: 1
     }));
-    fetchDocuments();
   };
   
   // Reset lại tất cả filter và tải lại dữ liệu
@@ -122,11 +162,6 @@ const Documents = () => {
       ...prev,
       page: 1
     }));
-    
-    // Sử dụng setTimeout để đảm bảo state đã được cập nhật
-    setTimeout(() => {
-      fetchDocuments();
-    }, 100);
   };
 
   // Điều hướng đến trang chi tiết văn bản
@@ -203,9 +238,6 @@ const Documents = () => {
       ...prev,
       page: newPage
     }));
-    
-    // Sau khi thay đổi trang, cuộn lên đầu trang
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

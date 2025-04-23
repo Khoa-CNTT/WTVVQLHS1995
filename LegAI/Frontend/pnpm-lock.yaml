@@ -26,6 +26,9 @@ importers:
       animate.css:
         specifier: ^4.1.1
         version: 4.1.1
+      animejs:
+        specifier: ^4.0.1
+        version: 4.0.1
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -656,6 +659,9 @@ packages:
 
   animate.css@4.1.1:
     resolution: {integrity: sha512-+mRmCTv6SbCmtYJCN4faJMNFVNN5EuCTTprDTAo7YzIGji2KADmakjVA3+8mVDkZ2Bf09vayB35lSQIex2+QaQ==}
+
+  animejs@4.0.1:
+    resolution: {integrity: sha512-QbNbOrToapaZ7ebNuQpRgOhEGeyg/r8+bOUKbaaDNI/64XyjDrguVWW6Xgnt8PX+HHs0aAi34WpetczSbRZ3dQ==}
 
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
@@ -1867,6 +1873,8 @@ snapshots:
 
   animate.css@4.1.1: {}
 
+  animejs@4.0.1: {}
+
   ansi-styles@4.3.0:
     dependencies:
       color-convert: 2.0.1
@@ -2237,10 +2245,12 @@ snapshots:
   legai@file:(@fortawesome/fontawesome-svg-core@6.7.2)(@types/react@19.0.12)(i18next@25.0.1)(redux@5.0.1):
     dependencies:
       '@fortawesome/fontawesome-free': 6.7.2
+      '@fortawesome/free-regular-svg-icons': 6.7.2
       '@fortawesome/free-solid-svg-icons': 6.7.2
       '@fortawesome/react-fontawesome': 0.2.2(@fortawesome/fontawesome-svg-core@6.7.2)(react@19.1.0)
       '@reduxjs/toolkit': 2.6.1(react-redux@9.2.0(@types/react@19.0.12)(react@19.1.0)(redux@5.0.1))(react@19.1.0)
       animate.css: 4.1.1
+      animejs: 4.0.1
       axios: 1.8.4
       date-fns: 4.1.0
       dompurify: 3.2.5

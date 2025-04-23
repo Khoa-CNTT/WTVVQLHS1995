@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      animejs:
+        specifier: ^4.0.1
+        version: 4.0.1
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -16,6 +19,9 @@ importers:
         version: 1.0.0
 
 packages:
+
+  animejs@4.0.1:
+    resolution: {integrity: sha512-QbNbOrToapaZ7ebNuQpRgOhEGeyg/r8+bOUKbaaDNI/64XyjDrguVWW6Xgnt8PX+HHs0aAi34WpetczSbRZ3dQ==}
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -182,6 +188,8 @@ packages:
     engines: {node: '>=18'}
 
 snapshots:
+
+  animejs@4.0.1: {}
 
   asynckit@0.4.0: {}
 

@@ -1,6 +1,6 @@
 // Templates.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Templates.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import Loader from '../../components/layout/Loading/Loading';
@@ -12,6 +12,7 @@ import { FaRegFile, FaCalendarAlt, FaSearch, FaFilter, FaLanguage, FaArrowRight,
  */
 const Templates = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [templates, setTemplates] = useState([]);
@@ -27,6 +28,42 @@ const Templates = () => {
   });
   const [templateTypes, setTemplateTypes] = useState([]);
   const [isResetting, setIsResetting] = useState(false);
+  
+  // Đọc trạng thái filter từ URL khi trang được tải
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const urlFilters = {
+      search: queryParams.get('search') || '',
+      template_type: queryParams.get('template_type') || ''
+    };
+    
+    const urlPage = parseInt(queryParams.get('page')) || 1;
+    
+    setFilters(urlFilters);
+    setPagination(prev => ({
+      ...prev,
+      page: urlPage
+    }));
+    
+    // Không gọi fetchTemplates ở đây vì nó sẽ được gọi thông qua useEffect với dependency
+  }, [location.search]);
+  
+  // Cập nhật URL khi filters hoặc pagination thay đổi
+  useEffect(() => {
+    // Tạo object chứa tất cả tham số query hiện tại
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các filter có giá trị vào URL
+    if (filters.search) queryParams.set('search', filters.search);
+    if (filters.template_type) queryParams.set('template_type', filters.template_type);
+    
+    // Thêm thông tin trang hiện tại
+    if (pagination.page > 1) queryParams.set('page', pagination.page.toString());
+    
+    // Cập nhật URL mà không reload trang
+    const newUrl = `${location.pathname}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    navigate(newUrl, { replace: true });
+  }, [filters, pagination.page, navigate, location.pathname]);
   
   // Hàm tìm kiếm mẫu văn bản
   const fetchTemplates = useCallback(async () => {
@@ -159,7 +196,6 @@ const Templates = () => {
       ...prev,
       page: 1
     }));
-    fetchTemplates();
   };
   
   // Reset lại tất cả filter và tải lại dữ liệu
@@ -173,11 +209,6 @@ const Templates = () => {
       ...prev,
       page: 1
     }));
-    
-    // Sử dụng setTimeout để đảm bảo state đã được cập nhật
-    setTimeout(() => {
-      fetchTemplates();
-    }, 100);
   };
 
   // Điều hướng đến trang chi tiết mẫu văn bản
@@ -204,7 +235,7 @@ const Templates = () => {
     });
   };
 
-  // Xử lý sự kiện thay đổi trang
+  // Thêm hàm xử lý chuyển trang để đảm bảo phân trang hoạt động đúng
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
     
