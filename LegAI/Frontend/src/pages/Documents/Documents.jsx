@@ -80,7 +80,6 @@ const Documents = () => {
   // Hàm tìm kiếm văn bản pháp luật
   const fetchDocuments = async () => {
     try {
-      setLoading(true);
       setError(null);
 
       // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
@@ -97,7 +96,6 @@ const Documents = () => {
         case_insensitive: true // Thêm flag để xử lý không phân biệt hoa thường
       };
 
-      console.log("Tìm kiếm văn bản với từ khóa:", normalizedSearch);
       const response = await legalService.getLegalDocuments(queryParams);
       
       if (response.status === 'success') {
