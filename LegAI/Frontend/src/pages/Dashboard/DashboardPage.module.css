@@ -206,7 +206,7 @@ body {
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
-  z-index: 0;
+  z-index: 99;
 }
 
 .header h1 {
@@ -242,34 +242,211 @@ body {
 }
 
 .notifications {
+  margin-right: 15px;
   position: relative;
   cursor: pointer;
+  z-index: 100000;
 }
 
 .notificationIcon {
-  font-size: 1.25rem;
-  color: var(--text-light);
-  transition: var(--transition);
+  font-size: 20px;
+  color: #5a5c69;
+  transition: color 0.2s;
+  user-select: none; /* Không cho chọn văn bản */
+
 }
 
 .notifications:hover .notificationIcon {
-  color: var(--secondary-color);
+  color: #4e73df;
 }
 
 .notificationBadge {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #ef4444;
+  background-color: #e74a3b;
   color: white;
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 0.75rem;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-sm);
+  font-weight: bold;
+  z-index: 100001;
+}
+
+.notificationDropdown {
+  position: absolute;
+  top: 35px;
+  right: -10px;
+  width: 350px;
+  max-height: 400px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  z-index: 100000;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.notificationDropdown:before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 16px;
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  transform: rotate(45deg);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.notificationTitle {
+  padding: 12px 15px;
+  margin: 0;
+  border-bottom: 1px solid #eaecf4;
+  font-size: 16px;
+  color: #4e73df;
+  background: #f8f9fc;
+  position: relative;
+  z-index: 100000;
+}
+
+.notificationList {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+  position: relative;
+  z-index: 100000;
+}
+
+.notificationItem {
+  display: flex;
+  padding: 10px;
+  border-bottom: 1px solid #eaecf4;
+  transition: background-color 0.2s;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 100000;
+}
+
+.notificationItem:hover {
+  background-color: #f8f9fc;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notificationContent {
+  flex: 1;
+  padding-right: 10px;
+  position: relative;
+  z-index: 100000;
+}
+
+.notificationDetails {
+  margin: 0 0 5px 0;
+  font-size: 13px;
+  color: #5a5c69;
+}
+
+.notificationTime {
+  margin: 0;
+  font-size: 11px;
+  color: #858796;
+  font-style: italic;
+}
+
+.markReadButton {
+  background-color: #1cc88a;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  align-self: center;
+  position: relative;
+  z-index: 100001;
+}
+
+.markReadButton:hover {
+  background-color: #17a673;
+  transform: scale(1.1);
+}
+
+.notificationLoading {
+  padding: 20px;
+  text-align: center;
+  color: #858796;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  position: relative;
+  z-index: 100000;
+}
+
+.notificationLoading .spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4e73df;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.notificationLoading p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.emptyNotification {
+  padding: 30px 20px;
+  text-align: center;
+  color: #858796;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 100000;
+}
+
+.emptyIcon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+.emptyNotification p {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .userName {
@@ -291,6 +468,7 @@ body {
   cursor: pointer;
   transition: var(--transition);
   position: relative;
+  user-select: none; /* Không cho chọn văn bản */
 }
 
 .userAvatar:hover {
@@ -310,6 +488,7 @@ body {
   transition: all 0.2s ease;
   padding: 8px 0;
   overflow: visible;
+  z-index: 999999999999;
 }
 
 .userDropdownMenu::before {
@@ -616,6 +795,16 @@ body {
   .cardGrid {
     grid-template-columns: 1fr;
   }
+
+  .notificationDropdown {
+    width: 280px;
+    right: -15px;
+    z-index: 10000;
+  }
+  
+  .notificationDropdown:before {
+    right: 56px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -642,6 +831,16 @@ body {
   .actionButton {
     width: 100%;
     justify-content: center;
+  }
+
+  .notificationDropdown {
+    width: 250px;
+    right: -50px;
+    z-index: 10000;
+  }
+  
+  .notificationDropdown:before {
+    right: 86px;
   }
 }
 .updateButton {

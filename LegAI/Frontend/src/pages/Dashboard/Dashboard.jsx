@@ -9,6 +9,7 @@ import DocumentTemplatesManager from './DocumentTemplates/DocumentTemplatesManag
 import UserMenuPortal from './components/UserMenuPortal';
 import scraperService from '../../services/scraperService';
 import { toast } from 'react-toastify';
+import UpdateNotification from '../../components/Dashboard/UpdateNotification';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -19,7 +20,10 @@ function Dashboard() {
     appointments: 0,
     contracts: 0
   });
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationItems, setNotificationItems] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -27,6 +31,7 @@ function Dashboard() {
   const userAvatarRef = useRef(null);
   const userDropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -70,6 +75,40 @@ function Dashboard() {
       });
     }
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    // Kiểm tra kết nối API
+    const checkApiConnection = async () => {
+      const isConnected = await scraperService.testApiConnection();
+      if (!isConnected) {
+        toast.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn.');
+      } else {
+        fetchNotifications();
+        
+        // Cập nhật thông báo mỗi 2 phút
+        const interval = setInterval(() => {
+          fetchNotifications();
+        }, 2 * 60 * 1000);
+        
+        return () => clearInterval(interval);
+      }
+    };
+    
+    checkApiConnection();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const goToHomePage = () => navigate('/');
   const handleLogout = () => {
@@ -142,6 +181,7 @@ function Dashboard() {
 
   const renderDashboardOverview = () => (
     <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <UpdateNotification />
       <h2 className={styles.sectionTitle}>Tổng Quan Hoạt Động</h2>
       <div className={styles.legalQuote}>
         "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy là đang được thực thi"
@@ -253,6 +293,65 @@ function Dashboard() {
     return currentUser?.username?.substring(0, 2).toUpperCase() || 'ND';
   };
 
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const response = await scraperService.getAutoUpdateNotifications();
+      
+      
+      if (response && response.success && Array.isArray(response.data)) {
+        setNotificationItems(response.data);
+        setNotifications(response.data.length);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // Trường hợp API trả về response.data trực tiếp
+        setNotificationItems(response.data);
+        setNotifications(response.data.length);
+      } else {
+        console.warn('Định dạng phản hồi không đúng:', response);
+        setNotificationItems([]);
+        setNotifications(0);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy thông báo:', error);
+      setNotificationItems([]);
+      setNotifications(0);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+  
+  const handleMarkAsRead = async (id) => {
+    try {
+      const response = await scraperService.markNotificationAsShown(id);
+      
+      if (response.success) {
+        // Cập nhật lại danh sách thông báo
+        const updatedNotifications = notificationItems.filter(item => item.id !== id);
+        setNotificationItems(updatedNotifications);
+        setNotifications(updatedNotifications.length);
+        toast.success('Đã đánh dấu thông báo là đã đọc');
+      }
+    } catch (error) {
+      console.error('Lỗi khi đánh dấu thông báo đã đọc:', error);
+      toast.error('Không thể đánh dấu thông báo. Vui lòng thử lại sau.');
+    }
+  };
+  
+  const formatDateTime = (dateTimeString) => {
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateTimeString).toLocaleDateString('vi-VN', options);
+  };
+  
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+
   return (
     <div className={`${styles.dashboardContainer} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
       <div className={`${styles.sidebar} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
@@ -288,9 +387,52 @@ function Dashboard() {
             <div className={styles.currentDate}>{getCurrentDate()}</div>
           </div>
           <div className={styles.userInfo}>
-            <div className={styles.notifications}>
-              <span className={styles.notificationIcon}>🔔</span>
-              {notifications > 0 && <span className={styles.notificationBadge}>{notifications}</span>}
+            <div className={styles.notifications} ref={notificationRef}>
+              <span 
+                className={styles.notificationIcon} 
+                onClick={toggleNotifications}
+              >
+                🔔
+              </span>
+              {notifications > 0 && 
+                <span className={styles.notificationBadge}>{notifications}</span>
+              }
+              
+              {showNotifications && (
+                <div className={styles.notificationDropdown}>
+                  <h3 className={styles.notificationTitle}>Thông báo cập nhật</h3>
+                  
+                  {notificationsLoading ? (
+                    <div className={styles.notificationLoading}>
+                      <div className={styles.spinner}></div>
+                      <p>Đang tải thông báo...</p>
+                    </div>
+                  ) : notificationItems.length > 0 ? (
+                    <div className={styles.notificationList}>
+                      {notificationItems.map(item => (
+                        <div key={item.id} className={styles.notificationItem}>
+                          <div className={styles.notificationContent}>
+                            <p className={styles.notificationDetails}>{item.details}</p>
+                            <p className={styles.notificationTime}>{formatDateTime(item.created_at)}</p>
+                          </div>
+                          <button 
+                            className={styles.markReadButton}
+                            onClick={() => handleMarkAsRead(item.id)}
+                            title="Đánh dấu đã đọc"
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.emptyNotification}>
+                      <span className={styles.emptyIcon}>📭</span>
+                      <p>Không có thông báo mới</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
             <div 

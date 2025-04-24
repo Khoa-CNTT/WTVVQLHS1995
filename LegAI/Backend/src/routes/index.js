@@ -10,6 +10,7 @@ const chatRoutes = require('./chatRoutes');
 const mailRoutes = require('./mailRoutes');
 const legalRoutes = require('./legalRoutes');
 const nodeScraperRoutes = require('./nodeScraperRoutes');
+const autoUpdateRoutes = require('./autoUpdateRoutes');
 
 // Sử dụng các route
 router.use('/auth', authRoutes);
@@ -20,4 +21,6 @@ router.use('/chats', chatRoutes);
 router.use('/mail', mailRoutes);
 router.use('/legal', legalRoutes);
 router.use('/node-scraper', nodeScraperRoutes);
+router.use('/auto-update', autoUpdateRoutes);
+
 module.exports = router;

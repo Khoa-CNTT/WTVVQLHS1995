@@ -16,20 +16,20 @@ const scrapeContractsWithNode = async (userId, limit = 10) => {
     const contracts = await scraperUtils.scrapeContracts(limit);
     
     // Lưu vào database
-    const saveResult = await scraperUtils.saveContractsToDatabase(contracts);
+    const saveCount = await scraperUtils.saveContractsToDatabase(contracts);
     
     
     // Ghi log vào AuditLogs
     await pool.query(
       `INSERT INTO AuditLogs (user_id, action, table_name, record_id, details) 
        VALUES ($1, $2, $3, $4, $5)`,
-      [userId, 'NODE_SCRAPE', 'Contracts', 0, `Thu thập dữ liệu hợp đồng bằng Node.js: ${saveResult.count}/${contracts.length}`]
+      [userId, 'NODE_SCRAPE', 'Contracts', 0, `Thu thập dữ liệu hợp đồng bằng Node.js: ${saveCount}/${contracts.length}`]
     );
     
     return {
       success: true,
-      message: `Thu thập thành công hợp đồng`,
-      count: saveResult.count,
+      message: `Thu thập thành công ${saveCount} hợp đồng`,
+      count: saveCount,
       total: contracts.length
     };
   } catch (error) {
@@ -65,7 +65,7 @@ const scrapeLegalDocumentsWithNode = async (userId, limit = 10) => {
     const documents = await scraperUtils.scrapeLegalDocuments(limit);
     
     // Lưu vào database
-    const saveResult = await scraperUtils.saveLegalDocumentsToDatabase(documents);
+    const saveCount = await scraperUtils.saveLegalDocumentsToDatabase(documents);
     
     // Ghi log kết quả
     
@@ -73,13 +73,13 @@ const scrapeLegalDocumentsWithNode = async (userId, limit = 10) => {
     await pool.query(
       `INSERT INTO AuditLogs (user_id, action, table_name, record_id, details) 
        VALUES ($1, $2, $3, $4, $5)`,
-      [userId, 'NODE_SCRAPE', 'LegalDocuments', 0, `Thu thập dữ liệu văn bản pháp luật bằng Node.js: ${saveResult.count}/${documents.length}`]
+      [userId, 'NODE_SCRAPE', 'LegalDocuments', 0, `Thu thập dữ liệu văn bản pháp luật bằng Node.js: ${saveCount}/${documents.length}`]
     );
     
     return {
       success: true,
-      message: `Thu thập thành công văn bản pháp luật`,
-      count: saveResult.count,
+      message: `Thu thập thành công ${saveCount} văn bản pháp luật`,
+      count: saveCount,
       total: documents.length
     };
   } catch (error) {
