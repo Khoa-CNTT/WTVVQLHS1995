@@ -216,7 +216,7 @@ const Home = () => {
         {/* Hero Section */}
         <section className={styles.heroSection}>
           <video className={styles.videoBackground} autoPlay loop muted>
-            <source src="/video/2.mp4" type="video/mp4" />
+            <source src="/video/3.mp4" type="video/mp4" />
           </video>
           <div className={styles.heroBackgroundOverlay}></div>
           <div className={styles.heroContent}>

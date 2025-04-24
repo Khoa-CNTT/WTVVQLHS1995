@@ -5,6 +5,7 @@ import PublicRoutes from './publicRoutes';
 import PrivateRoutes from './privateRoutes';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
+import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import authService from '../services/authService';
@@ -58,6 +59,15 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <Profile />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route hồ sơ pháp lý */}
+        <Route path="/legal-docs" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalDocsPage />
             </PageTransition>
           </ProtectedRoute>
         } />

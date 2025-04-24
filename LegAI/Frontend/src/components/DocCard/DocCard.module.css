@@ -1,0 +1,181 @@
+.docCard {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.docCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.iconContainer {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background-color: #f5f7ff;
+}
+
+.fileIcon {
+  width: 24px;
+  height: 24px;
+  color: #4264d0;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuButton:hover {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.actionsMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  min-width: 160px;
+  padding: 8px 0;
+}
+
+.actionsMenu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #4b5563;
+  transition: background-color 0.2s;
+}
+
+.actionsMenu button:hover {
+  background-color: #f3f4f6;
+}
+
+.actionsMenu .deleteButton {
+  color: #dc2626;
+}
+
+.actionsMenu .deleteButton:hover {
+  background-color: #fee2e2;
+}
+
+.docInfo {
+  flex-grow: 1;
+}
+
+.docTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.category {
+  font-size: 12px;
+  padding: 2px 8px;
+  background-color: #f3f4f6;
+  border-radius: 12px;
+  color: #4b5563;
+  display: inline-block;
+  max-width: fit-content;
+}
+
+.date {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+  margin-top: auto;
+}
+
+.quickActions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.quickActions button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickActions button:hover {
+  background-color: #f3f4f6;
+  color: #4264d0;
+}
+
+@media (max-width: 768px) {
+  .docCard {
+    padding: 12px;
+  }
+  
+  .docTitle {
+    font-size: 14px;
+  }
+  
+  .footer {
+    padding-top: 10px;
+  }
+  
+  .quickActions {
+    gap: 12px;
+  }
+} 

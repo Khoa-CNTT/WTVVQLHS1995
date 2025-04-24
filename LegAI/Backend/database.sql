@@ -245,3 +245,46 @@ CREATE INDEX IF NOT EXISTS idx_legalkeywords_keyword ON LegalKeywords(keyword);
 UPDATE Appointments 
 SET purpose = 'Tư vấn pháp luật', notes = 'Tạo tự động khi cập nhật cấu trúc bảng'
 WHERE purpose IS NULL OR notes IS NULL;
+
+-- Bảng quản lý hồ sơ pháp lý cá nhân
+CREATE TABLE UserLegalDocs (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100) NOT NULL,
+    file_type VARCHAR(20) NOT NULL, -- pdf, docx, jpg, png, etc.
+    file_url VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    thumbnail_url VARCHAR(255),
+    is_encrypted BOOLEAN DEFAULT TRUE,
+    encryption_key VARCHAR(255),
+    access_level VARCHAR(50) DEFAULT 'private', -- private, shared, public
+    metadata JSONB, -- Lưu trữ dữ liệu phân tích từ AI
+    tags TEXT[], -- Từ khóa tìm kiếm
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+-- Bảng quản lý quyền truy cập vào hồ sơ pháp lý cá nhân (để chia sẻ hồ sơ)
+CREATE TABLE UserLegalDocAccess (
+    id SERIAL PRIMARY KEY,
+    doc_id INT NOT NULL,
+    granted_to INT NOT NULL, -- user_id được cấp quyền
+    granted_by INT NOT NULL, -- user_id cấp quyền
+    access_type VARCHAR(50) NOT NULL, -- read, edit, delete
+    valid_until TIMESTAMP, -- NULL = vĩnh viễn
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doc_id) REFERENCES UserLegalDocs(id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_to) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+-- Thêm index để tối ưu hóa truy vấn
+CREATE INDEX IF NOT EXISTS idx_user_legal_docs_user_id ON UserLegalDocs(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_legal_docs_category ON UserLegalDocs(category);
+CREATE INDEX IF NOT EXISTS idx_user_legal_docs_tags ON UserLegalDocs USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_user_legal_docs_metadata ON UserLegalDocs USING GIN(metadata);
+CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_doc_id ON UserLegalDocAccess(doc_id);
+CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_granted_to ON UserLegalDocAccess(granted_to);

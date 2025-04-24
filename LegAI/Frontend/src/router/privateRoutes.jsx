@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
+import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import authService from '../services/authService';
 
 // Sử dụng hàm isAuthenticated từ authService
@@ -22,6 +23,11 @@ const PrivateRoutes = () => {
         <Route path="/profile" element={
           <PageTransition custom="fade">
             <Profile />
+          </PageTransition>
+        } />
+        <Route path="/legal-docs" element={
+          <PageTransition custom="fade">
+            <LegalDocsPage />
           </PageTransition>
         } />
       </Routes>
