@@ -122,7 +122,6 @@ const LegalDocs = () => {
   // Document actions
   const handleViewDoc = (docId) => {
     // Navigate to document viewer
-    console.log('View document:', docId);
   };
   
   const handleDownloadDoc = async (docId) => {
@@ -137,7 +136,6 @@ const LegalDocs = () => {
   
   const handleShareDoc = (docId) => {
     // Open share modal
-    console.log('Share document:', docId);
   };
   
   const handleDeleteDoc = async (docId) => {

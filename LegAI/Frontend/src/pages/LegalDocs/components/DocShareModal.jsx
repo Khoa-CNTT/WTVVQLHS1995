@@ -28,9 +28,7 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
       return;
     }
 
-    setIsSharing(true);
-    toast.info('Đang tìm kiếm người dùng...');
-    
+    setIsSharing(true);    
     try {
       // LẤY NGƯỜI DÙNG THEO EMAIL BẰNG SERVICE
       let userId = null;
@@ -50,8 +48,6 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
             setIsSharing(false);
             return;
           }
-          
-          toast.success(`Đã tìm thấy người dùng: ${userData.username || email}`);
         } else {
           const errorMessage = findUserResult?.message || 'Không tìm thấy người dùng với email này';
           toast.error(errorMessage);
@@ -87,14 +83,11 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
         valid_until: expiryDate || null
       };
       
-      console.log("Gửi dữ liệu chia sẻ:", shareData);
       
       try {
         const response = await legalDocService.shareLegalDoc(doc.id, shareData);
-        console.log("Phản hồi từ API chia sẻ:", response);
         
         if (response && response.success) {
-          toast.success('Đã chia sẻ tài liệu thành công');
           setEmail('');
           
           // Cập nhật danh sách người được chia sẻ
@@ -238,7 +231,7 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
+              {/* <div className={styles.formGroup}>
                 <label htmlFor="expiryDate">Ngày hết hạn (tùy chọn)</label>
                 <input
                   type="date"
@@ -247,7 +240,7 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
                   onChange={(e) => setExpiryDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]} // Ngày hiện tại trở đi
                 />
-              </div>
+              </div> */}
             </div>
 
             <button

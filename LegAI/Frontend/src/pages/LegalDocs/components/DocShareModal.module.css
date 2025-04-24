@@ -13,8 +13,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal {
@@ -122,7 +126,10 @@
   font-size: 0.75rem;
   color: #6b7280;
 }
-
+.shareForm {
+  display: flex;
+  flex-direction: row;
+}
 .formGroup {
   margin-bottom: 16px;
 }
@@ -243,8 +250,8 @@
 }
 
 .shareButton {
-  display: flex;
-  align-items: center;
+  position: absolute;
+  transform: translateY(270%);
   gap: 6px;
   background-color: #4264d0;
   color: white;
@@ -276,8 +283,8 @@
   .modal {
     width: 95%;
   }
-  
+
   .modalHeader h2 {
     font-size: 1.125rem;
   }
-} 
+}

@@ -226,7 +226,6 @@ export const shareLegalDoc = async (docId, userData) => {
             valid_until: userData.expireDate || userData.expiryDate || userData.expire_date || userData.valid_until
         };
         
-        console.log('Gửi payload đến API:', payload);
         const response = await axiosInstance.post(`/legal-docs/${docId}/share`, payload, getHeaders());
         return response.data;
     } catch (error) {

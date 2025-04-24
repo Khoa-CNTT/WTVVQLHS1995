@@ -59,23 +59,18 @@ const LegalDocsPage = () => {
       
       if (activeTab === 'my-docs') {
         // Lấy danh sách hồ sơ pháp lý cá nhân
-        console.log('Đang lấy tài liệu cá nhân với tham số:', pagination, filters);
         response = await legalDocService.getUserLegalDocs(pagination.page, pagination.limit, filters);
       } else {
         // Lấy danh sách hồ sơ pháp lý được chia sẻ
-        console.log('Đang lấy tài liệu được chia sẻ với tham số:', pagination, filters);
         response = await legalDocService.getSharedLegalDocs(pagination.page, pagination.limit, filters);
       }
       
-      console.log(`Phản hồi từ API (${activeTab}):`, response);
       
       if (response.success) {
         if (activeTab === 'my-docs') {
           setDocuments(response.data);
-          console.log('Đã cập nhật tài liệu cá nhân:', response.data.length);
         } else {
           setSharedDocuments(response.data);
-          console.log('Đã cập nhật tài liệu được chia sẻ:', response.data.length);
         }
         
         // Cập nhật thông tin phân trang
@@ -206,7 +201,7 @@ const LegalDocsPage = () => {
   // Xử lý chia sẻ hồ sơ
   const handleShareSuccess = () => {
     setShowShareModal(false);
-    toast.success('Đã chia sẻ hồ sơ pháp lý thành công');
+    toast.success('Đã chia sẻ thành công');
     fetchDocuments();
   };
 
