@@ -55,32 +55,44 @@ const LegalDocsPage = () => {
   const fetchDocuments = async () => {
     setIsLoading(true);
     try {
-      const options = {
-        ...filters,
-        page: pagination.page,
-        limit: pagination.limit
-      };
-
       let response;
+      
       if (activeTab === 'my-docs') {
+        // Lấy danh sách hồ sơ pháp lý cá nhân
+        console.log('Đang lấy tài liệu cá nhân với tham số:', pagination, filters);
         response = await legalDocService.getUserLegalDocs(pagination.page, pagination.limit, filters);
       } else {
+        // Lấy danh sách hồ sơ pháp lý được chia sẻ
+        console.log('Đang lấy tài liệu được chia sẻ với tham số:', pagination, filters);
         response = await legalDocService.getSharedLegalDocs(pagination.page, pagination.limit, filters);
       }
-
+      
+      console.log(`Phản hồi từ API (${activeTab}):`, response);
+      
       if (response.success) {
         if (activeTab === 'my-docs') {
           setDocuments(response.data);
+          console.log('Đã cập nhật tài liệu cá nhân:', response.data.length);
         } else {
           setSharedDocuments(response.data);
+          console.log('Đã cập nhật tài liệu được chia sẻ:', response.data.length);
         }
-        setPagination(response.pagination);
+        
+        // Cập nhật thông tin phân trang
+        setPagination(prevState => ({
+          ...prevState,
+          totalPages: response.pagination.totalPages,
+          total: response.pagination.total
+        }));
       } else {
-        toast.error('Không thể tải danh sách hồ sơ pháp lý');
+        toast.error(response.message || 'Không thể tải danh sách hồ sơ pháp lý');
       }
     } catch (error) {
-      console.error(error);
-      toast.error('Có lỗi xảy ra khi tải danh sách hồ sơ');
+      console.error('Lỗi khi tải danh sách hồ sơ pháp lý:', error);
+      if (error.response) {
+        console.error('Server response:', error.response.data);
+      }
+      toast.error('Có lỗi xảy ra khi tải danh sách hồ sơ pháp lý');
     } finally {
       setIsLoading(false);
     }

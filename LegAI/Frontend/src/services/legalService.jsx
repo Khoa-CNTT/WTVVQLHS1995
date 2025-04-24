@@ -233,7 +233,6 @@ const searchAll = async (searchParams = {}) => {
           
           // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
           if (allResults.length > 0) {
-            console.log(`Tìm thấy ${allResults.length} kết quả khi mở rộng tìm kiếm theo từng từ`);
             return {
               status: 'success',
               data: allResults,
@@ -252,7 +251,6 @@ const searchAll = async (searchParams = {}) => {
       if (!search.includes(' ') && search.length > 3) {
         // Lấy một phần đầu của từ khóa để tìm kiếm mở rộng
         const partialSearch = search.substring(0, Math.max(3, Math.floor(search.length * 0.7)));
-        console.log('Thử tìm kiếm với một phần của từ khóa:', partialSearch);
         
         const newParams = new URLSearchParams();
         newParams.append('search', partialSearch);
@@ -267,7 +265,6 @@ const searchAll = async (searchParams = {}) => {
         const partialResult = await axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
         
         if (partialResult.data && partialResult.data.data && partialResult.data.data.length > 0) {
-          console.log(`Tìm thấy ${partialResult.data.data.length} kết quả khi tìm kiếm với một phần từ khóa`);
           return partialResult.data;
         }
       }

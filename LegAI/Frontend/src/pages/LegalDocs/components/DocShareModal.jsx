@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import styles from './DocShareModal.module.css';
 import * as legalDocService from '../../../services/legalDocService';
+import userService from '../../../services/userService';
+import axios from 'axios';
 
 const DocShareModal = ({ doc, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
@@ -27,34 +29,110 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
     }
 
     setIsSharing(true);
+    toast.info('Đang tìm kiếm người dùng...');
     
     try {
+      // LẤY NGƯỜI DÙNG THEO EMAIL BẰNG SERVICE
+      let userId = null;
+      let userData = null;
+      
+      try {
+        // Sử dụng service để tìm người dùng theo email
+        const findUserResult = await userService.findUserByEmail(email);
+        
+        if (findUserResult && findUserResult.success && findUserResult.data) {
+          userId = findUserResult.data.id;
+          userData = findUserResult.data;
+          
+          // Kiểm tra ID người dùng là số hợp lệ
+          if (!userId || isNaN(parseInt(userId))) {
+            toast.error('ID người dùng không hợp lệ. Vui lòng thử lại với email khác.');
+            setIsSharing(false);
+            return;
+          }
+          
+          toast.success(`Đã tìm thấy người dùng: ${userData.username || email}`);
+        } else {
+          const errorMessage = findUserResult?.message || 'Không tìm thấy người dùng với email này';
+          toast.error(errorMessage);
+          setIsSharing(false);
+          return;
+        }
+      } catch (findError) {
+        console.error('Lỗi khi tìm kiếm người dùng theo email:', findError);
+        
+        // Hiển thị thông báo mô tả chi tiết hơn
+        if (findError.response) {
+          toast.error(`Lỗi tìm kiếm người dùng: ${findError.response.status} - ${findError.response.statusText}`);
+        } else {
+          toast.error('Không thể tìm thấy người dùng. Vui lòng thử lại sau.');
+        }
+        
+        setIsSharing(false);
+        return;
+      }
+      
+      // Hiển thị thông báo khi tìm thấy người dùng
+      toast.info(`Đang chia sẻ tài liệu với ${userData.full_name || userData.username || email}...`);
+      
+      // Bước 2: Chuyển đổi quyền thành mảng đúng định dạng
+      let permissionArray = [];
+      if (permissions === 'view') permissionArray = ['read'];
+      else if (permissions === 'edit') permissionArray = ['read', 'edit'];
+      else if (permissions === 'full') permissionArray = ['read', 'edit', 'delete'];
+      
       const shareData = {
-        email,
-        permissions,
-        expiryDate: expiryDate || null
+        shared_with: parseInt(userId),
+        permissions: permissionArray,
+        valid_until: expiryDate || null
       };
       
-      const response = await legalDocService.shareLegalDoc(doc.id, shareData);
+      console.log("Gửi dữ liệu chia sẻ:", shareData);
       
-      if (response.success) {
-        toast.success('Đã chia sẻ tài liệu thành công');
-        setEmail('');
+      try {
+        const response = await legalDocService.shareLegalDoc(doc.id, shareData);
+        console.log("Phản hồi từ API chia sẻ:", response);
         
-        // Cập nhật danh sách người được chia sẻ
-        if (response.data && response.data.shared_with) {
-          setSharedWith(response.data.shared_with);
+        if (response && response.success) {
+          toast.success('Đã chia sẻ tài liệu thành công');
+          setEmail('');
+          
+          // Cập nhật danh sách người được chia sẻ
+          if (response.data && response.data.shared_with) {
+            setSharedWith(response.data.shared_with);
+          } else {
+            // Nếu API không trả về danh sách cập nhật, thêm vào danh sách hiện tại
+            const newSharedUser = {
+              id: userId,
+              email: email,
+              username: userData?.username || email.split('@')[0],
+              permissions: permissionArray,
+              shared_at: new Date().toISOString()
+            };
+            setSharedWith([...sharedWith, newSharedUser]);
+          }
+          
+          if (onSuccess) {
+            onSuccess();
+          }
+        } else {
+          toast.error(response?.message || 'Không thể chia sẻ tài liệu');
         }
-        
-        if (onSuccess) {
-          onSuccess(response.data);
+      } catch (shareError) {
+        console.error("Lỗi khi chia sẻ tài liệu:", shareError);
+        if (shareError.response) {
+          toast.error(`Lỗi khi chia sẻ: ${shareError.response.status} - ${shareError.response.data?.message || 'Người dùng không tồn tại hoặc đã bị xóa'}`);
+        } else {
+          toast.error('Có lỗi xảy ra khi chia sẻ tài liệu');
         }
-      } else {
-        toast.error(response.message || 'Không thể chia sẻ tài liệu');
       }
     } catch (error) {
       console.error(error);
-      toast.error('Có lỗi xảy ra khi chia sẻ tài liệu');
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Có lỗi xảy ra khi chia sẻ tài liệu');
+      }
     } finally {
       setIsSharing(false);
     }

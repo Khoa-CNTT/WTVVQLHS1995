@@ -30,6 +30,16 @@ const PrivateRoutes = () => {
             <LegalDocsPage />
           </PageTransition>
         } />
+        <Route path="/legal-docs/:id" element={
+          <PageTransition custom="fade">
+            <LegalDocsPage />
+          </PageTransition>
+        } />
+        <Route path="/dashboard/legal-docs/:id" element={
+          <PageTransition custom="fade">
+            <Dashboard />
+          </PageTransition>
+        } />
       </Routes>
     </AnimatePresence>
   ) : (

@@ -330,6 +330,96 @@ const getFullAvatarUrl = (avatarPath) => {
   return `${API_URL.replace('/api', '')}/uploads/${avatarPath}`;
 };
 
+// Tìm người dùng theo email
+const findUserByEmail = async (email) => {
+  try {
+    // Gọi API để tìm người dùng theo email
+    const response = await userAxios.get(`/auth/users`);
+    
+    // Kiểm tra cấu trúc dữ liệu trả về và xử lý tất cả trường hợp có thể
+    if (response.data) {
+      let users = [];
+      
+      // Trường hợp 1: Cấu trúc { data: [...users] }
+      if (response.data.data && Array.isArray(response.data.data)) {
+        users = response.data.data;
+      } 
+      // Trường hợp 2: Cấu trúc { status: 'success', data: { users: [...] } }
+      else if (response.data.status === 'success' && response.data.data && Array.isArray(response.data.data.users)) {
+        users = response.data.data.users;
+      }
+      // Trường hợp 3: Cấu trúc { status: 'success', data: { data: [...] } }
+      else if (response.data.status === 'success' && response.data.data && Array.isArray(response.data.data.data)) {
+        users = response.data.data.data;
+      }
+      // Trường hợp 4: Dữ liệu trả về trực tiếp là mảng
+      else if (Array.isArray(response.data)) {
+        users = response.data;
+      }
+      
+      if (users.length > 0) {
+        // Tìm người dùng có email khớp (không phân biệt hoa thường)
+        const foundUser = users.find(user => 
+          user.email && user.email.toLowerCase() === email.toLowerCase()
+        );
+        
+        if (foundUser) {
+          return {
+            success: true,
+            data: foundUser
+          };
+        }
+      }
+      
+      // Không tìm thấy người dùng
+      return {
+        success: false,
+        message: 'Không tìm thấy người dùng với email này',
+        data: null
+      };
+    } else {
+      console.warn('Không nhận được dữ liệu từ API');
+      return {
+        success: false,
+        message: 'Không thể lấy dữ liệu người dùng từ máy chủ',
+        data: null
+      };
+    }
+  } catch (error) {
+    console.error('Lỗi khi tìm người dùng theo email:', error);
+    if (error.response) {
+      console.error('Mã lỗi:', error.response.status);
+      console.error('Nội dung lỗi:', error.response.data);
+    }
+    
+    return {
+      success: false,
+      message: 'Đã xảy ra lỗi khi tìm kiếm người dùng',
+      data: null
+    };
+  }
+};
+
+// Lấy danh sách người dùng
+const getUsers = async (params = {}) => {
+  try {
+    // Tạo query string từ params
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        queryParams.append(key, params[key]);
+      }
+    });
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const response = await userAxios.get(`/auth/users${queryString}`);
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách người dùng:', error);
+    throw error;
+  }
+};
+
 const userService = {
   getUserProfile,
   updateUserProfile,
@@ -344,7 +434,9 @@ const userService = {
   getAllLawyers,
   getLawyerById,
   refreshUserData,
-  getFullAvatarUrl
+  getFullAvatarUrl,
+  findUserByEmail,
+  getUsers
 };
 
 export default userService;

@@ -1077,6 +1077,48 @@ const uploadAvatar = async (req, res) => {
     }
 };
 
+// Tìm kiếm người dùng theo email
+const findUserByEmail = async (req, res) => {
+    try {
+        const { email } = req.query;
+        
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vui lòng cung cấp email'
+            });
+        }
+        
+        const user = await userService.getUserByEmail(email);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy người dùng với email này',
+                data: null
+            });
+        }
+        
+        // Trả về thông tin cơ bản của người dùng
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                full_name: user.full_name,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi khi tìm kiếm người dùng theo email:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi tìm kiếm người dùng'
+        });
+    }
+};
+
 module.exports = {
     register,
     verifyAccount,
@@ -1095,6 +1137,7 @@ module.exports = {
     getAllLawyers,
     getLawyerById,
     uploadAvatar,
-    resetUserSequence
+    resetUserSequence,
+    findUserByEmail
 };
 

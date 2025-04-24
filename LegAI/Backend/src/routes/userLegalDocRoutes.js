@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { authorize } = require('../middleware/auth');
 const userLegalDocController = require('../controllers/userLegalDocController');
 
 // Đảm bảo tất cả routes đều yêu cầu xác thực
@@ -35,5 +36,14 @@ router.post('/:id/unshare', userLegalDocController.unshareDoc);
 
 // Phân tích hồ sơ pháp lý với AI
 router.post('/:id/analyze', userLegalDocController.analyzeDoc);
+
+// ----- ADMIN ROUTES -----
+// Các routes dưới đây chỉ dành cho admin
+
+// Lấy danh sách hồ sơ pháp lý của tất cả người dùng
+router.get('/admin/all', authorize('admin'), userLegalDocController.getAllUserDocs);
+
+// Lấy danh sách hồ sơ pháp lý của một người dùng cụ thể
+router.get('/admin/users/:userId', authorize('admin'), userLegalDocController.getUserDocsById);
 
 module.exports = router; 

@@ -36,7 +36,19 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   // Nếu chỉ định vai trò, kiểm tra vai trò người dùng
   if (roles.length > 0) {
     // Sử dụng hàm hasRole từ authService
-    const hasAccess = roles.some(role => authService.hasRole(role));
+    const user = authService.getCurrentUser();
+    
+    if (!user || !user.role) {
+      return <Navigate to="/" />;
+    }
+    
+    const hasAccess = roles.some(role => {
+      const userRole = user.role.toLowerCase();
+      const requiredRole = role.toLowerCase();
+      const result = userRole === requiredRole;
+      return result;
+    });
+    
     
     if (!hasAccess) {
       return <Navigate to="/" />;
@@ -95,6 +107,15 @@ const AppRouter = () => {
           <ProtectedRoute roles={hasRole(['lawyer'])}>
             <PageTransition custom="fade">
               <LawyerDashboard />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Route chi tiết hồ sơ pháp lý */}
+        <Route path="/dashboard/legal-docs/:id" element={
+          <ProtectedRoute roles={hasRole(['admin', 'user'])}>
+            <PageTransition custom="fade">
+              <Dashboard />
             </PageTransition>
           </ProtectedRoute>
         } />

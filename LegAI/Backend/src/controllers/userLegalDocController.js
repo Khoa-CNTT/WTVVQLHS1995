@@ -427,6 +427,17 @@ const shareDoc = asyncHandler(async (req, res) => {
     }
     
     try {
+        // Kiểm tra xem người dùng shared_with có tồn tại không
+        const pool = require('../config/database');
+        const userCheck = await pool.query('SELECT id FROM Users WHERE id = $1', [shared_with]);
+        
+        if (userCheck.rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Người dùng được chia sẻ không tồn tại trong hệ thống'
+            });
+        }
+        
         // Xử lý ngày hết hạn nếu có
         let parsedValidUntil = null;
         if (valid_until) {
@@ -450,6 +461,7 @@ const shareDoc = asyncHandler(async (req, res) => {
         
         res.status(200).json(result);
     } catch (error) {
+        console.error('Lỗi khi chia sẻ hồ sơ:', error);
         res.status(400).json({
             success: false,
             message: error.message
@@ -597,25 +609,214 @@ const analyzeDoc = asyncHandler(async (req, res) => {
 // API endpoint để lấy danh sách hồ sơ được chia sẻ
 const getSharedDocs = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const { page, limit, category, search, sortBy, sortOrder } = req.query;
     
-    const options = {
-        page: parseInt(page) || 1,
-        limit: parseInt(limit) || 10,
-        category: category || null,
-        search: search || null,
-        sortBy: sortBy || 'created_at',
-        sortOrder: (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC'
-    };
+    console.log(`Lấy tài liệu được chia sẻ cho user ID: ${userId}`);
     
-    const result = await userLegalDocModel.getSharedDocuments(userId, options);
-    
-    res.status(200).json({
-        success: true,
-        data: result.data,
-        pagination: result.pagination
-    });
+    try {
+        // Lấy các tham số truy vấn
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const category = req.query.category || null;
+        const search = req.query.search || null;
+        const sortBy = req.query.sortBy || 'created_at';
+        const sortOrder = req.query.sortOrder || 'DESC';
+        
+        console.log('Query parameters:', { page, limit, category, search, sortBy, sortOrder });
+        
+        const options = { page, limit, category, search, sortBy, sortOrder };
+        
+        const result = await userLegalDocModel.getSharedDocuments(userId, options);
+        
+        console.log(`Tìm thấy ${result.data.length} tài liệu được chia sẻ`);
+        
+        res.status(200).json({
+            success: true,
+            data: result.data,
+            pagination: result.pagination
+        });
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách hồ sơ được chia sẻ:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra khi lấy danh sách hồ sơ được chia sẻ'
+        });
+    }
 });
+
+// [ADMIN] Lấy danh sách hồ sơ pháp lý của tất cả người dùng
+const getAllUserDocs = async (req, res) => {
+    try {
+        // Kiểm tra quyền admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Bạn không có quyền truy cập tính năng này'
+            });
+        }
+
+        const { 
+            page = 1, 
+            limit = 10, 
+            category = null, 
+            search = null, 
+            sortBy = 'created_at', 
+            sortOrder = 'DESC'
+        } = req.query;
+
+        // Truy vấn SQL trực tiếp để lấy thông tin chi tiết hơn
+        const offset = (page - 1) * limit;
+        
+        let query = `
+            SELECT d.*, u.username, u.full_name as owner_name
+            FROM UserLegalDocs d
+            JOIN Users u ON d.user_id = u.id
+            WHERE 1=1
+        `;
+
+        let params = [];
+        let paramIndex = 0;
+
+        // Thêm điều kiện tìm kiếm theo danh mục
+        if (category) {
+            paramIndex++;
+            query += ` AND d.category = $${paramIndex}`;
+            params.push(category);
+        }
+
+        // Thêm điều kiện tìm kiếm theo từ khóa
+        if (search) {
+            paramIndex++;
+            query += ` AND (
+                d.title ILIKE $${paramIndex}
+                OR d.description ILIKE $${paramIndex}
+                OR u.username ILIKE $${paramIndex}
+                OR u.full_name ILIKE $${paramIndex}
+                OR $${paramIndex} = ANY(d.tags)
+            )`;
+            params.push(`%${search}%`);
+        }
+
+        // Thêm sắp xếp
+        query += ` ORDER BY d.${sortBy} ${sortOrder}`;
+
+        // Thêm phân trang
+        query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        params.push(limit, offset);
+
+        const documents = await pool.query(query, params);
+        
+        // Đếm tổng số hồ sơ (không áp dụng phân trang)
+        let countQuery = `
+            SELECT COUNT(*) FROM UserLegalDocs d
+            JOIN Users u ON d.user_id = u.id
+            WHERE 1=1
+        `;
+        
+        let countParams = [];
+        let countParamIndex = 0;
+        
+        if (category) {
+            countParamIndex++;
+            countQuery += ` AND d.category = $${countParamIndex}`;
+            countParams.push(category);
+        }
+        
+        if (search) {
+            countParamIndex++;
+            countQuery += ` AND (
+                d.title ILIKE $${countParamIndex}
+                OR d.description ILIKE $${countParamIndex}
+                OR u.username ILIKE $${countParamIndex}
+                OR u.full_name ILIKE $${countParamIndex}
+                OR $${countParamIndex} = ANY(d.tags)
+            )`;
+            countParams.push(`%${search}%`);
+        }
+        
+        const countResult = await pool.query(countQuery, countParams);
+        const totalDocs = parseInt(countResult.rows[0].count);
+        
+        return res.status(200).json({
+            status: 'success',
+            data: documents.rows,
+            pagination: {
+                total: totalDocs,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalDocs / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách hồ sơ pháp lý của tất cả người dùng:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu'
+        });
+    }
+};
+
+// [ADMIN] Lấy danh sách hồ sơ pháp lý của một người dùng cụ thể
+const getUserDocsById = async (req, res) => {
+    try {
+        // Kiểm tra quyền admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Bạn không có quyền truy cập tính năng này'
+            });
+        }
+
+        const userId = req.params.userId;
+        
+        // Kiểm tra xem người dùng có tồn tại không
+        const userCheck = await pool.query('SELECT id FROM Users WHERE id = $1', [userId]);
+        if (userCheck.rows.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Không tìm thấy người dùng'
+            });
+        }
+
+        const { 
+            page = 1, 
+            limit = 10, 
+            category = null, 
+            search = null, 
+            sortBy = 'created_at', 
+            sortOrder = 'DESC'
+        } = req.query;
+
+        const options = {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            category,
+            search,
+            sortBy,
+            sortOrder
+        };
+
+        const result = await userLegalDocModel.getUserLegalDocs(userId, options);
+        
+        // Lấy thông tin người dùng
+        const userInfo = await pool.query(
+            'SELECT username, full_name, email FROM Users WHERE id = $1',
+            [userId]
+        );
+
+        return res.status(200).json({
+            status: 'success',
+            user: userInfo.rows[0],
+            data: result.data,
+            pagination: result.pagination
+        });
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách hồ sơ pháp lý của người dùng:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu'
+        });
+    }
+};
 
 module.exports = {
     uploadDoc: [upload.single('file'), uploadDoc], // middleware upload file
@@ -628,5 +829,7 @@ module.exports = {
     shareDoc,
     unshareDoc,
     analyzeDoc,
-    getSharedDocs
+    getSharedDocs,
+    getAllUserDocs,     // New endpoint for admin
+    getUserDocsById     // New endpoint for admin
 }; 

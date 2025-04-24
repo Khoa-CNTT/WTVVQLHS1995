@@ -97,52 +97,79 @@ const getUserLegalDocs = async (userId, options = {}) => {
     }
 };
 
-// Lấy thông tin chi tiết của hồ sơ pháp lý
+// Lấy thông tin chi tiết của một hồ sơ pháp lý
 const getLegalDocById = async (docId, userId = null) => {
     try {
         let query = `
-            SELECT d.*, 
-                  (SELECT json_agg(json_build_object(
-                    'id', a.id,
-                    'granted_to', a.granted_to,
-                    'granted_by', a.granted_by,
-                    'access_type', a.access_type,
-                    'valid_until', a.valid_until,
-                    'created_at', a.created_at
-                  ))
-                  FROM UserLegalDocAccess a
-                  WHERE a.doc_id = d.id) as shared_with
+            SELECT d.id, d.user_id, d.title, d.description, d.category, 
+                   d.file_type, d.file_url, d.file_size, d.thumbnail_url, 
+                   d.is_encrypted, d.encryption_key, d.access_level, 
+                   d.metadata, d.tags, d.created_at, d.updated_at,
+                   u.username as owner_username, u.full_name as owner_name
             FROM UserLegalDocs d
+            JOIN Users u ON d.user_id = u.id
             WHERE d.id = $1
         `;
-
+        
         const params = [docId];
-
+        
         // Nếu có userId, kiểm tra quyền truy cập
         if (userId) {
             query += ` AND (
-                d.user_id = $2 
-                OR d.access_level = 'public'
-                OR (
-                    d.access_level = 'shared' 
-                    AND EXISTS (
-                        SELECT 1 FROM UserLegalDocAccess a 
-                        WHERE a.doc_id = d.id 
-                        AND a.granted_to = $2
-                        AND (a.valid_until IS NULL OR a.valid_until > NOW())
-                    )
-                )
+                d.user_id = $2 OR 
+                EXISTS (
+                    SELECT 1 FROM UserLegalDocAccess a 
+                    WHERE a.doc_id = d.id AND a.granted_to = $2
+                    AND (a.valid_until IS NULL OR a.valid_until > NOW())
+                ) OR
+                d.access_level = 'public'
             )`;
             params.push(userId);
         }
-
+        
         const result = await pool.query(query, params);
         
         if (result.rows.length === 0) {
             return null;
         }
         
-        return result.rows[0];
+        const doc = result.rows[0];
+        
+        // Nếu có userId, kiểm tra xem đây có phải là tài liệu được chia sẻ không
+        if (userId && doc.user_id !== userId) {
+            const accessQuery = `
+                SELECT array_agg(access_type) as permissions
+                FROM UserLegalDocAccess
+                WHERE doc_id = $1 AND granted_to = $2
+                AND (valid_until IS NULL OR valid_until > NOW())
+            `;
+            
+            const accessResult = await pool.query(accessQuery, [docId, userId]);
+            
+            if (accessResult.rows.length > 0 && accessResult.rows[0].permissions) {
+                doc.permissions = accessResult.rows[0].permissions;
+                doc.is_shared_with_me = true;
+            }
+        }
+        
+        // Lấy danh sách người được chia sẻ nếu người dùng hiện tại là chủ sở hữu
+        if (userId && doc.user_id === userId) {
+            const sharedWithQuery = `
+                SELECT u.id, u.username, u.email, u.full_name, 
+                       array_agg(a.access_type) as permissions,
+                       a.valid_until,
+                       a.created_at as shared_at
+                FROM UserLegalDocAccess a
+                JOIN Users u ON a.granted_to = u.id
+                WHERE a.doc_id = $1
+                GROUP BY u.id, u.username, u.email, u.full_name, a.valid_until, a.created_at
+            `;
+            
+            const sharedWithResult = await pool.query(sharedWithQuery, [docId]);
+            doc.shared_with = sharedWithResult.rows;
+        }
+        
+        return doc;
     } catch (error) {
         console.error('Lỗi khi lấy thông tin hồ sơ pháp lý:', error);
         throw error;
@@ -460,8 +487,35 @@ const shareLegalDoc = async (docId, sharedBy, sharedWith, permissions, validUnti
              `Chia sẻ hồ sơ pháp lý: ${checkOwnership.rows[0].title} với người dùng ID: ${sharedWith}`]
         );
         
+        // Lấy thông tin người dùng được chia sẻ
+        const sharedUserInfo = await client.query(
+            `SELECT id, username, email, full_name 
+             FROM Users 
+             WHERE id = $1`,
+            [sharedWith]
+        );
+        
+        // Lấy danh sách tất cả người dùng đã được chia sẻ
+        const allSharedUsers = await client.query(
+            `SELECT u.id, u.username, u.email, u.full_name, 
+                    array_agg(a.access_type) as permissions,
+                    a.valid_until,
+                    a.created_at as shared_at
+             FROM UserLegalDocAccess a
+             JOIN Users u ON a.granted_to = u.id
+             WHERE a.doc_id = $1
+             GROUP BY u.id, u.username, u.email, u.full_name, a.valid_until, a.created_at`,
+            [docId]
+        );
+        
         await client.query('COMMIT');
-        return { success: true, message: 'Đã chia sẻ hồ sơ pháp lý' };
+        return { 
+            success: true, 
+            message: 'Đã chia sẻ hồ sơ pháp lý', 
+            data: {
+                shared_with: allSharedUsers.rows
+            }
+        };
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Lỗi khi chia sẻ hồ sơ pháp lý:', error);
@@ -576,6 +630,8 @@ const analyzeDocWithAI = async (docId, userId) => {
 // Lấy danh sách hồ sơ được chia sẻ với người dùng
 const getSharedDocuments = async (userId, options = {}) => {
     try {
+        console.log(`Lấy danh sách hồ sơ được chia sẻ cho userId: ${userId}, options:`, options);
+        
         const { 
             page = 1, 
             limit = 10, 
@@ -590,7 +646,7 @@ const getSharedDocuments = async (userId, options = {}) => {
         let query = `
             SELECT d.id, d.title, d.description, d.category, d.file_type, d.file_url, 
                    d.thumbnail_url, d.access_level, d.tags, d.created_at, d.updated_at,
-                   u.username as owner_username, u.full_name as owner_name,
+                   u.username as owner_username, u.full_name as owner_name, u.id as owner_id,
                    array_agg(DISTINCT a.access_type) as permissions
             FROM UserLegalDocs d
             JOIN UserLegalDocAccess a ON d.id = a.doc_id
@@ -621,7 +677,7 @@ const getSharedDocuments = async (userId, options = {}) => {
         }
 
         // Group by để array_agg hoạt động đúng
-        query += ` GROUP BY d.id, u.username, u.full_name`;
+        query += ` GROUP BY d.id, u.id, u.username, u.full_name`;
         
         // Thêm sắp xếp
         query += ` ORDER BY d.${sortBy} ${sortOrder}`;
@@ -630,7 +686,15 @@ const getSharedDocuments = async (userId, options = {}) => {
         query += ` LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
         params.push(limit, offset);
 
+        console.log('Query:', query);
+        console.log('Params:', params);
+        
         const result = await pool.query(query, params);
+        
+        console.log(`Tìm thấy ${result.rows.length} tài liệu được chia sẻ`);
+        if (result.rows.length > 0) {
+            console.log('Mẫu tài liệu đầu tiên:', result.rows[0]);
+        }
         
         // Đếm tổng số hồ sơ (không áp dụng phân trang)
         let countQuery = `
@@ -662,8 +726,19 @@ const getSharedDocuments = async (userId, options = {}) => {
         const countResult = await pool.query(countQuery, countParams);
         const totalDocs = parseInt(countResult.rows[0].count);
         
+        // Thêm flag để đánh dấu các tài liệu là tài liệu được chia sẻ
+        const formattedRows = result.rows.map(doc => ({
+            ...doc,
+            is_shared_with_me: true,
+            shared_by: {
+                id: doc.owner_id,
+                username: doc.owner_username,
+                name: doc.owner_name
+            }
+        }));
+        
         return {
-            data: result.rows,
+            data: formattedRows,
             pagination: {
                 total: totalDocs,
                 page: parseInt(page),

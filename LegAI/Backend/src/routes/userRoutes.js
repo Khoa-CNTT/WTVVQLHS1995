@@ -111,4 +111,7 @@ router.post('/reset-sequence', authenticateToken, (req, res, next) => {
     });
 }, userController.resetUserSequence);
 
+// Tìm kiếm người dùng theo email
+router.get('/find-by-email', authenticateToken, userController.findUserByEmail);
+
 module.exports = router;

@@ -206,7 +206,7 @@ body {
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
-  z-index: 99;
+  z-index: 0;
 }
 
 .header h1 {

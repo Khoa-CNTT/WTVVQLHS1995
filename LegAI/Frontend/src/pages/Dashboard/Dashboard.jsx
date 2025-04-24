@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
 import authService from '../../services/authService';
@@ -10,9 +10,12 @@ import UserMenuPortal from './components/UserMenuPortal';
 import scraperService from '../../services/scraperService';
 import { toast } from 'react-toastify';
 import UpdateNotification from '../../components/Dashboard/UpdateNotification';
+import UserLegalDocsManager from './UserLegalDocs/UserLegalDocsManager';
 
 function Dashboard() {
   const navigate = useNavigate();
+  const params = useParams();
+  const location = useLocation();
   const [activeMenu, setActiveMenu] = useState('tổng-quan');
   const [statCounts, setStatCounts] = useState({
     documents: 0,
@@ -110,6 +113,13 @@ function Dashboard() {
     };
   }, []);
 
+  // Kiểm tra nếu đang ở route chi tiết hồ sơ
+  useEffect(() => {
+    if (location.pathname.includes('/dashboard/legal-docs/')) {
+      setActiveMenu('hồ-sơ-người-dùng');
+    }
+  }, [location.pathname]);
+
   const goToHomePage = () => navigate('/');
   const handleLogout = () => {
     authService.logout();
@@ -165,7 +175,8 @@ function Dashboard() {
   const menuItems = [
     { id: 'tổng-quan', label: 'Tổng Quan', icon: '⚖️' },
     { id: 'người-dùng', label: 'Tài Khoản', icon: '👨‍⚖️', table: 'Users, UserProfiles' },
-    { id: 'tài-liệu-pháp-lý', label: 'Tài Liệu Pháp Lý', icon: '📜', table: 'LegalDocuments, DocumentTemplates' },
+    { id: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: '📜', table: 'LegalDocuments, DocumentTemplates' },
+    { id: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: '📁', table: 'UserLegalDocs' },
     { id: 'vụ-án', label: 'Mẫu văn bản', icon: '🏛️', table: 'LegalCases' },
     { id: 'hợp-đồng', label: 'Hợp Đồng', icon: '📋', table: 'Contracts, DigitalSignatures' },
     { id: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: '🤖', table: 'AIConsultations' },
@@ -238,7 +249,7 @@ function Dashboard() {
 
   const renderLegalDocuments = () => (
     <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp lý
+      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp luật
         <button className={styles.updateButton} onClick={handleScrapeLegalDocuments}>Cập nhật dữ liệu mới từ thư viện pháp luật</button>
       </h2>
       <LegalDocumentsManager />
@@ -254,12 +265,20 @@ function Dashboard() {
     </div>
   );
 
+  const renderUserLegalDocs = () => (
+    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+      <h2 className={styles.sectionTitle}>Quản lý hồ sơ pháp lý của người dùng</h2>
+      <UserLegalDocsManager />
+    </div>
+  );
+
   const renderContent = () => {
     const sections = {
       'tổng-quan': renderDashboardOverview(),
       'người-dùng': renderUserProfile(),
       'tài-liệu-pháp-lý': renderLegalDocuments(),
       'vụ-án': renderDocumentTemplates(),
+      'hồ-sơ-người-dùng': renderUserLegalDocs(),
       'hợp-đồng': (
         <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
           <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng

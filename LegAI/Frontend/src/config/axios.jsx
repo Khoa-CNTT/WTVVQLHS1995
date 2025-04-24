@@ -20,6 +20,8 @@ axiosInstance.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.log('Gửi yêu cầu không có token');
     }
     
     return config;
@@ -35,6 +37,12 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Log chi tiết về lỗi
+    console.error('API Error:', error.config?.method?.toUpperCase(), error.config?.url, error.response?.status);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    }
+    
     // Xử lý lỗi xác thực (401 Unauthorized hoặc 403 Forbidden)
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       if (!isTokenAlertDisplayed) {
@@ -70,14 +78,45 @@ export const checkTokenExpiration = async () => {
   const token = localStorage.getItem('token');
   
   // Nếu không có token, không cần kiểm tra
-  if (!token) return;
+  if (!token) {
+    console.log('Không có token để kiểm tra');
+    return;
+  }
   
   try {
     // Gọi API kiểm tra token
-    await axiosInstance.get('/auth/verify-token');
+    const response = await axiosInstance.get('/auth/verify-token');
   } catch (error) {
-    // Nếu token không hợp lệ, sẽ tự động xử lý bởi interceptor ở trên
-    console.log('Kiểm tra token thất bại:', error);
+    console.error('Kiểm tra token thất bại:');
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+    } else if (error.request) {
+      console.error('Không nhận được phản hồi từ server');
+    } else {
+      console.error('Lỗi:', error.message);
+    }
+    
+    // Nếu token không hợp lệ và chưa có thông báo, hiển thị thông báo
+    if (error.response && (error.response.status === 401 || error.response.status === 403) && !isTokenAlertDisplayed) {
+      isTokenAlertDisplayed = true;
+      
+      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      
+      // Xóa thông tin đăng nhập
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Chuyển hướng về trang đăng nhập sau 1 giây
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1000);
+      
+      // Reset trạng thái hiển thị thông báo
+      setTimeout(() => {
+        isTokenAlertDisplayed = false;
+      }, 3000);
+    }
   }
 };
 
