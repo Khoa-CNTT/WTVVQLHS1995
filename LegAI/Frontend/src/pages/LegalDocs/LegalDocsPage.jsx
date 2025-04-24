@@ -6,7 +6,7 @@ import * as legalDocService from '../../services/legalDocService';
 import DocUploadModal from './components/DocUploadModal';
 import DocDetailsModal from './components/DocDetailsModal';
 import DocShareModal from './components/DocShareModal';
-import DocCard from '../../components/DocCard/DocCard';
+import DocCard from './components/DocCard';
 import DocSearchFilter from './components/DocSearchFilter';
 import DocAnalysisModal from './components/DocAnalysisModal';
 import LoadingSpinner from '../../components/Common/Spinner';

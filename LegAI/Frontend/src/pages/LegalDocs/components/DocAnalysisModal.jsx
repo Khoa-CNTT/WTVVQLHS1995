@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import styles from './DocAnalysisModal.module.css';
 import * as legalDocService from '../../../services/legalDocService';
+import * as legalDocAIService from '../../../services/legalDocAIService';
 
 const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
   const [analyzing, setAnalyzing] = useState(false);
@@ -33,7 +34,7 @@ const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
     };
   }, [analyzing, progress]);
 
-  // Bắt đầu phân tích tài liệu
+  // Phân tích tài liệu bằng AI
   const startAnalysis = async () => {
     setAnalyzing(true);
     setProgress(0);
@@ -41,15 +42,16 @@ const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
     setResult(null);
 
     try {
-      const response = await legalDocService.analyzeLegalDoc(doc.id);
+      // Gọi dịch vụ AI để phân tích tài liệu
+      const analysisResult = await legalDocAIService.analyzeLegalDocument(doc);
       
-      if (response.success) {
+      if (analysisResult.success) {
         setProgress(100);
-        setResult(response.data);
+        setResult(analysisResult.data);
         toast.success('Phân tích hồ sơ pháp lý thành công');
       } else {
-        setError(response.message || 'Không thể phân tích hồ sơ pháp lý');
-        toast.error(response.message || 'Không thể phân tích hồ sơ pháp lý');
+        setError(analysisResult.message || 'Không thể phân tích hồ sơ pháp lý');
+        toast.error(analysisResult.message || 'Không thể phân tích hồ sơ pháp lý');
       }
     } catch (error) {
       console.error(error);
