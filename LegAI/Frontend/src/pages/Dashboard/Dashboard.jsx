@@ -11,6 +11,7 @@ import scraperService from '../../services/scraperService';
 import { toast } from 'react-toastify';
 import UpdateNotification from '../../components/Dashboard/UpdateNotification';
 import UserLegalDocsManager from './UserLegalDocs/UserLegalDocsManager';
+import NotificationMenuPortal from './components/NotificationMenuPortal';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ function Dashboard() {
   const userAvatarRef = useRef(null);
   const userDropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
-  const notificationRef = useRef(null);
+  const [notificationPosition, setNotificationPosition] = useState({ top: 0, right: 0 });
+  const notificationIconRef = useRef(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -101,24 +103,22 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setShowNotifications(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Kiểm tra nếu đang ở route chi tiết hồ sơ
-  useEffect(() => {
+    // Kiểm tra nếu đang ở route chi tiết hồ sơ
     if (location.pathname.includes('/dashboard/legal-docs/')) {
       setActiveMenu('hồ-sơ-người-dùng');
     }
   }, [location.pathname]);
+
+  // Cập nhật vị trí của dropdown thông báo dựa vào vị trí của icon
+  useEffect(() => {
+    if (showNotifications && notificationIconRef.current) {
+      const rect = notificationIconRef.current.getBoundingClientRect();
+      setNotificationPosition({
+        top: rect.bottom + 5,
+        right: window.innerWidth - rect.right
+      });
+    }
+  }, [showNotifications]);
 
   const goToHomePage = () => navigate('/');
   const handleLogout = () => {
@@ -282,7 +282,6 @@ function Dashboard() {
       'hợp-đồng': (
         <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
           <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng
-            <button className={styles.updateButton} onClick={handleScrapeContracts}>Cập nhật hợp đồng mới từ thư viện pháp luật</button>
           </h2>
           <div className={styles.comingSoon}>Tính năng đang được phát triển</div>
         </div>
@@ -406,10 +405,14 @@ function Dashboard() {
             <div className={styles.currentDate}>{getCurrentDate()}</div>
           </div>
           <div className={styles.userInfo}>
-            <div className={styles.notifications} ref={notificationRef}>
+            <div className={styles.notifications}>
               <span 
+                ref={notificationIconRef}
                 className={styles.notificationIcon} 
-                onClick={toggleNotifications}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNotifications();
+                }}
               >
                 🔔
               </span>
@@ -417,41 +420,15 @@ function Dashboard() {
                 <span className={styles.notificationBadge}>{notifications}</span>
               }
               
-              {showNotifications && (
-                <div className={styles.notificationDropdown}>
-                  <h3 className={styles.notificationTitle}>Thông báo cập nhật</h3>
-                  
-                  {notificationsLoading ? (
-                    <div className={styles.notificationLoading}>
-                      <div className={styles.spinner}></div>
-                      <p>Đang tải thông báo...</p>
-                    </div>
-                  ) : notificationItems.length > 0 ? (
-                    <div className={styles.notificationList}>
-                      {notificationItems.map(item => (
-                        <div key={item.id} className={styles.notificationItem}>
-                          <div className={styles.notificationContent}>
-                            <p className={styles.notificationDetails}>{item.details}</p>
-                            <p className={styles.notificationTime}>{formatDateTime(item.created_at)}</p>
-                          </div>
-                          <button 
-                            className={styles.markReadButton}
-                            onClick={() => handleMarkAsRead(item.id)}
-                            title="Đánh dấu đã đọc"
-                          >
-                            ✓
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyNotification}>
-                      <span className={styles.emptyIcon}>📭</span>
-                      <p>Không có thông báo mới</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <NotificationMenuPortal
+                isOpen={showNotifications}
+                position={notificationPosition}
+                onClose={() => setShowNotifications(false)}
+                notifications={notificationItems}
+                loading={notificationsLoading}
+                onMarkAsRead={handleMarkAsRead}
+                formatDateTime={formatDateTime}
+              />
             </div>
             <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
             <div 
