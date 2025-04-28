@@ -147,31 +147,70 @@
   margin-top: 20px;
 }
 
-.resultSection {
-  margin-bottom: 25px;
+.resultContainer {
+  animation: fadeIn 0.5s ease;
+  margin-top: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.resultSection h3 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.resultHeader i {
+  color: #34a853;
+  font-size: 1.2rem;
+}
+
+.resultHeader h3 {
+  margin: 0;
   color: #333;
+}
+
+.analysisResult {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.resultSection {
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #4285f4;
+}
+
+.resultSection h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.05rem;
+  color: #1a73e8;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.resultSection h3 i {
-  color: #4285f4;
-  font-size: 1rem;
+.documentType {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: #333;
+  font-size: 1.1rem;
 }
 
-.summaryText {
-  line-height: 1.6;
-  color: #333;
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-  border-left: 3px solid #4285f4;
+.documentType i {
+  color: #fbbc05;
+  font-size: 1.2rem;
 }
 
 .keywordsList {
@@ -187,27 +226,155 @@
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-block;
 }
 
-.entityList {
+.entitiesList {
   list-style: none;
   padding: 0;
   margin: 10px 0;
 }
 
 .entityItem {
-  padding: 8px 0;
+  padding: 8px 12px;
   border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.entityText {
+  font-weight: 500;
+  color: #333;
 }
 
 .entityType {
   font-size: 0.85rem;
   color: #666;
   background-color: #f1f1f1;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
+  font-weight: 400;
+}
+
+.recommendations {
+  line-height: 1.6;
+}
+
+.recommendationsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendationsList li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.recommendationsList li:before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #4285f4;
+  font-weight: bold;
+}
+
+.loadingIndicator {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  animation: fadeIn 0.5s ease;
+}
+
+.processingText {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.processingText i {
+  color: #4285f4;
+  font-size: 1.2rem;
+}
+
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.taskItem {
+  padding: 8px 0;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.taskItem i {
+  color: #ccc;
+}
+
+.activeTask {
+  color: #333;
+}
+
+.activeTask i {
+  color: #34a853;
+}
+
+.errorContainer {
+  text-align: center;
+  padding: 30px;
+  margin: 20px 0;
+  background-color: #fdeded;
+  border-radius: 8px;
+  animation: fadeIn 0.5s ease;
+}
+
+.errorContainer i {
+  color: #ea4335;
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.errorContainer h3 {
+  margin: 0 0 10px 0;
+  color: #ea4335;
+}
+
+.errorContainer p {
+  margin: 0 0 20px 0;
+  color: #666;
+}
+
+.retryButton {
+  background-color: #ea4335;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retryButton:hover {
+  background-color: #d33426;
 }
 
 .analyzeButton, .closeButton {
@@ -298,9 +465,6 @@
 .cancelButton:hover {
   background-color: #e4e4e4;
 }
-
-
-
 
 @keyframes spin {
   0% {

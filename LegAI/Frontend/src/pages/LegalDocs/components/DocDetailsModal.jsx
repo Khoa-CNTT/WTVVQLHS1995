@@ -134,12 +134,24 @@ const DocDetailsModal = ({ doc, categories, onClose, onUpdate, isOwner }) => {
                   <i className="fas fa-robot"></i>
                   <h3>Phân tích AI</h3>
                 </div>
+                
+                {doc.metadata.document_type && (
+                  <div className={styles.aiSection}>
+                    <h4>Loại văn bản</h4>
+                    <div className={styles.documentType}>
+                      <i className="fas fa-file-contract"></i>
+                      <span>{doc.metadata.document_type}</span>
+                    </div>
+                  </div>
+                )}
+                
                 {doc.metadata.summary && (
                   <div className={styles.aiSection}>
                     <h4>Tóm tắt</h4>
                     <p>{doc.metadata.summary}</p>
                   </div>
                 )}
+                
                 {doc.metadata.keywords && doc.metadata.keywords.length > 0 && (
                   <div className={styles.aiSection}>
                     <h4>Từ khóa chính</h4>
@@ -150,16 +162,40 @@ const DocDetailsModal = ({ doc, categories, onClose, onUpdate, isOwner }) => {
                     </div>
                   </div>
                 )}
+                
                 {doc.metadata.entities && doc.metadata.entities.length > 0 && (
                   <div className={styles.aiSection}>
                     <h4>Thực thể quan trọng</h4>
                     <ul className={styles.aiList}>
                       {doc.metadata.entities.map((entity, index) => (
-                        <li key={index}>{entity.text} <span>({entity.type})</span></li>
+                        <li key={index}>
+                          <span className={styles.entityText}>{entity.text}</span> 
+                          <span className={styles.entityType}>{entity.type}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
+                
+                {doc.metadata.recommendations && (
+                  <div className={styles.aiSection}>
+                    <h4>Đề xuất & Lưu ý</h4>
+                    <div className={styles.recommendations}>
+                      {Array.isArray(doc.metadata.recommendations) ? 
+                        <ul className={styles.aiList}>
+                          {doc.metadata.recommendations.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul> : 
+                        <p>{doc.metadata.recommendations}</p>
+                      }
+                    </div>
+                  </div>
+                )}
+                
+                <div className={styles.aiFooter}>
+                  <small>Phân tích ngày: {formatDate(doc.metadata.analyzed_at || doc.updated_at)}</small>
+                </div>
               </div>
             )}
 

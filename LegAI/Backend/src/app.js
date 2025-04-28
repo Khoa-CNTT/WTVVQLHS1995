@@ -67,6 +67,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
   origin: 'http://localhost:3000'
 }));
+
 // Cấu hình thư mục tĩnh để truy cập files
 app.use('/uploads', express.static(uploadsDir, {
     setHeaders: (res, path) => {

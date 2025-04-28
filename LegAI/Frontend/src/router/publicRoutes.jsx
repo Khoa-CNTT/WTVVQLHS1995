@@ -13,7 +13,6 @@ import ForgotPassword from '../pages/ForgotPassword/ForgotPassword';
 import TestApiConnection from '../components/TestApiConnection';
 import { useLocation } from 'react-router-dom';
 import ChangePassword from '../pages/Profile/ChangePassword/ChangePasssword'
-import HomePage from '../pages/Home/Home';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
 import ChangePasswordPage from '../pages/Profile/ChangePassword/ChangePasssword';

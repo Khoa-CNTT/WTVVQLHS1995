@@ -581,7 +581,6 @@ const analyzeDoc = asyncHandler(async (req, res) => {
     
     try {
         // Nếu file được mã hóa, giải mã trước khi phân tích
-        let fileContent = null;
         let extractedText = null;
         
         if (doc.is_encrypted && doc.encryption_key) {
@@ -606,6 +605,12 @@ const analyzeDoc = asyncHandler(async (req, res) => {
                 fs.unlinkSync(tempPath);
             } else if (doc.file_type === 'txt') {
                 extractedText = decryptedBuffer.toString('utf8');
+            } else if (['jpg', 'jpeg', 'png', 'gif'].includes(doc.file_type)) {
+                // Thông báo không hỗ trợ phân tích hình ảnh
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không hỗ trợ phân tích file hình ảnh. Vui lòng chuyển đổi sang định dạng PDF hoặc DOCX.'
+                });
             }
         } else {
             // Nếu file không được mã hóa, đọc trực tiếp
@@ -616,45 +621,155 @@ const analyzeDoc = asyncHandler(async (req, res) => {
                 extractedText = await extractTextFromDOCX(filePath);
             } else if (doc.file_type === 'txt') {
                 extractedText = fs.readFileSync(filePath, 'utf8');
+            } else if (['jpg', 'jpeg', 'png', 'gif'].includes(doc.file_type)) {
+                // Thông báo không hỗ trợ phân tích hình ảnh
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không hỗ trợ phân tích file hình ảnh. Vui lòng chuyển đổi sang định dạng PDF hoặc DOCX.'
+                });
             }
         }
+
+        // Kiểm tra xem có trích xuất được text không
+        if (!extractedText) {
+            return res.status(400).json({
+                success: false,
+                message: 'Không thể trích xuất nội dung từ file'
+            });
+        }
         
-        // TODO: Tích hợp với AI API để phân tích nội dung
-        // Giả định AI phân tích và trả về kết quả
-        const aiAnalysis = {
-            summary: "Đây là bản tóm tắt tự động được tạo bởi AI.",
-            document_type: "Tự động xác định loại văn bản pháp lý.",
-            keywords: extractedText 
-                ? extractedText
-                    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
-                    .split(' ')
-                    .filter(word => word.length > 4)
-                    .slice(0, 10)
-                : [],
-            entities: [],
-            sentiment: "neutral",
-            recommendations: "Đây chỉ là phân tích mẫu. Trong thực tế, AI sẽ đưa ra các khuyến nghị dựa trên nội dung văn bản."
+        // Tích hợp với Ollama API để phân tích nội dung
+        const ollamaService = require('../services/ollamaService');
+        
+        // Thiết lập tiền xử lý kết quả từ AI để đảm bảo có JSON
+        const fallbackResponse = {
+            summary: `Tài liệu "${doc.title}" thuộc danh mục ${doc.category || 'chưa phân loại'}.`,
+            keywords: [],
+            document_type: doc.category ? `Tài liệu ${doc.category}` : "Tài liệu văn bản",
+            entities: [
+                {"text": doc.title, "type": "Tên tài liệu"},
+                {"text": new Date(doc.created_at).toLocaleDateString('vi-VN'), "type": "Ngày tạo"}
+            ],
+            recommendations: `Nghiên cứu kỹ nội dung của tài liệu này. Tham khảo ý kiến chuyên gia trong lĩnh vực ${doc.category || 'pháp lý'} nếu cần thêm thông tin.`
         };
         
-        // Cập nhật metadata với kết quả phân tích
-        const updatedMetadata = {
-            ...doc.metadata,
-            analyzed: true,
-            analyzed_at: new Date().toISOString(),
-            ai_analysis: aiAnalysis
-        };
+        console.log(`Bắt đầu phân tích hồ sơ ID: ${docId} của người dùng ID: ${userId}`);
         
-        // Cập nhật vào database
-        await userLegalDocModel.updateLegalDoc(docId, userId, {
-            metadata: updatedMetadata,
-            tags: [...new Set([...(doc.tags || []), ...aiAnalysis.keywords])]
-        });
-        
-        res.status(200).json({
-            success: true,
-            data: aiAnalysis,
-            message: 'Đã phân tích hồ sơ pháp lý thành công'
-        });
+        try {
+            // Chuẩn bị prompt cho AI - cải tiến để tăng khả năng thành công
+            const prompt = `Phân tích dữ liệu từ tài liệu sau và trả về kết quả ở định dạng JSON (và chỉ JSON, không có gì khác).
+
+Tài liệu: "${doc.title}" 
+Loại file: ${doc.file_type}
+Danh mục: ${doc.category || 'Không xác định'}
+
+Nội dung: 
+${extractedText.substring(0, 4000)}
+
+Định dạng JSON cần trả về:
+{
+  "summary": "Tóm tắt chi tiết về nội dung văn bản, bao gồm các điểm chính, thông tin quan trọng và bối cảnh. Tóm tắt phải đầy đủ, dài ít nhất 200-300 từ và có cấu trúc tốt.",
+  "keywords": ["từ khóa 1", "từ khóa 2", "từ khóa 3", "từ khóa 4", "từ khóa 5"],
+  "document_type": "Loại văn bản",
+  "entities": [
+    {"text": "Tên thực thể", "type": "Loại thực thể"}
+  ],
+  "recommendations": "Đề xuất chi tiết dựa trên nội dung, đưa ra ít nhất 3-5 đề xuất cụ thể"
+}
+
+QUAN TRỌNG: 
+- KHÔNG TRẢ LỜI BẰNG VĂN BẢN
+- KHÔNG SỬ DỤNG MARKDOWN
+- KHÔNG DÙNG DẤU BACKTICK
+- CHỈ TRẢ VỀ JSON HỢP LỆ`;
+            
+            // Gọi Ollama API với nhiệt độ thấp
+            const aiResponse = await ollamaService.generateResponse(prompt, [], {
+                temperature: 0.1,
+                max_tokens: 1024
+            });
+            
+            console.log('Nhận được phản hồi từ AI, bắt đầu xử lý...');
+            
+            // Xử lý phản hồi từ AI
+            let aiAnalysis;
+            try {
+                // Phát hiện phần JSON trong phản hồi
+                const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
+                                  aiResponse.match(/```\s*([\s\S]*?)\s*```/) ||
+                                  aiResponse.match(/\{[\s\S]*\}/);
+                                  
+                if (!jsonMatch) {
+                    console.error('Không tìm thấy JSON trong phản hồi AI:', aiResponse);
+                    throw new Error('Không tìm thấy JSON trong phản hồi');
+                }
+                
+                const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : aiResponse;
+                console.log('Đã trích xuất JSON:', jsonStr.substring(0, 100) + '...');
+                
+                try {
+                    aiAnalysis = JSON.parse(jsonStr);
+                    console.log('Phân tích JSON thành công');
+                } catch (jsonError) {
+                    console.error('Lỗi khi phân tích JSON:', jsonError);
+                    
+                    // Thử sửa chuỗi JSON nếu có thể
+                    const fixedJsonStr = jsonStr.replace(/\n/g, ' ')
+                                               .replace(/,\s*}/g, '}')
+                                               .replace(/,\s*]/g, ']')
+                                               .replace(/'/g, '"')
+                                               .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
+                    
+                    try {
+                        console.log('Thử phân tích JSON đã sửa:', fixedJsonStr.substring(0, 100) + '...');
+                        aiAnalysis = JSON.parse(fixedJsonStr);
+                    } catch (fixError) {
+                        console.error('Không thể khắc phục JSON:', fixError);
+                        // Sử dụng phản hồi dự phòng nếu không thể sửa JSON
+                        aiAnalysis = createFallbackAnalysis(extractedText, doc);
+                    }
+                }
+            } catch (error) {
+                console.error('Lỗi khi xử lý phản hồi từ AI:', error);
+                console.error('Phản hồi gốc từ AI:', aiResponse);
+                
+                // Tạo phân tích dự phòng nếu không thể xử lý phản hồi
+                aiAnalysis = createFallbackAnalysis(extractedText, doc);
+            }
+            
+            // Đảm bảo aiAnalysis có đủ các trường cần thiết
+            ensureAnalysisFields(aiAnalysis, extractedText, doc);
+            
+            // Cập nhật metadata với kết quả phân tích
+            const updatedMetadata = {
+                ...doc.metadata,
+                analyzed: true,
+                analyzed_at: new Date().toISOString(),
+                summary: aiAnalysis.summary,
+                keywords: aiAnalysis.keywords,
+                document_type: aiAnalysis.document_type,
+                entities: aiAnalysis.entities,
+                recommendations: aiAnalysis.recommendations
+            };
+            
+            // Cập nhật vào database
+            await userLegalDocModel.updateLegalDoc(docId, userId, {
+                metadata: updatedMetadata,
+                tags: [...new Set([...(doc.tags || []), ...aiAnalysis.keywords])]
+            });
+            
+            res.status(200).json({
+                success: true,
+                data: aiAnalysis,
+                message: 'Đã phân tích hồ sơ pháp lý thành công'
+            });
+        } catch (error) {
+            console.error('Lỗi khi phân tích hồ sơ:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi phân tích hồ sơ: ' + error.message
+            });
+        }
     } catch (error) {
         console.error('Lỗi khi phân tích hồ sơ:', error);
         res.status(500).json({
@@ -663,6 +778,198 @@ const analyzeDoc = asyncHandler(async (req, res) => {
         });
     }
 });
+
+// Hàm hỗ trợ tạo phân tích dự phòng
+function createFallbackAnalysis(extractedText, doc) {
+    // Trích xuất đoạn văn bản có ý nghĩa
+    const paragraphs = extractedText
+        .split(/\n\s*\n/)
+        .filter(p => p.trim().length > 50);
+    
+    // Lấy các đoạn văn đầu tiên có ý nghĩa làm tóm tắt
+    const firstParagraphs = paragraphs.length > 0 
+        ? paragraphs.slice(0, Math.min(5, paragraphs.length)).join('\n\n')
+        : extractedText.substring(0, 800);
+    
+    // Tóm tắt chi tiết hơn
+    const summary = `Tài liệu "${doc.title}" thuộc danh mục ${doc.category || 'chưa phân loại'} chứa các nội dung chính sau:\n\n
+    ${firstParagraphs}\n\n
+    Đây là một tài liệu quan trọng có thể liên quan đến các vấn đề pháp lý trong lĩnh vực ${doc.category || 'pháp lý'}. 
+    Nội dung tài liệu bao gồm các thông tin, quy định và hướng dẫn cần được xem xét kỹ lưỡng.
+    Người đọc nên chú ý đến các chi tiết được đề cập và tham khảo ý kiến chuyên gia nếu cần thêm thông tin.`;
+    
+    // Trích xuất từ khóa từ nội dung
+    const text = extractedText.toLowerCase();
+    const stopWords = [
+        "và", "hoặc", "là", "của", "trong", "có", "không", "được", "các", "những",
+        "này", "khi", "về", "như", "theo", "cho", "tại", "từ", "với", "để"
+    ];
+    
+    // Tạo danh sách n-gram (1-3 từ liên tiếp)
+    const words = text.split(/\s+/);
+    const phrases = new Map();
+    
+    // Đếm từ đơn (loại bỏ stopwords và từ ngắn)
+    words.forEach(word => {
+        word = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+        if (word.length > 3 && !stopWords.includes(word)) {
+            phrases.set(word, (phrases.get(word) || 0) + 1);
+        }
+    });
+    
+    // Chuyển Map thành mảng và sắp xếp theo tần suất
+    const sortedPhrases = [...phrases.entries()]
+        .filter(([phrase, count]) => count > 2) // Lọc bỏ từ xuất hiện ít
+        .sort((a, b) => b[1] - a[1]) // Sắp xếp giảm dần theo tần suất
+        .map(entry => entry[0]);
+    
+    // Trích xuất ngày tháng
+    const dateRegex = /\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|ngày\s+\d{1,2}\s+tháng\s+\d{1,2}\s+năm\s+\d{4}/g;
+    const dates = extractedText.match(dateRegex) || [];
+    
+    // Tạo danh sách thực thể
+    const entities = [];
+    
+    // Thêm ngày tháng vào thực thể
+    dates.slice(0, 3).forEach(date => {
+        entities.push({
+            text: date,
+            type: "Ngày tháng"
+        });
+    });
+    
+    // Thêm tên tài liệu và ngày tạo vào thực thể
+    entities.push({
+        text: doc.title,
+        type: "Tên tài liệu"
+    });
+    
+    if (doc.created_at) {
+        entities.push({
+            text: new Date(doc.created_at).toLocaleDateString('vi-VN'),
+            type: "Ngày tạo"
+        });
+    }
+    
+    // Đề xuất chi tiết hơn
+    const recommendations = `
+    1. Nghiên cứu kỹ nội dung của tài liệu này, chú ý các điều khoản quan trọng và các thông tin cụ thể.
+    
+    2. Tham khảo ý kiến chuyên gia trong lĩnh vực ${doc.category || 'pháp lý'} để hiểu rõ hơn về tính áp dụng của tài liệu này.
+    
+    3. So sánh nội dung tài liệu với các quy định pháp luật hiện hành để đảm bảo tuân thủ.
+    
+    4. Lưu trữ tài liệu trong hệ thống quản lý tài liệu có tổ chức để dễ dàng tra cứu khi cần.
+    
+    5. Cập nhật định kỳ thông tin liên quan để đảm bảo tài liệu luôn phù hợp với các quy định mới nhất.`;
+    
+    return {
+        summary: summary,
+        keywords: sortedPhrases.slice(0, 8),
+        document_type: doc.category ? `Tài liệu ${doc.category}` : "Tài liệu văn bản",
+        entities: entities,
+        recommendations: recommendations
+    };
+}
+
+// Hàm đảm bảo đủ các trường trong phân tích
+function ensureAnalysisFields(analysis, extractedText, doc) {
+    // Kiểm tra và cải thiện tóm tắt
+    if (!analysis.summary || 
+        analysis.summary.includes("Xin lỗi") || 
+        analysis.summary.includes("không thể") || 
+        analysis.summary.includes("Không thể") ||
+        analysis.summary.length < 100) {
+        
+        // Trích xuất đoạn văn bản có ý nghĩa
+        const paragraphs = extractedText
+            .split(/\n\s*\n/)
+            .filter(p => p.trim().length > 100)
+            .slice(0, 5);
+        
+        if (paragraphs.length > 0) {
+            const contentSummary = paragraphs.join('\n\n').substring(0, 800);
+            analysis.summary = `Tài liệu "${doc.title}" thuộc lĩnh vực ${doc.category || 'pháp lý'} có các nội dung chính như sau:\n\n
+            ${contentSummary}\n\n
+            Đây là tài liệu quan trọng cần được xem xét kỹ lưỡng và có thể có ý nghĩa pháp lý đáng kể trong lĩnh vực ${doc.category || 'pháp lý'}.
+            Người đọc nên chú ý tới các thông tin được trình bày và tham khảo ý kiến chuyên gia để hiểu rõ tính áp dụng của tài liệu này.`;
+        } else {
+            // Nếu không tìm thấy đoạn văn có ý nghĩa, sử dụng các từ đầu tiên
+            const words = extractedText.split(' ').slice(0, 150).join(' ');
+            analysis.summary = `Tài liệu "${doc.title}" có nội dung bắt đầu với: "${words}..."\n\n 
+            Đây là tài liệu thuộc lĩnh vực ${doc.category || 'pháp lý'} cần được xem xét chi tiết. 
+            Tài liệu có thể chứa thông tin pháp lý quan trọng và người đọc nên tham khảo ý kiến chuyên môn để hiểu rõ nội dung và tính áp dụng.`;
+        }
+    }
+    
+    // Đảm bảo keywords là mảng
+    if (!Array.isArray(analysis.keywords) || analysis.keywords.length === 0) {
+        const text = extractedText.toLowerCase();
+        const stopWords = [
+            "và", "hoặc", "là", "của", "trong", "có", "không", "được", "các", "những",
+            "này", "khi", "về", "như", "theo", "cho", "tại", "từ", "với", "để"
+        ];
+        
+        const words = text.split(/\s+/);
+        const wordCount = {};
+        
+        words.forEach(word => {
+            word = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+            if (word.length > 3 && !stopWords.includes(word)) {
+                wordCount[word] = (wordCount[word] || 0) + 1;
+            }
+        });
+        
+        analysis.keywords = Object.entries(wordCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(entry => entry[0]);
+    }
+    
+    // Đảm bảo document_type
+    if (!analysis.document_type || 
+        analysis.document_type.includes("không thể xác định") || 
+        analysis.document_type.includes("Không thể xác định")) {
+        
+        analysis.document_type = doc.category ? 
+            `Tài liệu ${doc.category}` : 
+            "Tài liệu văn bản";
+    }
+    
+    // Đảm bảo entities là mảng
+    if (!Array.isArray(analysis.entities) || analysis.entities.length === 0) {
+        analysis.entities = [
+            {
+                text: doc.title,
+                type: "Tên tài liệu"
+            }
+        ];
+        
+        if (doc.created_at) {
+            analysis.entities.push({
+                text: new Date(doc.created_at).toLocaleDateString('vi-VN'),
+                type: "Ngày tạo"
+            });
+        }
+    }
+    
+    // Đảm bảo có recommendations chi tiết
+    if (!analysis.recommendations || 
+        analysis.recommendations.includes("Xin lỗi") || 
+        analysis.recommendations.length < 100) {
+        
+        analysis.recommendations = `
+        1. Nghiên cứu kỹ nội dung của tài liệu này, chú ý các điều khoản quan trọng và các thông tin cụ thể.
+        
+        2. Tham khảo ý kiến chuyên gia trong lĩnh vực ${doc.category || 'pháp lý'} để hiểu rõ hơn về tính áp dụng của tài liệu này.
+        
+        3. So sánh nội dung tài liệu với các quy định pháp luật hiện hành để đảm bảo tuân thủ.
+        
+        4. Lưu trữ tài liệu trong hệ thống quản lý tài liệu có tổ chức để dễ dàng tra cứu khi cần.
+        
+        5. Cập nhật định kỳ thông tin liên quan để đảm bảo tài liệu luôn phù hợp với các quy định mới nhất.`;
+    }
+}
 
 // API endpoint để lấy danh sách hồ sơ được chia sẻ
 const getSharedDocs = asyncHandler(async (req, res) => {

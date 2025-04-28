@@ -15,6 +15,54 @@ const MODEL_NAME = "qwen2.5:3b";
  */
 const generateResponse = async (prompt, documents = [], options = {}) => {
   try {
+    // Kiểm tra xem có phải là yêu cầu phân tích JSON không (dùng cho phân tích tài liệu)
+    const isJsonMode = options.jsonMode || (prompt.includes('JSON') && prompt.includes('{') && prompt.length > 500);
+    
+    // Nếu là chế độ JSON, bỏ qua các kiểm tra pattern và sử dụng prompt hệ thống đặc biệt
+    if (isJsonMode) {
+      console.log('Sử dụng chế độ JSON đặc biệt');
+      
+      // Tạo system prompt đặc biệt cho chế độ JSON
+      const jsonSystemPrompt = `Bạn là trợ lý phân tích tài liệu AI. 
+NHIỆM VỤ QUAN TRỌNG: 
+- Phản hồi CHỈ VÀ CHỈ bằng cú pháp JSON hợp lệ
+- KHÔNG GHI thêm bất kỳ văn bản nào ngoài JSON
+- KHÔNG sử dụng dấu backtick hoặc markdown
+- KHÔNG bao gồm phần mở đầu hoặc kết thúc nào
+- KHÔNG xin lỗi hoặc giải thích bất cứ điều gì
+- Nếu không thể phân tích chính xác, vẫn TRẢ VỀ JSON chứa thông tin hữu ích nhất có thể`;
+      
+      // Gọi API với system prompt đặc biệt
+      const response = await axios.post(OLLAMA_API_URL, {
+        model: MODEL_NAME,
+        messages: [
+          {
+            role: "system",
+            content: jsonSystemPrompt
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        stream: false,
+        options: {
+          temperature: options.temperature || 0.1,
+          top_p: options.top_p || 0.95,
+          top_k: 40,
+          stream: false,
+          num_predict: options.max_tokens || 2000
+        }
+      });
+      
+      if (response.data && response.data.message && response.data.message.content) {
+        return response.data.message.content;
+      } else {
+        throw new Error('Không nhận được phản hồi hợp lệ từ AI');
+      }
+    }
+    
+    // Xử lý thông thường cho các trường hợp khác
     // Kiểm tra xem câu hỏi có phải là lời chào đơn giản không
     const greetingPatterns = [
       /^(xin\s*)?ch[aà]o(\s*\w*)*$/i,
@@ -50,11 +98,11 @@ const generateResponse = async (prompt, documents = [], options = {}) => {
       },
       {
         pattern: /dài quá|ngắn lại|ngắn gọn|tóm tắt|quá dài|nhiều quá/i,
-        response: "Xin lỗi! Tôi sẽ cố gắng trả lời ngắn gọn hơn trong các câu trả lời tiếp theo."
+        response: "Tôi sẽ cố gắng trả lời ngắn gọn và đi thẳng vào vấn đề. Bạn muốn biết thông tin cụ thể nào?"
       },
       {
         pattern: /ngu|kém|không biết gì|chả biết gì|tệ|tệ quá/i,
-        response: "Tôi xin lỗi nếu câu trả lời của tôi chưa đáp ứng được mong đợi của bạn. Tôi đang cố gắng học hỏi và cải thiện mỗi ngày."
+        response: "Tôi hiểu bạn đang cần thông tin chính xác hơn. Hãy cho tôi biết bạn muốn tìm hiểu điều gì cụ thể để tôi có thể hỗ trợ tốt hơn."
       }
     ];
     
@@ -135,7 +183,8 @@ KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá 
       temperature: options.temperature || 0.3, // Giá trị thấp để đảm bảo tính chính xác
       top_p: options.top_p || 0.95,
       top_k: options.top_k || 40,
-      stream: false
+      stream: false,
+      num_predict: options.max_tokens || 1024
     };
 
     // Chuẩn bị messages cho API

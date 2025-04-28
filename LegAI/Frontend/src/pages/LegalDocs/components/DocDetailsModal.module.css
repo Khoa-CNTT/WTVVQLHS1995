@@ -143,72 +143,140 @@
 }
 
 .aiAnalysis {
-  background-color: #f9fafb;
+  margin-top: 25px;
+  padding: 18px;
+  background-color: #f8f9fa;
   border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+  border-left: 3px solid #4285f4;
+  animation: fadeIn 0.5s ease;
 }
 
 .aiHeader {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  color: #4264d0;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .aiHeader i {
-  margin-right: 8px;
-  font-size: 1.125rem;
+  color: #4285f4;
+  font-size: 1.2rem;
 }
 
 .aiHeader h3 {
   margin: 0;
-  font-size: 1.125rem;
+  color: #333;
+  font-size: 1.1rem;
 }
 
 .aiSection {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dotted #e0e0e0;
+}
+
+.aiSection:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .aiSection h4 {
-  margin: 0 0 8px 0;
-  font-size: 1rem;
-  color: #4b5563;
+  margin: 0 0 10px 0;
+  color: #1a73e8;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .aiSection p {
   margin: 0;
   line-height: 1.6;
-  color: #4b5563;
+  color: #333;
 }
 
 .aiTags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 5px;
 }
 
 .aiTag {
-  background-color: #e5edff;
-  color: #4264d0;
-  padding: 4px 10px;
+  background-color: rgba(66, 133, 244, 0.1);
+  color: #4285f4;
+  padding: 5px 10px;
   border-radius: 16px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  display: inline-block;
 }
 
 .aiList {
-  padding-left: 20px;
-  margin: 0;
+  margin: 8px 0 0 0;
+  padding: 0 0 0 10px;
+  list-style: none;
 }
 
 .aiList li {
-  margin-bottom: 6px;
-  color: #4b5563;
+  margin-bottom: 8px;
+  padding-left: 15px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.aiList li span {
-  color: #6b7280;
-  font-size: 0.875rem;
+.aiList li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #4285f4;
+  font-weight: bold;
+}
+
+.entityText {
+  font-weight: 500;
+  color: #333;
+}
+
+.entityType {
+  font-size: 0.75rem;
+  color: #666;
+  background-color: #f1f1f1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.documentType {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #333;
+  margin-top: 5px;
+}
+
+.documentType i {
+  color: #fbbc05;
+  font-size: 1rem;
+}
+
+.recommendations {
+  margin-top: 5px;
+}
+
+.aiFooter {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dotted #e0e0e0;
+  text-align: right;
+}
+
+.aiFooter small {
+  color: #666;
+  font-size: 0.8rem;
 }
 
 .formGroup {

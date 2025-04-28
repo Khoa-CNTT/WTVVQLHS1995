@@ -158,6 +158,16 @@ const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
 
               {result.metadata && (
                 <div className={styles.analysisResult}>
+                  {result.metadata.document_type && (
+                    <div className={styles.resultSection}>
+                      <h4>Loại văn bản</h4>
+                      <div className={styles.documentType}>
+                        <i className="fas fa-file-contract"></i>
+                        <span>{result.metadata.document_type}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {result.metadata.summary && (
                     <div className={styles.resultSection}>
                       <h4>Tóm tắt</h4>
@@ -181,8 +191,9 @@ const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
                       <h4>Thực thể quan trọng</h4>
                       <ul className={styles.entitiesList}>
                         {result.metadata.entities.map((entity, index) => (
-                          <li key={index}>
-                            <strong>{entity.text}</strong> <span>({entity.type})</span>
+                          <li key={index} className={styles.entityItem}>
+                            <span className={styles.entityText}>{entity.text}</span>
+                            <span className={styles.entityType}>{entity.type}</span>
                           </li>
                         ))}
                       </ul>
@@ -191,15 +202,17 @@ const DocAnalysisModal = ({ doc, onClose, onComplete }) => {
                   
                   {result.metadata.recommendations && (
                     <div className={styles.resultSection}>
-                      <h4>Đề xuất</h4>
-                      <ul className={styles.recommendationsList}>
+                      <h4>Đề xuất & Lưu ý</h4>
+                      <div className={styles.recommendations}>
                         {Array.isArray(result.metadata.recommendations) ? 
-                          result.metadata.recommendations.map((rec, index) => (
-                            <li key={index}>{rec}</li>
-                          )) : 
-                          <li>{result.metadata.recommendations}</li>
+                          <ul className={styles.recommendationsList}>
+                            {result.metadata.recommendations.map((rec, index) => (
+                              <li key={index}>{rec}</li>
+                            ))}
+                          </ul> : 
+                          <p>{result.metadata.recommendations}</p>
                         }
-                      </ul>
+                      </div>
                     </div>
                   )}
                 </div>
