@@ -2,6 +2,16 @@ import aiService from './aiService';
 import * as legalDocService from './legalDocService';
 
 /**
+ * Kiểm tra file có phải là hình ảnh không
+ * @param {string} fileType - Loại file
+ * @returns {boolean} - True nếu là file hình ảnh
+ */
+const isImageFile = (fileType) => {
+  const type = fileType ? fileType.toLowerCase() : '';
+  return ['jpg', 'jpeg', 'png', 'gif'].includes(type);
+};
+
+/**
  * Phân tích tài liệu pháp lý bằng AI
  * @param {Object} document - Thông tin tài liệu pháp lý cần phân tích
  * @returns {Promise<Object>} - Kết quả phân tích dưới dạng cấu trúc đã xử lý
@@ -12,84 +22,38 @@ export const analyzeLegalDocument = async (document) => {
       throw new Error('Tài liệu không hợp lệ để phân tích');
     }
 
-    // Lấy thông tin chi tiết của tài liệu nếu cần
-    let docDetails = document;
-    
-    // Nếu chưa có thông tin chi tiết, gọi API để lấy
-    if (!document.content && !document.description) {
-      try {
-        const response = await legalDocService.getLegalDocById(document.id);
-        if (response && response.data) {
-          docDetails = response.data;
-        }
-      } catch (error) {
-        console.warn('Không thể lấy thông tin chi tiết của tài liệu:', error);
-      }
-    }
-
-    // Chuẩn bị prompt cho AI
-    const prompt = `Bạn là LegAI, trợ lý phân tích tài liệu pháp lý thông minh. Hãy phân tích tài liệu sau và cung cấp:
-    1. Tóm tắt ngắn gọn về nội dung chính (3-5 câu)
-    2. Liệt kê 5-8 từ khóa chính 
-    3. Xác định các thực thể quan trọng (tên người, tổ chức, địa điểm, số hiệu văn bản, v.v.)
-    4. Đề xuất hành động tiếp theo hoặc lưu ý quan trọng
-    
-    Thông tin về tài liệu:
-    - Tiêu đề: ${docDetails.title}
-    - Loại tài liệu: ${docDetails.file_type}
-    - Mô tả: ${docDetails.description || 'Không có mô tả'}
-    - Danh mục: ${docDetails.category || 'Chưa phân loại'}
-    ${docDetails.content ? `- Nội dung: ${docDetails.content}` : ''}
-    
-    Phản hồi theo cấu trúc JSON với các trường: summary, keywords (array), entities (array với mỗi phần tử có text và type), recommendations (array).`;
-
-    // Gọi API AI để phân tích
-    const aiResponse = await aiService.sendMessageToAI(prompt);
-    
-    // Xử lý phản hồi từ AI
-    let parsedResponse;
-    try {
-      // Cố gắng trích xuất JSON từ phản hồi
-      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
-                        aiResponse.match(/\{[\s\S]*\}/);
-                        
-      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : aiResponse;
-      parsedResponse = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('Lỗi khi phân tích phản hồi từ AI:', parseError);
-      
-      // Nếu không phân tích được JSON, tạo cấu trúc dữ liệu thủ công
-      parsedResponse = {
-        summary: aiResponse.substring(0, 300) + '...',
-        keywords: ['tài liệu pháp lý'],
-        entities: [],
-        recommendations: ['Vui lòng xem xét nội dung đầy đủ của tài liệu']
+    // Kiểm tra nếu là file hình ảnh, từ chối phân tích
+    if (isImageFile(document.file_type)) {
+      return {
+        success: false,
+        message: 'Không hỗ trợ phân tích file hình ảnh. Vui lòng chuyển đổi sang định dạng PDF hoặc DOCX.'
       };
     }
 
-    // Cập nhật metadata của tài liệu
-    try {
-      await legalDocService.updateLegalDoc(document.id, {
-        metadata: {
-          analyzed: true,
-          analysis_date: new Date().toISOString(),
-          ...parsedResponse
-        }
-      });
-    } catch (updateError) {
-      console.warn('Không thể cập nhật metadata của tài liệu:', updateError);
+    console.log('Bắt đầu phân tích tài liệu:', document.id);
+    
+    // Gọi API backend để phân tích tài liệu
+    const response = await legalDocService.analyzeLegalDoc(document.id);
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Không thể phân tích tài liệu');
     }
-
-    // Trả về kết quả phân tích
+    
+    // Định dạng lại phản hồi từ API
+    const analysisData = response.data;
+    
+    // Đảm bảo rằng có đủ dữ liệu để hiển thị
     return {
       success: true,
       data: {
         metadata: {
           analyzed: true,
-          summary: parsedResponse.summary || 'Không có tóm tắt',
-          keywords: parsedResponse.keywords || [],
-          entities: parsedResponse.entities || [],
-          recommendations: parsedResponse.recommendations || []
+          analyzed_at: new Date().toISOString(),
+          summary: analysisData.summary || 'Không có tóm tắt',
+          keywords: analysisData.keywords || [],
+          document_type: analysisData.document_type || 'Không xác định',
+          entities: analysisData.entities || [],
+          recommendations: analysisData.recommendations || ''
         }
       }
     };

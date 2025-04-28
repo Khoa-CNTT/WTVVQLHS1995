@@ -40,6 +40,12 @@ const DocCard = ({
         return 'fa-file';
     }
   };
+
+  // Kiểm tra xem file có phải là hình ảnh không
+  const isImageFile = (fileType) => {
+    const type = fileType ? fileType.toLowerCase() : '';
+    return ['jpg', 'jpeg', 'png', 'gif'].includes(type);
+  };
   
   // Format thời gian
   const formatDate = (dateString) => {
@@ -83,6 +89,9 @@ const DocCard = ({
   
   // Kiểm tra xem tài liệu đã được phân tích chưa
   const isAnalyzed = doc.metadata && doc.metadata.analyzed;
+  
+  // Kiểm tra xem tài liệu có thể phân tích được không (không phải file hình ảnh)
+  const canAnalyze = !isImageFile(doc.file_type);
   
   return (
     <div 
@@ -172,13 +181,15 @@ const DocCard = ({
           </>
         )}
         
-        <button 
-          className={`${styles.actionButton} ${isAnalyzed ? styles.analyzedButton : ''}`}
-          onClick={handleAnalyzeClick}
-          title={isAnalyzed ? "Xem phân tích AI" : "Phân tích với AI"}
-        >
-          <i className={`fas ${isAnalyzed ? 'fa-robot' : 'fa-magic'}`}></i>
-        </button>
+        {canAnalyze && (
+          <button 
+            className={`${styles.actionButton} ${isAnalyzed ? styles.analyzedButton : ''}`}
+            onClick={handleAnalyzeClick}
+            title={isAnalyzed ? "Xem phân tích AI" : "Phân tích với AI"}
+          >
+            <i className={`fas ${isAnalyzed ? 'fa-robot' : 'fa-magic'}`}></i>
+          </button>
+        )}
       </div>
     </div>
   );

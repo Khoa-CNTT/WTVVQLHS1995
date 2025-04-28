@@ -16,7 +16,6 @@ import authService from '../../services/authService';
 import legalService from '../../services/legalService';
 import { FaHeadset, FaFileContract, FaArchive, FaRobot, FaSearch, FaChevronLeft, FaChevronRight, FaBook, FaGavel, FaUniversity, FaRegFileAlt, FaRegFilePdf, FaCalendarAlt, FaBriefcase, FaBuilding, FaHome, FaBalanceScale } from 'react-icons/fa';
 import { GiHandcuffs } from 'react-icons/gi';
-import * as anime from 'animejs';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -73,41 +72,13 @@ const Home = () => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           if (entry.target === searchContainerRef.current) {
-            anime({
-              targets: '.search-animation',
-              translateY: [50, 0],
-              opacity: [0, 1],
-              delay: anime.stagger(100),
-              easing: 'easeOutQuad',
-              duration: 800
-            });
+            entry.target.classList.add('visible');
           } else if (entry.target === popularDocsRef.current) {
-            anime({
-              targets: '.popular-docs-animation',
-              translateY: [50, 0],
-              opacity: [0, 1],
-              delay: anime.stagger(100, {start: 200}),
-              easing: 'easeOutQuad',
-              duration: 800
-            });
+            entry.target.classList.add('visible');
           } else if (entry.target === legalFieldsRef.current) {
-            anime({
-              targets: '.legal-fields-animation',
-              scale: [0.8, 1],
-              opacity: [0, 1],
-              delay: anime.stagger(150),
-              easing: 'easeOutElastic(1, .5)',
-              duration: 800
-            });
+            entry.target.classList.add('visible');
           } else if (entry.target === recentDocsRef.current) {
-            anime({
-              targets: '.recent-docs-animation',
-              translateX: [50, 0],
-              opacity: [0, 1],
-              delay: anime.stagger(100),
-              easing: 'easeOutQuad',
-              duration: 800
-            });
+            entry.target.classList.add('visible');
           }
         }
       });
@@ -289,12 +260,12 @@ const Home = () => {
 
         {/* Search Section */}
         <section ref={searchContainerRef} className={styles.searchSection}>
-          <div className={`${styles.searchContainer} search-animation`}>
-            <h2 className={`${styles.searchTitle} search-animation`}>Tra cứu pháp luật thông minh</h2>
-            <p className={`${styles.searchDescription} search-animation`}>
+          <div className={`${styles.searchContainer} ${styles.fadeInUp}`}>
+            <h2 className={`${styles.searchTitle} ${styles.fadeInUp}`}>Tra cứu pháp luật thông minh</h2>
+            <p className={`${styles.searchDescription} ${styles.fadeInUp}`}>
               Hệ thống tìm kiếm thông minh giúp bạn tìm thấy văn bản pháp luật và mẫu tài liệu nhanh chóng
             </p>
-            <form onSubmit={handleSearch} className={`${styles.searchForm} search-animation`}>
+            <form onSubmit={handleSearch} className={`${styles.searchForm} ${styles.fadeInUp}`}>
               <div className={styles.searchInputContainer}>
                 <FaSearch className={styles.searchIcon} />
                 <input
@@ -308,12 +279,12 @@ const Home = () => {
                   Tìm kiếm
                 </button>
               </div>
-              <div className={`${styles.searchHints} search-animation`}>
+              <div className={`${styles.searchHints} ${styles.fadeInUp}`}>
                 <p>Gợi ý: <span onClick={() => navigate('/search?q=Luật dân sự')}>Luật dân sự</span> • <span onClick={() => navigate('/search?q=Luật hình sự')}>Luật hình sự</span> • <span onClick={() => navigate('/search?q=Luật doanh nghiệp')}>Luật doanh nghiệp</span> • <span onClick={() => navigate('/search?q=Nghị định')}>Nghị định</span></p>
               </div>
             </form>
 
-            <div className={`${styles.searchQuickLinks} search-animation`}>
+            <div className={`${styles.searchQuickLinks} ${styles.fadeInUp}`}>
               <div 
                 className={styles.quickLinkItem}
                 onClick={() => navigate('/documents')}
@@ -352,15 +323,15 @@ const Home = () => {
         <section ref={popularDocsRef} className={styles.popularDocsSection}>
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeader}>
-              <h2 className="popular-docs-animation">Văn bản pháp luật phổ biến</h2>
-              <p className="popular-docs-animation">Tra cứu các văn bản pháp luật được sử dụng nhiều nhất</p>
+              <h2 className={styles.fadeInUp}>Văn bản pháp luật phổ biến</h2>
+              <p className={styles.fadeInUp}>Tra cứu các văn bản pháp luật được sử dụng nhiều nhất</p>
             </div>
 
             <div className={styles.docTypeCategories}>
               {documentTypes.slice(0, 6).map((type, index) => (
                 <div 
                   key={index} 
-                  className={`${styles.docTypeCard} popular-docs-animation`}
+                  className={`${styles.docTypeCard} ${styles.fadeInUp}`}
                   onClick={() => navigate(`/documents?document_type=${encodeURIComponent(type.name)}`)}
                 >
                   <div className={styles.docTypeIcon}>
@@ -372,7 +343,7 @@ const Home = () => {
               ))}
             </div>
 
-            <div className={`${styles.viewAllContainer} popular-docs-animation`}>
+            <div className={`${styles.viewAllContainer} ${styles.fadeInUp}`}>
               <button 
                 className={styles.viewAllButton}
                 onClick={() => navigate('/documents')}
@@ -395,7 +366,7 @@ const Home = () => {
               {legalCategories.map((category, index) => (
                 <div 
                   key={index} 
-                  className={`${styles.legalFieldCard} legal-fields-animation`}
+                  className={`${styles.legalFieldCard} ${styles.fadeIn}`}
                   onClick={() => navigate(`/search?q=${encodeURIComponent(category.searchTerm)}`)}
                 >
                   <div className={styles.legalFieldIcon}>
@@ -415,8 +386,8 @@ const Home = () => {
         <section ref={recentDocsRef} className={styles.recentDocsSection}>
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeader}>
-              <h2 className="recent-docs-animation">Văn bản mới cập nhật</h2>
-              <p className="recent-docs-animation">Những văn bản pháp luật mới nhất được cập nhật trên hệ thống</p>
+              <h2 className={styles.fadeInRight}>Văn bản mới cập nhật</h2>
+              <p className={styles.fadeInRight}>Những văn bản pháp luật mới nhất được cập nhật trên hệ thống</p>
             </div>
 
             <div className={styles.recentDocsGrid}>
@@ -424,7 +395,7 @@ const Home = () => {
                 recentDocuments.map((doc, index) => (
                   <div 
                     key={index} 
-                    className={`${styles.recentDocCard} recent-docs-animation`}
+                    className={`${styles.recentDocCard} ${styles.fadeInRight}`}
                     onClick={() => navigate(`legal/documents/${doc.id}`)}
                   >
                     <div className={styles.recentDocMeta}>
@@ -441,13 +412,13 @@ const Home = () => {
                   </div>
                 ))
               ) : (
-                <div className={`${styles.noDocsMessage} recent-docs-animation`}>
+                <div className={`${styles.noDocsMessage} ${styles.fadeInRight}`}>
                   <p>Không có văn bản mới</p>
                 </div>
               )}
             </div>
 
-            <div className={`${styles.viewAllContainer} recent-docs-animation`}>
+            <div className={`${styles.viewAllContainer} ${styles.fadeInRight}`}>
               <button 
                 className={styles.viewAllButton}
                 onClick={() => navigate('/documents')}
