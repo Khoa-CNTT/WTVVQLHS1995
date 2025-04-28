@@ -43,7 +43,18 @@ const AppointmentsManager = () => {
       const response = await appointmentService.getAppointments(activeTab !== 'all' ? activeTab : null);
       
       if (response.status === 'success' && Array.isArray(response.data)) {
-        const enhancedAppointments = response.data.map(app => ({
+        // Thêm bước lọc trùng lặp dựa trên ID lịch hẹn
+        const uniqueAppointments = [];
+        const uniqueIds = new Set();
+        
+        response.data.forEach(app => {
+          if (!uniqueIds.has(app.id)) {
+            uniqueIds.add(app.id);
+            uniqueAppointments.push(app);
+          }
+        });
+        
+        const enhancedAppointments = uniqueAppointments.map(app => ({
           ...app,
           customer_name: app.customer_name || app.client_name || app.user_name || 'Khách hàng',
           customer_email: app.customer_email || app.client_email || app.user_email || 'Không có thông tin',

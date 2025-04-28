@@ -43,51 +43,51 @@ function Profile() {
       navigate('/login');
       return;
     }
-    
+
     // Làm mới thông tin người dùng từ server mỗi khi mở profile
     const refreshData = async () => {
       try {
         // Làm mới thông tin từ localStorage
         const updatedUser = await userService.refreshUserData();
         setUser(updatedUser);
-        
+
         // Nếu có avatarUrl trong user, hiển thị ngay
         if (updatedUser && updatedUser.avatarUrl) {
           // Chuyển đổi đường dẫn tương đối thành đường dẫn đầy đủ
           const fullAvatarUrl = userService.getFullAvatarUrl(updatedUser.avatarUrl);
           setPreviewUrl(fullAvatarUrl);
         }
-        
+
         // Sau đó lấy thông tin chi tiết
         fetchUserProfile(updatedUser.id);
       } catch (error) {
         console.error('Lỗi làm mới thông tin người dùng:', error);
         setUser(currentUser);
-        
+
         // Nếu có avatarUrl trong currentUser, hiển thị ngay
         if (currentUser && currentUser.avatarUrl) {
           const fullAvatarUrl = userService.getFullAvatarUrl(currentUser.avatarUrl);
           setPreviewUrl(fullAvatarUrl);
         }
-        
+
         fetchUserProfile(currentUser.id);
       }
     };
-    
+
     refreshData();
   }, [navigate]);
-  
+
   const fetchUserProfile = async (userId) => {
     try {
       setLoading(true);
       setError('');
-      
+
       const userData = await userService.getUserProfile(userId);
-      
+
       if (userData) {
         // Cập nhật user state
         setUserDetails(userData);
-        
+
         // Cập nhật form data
         setFormData({
           fullName: userData.fullName || userData.full_name || '',
@@ -95,7 +95,7 @@ function Profile() {
           address: userData.address || '',
           bio: userData.bio || ''
         });
-        
+
         // Cập nhật avatar URL từ userDetails nếu có
         if (userData.avatarUrl || userData.avatar_url) {
           const avatarUrl = userData.avatarUrl || userData.avatar_url;
@@ -103,7 +103,7 @@ function Profile() {
           console.log('Avatar URL từ userDetails:', fullAvatarUrl);
           setPreviewUrl(fullAvatarUrl);
         }
-        
+
         // Nếu là luật sư, lấy thêm thông tin chi tiết của luật sư
         if (user && user.role && user.role.toLowerCase() === 'lawyer') {
           try {
@@ -116,7 +116,7 @@ function Profile() {
           }
         }
       }
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Lỗi lấy thông tin profile:', error);
@@ -124,7 +124,7 @@ function Profile() {
       setLoading(false);
     }
   };
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -132,40 +132,40 @@ function Profile() {
       [name]: value
     });
   };
-  
+
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData({
       ...passwordData,
       [name]: value
     });
-    
+
     // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
     setError('');
     setSuccessMessage('');
   };
-  
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       // Kiểm tra loại file
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
       if (!allowedTypes.includes(file.type)) {
         setError('Chỉ chấp nhận file ảnh (JPG, PNG, GIF)');
         return;
       }
-      
+
       // Kiểm tra kích thước file (giới hạn 2MB)
       const maxSize = 2 * 1024 * 1024; // 2MB
       if (file.size > maxSize) {
         setError('Kích thước file không được vượt quá 2MB');
         return;
       }
-      
+
       setAvatar(file);
       setError(''); // Xóa thông báo lỗi nếu có
-      
+
       // Tạo URL preview ngay lập tức
       const fileReader = new FileReader();
       fileReader.onload = (event) => {
@@ -176,13 +176,13 @@ function Profile() {
       fileReader.readAsDataURL(file);
     }
   };
-  
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccessMessage('');
-    
+
     try {
       // Cập nhật thông tin hồ sơ
       await userService.updateUserProfile(user.id, {
@@ -191,30 +191,30 @@ function Profile() {
         address: formData.address,
         bio: formData.bio
       });
-      
+
       // Nếu có avatar mới, tải lên
       if (avatar) {
         const formDataUpload = new FormData();
         formDataUpload.append('avatar', avatar);
-        
+
         console.log('Đang tải lên avatar mới...');
         setAvatarLoading(true);
         try {
           const avatarResponse = await userService.uploadAvatar(user.id, formDataUpload);
           console.log('Kết quả tải lên avatar:', avatarResponse);
-          
+
           if (avatarResponse && avatarResponse.data) {
             // Lấy URL avatar từ phản hồi
             let avatarUrl = avatarResponse.data.avatarUrl || '';
-            
+
             // Chuyển thành URL đầy đủ nếu cần
             if (avatarUrl) {
               const fullAvatarUrl = userService.getFullAvatarUrl(avatarUrl);
               console.log('URL avatar đầy đủ:', fullAvatarUrl);
-              
+
               // Cập nhật URL preview để hiển thị ngay
               setPreviewUrl(fullAvatarUrl);
-              
+
               // Cập nhật URL vào user locals
               const updatedUser = JSON.parse(localStorage.getItem('user'));
               if (updatedUser) {
@@ -230,22 +230,22 @@ function Profile() {
           setAvatarLoading(false);
         }
       }
-      
+
       // Cập nhật thông tin user trong localStorage
       await userService.refreshUserData();
-      
+
       // Cập nhật lại user từ localStorage sau khi cập nhật
       const updatedUser = authService.getCurrentUser();
       if (updatedUser) {
         setUser(updatedUser);
       }
-      
+
       setSuccessMessage('Cập nhật hồ sơ thành công');
       setEditMode(false);
-      
+
       // Làm mới thông tin profile
       fetchUserProfile(user.id);
-      
+
       // Tự động ẩn thông báo sau 3 giây
       setTimeout(() => {
         setSuccessMessage('');
@@ -257,7 +257,7 @@ function Profile() {
       setLoading(false);
     }
   };
-  
+
   // Xác thực mật khẩu mới
   const validatePassword = (password) => {
     const requirements = {
@@ -267,23 +267,23 @@ function Profile() {
       hasNumber: /[0-9]/.test(password),
       hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password)
     };
-    
+
     return requirements;
   };
-  
+
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordLoading(true);
     setError('');
     setSuccessMessage('');
-    
+
     // Kiểm tra mật khẩu mới và xác nhận mật khẩu
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError('Mật khẩu mới và xác nhận mật khẩu không khớp');
       setPasswordLoading(false);
       return;
     }
-    
+
     // Kiểm tra độ dài mật khẩu và các yêu cầu khác
     const passwordCheck = validatePassword(passwordData.newPassword);
     if (!passwordCheck.length) {
@@ -291,14 +291,14 @@ function Profile() {
       setPasswordLoading(false);
       return;
     }
-    
+
     try {
       await userService.changePassword(
         user.id,
         passwordData.currentPassword,
         passwordData.newPassword
       );
-      
+
       setSuccessMessage('Đổi mật khẩu thành công');
       setPasswordData({
         currentPassword: '',
@@ -311,11 +311,11 @@ function Profile() {
       setPasswordLoading(false);
     }
   };
-  
+
   // Định dạng ngày tháng
   const formatDate = (dateString) => {
     if (!dateString) return 'Chưa cập nhật';
-    
+
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('vi-VN', {
@@ -329,13 +329,15 @@ function Profile() {
       return 'Ngày không hợp lệ';
     }
   };
-  
+
   if (loading && !user) {
-    return <div className={styles.loading}>Đang tải thông tin người dùng...</div>;
-  }
-  
-  if (!user) {
-    return <div className={styles.error}>Không thể tải thông tin người dùng</div>;
+    return (
+      <div className={styles.skeletonContainer}>
+        <div className={styles.skeletonAvatar}></div>
+        <div className={styles.skeletonText}></div>
+        <div className={styles.skeletonText}></div>
+      </div>
+    );
   }
 
   // Kiểm tra yêu cầu mật khẩu
@@ -367,7 +369,7 @@ function Profile() {
           <div className={styles.sectionHeader}>
             <h2>Hoạt động gần đây</h2>
           </div>
-          
+
           <div className={styles.statsCards}>
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
@@ -376,7 +378,7 @@ function Profile() {
               <div className={styles.statValue}>{userDetails.stats?.documents || 0}</div>
               <div className={styles.statLabel}>Tài liệu</div>
             </div>
-            
+
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
                 <FaBalanceScale />
@@ -384,7 +386,7 @@ function Profile() {
               <div className={styles.statValue}>{userDetails.stats?.cases || 0}</div>
               <div className={styles.statLabel}>Vụ án</div>
             </div>
-            
+
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
                 <FaCalendarAlt />
@@ -392,7 +394,7 @@ function Profile() {
               <div className={styles.statValue}>{userDetails.stats?.appointments || 0}</div>
               <div className={styles.statLabel}>Cuộc hẹn</div>
             </div>
-            
+
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
                 <FaUserCircle />
@@ -401,7 +403,7 @@ function Profile() {
               <div className={styles.statLabel}>Tư vấn</div>
             </div>
           </div>
-          
+
           <div className={styles.activityLinks}>
             <a href="#" className={styles.activityLink}>
               <FaFileAlt /> Xem tài liệu của tôi
@@ -424,16 +426,16 @@ function Profile() {
           <div className={styles.sectionHeader}>
             <h2>Thông tin cá nhân</h2>
             {!editMode ? (
-              <button 
-                className={styles.editButton} 
+              <button
+                className={styles.editButton}
                 onClick={() => setEditMode(true)}
                 disabled={avatarLoading}
               >
-                <FaPen /> Chỉnh sửa
+                <FaPen className="animate__animated animate__pulse animate__infinite" /> Chỉnh sửa
               </button>
             ) : null}
           </div>
-          
+
           {!editMode ? (
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
@@ -443,7 +445,7 @@ function Profile() {
                   <p>{user.username}</p>
                 </div>
               </div>
-              
+
               <div className={styles.infoItem}>
                 <FaEnvelope className={styles.infoIcon} />
                 <div>
@@ -451,7 +453,7 @@ function Profile() {
                   <p>{user.email}</p>
                 </div>
               </div>
-              
+
               <div className={styles.infoItem}>
                 <FaUser className={styles.infoIcon} />
                 <div>
@@ -459,7 +461,7 @@ function Profile() {
                   <p>{formData.fullName || 'Chưa cập nhật'}</p>
                 </div>
               </div>
-              
+
               <div className={styles.infoItem}>
                 <FaPhone className={styles.infoIcon} />
                 <div>
@@ -467,7 +469,7 @@ function Profile() {
                   <p>{formData.phone || 'Chưa cập nhật'}</p>
                 </div>
               </div>
-              
+
               <div className={styles.infoItem}>
                 <FaMapMarkerAlt className={styles.infoIcon} />
                 <div>
@@ -475,14 +477,14 @@ function Profile() {
                   <p>{formData.address || 'Chưa cập nhật'}</p>
                 </div>
               </div>
-              
+
               <div className={styles.infoItem + ' ' + styles.fullWidth}>
                 <div className={styles.bioSection}>
                   <h3>Giới thiệu</h3>
                   <p>{formData.bio || 'Chưa cập nhật thông tin giới thiệu.'}</p>
                 </div>
               </div>
-              
+
               {userDetails.isLawyer && userDetails.lawyerDetails && (
                 <>
                   <div className={styles.infoItem}>
@@ -491,21 +493,21 @@ function Profile() {
                       <p>{userDetails.lawyerDetails.certification || 'Chưa cập nhật'}</p>
                     </div>
                   </div>
-                  
+
                   <div className={styles.infoItem}>
                     <div>
                       <h3>Kinh nghiệm</h3>
                       <p>{userDetails.lawyerDetails.experienceYears || 0} năm</p>
                     </div>
                   </div>
-                  
+
                   <div className={styles.infoItem}>
                     <div>
                       <h3>Lĩnh vực</h3>
                       <p>{userDetails.lawyerDetails.specialization || 'Chưa cập nhật'}</p>
                     </div>
                   </div>
-                  
+
                   <div className={styles.infoItem}>
                     <div>
                       <h3>Đánh giá</h3>
@@ -520,41 +522,41 @@ function Profile() {
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label>Họ và tên</label>
-                  <input 
-                    type="text" 
-                    name="fullName" 
+                  <input
+                    type="text"
+                    name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
                     placeholder="Nhập họ và tên"
                   />
                 </div>
-                
+
                 <div className={styles.formGroup}>
                   <label>Số điện thoại</label>
-                  <input 
-                    type="text" 
-                    name="phone" 
+                  <input
+                    type="text"
+                    name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="Nhập số điện thoại"
                   />
                 </div>
-                
+
                 <div className={styles.formGroup}>
                   <label>Địa chỉ</label>
-                  <input 
-                    type="text" 
-                    name="address" 
+                  <input
+                    type="text"
+                    name="address"
                     value={formData.address}
                     onChange={handleInputChange}
                     placeholder="Nhập địa chỉ"
                   />
                 </div>
-                
+
                 <div className={styles.formGroup + ' ' + styles.fullWidth}>
                   <label>Giới thiệu</label>
-                  <textarea 
-                    name="bio" 
+                  <textarea
+                    name="bio"
                     value={formData.bio}
                     onChange={handleInputChange}
                     placeholder="Nhập thông tin giới thiệu về bạn"
@@ -562,10 +564,10 @@ function Profile() {
                   ></textarea>
                 </div>
               </div>
-              
+
               <div className={styles.formButtons}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={styles.cancelButton}
                   onClick={() => {
                     setEditMode(false);
@@ -586,8 +588,8 @@ function Profile() {
                 >
                   Hủy
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className={styles.saveButton}
                   disabled={loading}
                 >
@@ -618,18 +620,13 @@ function Profile() {
       <Navbar />
       <ChatManager />
       <div className={styles.profileContainer}>
-        <div className={styles.header}>
-          <h1>Hồ sơ cá nhân</h1>
-          <p>Quản lý thông tin cá nhân của bạn</p>
-        </div>
-        
         <div className={styles.content}>
           <div className={styles.sidebar}>
             <div className={styles.userCard}>
               <div className={`${styles.avatarWrapper} ${avatarLoading ? styles.avatarLoading : ''}`}>
-                <img 
-                  src={previewUrl || (user && user.avatarUrl && userService.getFullAvatarUrl(user.avatarUrl)) || '/default-avatar.png'} 
-                  alt="Ảnh đại diện" 
+                <img
+                  src={previewUrl || (user && user.avatarUrl && userService.getFullAvatarUrl(user.avatarUrl)) || '/default-avatar.png'}
+                  alt="Ảnh đại diện"
                   className={styles.avatar}
                   onError={(e) => {
                     console.log('Lỗi tải ảnh, sử dụng ảnh mặc định');
@@ -640,10 +637,10 @@ function Profile() {
                 {editMode && !avatarLoading && (
                   <label className={styles.uploadButton}>
                     <FaUpload />
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleFileChange} 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
                       style={{ display: 'none' }}
                     />
                   </label>
@@ -654,17 +651,15 @@ function Profile() {
                 <FaBalanceScale />
                 <span>{user?.role || 'Người dùng'}</span>
               </div>
-              
+
               <div className={styles.userStats}>
                 <div className={styles.statItem}>
-                  <FaCalendarAlt />
                   <div>
                     <p>Tham gia:</p>
                     <span>{formatDate(userDetails.createdAt || userDetails.created_at)}</span>
                   </div>
                 </div>
                 <div className={styles.statItem}>
-                  <FaHistory />
                   <div>
                     <p>Đăng nhập gần đây:</p>
                     <span>{formatDate(userDetails.lastLogin || userDetails.last_login)}</span>
@@ -672,45 +667,44 @@ function Profile() {
                 </div>
               </div>
             </div>
-            
+
             <div className={styles.menuItems}>
-              <button 
-                className={`${styles.menuItem} ${activeTab === 'profile' ? styles.active : ''}`} 
+              <button
+                className={`${styles.menuItem} ${activeTab === 'profile' ? styles.active : ''}`}
                 onClick={() => setActiveTab('profile')}
               >
                 <FaUser /> Thông tin cá nhân
               </button>
-              <button 
-                className={`${styles.menuItem} ${activeTab === 'appointments' ? styles.active : ''}`} 
+              <button
+                className={`${styles.menuItem} ${activeTab === 'appointments' ? styles.active : ''}`}
                 onClick={() => setActiveTab('appointments')}
               >
                 <FaCalendarAlt /> Quản lý lịch hẹn
               </button>
-              <button 
-                className={`${styles.menuItem} ${activeTab === 'password' ? styles.active : ''}`} 
+              <button
+                className={`${styles.menuItem} ${activeTab === 'password' ? styles.active : ''}`}
                 onClick={() => setActiveTab('password')}
               >
                 <FaKey /> Đổi mật khẩu
               </button>
-              <button 
-                className={`${styles.menuItem} ${activeTab === 'activity' ? styles.active : ''}`} 
+              <button
+                className={`${styles.menuItem} ${activeTab === 'activity' ? styles.active : ''}`}
                 onClick={() => setActiveTab('activity')}
               >
                 <FaFileAlt /> Hoạt động
               </button>
-              <button 
-                className={`${styles.menuItem} ${activeTab === 'contact' ? styles.active : ''}`} 
+              <button
+                className={`${styles.menuItem} ${activeTab === 'contact' ? styles.active : ''}`}
                 onClick={() => setActiveTab('contact')}
               >
                 <FaEnvelope /> Liên hệ hỗ trợ
               </button>
             </div>
           </div>
-          
-          <div className={styles.mainContent}>
+
+          <div className={`${styles.mainContent} animate__animated animate__fadeIn`}>
             {error && <div className={styles.errorMessage}>{error}</div>}
             {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
-            
             {activeTab === 'contact' ? renderContact() : renderContent()}
           </div>
         </div>

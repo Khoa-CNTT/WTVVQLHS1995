@@ -21,7 +21,7 @@
 }
 
 .videoBackground {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -552,7 +552,10 @@
 /* Card Feature Section */
 .cardFeatureSection {
   padding: 5rem 5%;
-  background-color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.352);
+  position: relative;
+  z-index: 10;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
 }
 
 .cardFeatureContainer {
@@ -584,13 +587,13 @@
 .cardTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #333;
+  color: #ffffff;
   margin-bottom: 1.5rem;
 }
 
 .cardDescription {
   font-size: 1.125rem;
-  color: #666;
+  color: #ede4e4;
   line-height: 1.6;
   margin-bottom: 2rem;
 }
@@ -604,7 +607,7 @@
   align-items: center;
   margin-bottom: 1rem;
   font-size: 1.125rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .cardFeatureList li i {
@@ -614,7 +617,7 @@
 }
 
 .cardButton {
-  background-color: #003366;
+  background-color: #ffa600c9;
   color: #fff;
   border: none;
   border-radius: 30px;
@@ -626,7 +629,7 @@
 }
 
 .cardButton:hover {
-  background-color: #002855;
+  background-color: #ffa600;
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
@@ -634,7 +637,8 @@
 /* Testimonials Section */
 .testimonialsSection {
   background-color: #f8f9fa;
-  padding: 5rem 5%;
+  padding: 5rem 5%;  position: relative;
+  z-index: 10;
 }
 
 .testimonialsSwiper {
@@ -741,10 +745,12 @@
 
 /* Get Started Section */
 .getStartedSection {
-  background: linear-gradient(135deg, #003366 0%, #001f3f 100%);
+  background: rgba(0, 0, 0, 0.229);
   padding: 5rem 5%;
   text-align: center;
   color: #fff;
+  position: relative;
+  z-index: 10;
 }
 
 .getStartedContent {
@@ -838,6 +844,8 @@
   background-color: #fff;
   padding: 3rem 5%;
   border-top: 1px solid #f0f0f0;
+  position: relative;
+  z-index: 10;
 }
 
 .awardContainer {
@@ -1175,5 +1183,621 @@
 @media (max-width: 576px) {
   .legalCategoryCard {
     min-height: 200px;
+  }
+}
+
+/* Search Section */
+.searchSection {
+  background: #fff;
+  padding: 3rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.searchContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.searchTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #003366;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.searchTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 4px;
+  background-color: #ffcc00;
+  border-radius: 2px;
+}
+
+.searchDescription {
+  font-size: 1.2rem;
+  color: #506680;
+  margin-bottom: 2rem;
+  max-width: 700px;
+}
+
+.searchForm {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 1.5rem;
+}
+
+.searchInputContainer {
+  display: flex;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 51, 102, 0.12);
+  border-radius: 50px;
+  overflow: hidden;
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+.searchInputContainer:focus-within {
+  box-shadow: 0 10px 30px rgba(0, 51, 102, 0.18);
+  transform: translateY(-2px);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #003366;
+  font-size: 1.2rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 1.2rem 1.2rem 1.2rem 3.5rem;
+  border: none;
+  outline: none;
+  font-size: 1.1rem;
+  color: #333;
+  background: transparent;
+}
+
+.searchInput::placeholder {
+  color: #aab7c4;
+}
+
+.searchButton {
+  background-color: #003366;
+  color: white;
+  border: none;
+  padding: 0 2.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.searchButton:hover {
+  background-color: #004080;
+}
+
+.searchHints {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.searchHints span {
+  color: #003366;
+  text-decoration: underline;
+  cursor: pointer;
+  margin: 0 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.searchHints span:hover {
+  color: #004080;
+}
+
+.searchQuickLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.quickLinkItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 51, 102, 0.08);
+  width: 150px;
+  height: 150px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quickLinkItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 51, 102, 0.12);
+}
+
+.quickLinkIcon {
+  font-size: 2.5rem;
+  color: #003366;
+  margin-bottom: 1rem;
+}
+
+.quickLinkItem span {
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Popular Docs Section */
+.popularDocsSection {
+  padding: 5rem 0;
+  background-color: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.sectionContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.sectionHeader h2:not(.legalFieldsTitle) {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #003366;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.sectionHeader h2::after:not(.legalFieldsTitle::after) {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 4px;
+  background-color: #ffcc00;
+  border-radius: 2px;
+}
+
+.sectionHeader p:not(.legalFieldsDescription) {
+  font-size: 1.1rem;
+  color: #506680;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.docTypeCategories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.docTypeCard {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 6px 16px rgba(0, 51, 102, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.docTypeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 100%;
+  background-color: #ffcc00;
+  transition: all 0.3s ease;
+}
+
+.docTypeCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 51, 102, 0.15);
+}
+
+.docTypeCard:hover::before {
+  width: 12px;
+}
+
+.docTypeIcon {
+  font-size: 2.5rem;
+  color: #003366;
+  margin-bottom: 1.5rem;
+}
+
+.docTypeCard h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 0.8rem;
+}
+
+.docTypeCard p {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.viewAllContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.viewAllButton {
+  background-color: transparent;
+  color: #003366;
+  border: 2px solid #003366;
+  padding: 0.875rem 2rem;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.viewAllButton:hover {
+  background-color: #003366;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 51, 102, 0.2);
+}
+
+/* Legal Fields Section */
+.legalFieldsSection {
+  padding: 5rem 0;
+  background-color: rgba(0, 0, 0, 0.715);
+  position: relative;
+  z-index: 2;
+}
+
+.legalFieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+.legalFieldsTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+.legalFieldsTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 4px;
+  background-color: #ffcc00;
+  border-radius: 2px;
+}
+.legalFieldsDescription {
+  font-size: 1.1rem;
+  color: #d4d9e0;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.legalFieldCard {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 16px rgba(0, 51, 102, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.legalFieldCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 51, 102, 0.15);
+}
+
+.legalFieldIcon {
+  font-size: 2.5rem;
+  color: #003366;
+  margin-right: 1.5rem;
+  min-width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(0, 51, 102, 0.1);
+}
+
+.legalFieldContent {
+  flex: 1;
+}
+
+.legalFieldContent h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 0.5rem;
+}
+
+.legalFieldContent p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Recent Docs Section */
+.recentDocsSection {
+  padding: 5rem 0;
+  background-color: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.recentDocsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.recentDocCard {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 16px rgba(0, 51, 102, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.recentDocCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 51, 102, 0.15);
+}
+
+.recentDocMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.recentDocType {
+  background-color: rgba(0, 51, 102, 0.1);
+  color: #003366;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.recentDocDate {
+  color: #666;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+.recentDocDate svg {
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.recentDocTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 0.8rem;
+  line-height: 1.4;
+}
+
+.recentDocSummary {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.noDocsMessage {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  background-color: rgba(0, 51, 102, 0.05);
+  border-radius: 12px;
+  color: #666;
+}
+
+/* Get Started Section - Giữ lại và sửa */
+.getStartedSection {
+  background: rgba(0, 0, 0, 0.514);
+  color: white;
+  padding: 5rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.getStartedContent {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.getStartedTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffd256;
+  margin-bottom: 1.5rem;
+}
+
+.getStartedDescription {
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+  opacity: 0.9;
+  color: #fff;
+}
+
+.getStartedButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.registerButton, .loginButton {
+  min-width: 150px;
+}
+
+/* Media Queries */
+@media (max-width: 992px) {
+  .searchTitle {
+    font-size: 2rem;
+  }
+  
+  .quickLinkItem {
+    width: 130px;
+    height: 130px;
+    padding: 1.2rem;
+  }
+  
+  .quickLinkIcon {
+    font-size: 2rem;
+  }
+  
+  .docTypeCategories {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  .recentDocsGrid, .legalFieldsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .searchSection {
+    padding: 2rem 0;
+  }
+  
+  .searchTitle {
+    font-size: 1.8rem;
+  }
+  
+  .searchButton {
+    padding: 0 1.5rem;
+  }
+  
+  .searchQuickLinks {
+    gap: 1rem;
+  }
+  
+  .quickLinkItem {
+    width: 110px;
+    height: 110px;
+    padding: 1rem;
+  }
+  
+  .quickLinkIcon {
+    font-size: 1.8rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .docTypeCategories, .recentDocsGrid, .legalFieldsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+  }
+  
+  .sectionHeader h2 {
+    font-size: 1.8rem;
+  }
+  
+  .getStartedButtons {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .registerButton, .loginButton {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .searchInput {
+    font-size: 0.9rem;
+    padding: 1rem 1rem 1rem 3rem;
+  }
+  
+  .searchIcon {
+    left: 15px;
+  }
+  
+  .searchButton {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .searchHints {
+    font-size: 0.8rem;
+  }
+  
+  .searchQuickLinks {
+    gap: 0.75rem;
+  }
+  
+  .quickLinkItem {
+    width: 90px;
+    height: 90px;
+    padding: 0.8rem;
+  }
+  
+  .quickLinkIcon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .quickLinkItem span {
+    font-size: 0.8rem;
+  }
+  
+  .getStartedTitle {
+    font-size: 1.8rem;
   }
 } 

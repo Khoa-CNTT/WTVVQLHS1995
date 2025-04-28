@@ -125,7 +125,7 @@ const ContactForm = () => {
           <h2>Cảm ơn bạn đã liên hệ!</h2>
           <p>Tin nhắn của bạn đã được gửi thành công. Chúng tôi sẽ phản hồi trong thời gian sớm nhất.</p>
           <p className={styles['email-notification']}>
-            Một email xác nhận đã được gửi đến <strong>{formData.email}</strong>
+            Một email xác nhận đã được gửi đến LegAI <strong>{formData.email}</strong>
           </p>
           <button className={styles['reset-button']} onClick={() => setIsSuccess(false)}>
             Gửi tin nhắn khác

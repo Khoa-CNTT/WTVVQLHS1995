@@ -1,0 +1,155 @@
+.notificationContainer {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding: 15px;
+  border-left: 4px solid #4e73df;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.notificationTitle {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #4e73df;
+  font-size: 18px;
+}
+
+.notificationIcon {
+  margin-right: 10px;
+  font-size: 22px;
+}
+
+.notificationList {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fc;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  animation: fadeIn 0.5s ease-in-out;
+  position: relative;
+}
+
+.notificationItem:hover {
+  background-color: #eaecf4;
+}
+
+.notificationContent {
+  flex: 1;
+  padding-right: 10px;
+}
+
+.notificationDetails {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #5a5c69;
+}
+
+.notificationTime {
+  margin: 0;
+  font-size: 12px;
+  color: #858796;
+  font-style: italic;
+}
+
+.markAsReadButton {
+  background-color: #1cc88a;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.markAsReadButton:hover {
+  background-color: #17a673;
+  transform: scale(1.1);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4e73df;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.errorContainer {
+  text-align: center;
+  padding: 15px;
+  color: #e74a3b;
+}
+
+.errorContainer button {
+  background-color: #4e73df;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.errorContainer button:hover {
+  background-color: #2e59d9;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .notificationContainer {
+    padding: 10px;
+  }
+  
+  .notificationTitle {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notificationItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .markAsReadButton {
+    margin-top: 10px;
+    align-self: flex-end;
+  }
+} 

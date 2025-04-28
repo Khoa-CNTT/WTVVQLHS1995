@@ -43,6 +43,7 @@
   padding: 0 20px;
 }
 
+
 .banner h1 {
   font-size: 3.5rem;
   font-weight: 700;
@@ -56,6 +57,7 @@
   font-size: 1.2rem;
   line-height: 1.6;
   animation: slideUp 1.2s ease;
+  color: #ffffff;
 }
 
 /* Contact info section */
@@ -445,6 +447,7 @@
 .ctaContent p {
   font-size: 1.2rem;
   margin-bottom: 30px;
+  color: #ffffff;
 }
 
 .ctaButtons {

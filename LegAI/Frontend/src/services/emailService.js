@@ -2,11 +2,11 @@ import axios from 'axios';
 import { API_URL } from '../config/constants';
 
 /**
- * Gửi email xác minh bằng cách gọi API Backend
- * @param {string} email - Địa chỉ email người nhận
+ * Gửi email OTP đến người dùng
+ * @param {string} email - Email của người dùng
  * @param {string} username - Tên người dùng
  * @param {string} otp - Mã OTP
- * @returns {Promise<object>} - Kết quả gửi email
+ * @returns {Promise} - Promise trả về kết quả của request
  */
 const sendOTPEmail = async (email, username, otp) => {
   try {
@@ -15,20 +15,19 @@ const sendOTPEmail = async (email, username, otp) => {
       username,
       otp
     });
-    
     return response.data;
   } catch (error) {
-    console.error('Lỗi gửi email OTP:', error);
-    throw new Error(error.response?.data?.message || `Lỗi gửi email: ${error.message}`);
+    console.error('Lỗi khi gửi email OTP:', error);
+    throw error;
   }
 };
 
 /**
- * Gửi email đặt lại mật khẩu bằng cách gọi API Backend
- * @param {string} email - Địa chỉ email người nhận
+ * Gửi email đặt lại mật khẩu đến người dùng
+ * @param {string} email - Email của người dùng
  * @param {string} username - Tên người dùng
  * @param {string} otp - Mã OTP
- * @returns {Promise<object>} - Kết quả gửi email
+ * @returns {Promise} - Promise trả về kết quả của request
  */
 const sendPasswordResetEmail = async (email, username, otp) => {
   try {
@@ -37,36 +36,29 @@ const sendPasswordResetEmail = async (email, username, otp) => {
       username,
       otp
     });
-    
     return response.data;
   } catch (error) {
-    console.error('Lỗi gửi email đặt lại mật khẩu:', error);
-    throw new Error(error.response?.data?.message || `Lỗi gửi email: ${error.message}`);
+    console.error('Lỗi khi gửi email đặt lại mật khẩu:', error);
+    throw error;
   }
 };
 
 /**
  * Gửi email liên hệ từ form liên hệ
- * @param {object} contactData - Thông tin liên hệ, bao gồm {name, email, subject, message}
- * @returns {Promise<object>} - Kết quả gửi email
+ * @param {Object} contactData - Dữ liệu liên hệ
+ * @param {string} contactData.email - Email của người gửi
+ * @param {string} contactData.name - Tên của người gửi
+ * @param {string} contactData.subject - Tiêu đề của email
+ * @param {string} contactData.message - Nội dung của email
+ * @returns {Promise} - Promise trả về kết quả của request
  */
 const sendContactEmail = async (contactData) => {
   try {
-    // Kiểm tra dữ liệu đầu vào
-    if (!contactData.name || !contactData.email || !contactData.subject || !contactData.message) {
-      throw new Error('Vui lòng cung cấp đầy đủ thông tin liên hệ');
-    }
-    
     const response = await axios.post(`${API_URL}/mail/send-contact`, contactData);
-    
     return response.data;
   } catch (error) {
-    console.error('Lỗi gửi email liên hệ:', error);
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message || 'Không thể gửi email liên hệ');
-    } else {
-      throw new Error(`Lỗi gửi email: ${error.message}`);
-    }
+    console.error('Lỗi khi gửi email liên hệ:', error);
+    throw error;
   }
 };
 
@@ -115,7 +107,7 @@ const sendAppointmentCancellation = async (appointmentData) => {
     
     return response.data;
   } catch (error) {
-    console.error('Lỗi gửi email thông báo hủy cuộc hẹn:', error);
+    console.error('Lỗi gửi email thông báo hủy hẹn:', error);
     throw new Error(error.response?.data?.message || `Lỗi gửi email: ${error.message}`);
   }
 };
@@ -131,14 +123,14 @@ const sendAppointmentStatusUpdate = async (appointmentData) => {
     
     return response.data;
   } catch (error) {
-    console.error('Lỗi gửi email thông báo cập nhật trạng thái:', error);
+    console.error('Lỗi gửi email thông báo cập nhật trạng thái cuộc hẹn:', error);
     throw new Error(error.response?.data?.message || `Lỗi gửi email: ${error.message}`);
   }
 };
 
-export { 
-  sendOTPEmail, 
-  sendPasswordResetEmail, 
+export {
+  sendOTPEmail,
+  sendPasswordResetEmail,
   sendContactEmail,
   sendContactConfirmationEmail,
   sendAppointmentConfirmation,

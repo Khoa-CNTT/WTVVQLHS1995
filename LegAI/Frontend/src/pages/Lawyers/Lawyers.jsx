@@ -17,9 +17,9 @@ function Lawyers() {
   const [selectedLawyer, setSelectedLawyer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [userRating, setUserRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -30,18 +30,8 @@ function Lawyers() {
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
-  // Kiểm tra đăng nhập
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      const isLoggedIn = authService.isAuthenticated();
-      setUserLoggedIn(isLoggedIn);
-    };
-
-    checkLoginStatus();
-  }, []);
-
-  // Danh sách các chuyên môn - đã chỉnh sửa để khớp với backend
-  const specialties = [
+  // Lấy danh sách chuyên môn từ backend
+  const [specialties, setSpecialties] = useState([
     { id: 'all', name: 'Tất cả' },
     { id: 'Dân sự', name: 'Dân sự' },
     { id: 'Hình sự', name: 'Hình sự' },
@@ -51,8 +41,68 @@ function Lawyers() {
     { id: 'Sở hữu trí tuệ', name: 'Sở hữu trí tuệ' },
     { id: 'Lao động', name: 'Lao động' },
     { id: 'Hành chính', name: 'Hành chính' }
-  ];
+  ]);
 
+  // Kiểm tra đăng nhập và tải danh sách chuyên môn
+  useEffect(() => {
+    // Kiểm tra trạng thái đăng nhập
+    const checkLoginStatus = () => {
+      const isLoggedIn = authService.isAuthenticated();
+      setUserLoggedIn(isLoggedIn);
+    };
+
+    // Tải danh sách chuyên môn từ backend
+    const fetchSpecializations = async () => {
+      try {
+        // Lấy danh sách luật sư từ backend
+        const response = await userService.getAllLawyers(1, 50); // Lấy 50 luật sư để có đủ specialization
+        
+        if (response && response.data && response.data.lawyers) {
+          // Tập hợp tất cả specialization
+          const uniqueSpecializations = new Set();
+          
+          // Thêm mục "Tất cả" luôn đầu tiên
+          uniqueSpecializations.add('all');
+          
+          // Lấy tất cả specialization từ các luật sư
+          response.data.lawyers.forEach(lawyer => {
+            if (lawyer.specialization) {
+              if (Array.isArray(lawyer.specialization)) {
+                lawyer.specialization.forEach(spec => {
+                  if (spec && spec.trim()) uniqueSpecializations.add(spec.trim());
+                });
+              } else if (typeof lawyer.specialization === 'string') {
+                lawyer.specialization.split(',').forEach(spec => {
+                  if (spec && spec.trim()) uniqueSpecializations.add(spec.trim());
+                });
+              }
+            }
+          });
+          
+          // Chuyển đổi set thành mảng và định dạng
+          const specializationsList = Array.from(uniqueSpecializations).map(spec => {
+            return spec === 'all' ? { id: 'all', name: 'Tất cả' } : { id: spec, name: spec };
+          });
+          
+          // Sắp xếp với "Tất cả" ở đầu tiên
+          specializationsList.sort((a, b) => {
+            if (a.id === 'all') return -1;
+            if (b.id === 'all') return 1;
+            return a.name.localeCompare(b.name);
+          });
+          
+          setSpecialties(specializationsList);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách chuyên môn:', error);
+      }
+    };
+    
+    checkLoginStatus();
+    fetchSpecializations();
+  }, []);
+
+  // Gọi API lấy luật sư mỗi khi thay đổi trang, tab, hoặc từ khóa tìm kiếm
   useEffect(() => {
     fetchLawyers();
   }, [page, activeTab, searchTerm]);
@@ -60,10 +110,12 @@ function Lawyers() {
   const fetchLawyers = async () => {
     try {
       setLoading(true);
+      
+      // Sử dụng getAllLawyers với các tham số phù hợp
       const response = await userService.getAllLawyers(
-        page,
-        10,
-        searchTerm,
+        page, 
+        10, 
+        searchTerm, 
         activeTab === 'all' ? '' : activeTab
       );
 
@@ -88,13 +140,13 @@ function Lawyers() {
 
         setLawyers(lawyersWithValidImages || []);
         setVisibleLawyers(lawyersWithValidImages || []);
-        setTotalPages(response.data.totalPages || 0);
+        setTotalPages(response.data.totalPages || 1);
       } else {
         // Nếu chưa có API hoặc có lỗi, sẽ hiển thị dữ liệu mẫu
         setVisibleLawyers(sampleLawyers);
       }
     } catch (error) {
-      console.error('Lỗi lấy danh sách luật sư:', error);
+      console.error('Lỗi khi tải danh sách luật sư:', error);
       setVisibleLawyers(sampleLawyers);
     } finally {
       setLoading(false);
@@ -104,7 +156,7 @@ function Lawyers() {
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setPage(1); // Reset về trang 1 khi tìm kiếm
+    setPage(1); // Reset về trang đầu tiên khi tìm kiếm
   };
 
   const clearSearch = () => {
@@ -112,9 +164,9 @@ function Lawyers() {
     setPage(1);
   };
 
-  const handleSpecialtyFilter = (specialty) => {
-    setActiveTab(specialty);
-    setPage(1); // Reset về trang 1 khi chọn chuyên môn
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setPage(1); // Reset về trang đầu tiên khi chuyển tab
   };
 
   const handleNextPage = () => {
@@ -429,7 +481,7 @@ function Lawyers() {
                   <button
                     key={specialty.id}
                     className={`${styles.specialtyTab} ${activeTab === specialty.id ? styles.active : ''}`}
-                    onClick={() => handleSpecialtyFilter(specialty.id)}
+                    onClick={() => handleTabChange(specialty.id)}
                   >
                     {specialty.name}
                   </button>

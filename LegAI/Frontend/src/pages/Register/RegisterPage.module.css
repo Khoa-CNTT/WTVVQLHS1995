@@ -42,8 +42,6 @@
   justify-content: center;
   align-items: center;
   position: relative;
-  padding-top: 20px;  /* Giảm padding phía trên */
-  padding-bottom: 20px;  /* Giảm padding phía dưới */
 }
 
 .registerSection::after {
@@ -92,7 +90,6 @@
 .socialLogin {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px;  /* Giảm margin */
   justify-content: center;
 }
 
@@ -143,7 +140,6 @@
 
 .inputGroup {
   position: relative;
-  margin-bottom: 15px;  /* Giảm margin */
   width: 100%;
   max-width: 400px;
 }
