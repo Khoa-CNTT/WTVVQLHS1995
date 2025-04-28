@@ -2,7 +2,15 @@ import { useState } from 'react';
 import styles from './DocCard.module.css';
 import PropTypes from 'prop-types';
 
-const DocCard = ({ doc, isOwner, onView, onDownload, onShare, onDelete, onAnalyze }) => {
+const DocCard = ({ 
+  doc, 
+  isOwner = true, 
+  onView, 
+  onDownload, 
+  onShare, 
+  onDelete, 
+  onAnalyze 
+}) => {
   const [showActions, setShowActions] = useState(false);
   
   // Xác định icon dựa trên loại file
@@ -184,10 +192,6 @@ DocCard.propTypes = {
   onShare: PropTypes.func,
   onDelete: PropTypes.func,
   onAnalyze: PropTypes.func
-};
-
-DocCard.defaultProps = {
-  isOwner: true
 };
 
 export default DocCard; 

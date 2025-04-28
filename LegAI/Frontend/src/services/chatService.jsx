@@ -33,14 +33,12 @@ const createChat = async () => {
 // (Tự động phân biệt giữa luật sư và khách hàng dựa trên token)
 const getChats = async (status = null, page = 1, limit = 10) => {
   try {
-    console.log('getChats được gọi với status:', status);
     
     let url = `${API_URL}/chats`;
     const params = new URLSearchParams();
     
     if (status) {
       params.append('status', status);
-      console.log(`Thêm tham số status=${status}`);
     }
     
     params.append('page', page);
@@ -50,8 +48,6 @@ const getChats = async (status = null, page = 1, limit = 10) => {
       url += `?${params.toString()}`;
     }
     
-    console.log('URL request:', url);
-    console.log('Headers:', getHeaders());
     
     try {
       const response = await axios.get(url, getHeaders());
@@ -161,8 +157,6 @@ const sendMessage = async (chatId, message) => {
       throw new Error('Bạn không có quyền gửi tin nhắn');
     }
     
-    console.log(`Đang gửi tin nhắn đến chat ID ${chatId}:`, message);
-    console.log('Headers:', getHeaders());
     
     const response = await axios.post(
       `${API_URL}/chats/${chatId}/messages`, 

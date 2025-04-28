@@ -434,7 +434,7 @@ function Dashboard() {
             <div 
               ref={userAvatarRef}
               className={styles.userAvatar} 
-              onClick={toggleUserMenu}
+              // onClick={toggleUserMenu}
               onMouseEnter={handleUserMenuMouseEnter}
               onMouseLeave={handleUserMenuMouseLeave}
             >
