@@ -18,9 +18,10 @@ const getUserLegalDocs = async (userId, options = {}) => {
         const offset = (page - 1) * limit;
         
         let query = `
-            SELECT id, title, description, category, file_type, file_url, 
-                   thumbnail_url, access_level, tags, created_at, updated_at
-            FROM UserLegalDocs
+            SELECT id, user_id, title, description, category, file_type, file_url, 
+                   file_size, is_encrypted, encryption_key, created_at, 
+                   updated_at, tags, metadata, access_level
+            FROM UserLegalDocs 
             WHERE user_id = $1
         `;
 
@@ -56,7 +57,7 @@ const getUserLegalDocs = async (userId, options = {}) => {
         
         // Đếm tổng số hồ sơ (không áp dụng phân trang)
         let countQuery = `
-            SELECT COUNT(*) FROM UserLegalDocs
+            SELECT COUNT(*) FROM UserLegalDocs 
             WHERE user_id = $1
         `;
         
@@ -97,7 +98,7 @@ const getUserLegalDocs = async (userId, options = {}) => {
     }
 };
 
-// Lấy thông tin chi tiết của một hồ sơ pháp lý
+// Lấy thông tin chi tiết hồ sơ pháp lý
 const getLegalDocById = async (docId, userId = null) => {
     try {
         let query = `
@@ -238,6 +239,52 @@ const createLegalDoc = async (docData) => {
     }
 };
 
+// Hàm kiểm tra quyền truy cập hồ sơ
+const checkDocumentAccess = async (docId, userId, requiredPermission = 'read') => {
+    try {
+        // Trường hợp 1: Người dùng là chủ sở hữu
+        const ownerCheck = await pool.query(
+            'SELECT id FROM UserLegalDocs WHERE id = $1 AND user_id = $2',
+            [docId, userId]
+        );
+        
+        if (ownerCheck.rows.length > 0) {
+            return { hasAccess: true, isOwner: true };
+        }
+        
+        // Trường hợp 2: Người dùng được chia sẻ quyền truy cập
+        const accessCheck = await pool.query(
+            `SELECT access_type FROM UserLegalDocAccess 
+             WHERE doc_id = $1 AND granted_to = $2
+             AND (valid_until IS NULL OR valid_until > NOW())`,
+            [docId, userId]
+        );
+        
+        if (accessCheck.rows.length === 0) {
+            return { hasAccess: false };
+        }
+        
+        // Kiểm tra xem người dùng có quyền theo yêu cầu không
+        const permissions = accessCheck.rows.map(row => row.access_type);
+        
+        if (requiredPermission === 'read') {
+            // Nếu chỉ yêu cầu quyền đọc, có bất kỳ quyền nào cũng được
+            return { hasAccess: true, isOwner: false, permissions };
+        } else if (requiredPermission === 'edit') {
+            // Nếu yêu cầu quyền sửa, phải có quyền 'edit'
+            return { hasAccess: permissions.includes('edit'), isOwner: false, permissions };
+        } else if (requiredPermission === 'delete') {
+            // Nếu yêu cầu quyền xóa, phải có quyền 'delete'
+            return { hasAccess: permissions.includes('delete'), isOwner: false, permissions };
+        }
+        
+        return { hasAccess: false };
+    } catch (error) {
+        console.error('Lỗi khi kiểm tra quyền truy cập:', error);
+        throw error;
+    }
+};
+
 // Cập nhật thông tin hồ sơ pháp lý
 const updateLegalDoc = async (docId, userId, docData) => {
     const client = await pool.connect();
@@ -245,74 +292,72 @@ const updateLegalDoc = async (docId, userId, docData) => {
     try {
         await client.query('BEGIN');
         
-        // Kiểm tra quyền sở hữu
-        const checkOwnership = await client.query(
-            'SELECT user_id FROM UserLegalDocs WHERE id = $1',
+        // Kiểm tra quyền truy cập
+        const access = await checkDocumentAccess(docId, userId, 'edit');
+        
+        if (!access.hasAccess) {
+            throw new Error('Bạn không có quyền cập nhật hồ sơ này');
+        }
+        
+        // Lấy thông tin hiện tại của hồ sơ để merge với dữ liệu mới
+        const currentDocResult = await client.query(
+            'SELECT * FROM UserLegalDocs WHERE id = $1',
             [docId]
         );
         
-        if (checkOwnership.rows.length === 0) {
+        if (currentDocResult.rows.length === 0) {
             throw new Error('Hồ sơ pháp lý không tồn tại');
         }
         
-        if (checkOwnership.rows[0].user_id !== userId) {
-            // Kiểm tra quyền chỉnh sửa
-            const checkPermission = await client.query(
-                `SELECT 1 FROM UserLegalDocAccess 
-                 WHERE doc_id = $1 AND granted_to = $2 AND access_type = 'edit'
-                 AND (valid_until IS NULL OR valid_until > NOW())`,
-                [docId, userId]
-            );
-            
-            if (checkPermission.rows.length === 0) {
-                throw new Error('Không có quyền chỉnh sửa hồ sơ này');
+        const currentDoc = currentDocResult.rows[0];
+        
+        // Merger dữ liệu hiện tại với dữ liệu cập nhật
+        const updatedDoc = { ...currentDoc, ...docData };
+        
+        // Build câu query động dựa trên các trường cần cập nhật
+        const updateFields = [];
+        const updateValues = [];
+        let valueIndex = 1;
+        
+        Object.keys(docData).forEach(key => {
+            // Chỉ cập nhật các trường hợp lệ
+            if (['title', 'description', 'category', 'access_level', 'tags', 'metadata'].includes(key)) {
+                updateFields.push(`${key} = $${valueIndex}`);
+                updateValues.push(docData[key]);
+                valueIndex++;
             }
+        });
+        
+        // Thêm trường updated_at
+        updateFields.push(`updated_at = $${valueIndex}`);
+        updateValues.push(new Date());
+        
+        // Nếu không có trường nào được cập nhật
+        if (updateFields.length === 1) { // Chỉ có trường updated_at
+            throw new Error('Không có dữ liệu hợp lệ để cập nhật');
         }
         
-        // Xây dựng câu truy vấn động
-        let updateFields = [];
-        let values = [];
-        let paramCount = 1;
-        
-        const allowedFields = [
-            'title', 'description', 'category', 'access_level', 'tags', 'metadata'
-        ];
-        
-        for (const [key, value] of Object.entries(docData)) {
-            if (allowedFields.includes(key) && value !== undefined) {
-                updateFields.push(`${key} = $${paramCount}`);
-                values.push(value);
-                paramCount++;
-            }
-        }
-        
-        // Luôn cập nhật thời gian sửa đổi
-        updateFields.push(`updated_at = NOW()`);
-        
-        if (updateFields.length === 1) {
-            // Chỉ có updated_at, không có trường nào cần cập nhật
-            await client.query('ROLLBACK');
-            return { message: 'Không có thông tin nào được cập nhật' };
-        }
-        
-        // Thêm tham số cuối cùng là docId
-        values.push(docId);
-        
+        // Thực hiện cập nhật
         const query = `
-            UPDATE UserLegalDocs
+            UPDATE UserLegalDocs 
             SET ${updateFields.join(', ')}
-            WHERE id = $${paramCount}
+            WHERE id = $${valueIndex + 1}
             RETURNING *
         `;
         
-        const result = await client.query(query, values);
+        updateValues.push(docId);
+        
+        const result = await client.query(query, updateValues);
+        
+        if (result.rows.length === 0) {
+            throw new Error('Cập nhật hồ sơ thất bại');
+        }
         
         // Ghi log hoạt động
         await client.query(
             `INSERT INTO AuditLogs (user_id, action, table_name, record_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
-            [userId, 'UPDATE', 'UserLegalDocs', docId, 
-             `Cập nhật hồ sơ pháp lý: ${result.rows[0].title}`]
+            [userId, 'UPDATE', 'UserLegalDocs', docId, `Cập nhật hồ sơ pháp lý: ${result.rows[0].title}`]
         );
         
         await client.query('COMMIT');
@@ -333,35 +378,26 @@ const deleteLegalDoc = async (docId, userId) => {
     try {
         await client.query('BEGIN');
         
-        // Kiểm tra quyền sở hữu
-        const checkOwnership = await client.query(
-            'SELECT user_id, file_url, title FROM UserLegalDocs WHERE id = $1',
+        // Kiểm tra quyền truy cập
+        const access = await checkDocumentAccess(docId, userId, 'delete');
+        
+        if (!access.hasAccess) {
+            throw new Error('Bạn không có quyền xóa hồ sơ này');
+        }
+        
+        // Lấy thông tin hồ sơ trước khi xóa
+        const docResult = await client.query(
+            'SELECT * FROM UserLegalDocs WHERE id = $1',
             [docId]
         );
         
-        if (checkOwnership.rows.length === 0) {
+        if (docResult.rows.length === 0) {
             throw new Error('Hồ sơ pháp lý không tồn tại');
         }
         
-        if (checkOwnership.rows[0].user_id !== userId) {
-            // Kiểm tra quyền xóa
-            const checkPermission = await client.query(
-                `SELECT 1 FROM UserLegalDocAccess 
-                 WHERE doc_id = $1 AND granted_to = $2 AND access_type = 'delete'
-                 AND (valid_until IS NULL OR valid_until > NOW())`,
-                [docId, userId]
-            );
-            
-            if (checkPermission.rows.length === 0) {
-                throw new Error('Không có quyền xóa hồ sơ này');
-            }
-        }
+        const doc = docResult.rows[0];
         
-        // Lấy thông tin file để xóa khỏi hệ thống
-        const fileUrl = checkOwnership.rows[0].file_url;
-        const docTitle = checkOwnership.rows[0].title;
-        
-        // Xóa các quyền truy cập liên quan
+        // Xóa tất cả các bản ghi chia sẻ trước
         await client.query(
             'DELETE FROM UserLegalDocAccess WHERE doc_id = $1',
             [docId]
@@ -377,8 +413,7 @@ const deleteLegalDoc = async (docId, userId) => {
         await client.query(
             `INSERT INTO AuditLogs (user_id, action, table_name, record_id, details)
              VALUES ($1, $2, $3, $4, $5)`,
-            [userId, 'DELETE', 'UserLegalDocs', docId, 
-             `Xóa hồ sơ pháp lý: ${docTitle}`]
+            [userId, 'DELETE', 'UserLegalDocs', docId, `Xóa hồ sơ pháp lý: ${doc.title}`]
         );
         
         await client.query('COMMIT');
@@ -386,7 +421,7 @@ const deleteLegalDoc = async (docId, userId) => {
         // Xóa file vật lý (thực hiện sau khi đã commit transaction)
         try {
             // Chuyển đổi URL thành đường dẫn thực
-            const relativePath = fileUrl.replace(/^\/uploads\//, '');
+            const relativePath = doc.file_url.replace(/^\/uploads\//, '');
             const filePath = path.join(process.cwd(), 'uploads', relativePath);
             
             if (fs.existsSync(filePath)) {
@@ -397,7 +432,7 @@ const deleteLegalDoc = async (docId, userId) => {
             // Không throw lỗi này vì transaction đã commit thành công
         }
         
-        return { success: true, message: 'Đã xóa hồ sơ pháp lý' };
+        return { success: true, message: 'Đã xóa hồ sơ pháp lý', fileUrl: doc.file_url };
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Lỗi khi xóa hồ sơ pháp lý:', error);

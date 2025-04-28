@@ -71,11 +71,15 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
       // Hiển thị thông báo khi tìm thấy người dùng
       toast.info(`Đang chia sẻ tài liệu với ${userData.full_name || userData.username || email}...`);
       
-      // Bước 2: Chuyển đổi quyền thành mảng đúng định dạng
+      // Chuyển đổi quyền thành mảng đúng định dạng API
       let permissionArray = [];
       if (permissions === 'view') permissionArray = ['read'];
       else if (permissions === 'edit') permissionArray = ['read', 'edit'];
       else if (permissions === 'full') permissionArray = ['read', 'edit', 'delete'];
+      
+      // DEBUG
+      console.log('Loại quyền từ UI:', permissions);
+      console.log('Chuyển đổi thành mảng quyền:', permissionArray);
       
       const shareData = {
         shared_with: parseInt(userId),
@@ -83,9 +87,20 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
         valid_until: expiryDate || null
       };
       
-      
       try {
-        const response = await legalDocService.shareLegalDoc(doc.id, shareData);
+        // Chuyển đổi trực tiếp các quyền trong request
+        const directShareData = {
+          shared_with: parseInt(userId),
+          permission: permissionArray.length === 1 && permissionArray[0] === 'read' ? 'read' :
+                     permissionArray.includes('edit') && !permissionArray.includes('delete') ? 'edit' :
+                     permissionArray.includes('delete') ? 'delete' : 'read',
+          permissions: permissionArray
+        };
+        
+        console.log('Dữ liệu gửi đi API chia sẻ:', directShareData);
+        
+        // Sử dụng cấu trúc quyền mới
+        const response = await legalDocService.shareLegalDoc(doc.id, directShareData);
         
         if (response && response.success) {
           setEmail('');
@@ -104,6 +119,8 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
             };
             setSharedWith([...sharedWith, newSharedUser]);
           }
+          
+          toast.success('Đã chia sẻ tài liệu thành công');
           
           if (onSuccess) {
             onSuccess();
@@ -170,8 +187,17 @@ const DocShareModal = ({ doc, onClose, onSuccess }) => {
   };
 
   // Lấy tên quyền hạn
-  const getPermissionName = (permission) => {
-    switch (permission) {
+  const getPermissionName = (permissions) => {
+    // Nếu permissions là mảng (từ API)
+    if (Array.isArray(permissions)) {
+      if (permissions.includes('delete')) return 'Toàn quyền';
+      if (permissions.includes('edit')) return 'Chỉnh sửa';
+      if (permissions.includes('read')) return 'Xem';
+      return 'Xem';
+    }
+    
+    // Nếu permissions là chuỗi (từ UI)
+    switch (permissions) {
       case 'view':
         return 'Xem';
       case 'edit':

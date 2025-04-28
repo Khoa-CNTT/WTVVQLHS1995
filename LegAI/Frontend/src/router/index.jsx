@@ -2,29 +2,39 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import PublicRoutes from './publicRoutes';
-import PrivateRoutes from './privateRoutes';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
 import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
+import ContractManager from '../pages/Contracts/ContractManager';
 import authService from '../services/authService';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
 
-// Kiểm tra vai trò
-const hasRole = (role) => {
+// Kiểm tra vai trò - không phân biệt hoa thường
+const hasRole = (roles) => {
   const user = authService.getCurrentUser();
   if (!user || !user.role) return false;
   
-  // Chuyển đổi cả hai thành chữ thường để so sánh
+  // Chuyển đổi vai trò người dùng thành chữ thường để so sánh
   const userRole = user.role.toLowerCase();
-  const requiredRole = Array.isArray(role) 
-    ? role.map(r => r.toLowerCase()) 
-    : [role.toLowerCase()];
   
-  return requiredRole.includes(userRole);
+  // Chuyển đổi các vai trò cần kiểm tra thành mảng và chuẩn hóa chữ thường
+  const requiredRoles = Array.isArray(roles) 
+    ? roles.map(r => r.toLowerCase()) 
+    : [roles.toLowerCase()];
+  
+  return requiredRoles.some(role => {
+    // Xử lý trường hợp vai trò 'user' và 'customer' được xem là tương đương
+    if ((role === 'customer' && userRole === 'user') ||
+        (role === 'user' && userRole === 'customer')) {
+      return true;
+    }
+    
+    return role === userRole;
+  });
 };
 
 // Route bảo vệ
@@ -34,25 +44,8 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   }
   
   // Nếu chỉ định vai trò, kiểm tra vai trò người dùng
-  if (roles.length > 0) {
-    // Sử dụng hàm hasRole từ authService
-    const user = authService.getCurrentUser();
-    
-    if (!user || !user.role) {
-      return <Navigate to="/" />;
-    }
-    
-    const hasAccess = roles.some(role => {
-      const userRole = user.role.toLowerCase();
-      const requiredRole = role.toLowerCase();
-      const result = userRole === requiredRole;
-      return result;
-    });
-    
-    
-    if (!hasAccess) {
-      return <Navigate to="/" />;
-    }
+  if (roles.length > 0 && !hasRole(roles)) {
+    return <Navigate to="/" />;
   }
   
   return children;
@@ -84,9 +77,18 @@ const AppRouter = () => {
           </ProtectedRoute>
         } />
         
+        {/* Route quản lý hợp đồng */}
+        <Route path="/contracts" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <ContractManager />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
         {/* Route dành cho admin */}
         <Route path="/dashboard" element={
-          <ProtectedRoute roles={hasRole['admin']}>
+          <ProtectedRoute roles={['admin']}>
             <PageTransition custom="fade">
               <Dashboard />
             </PageTransition>
@@ -95,7 +97,7 @@ const AppRouter = () => {
         
         {/* Route quản lý người dùng */}
         <Route path="/dashboard/users" element={
-          <ProtectedRoute roles={hasRole['admin']}>
+          <ProtectedRoute roles={['admin']}>
             <PageTransition custom="fade">
               <UsersManagerPage />
             </PageTransition>
@@ -104,7 +106,7 @@ const AppRouter = () => {
         
         {/* Route dành cho luật sư */}
         <Route path="/lawyer-dashboard" element={
-          <ProtectedRoute roles={hasRole(['lawyer'])}>
+          <ProtectedRoute roles={['lawyer']}>
             <PageTransition custom="fade">
               <LawyerDashboard />
             </PageTransition>
@@ -113,9 +115,18 @@ const AppRouter = () => {
 
         {/* Route chi tiết hồ sơ pháp lý */}
         <Route path="/dashboard/legal-docs/:id" element={
-          <ProtectedRoute roles={hasRole(['admin', 'user'])}>
+          <ProtectedRoute roles={['admin', 'user', 'customer','lawyer']}>
             <PageTransition custom="fade">
               <Dashboard />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route chi tiết hồ sơ pháp lý */}
+        <Route path="/legal-docs/:id" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalDocsPage />
             </PageTransition>
           </ProtectedRoute>
         } />

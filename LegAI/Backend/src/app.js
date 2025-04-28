@@ -22,7 +22,11 @@ if (!process.env.JWT_SECRET) {
 // Tạo thư mục uploads nếu chưa tồn tại
 const uploadsDir = path.join(__dirname, '../uploads');
 const avatarsDir = path.join(uploadsDir, 'avatars');
+const contractsDir = path.join(uploadsDir, 'contracts');
+const tempDir = path.join(uploadsDir, 'temp');
+const legalDocsDir = path.join(uploadsDir, 'legal-docs');
 
+// Tạo các thư mục cần thiết nếu chưa tồn tại
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
     console.log('Đã tạo thư mục uploads');
@@ -31,6 +35,21 @@ if (!fs.existsSync(uploadsDir)) {
 if (!fs.existsSync(avatarsDir)) {
     fs.mkdirSync(avatarsDir, { recursive: true });
     console.log('Đã tạo thư mục uploads/avatars');
+}
+
+if (!fs.existsSync(contractsDir)) {
+    fs.mkdirSync(contractsDir, { recursive: true });
+    console.log('Đã tạo thư mục uploads/contracts');
+}
+
+if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+    console.log('Đã tạo thư mục uploads/temp');
+}
+
+if (!fs.existsSync(legalDocsDir)) {
+    fs.mkdirSync(legalDocsDir, { recursive: true });
+    console.log('Đã tạo thư mục uploads/legal-docs');
 }
 
 // Cấu hình CORS

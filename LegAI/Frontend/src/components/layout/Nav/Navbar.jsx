@@ -190,6 +190,11 @@ const Navbar = () => {
           <li>
             <NavLink to="/legal-docs">Hồ sơ pháp lý</NavLink>
           </li>
+          {currentUser && (
+            <li>
+              <NavLink to="/contracts">Hợp đồng</NavLink>
+            </li>
+          )}
           <li>
             <NavLink to="/services">Dịch vụ</NavLink>
           </li>

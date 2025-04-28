@@ -76,10 +76,11 @@ CREATE TABLE Contracts (
     contract_type VARCHAR(50) NOT NULL,
     file_url VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    signature VARCHAR(255) NOT NULL,
+    end_date DATE,
+    signature VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 

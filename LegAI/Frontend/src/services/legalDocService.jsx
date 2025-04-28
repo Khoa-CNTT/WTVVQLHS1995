@@ -149,20 +149,30 @@ export const downloadLegalDoc = async (docId) => {
             responseType: 'blob'
         });
         
-        // Lấy tên file từ header Content-Disposition nếu có
+        // Lấy tên file từ header Content-Disposition
         const contentDisposition = response.headers['content-disposition'];
         let filename = 'document';
         
         if (contentDisposition) {
-            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-            const matches = filenameRegex.exec(contentDisposition);
-            if (matches != null && matches[1]) {
-                filename = matches[1].replace(/['"]/g, '');
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+                // Xử lý decode URI component để lấy tên file đúng
+                let extractedName = filenameMatch[1].replace(/['"]/g, '');
+                try {
+                    filename = decodeURIComponent(extractedName);
+                } catch (e) {
+                    // Nếu không decode được, sử dụng tên gốc
+                    filename = extractedName;
+                }
             }
         }
         
-        // Tạo URL cho blob
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        // Xác định đúng loại MIME type dựa vào Content-Type header
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        
+        // Tạo URL cho blob với đúng MIME type
+        const blob = new Blob([response.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
         
         // Tạo link tải xuống và click
         const link = document.createElement('a');
@@ -172,12 +182,28 @@ export const downloadLegalDoc = async (docId) => {
         link.click();
         
         // Dọn dẹp
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(link);
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+        }, 100);
         
-        return { success: true };
+        return { success: true, filename, contentType };
     } catch (error) {
         console.error('Lỗi khi tải xuống hồ sơ pháp lý:', error);
+        if (error.response) {
+            console.error('Status:', error.response.status);
+            console.error('Headers:', error.response.headers);
+            if (error.response.data instanceof Blob) {
+                try {
+                    const text = await error.response.data.text();
+                    console.error('Error response:', text);
+                } catch (e) {
+                    console.error('Không thể đọc nội dung lỗi');
+                }
+            } else {
+                console.error('Error data:', error.response.data);
+            }
+        }
         throw error;
     }
 };
@@ -218,15 +244,56 @@ export const shareLegalDoc = async (docId, userData) => {
             };
         }
         
+        // Chuyển đổi quyền thành CHUỖI đơn giản theo yêu cầu API
+        // Mặc định backend cần các quyền dưới dạng string: read, edit, delete
+        let singlePermission = '';
+        
+        if (userData.permission) {
+            // Ưu tiên sử dụng permission truyền vào trực tiếp
+            singlePermission = userData.permission;
+            console.log('Sử dụng quyền từ trường permission:', singlePermission);
+        } else if (Array.isArray(userData.permissions)) {
+            // Chuyển đổi từ mảng permissions thành chuỗi đơn lẻ
+            if (userData.permissions.includes('delete')) {
+                singlePermission = 'delete';
+            } else if (userData.permissions.includes('edit')) {
+                singlePermission = 'edit';
+            } else if (userData.permissions.includes('read')) {
+                singlePermission = 'read';
+            } else {
+                singlePermission = 'read'; // Mặc định
+            }
+            console.log('Chuyển đổi từ mảng permissions thành:', singlePermission);
+        } else if (typeof userData.permissions === 'string') {
+            // Chuyển đổi từ chuỗi permissions thô sang API đúng
+            if (userData.permissions === 'view' || userData.permissions === 'read') {
+                singlePermission = 'read';
+            } else if (userData.permissions === 'edit') {
+                singlePermission = 'edit';
+            } else if (userData.permissions === 'full' || userData.permissions === 'delete') {
+                singlePermission = 'delete';
+            } else {
+                singlePermission = 'read'; // Mặc định
+            }
+            console.log('Chuyển đổi từ chuỗi permissions thành:', singlePermission);
+        } else {
+            // Mặc định quyền đọc
+            singlePermission = 'read';
+            console.log('Sử dụng quyền mặc định:', singlePermission);
+        }
+        
         const payload = {
             shared_with: sharedWithId,
-            permissions: Array.isArray(userData.permissions) 
-                ? userData.permissions 
-                : [userData.permission || "read"],
+            access_type: singlePermission, // Sử dụng một quyền duy nhất thay vì mảng
             valid_until: userData.expireDate || userData.expiryDate || userData.expire_date || userData.valid_until
         };
         
+        console.log('Payload cuối cùng gửi đến API:', payload);
+        
         const response = await axiosInstance.post(`/legal-docs/${docId}/share`, payload, getHeaders());
+        
+        console.log('Kết quả từ API:', response.data);
+        
         return response.data;
     } catch (error) {
         console.error('Lỗi khi chia sẻ hồ sơ pháp lý:', error);

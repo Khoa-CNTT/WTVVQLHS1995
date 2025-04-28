@@ -368,14 +368,24 @@ const downloadDoc = asyncHandler(async (req, res) => {
         });
     }
     
+    // Tạo tên file khi tải xuống dựa trên tên gốc và định dạng
+    const originalName = doc.metadata && doc.metadata.original_name 
+        ? doc.metadata.original_name 
+        : `${doc.title}.${doc.file_type}`;
+    
+    // Xác định đúng Content-Type dựa trên MIME type
+    const contentType = doc.metadata && doc.metadata.mime_type 
+        ? doc.metadata.mime_type 
+        : getMimeTypeByExtension(doc.file_type);
+    
     // Nếu file được mã hóa, giải mã trước khi gửi
     if (doc.is_encrypted && doc.encryption_key) {
         try {
             const decryptedBuffer = await decryptFile(filePath, doc.encryption_key);
             
             // Đặt header
-            res.setHeader('Content-Type', doc.metadata.mime_type || 'application/octet-stream');
-            res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.metadata.original_name || doc.title)}"`);
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
             
             // Trả về buffer đã giải mã
             return res.send(decryptedBuffer);
@@ -388,8 +398,28 @@ const downloadDoc = asyncHandler(async (req, res) => {
     }
     
     // Nếu file không được mã hóa, trả về file trực tiếp
-    res.download(filePath, doc.metadata && doc.metadata.original_name ? doc.metadata.original_name : `${doc.title}.${doc.file_type}`);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+    res.download(filePath, originalName);
 });
+
+// Hàm hỗ trợ lấy MIME type từ extension
+const getMimeTypeByExtension = (extension) => {
+    const mimeTypes = {
+        'pdf': 'application/pdf',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'doc': 'application/msword',
+        'txt': 'text/plain',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'xls': 'application/vnd.ms-excel'
+    };
+    
+    return mimeTypes[extension.toLowerCase()] || 'application/octet-stream';
+};
 
 // API endpoint để lấy danh sách các danh mục
 const getCategories = asyncHandler(async (req, res) => {
@@ -406,18 +436,42 @@ const shareDoc = asyncHandler(async (req, res) => {
     const docId = req.params.id;
     const userId = req.user.id; // Người chia sẻ
     
-    const { shared_with, permissions, valid_until } = req.body;
+    const { shared_with, permissions, access_type, valid_until } = req.body;
     
-    if (!shared_with || !Array.isArray(permissions) || permissions.length === 0) {
+    console.log('Dữ liệu nhận được từ request:', req.body);
+    
+    // Kiểm tra đã có shared_with chưa
+    if (!shared_with) {
         return res.status(400).json({
             success: false,
-            message: 'Vui lòng cung cấp ID người dùng được chia sẻ và các quyền'
+            message: 'Vui lòng cung cấp ID người dùng được chia sẻ'
+        });
+    }
+    
+    // Xác định quyền truy cập từ nhiều nguồn có thể có
+    let permissionsArray = [];
+    
+    // Nếu có access_type, ưu tiên sử dụng nó (cách mới)
+    if (access_type) {
+        console.log('Sử dụng access_type:', access_type);
+        permissionsArray = [access_type]; // Chỉ sử dụng một quyền từ access_type
+    }
+    // Nếu có permissions array, sử dụng nó (cách cũ)
+    else if (Array.isArray(permissions) && permissions.length > 0) {
+        console.log('Sử dụng permissions array:', permissions);
+        permissionsArray = permissions;
+    }
+    // Trường hợp không có quyền hợp lệ
+    else {
+        return res.status(400).json({
+            success: false,
+            message: 'Vui lòng cung cấp quyền truy cập (access_type hoặc permissions)'
         });
     }
     
     // Kiểm tra các loại quyền hợp lệ
     const validPermissions = ['read', 'edit', 'delete'];
-    const isValidPermissions = permissions.every(p => validPermissions.includes(p));
+    const isValidPermissions = permissionsArray.every(p => validPermissions.includes(p));
     
     if (!isValidPermissions) {
         return res.status(400).json({
@@ -451,11 +505,15 @@ const shareDoc = asyncHandler(async (req, res) => {
             }
         }
         
+        console.log('Gọi model shareLegalDoc với:', {
+            docId, userId, shared_with, permissions: permissionsArray, parsedValidUntil
+        });
+        
         const result = await userLegalDocModel.shareLegalDoc(
             docId, 
             userId, 
             shared_with, 
-            permissions, 
+            permissionsArray, 
             parsedValidUntil
         );
         
