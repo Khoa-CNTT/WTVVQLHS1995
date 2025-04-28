@@ -14,6 +14,7 @@ const autoUpdateRoutes = require('./autoUpdateRoutes');
 const userLegalDocRoutes = require('./userLegalDocRoutes');
 const contractRoutes = require('./contractRoutes');
 const aiRoutes = require('./aiRoutes');
+const legalCaseRoutes = require('./legalCaseRoutes');
 
 // Sử dụng các route
 router.use('/auth', authRoutes);
@@ -28,5 +29,6 @@ router.use('/node-scraper', nodeScraperRoutes);
 router.use('/auto-update', autoUpdateRoutes);
 router.use('/contracts', contractRoutes);
 router.use('/ai', aiRoutes);
+router.use('/legal-cases', legalCaseRoutes);
 
 module.exports = router;

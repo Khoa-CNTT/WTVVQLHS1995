@@ -58,14 +58,20 @@ CREATE TABLE LegalKeywords (
 CREATE TABLE LegalCases (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
+    lawyer_id INT,
     title VARCHAR(255) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    file_url VARCHAR(255) NOT NULL,
     description TEXT,
-    uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    case_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'draft',
+    ai_content TEXT,
+    is_ai_generated BOOLEAN DEFAULT FALSE,
+    fee_amount DECIMAL(12, 2),
+    fee_details JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 -- Bảng Contracts
@@ -94,6 +100,8 @@ CREATE TABLE Appointments (
     status VARCHAR(50) NOT NULL,
     purpose TEXT DEFAULT '',
     notes TEXT DEFAULT '',
+    case_id INTEGER REFERENCES LegalCases(id),
+    appointment_type VARCHAR(50) DEFAULT 'consultation',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
@@ -143,6 +151,8 @@ CREATE TABLE Transactions (
     service_type VARCHAR(50) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
+    case_id INTEGER REFERENCES LegalCases(id),
+    payment_info JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
@@ -223,10 +233,15 @@ CREATE TABLE LawyerAvailability (
 -- Bảng FeeReferences
 CREATE TABLE FeeReferences (
     id SERIAL PRIMARY KEY,
-    case_type VARCHAR(50) NOT NULL,
-    base_fee DECIMAL(10,2) NOT NULL,
-    percentage DECIMAL(5,2) NOT NULL,
-    description TEXT
+    case_type VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    base_fee DECIMAL(12, 2) NOT NULL,
+    percentage_fee DECIMAL(5, 2) DEFAULT 0,
+    calculation_method VARCHAR(50) DEFAULT 'fixed',
+    min_fee DECIMAL(12, 2),
+    max_fee DECIMAL(12, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Thêm index để tối ưu hóa truy vấn
@@ -240,7 +255,13 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON Transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_lawyer_id ON Transactions(lawyer_id);
 CREATE INDEX IF NOT EXISTS idx_legalkeywords_document_id ON LegalKeywords(document_id);
 CREATE INDEX IF NOT EXISTS idx_legalkeywords_keyword ON LegalKeywords(keyword);
-
+CREATE INDEX IF NOT EXISTS idx_legal_cases_user_id ON LegalCases(user_id);
+CREATE INDEX IF NOT EXISTS idx_legal_cases_lawyer_id ON LegalCases(lawyer_id);
+CREATE INDEX IF NOT EXISTS idx_legal_cases_case_type ON LegalCases(case_type);
+CREATE INDEX IF NOT EXISTS idx_legal_cases_status ON LegalCases(status);
+CREATE INDEX IF NOT EXISTS idx_case_documents_case_id ON CaseDocuments(case_id);
+CREATE INDEX IF NOT EXISTS idx_fee_references_case_type ON FeeReferences(case_type);
+CREATE INDEX IF NOT EXISTS idx_transactions_case_id ON Transactions(case_id);
 
 -- Cập nhật dữ liệu hiện có trong bảng Appointments
 UPDATE Appointments 
@@ -289,3 +310,38 @@ CREATE INDEX IF NOT EXISTS idx_user_legal_docs_tags ON UserLegalDocs USING GIN(t
 CREATE INDEX IF NOT EXISTS idx_user_legal_docs_metadata ON UserLegalDocs USING GIN(metadata);
 CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_doc_id ON UserLegalDocAccess(doc_id);
 CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_granted_to ON UserLegalDocAccess(granted_to);
+
+-- Bảng tài liệu vụ án
+CREATE TABLE IF NOT EXISTS CaseDocuments (
+  id SERIAL PRIMARY KEY,
+  case_id INTEGER REFERENCES LegalCases(id) NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(255) NOT NULL,
+  mime_type VARCHAR(100),
+  encryption_key VARCHAR(255),
+  size INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- Thêm dữ liệu mẫu cho bảng phí
+INSERT INTO FeeReferences (case_type, description, base_fee, percentage_fee, calculation_method, min_fee, max_fee)
+VALUES 
+  ('civil', 'Vụ án dân sự', 2000000, 1.5, 'percentage', 2000000, 100000000),
+  ('criminal', 'Vụ án hình sự', 5000000, 0, 'fixed', 5000000, 50000000),
+  ('administrative', 'Vụ án hành chính', 3000000, 1.0, 'percentage', 3000000, 50000000),
+  ('labor', 'Tranh chấp lao động', 1500000, 2.0, 'percentage', 1500000, 30000000),
+  ('commercial', 'Tranh chấp thương mại', 3000000, 2.5, 'percentage', 3000000, 150000000),
+  ('land', 'Tranh chấp đất đai', 4000000, 1.8, 'percentage', 4000000, 100000000),
+  ('divorce', 'Ly hôn và chia tài sản', 3500000, 2.0, 'percentage', 3500000, 50000000),
+  ('intellectual', 'Sở hữu trí tuệ', 5000000, 3.0, 'percentage', 5000000, 200000000);
+
+-- Bổ sung trường case_id vào bảng Transactions nếu chưa có
+ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS case_id INTEGER REFERENCES LegalCases(id);
+
+-- Bổ sung trường case_id vào bảng Appointments nếu chưa có
+ALTER TABLE Appointments ADD COLUMN IF NOT EXISTS case_id INTEGER REFERENCES LegalCases(id);
+ALTER TABLE Appointments ADD COLUMN IF NOT EXISTS appointment_type VARCHAR(50) DEFAULT 'consultation';
+
+-- Bổ sung trường payment_info vào bảng Transactions nếu chưa có
+ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS payment_info JSONB;

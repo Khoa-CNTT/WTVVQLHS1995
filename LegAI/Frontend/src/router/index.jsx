@@ -8,6 +8,9 @@ import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import ContractManager from '../pages/Contracts/ContractManager';
+import LegalCaseList from '../pages/LegalCase/LegalCaseList';
+import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
+import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
 import authService from '../services/authService';
 
 // Kiểm tra đăng nhập
@@ -127,6 +130,31 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <LegalDocsPage />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route quản lý vụ án pháp lý */}
+        <Route path="/legal-cases" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalCaseList />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/legal-cases/create" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalCaseCreator />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/legal-cases/:id" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalCaseDetail />
             </PageTransition>
           </ProtectedRoute>
         } />

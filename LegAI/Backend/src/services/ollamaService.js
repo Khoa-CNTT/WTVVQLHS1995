@@ -99,17 +99,21 @@ NHIỆM VỤ QUAN TRỌNG:
       {
         pattern: /dài quá|ngắn lại|ngắn gọn|tóm tắt|quá dài|nhiều quá/i,
         response: "Tôi sẽ cố gắng trả lời ngắn gọn và đi thẳng vào vấn đề. Bạn muốn biết thông tin cụ thể nào?"
-      },
-      {
-        pattern: /ngu|kém|không biết gì|chả biết gì|tệ|tệ quá/i,
-        response: "Tôi hiểu bạn đang cần thông tin chính xác hơn. Hãy cho tôi biết bạn muốn tìm hiểu điều gì cụ thể để tôi có thể hỗ trợ tốt hơn."
       }
     ];
     
-    // Kiểm tra các mẫu câu phản hồi thông thường
-    for (const pattern of casualResponsePatterns) {
-      if (pattern.pattern.test(prompt.trim())) {
-        return pattern.response;
+    // Kiểm tra có phải là context tạo bản nháp văn bản pháp lý không
+    const isLegalDraftContext = prompt.includes('soạn thảo') && 
+                               (prompt.includes('văn bản') || prompt.includes('đơn') || 
+                                prompt.includes('biên bản') || prompt.includes('hợp đồng'));
+    
+    // Bỏ qua các kiểm tra mẫu câu phản hồi thông thường nếu đang trong context soạn thảo văn bản pháp lý
+    if (!isLegalDraftContext) {
+      // Kiểm tra các mẫu câu phản hồi thông thường
+      for (const pattern of casualResponsePatterns) {
+        if (pattern.pattern.test(prompt.trim())) {
+          return pattern.response;
+        }
       }
     }
     
