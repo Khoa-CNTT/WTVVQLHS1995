@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
-import AppRouter from './router';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/global.css';
@@ -32,11 +31,8 @@ console.error = function(msg) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ToastContainer /> {/* Add this */}
+      <ToastContainer />
       <App />
-      <div className="app-container">
-        <AppRouter />
-      </div>
     </BrowserRouter>
   </React.StrictMode>
 );

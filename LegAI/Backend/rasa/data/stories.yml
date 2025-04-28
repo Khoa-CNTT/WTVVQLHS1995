@@ -1,0 +1,162 @@
+version: "3.1"
+
+stories:
+
+- story: chào hỏi đơn giản
+  steps:
+  - intent: greet
+  - action: utter_greet
+
+- story: chào tạm biệt
+  steps:
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: cảm ơn
+  steps:
+  - intent: thank
+  - action: utter_thank
+
+- story: trợ giúp
+  steps:
+  - intent: help
+  - action: utter_help
+
+- story: tìm kiếm văn bản pháp luật
+  steps:
+  - intent: search_legal_document
+  - action: utter_search_legal_document
+  - intent: search_legal_document
+  - action: action_search_legal_documents
+  - action: utter_search_results
+
+- story: tìm kiếm văn bản không có kết quả
+  steps:
+  - intent: search_legal_document
+  - action: utter_search_legal_document
+  - intent: search_legal_document
+  - action: action_search_legal_documents
+  - action: utter_no_results
+
+- story: xem chi tiết văn bản pháp luật
+  steps:
+  - intent: get_legal_document
+  - action: action_get_legal_document
+
+- story: so sánh văn bản pháp luật
+  steps:
+  - intent: compare_legal_documents
+  - action: action_compare_documents
+
+- story: tải lên hồ sơ
+  steps:
+  - intent: upload_document
+  - action: utter_upload_document
+
+- story: quản lý hồ sơ
+  steps:
+  - intent: manage_documents
+  - action: utter_manage_documents
+
+- story: tạo hợp đồng
+  steps:
+  - intent: create_contract
+  - action: utter_create_contract
+
+- story: xem hợp đồng
+  steps:
+  - intent: view_contracts
+  - action: utter_view_contracts
+
+- story: soạn thảo văn bản
+  steps:
+  - intent: draft_document
+  - action: utter_draft_document
+
+- story: tính phí dịch vụ
+  steps:
+  - intent: calculate_service_fee
+  - action: utter_ask_service_type
+  - intent: calculate_service_fee
+  - action: utter_ask_duration
+  - intent: calculate_service_fee
+  - action: utter_ask_complexity
+  - intent: calculate_service_fee
+  - action: action_calculate_service_fee
+
+- story: tính phí dịch vụ đầy đủ thông tin
+  steps:
+  - intent: calculate_service_fee
+  - action: action_calculate_service_fee
+
+- story: xem thống kê chi phí
+  steps:
+  - intent: view_statistics
+  - action: utter_view_statistics
+
+- story: hỗ trợ thanh toán
+  steps:
+  - intent: payment_support
+  - action: utter_payment_support
+  - action: action_initiate_payment
+
+- story: đặt lịch hẹn
+  steps:
+  - intent: set_appointment
+  - action: utter_set_appointment
+  - intent: set_appointment
+  - action: action_schedule_appointment
+
+- story: câu hỏi thường gặp
+  steps:
+  - intent: faq
+  - action: utter_faq
+
+- story: ngoài phạm vi
+  steps:
+  - intent: out_of_scope
+  - action: utter_out_of_scope
+
+- story: chào, xin trợ giúp và tìm kiếm văn bản
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: help
+  - action: utter_help
+  - intent: search_legal_document
+  - action: utter_search_legal_document
+  - intent: search_legal_document
+  - action: action_search_legal_documents
+  - action: utter_search_results
+  - intent: thank
+  - action: utter_thank
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: chào, tạo hợp đồng và tạm biệt
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: create_contract
+  - action: utter_create_contract
+  - intent: thank
+  - action: utter_thank
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: chào, tính phí dịch vụ và tạm biệt
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: calculate_service_fee
+  - action: utter_ask_service_type
+  - intent: calculate_service_fee
+  - action: utter_ask_duration
+  - intent: calculate_service_fee
+  - action: utter_ask_complexity
+  - intent: calculate_service_fee
+  - action: action_calculate_service_fee
+  - intent: thank
+  - action: utter_thank
+  - intent: goodbye
+  - action: utter_goodbye 
