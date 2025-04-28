@@ -12,6 +12,7 @@ const routes = require('./routes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 const cron = require('node-cron');
 const autoUpdateService = require('./services/autoUpdateService');
+const aiService = require('./services/aiService');
 
 // Kiểm tra biến môi trường JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -232,9 +233,19 @@ const setupAutoUpdateCron = () => {
 };
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Server website đẳng cấp thế giới đã được khởi động, Chú ý !`);
     console.log(`Cổng: ${PORT}`);
     console.log(`Địa chỉ API: http://localhost:${PORT}`);
     setupAutoUpdateCron();
+    
+    // Khởi tạo AI Service
+    try {
+      console.log('Bắt đầu khởi tạo AI Service...');
+      await aiService.initialize();
+      console.log('Khởi tạo AI Service thành công');
+    } catch (error) {
+      console.error('Lỗi khi khởi tạo AI Service:', error);
+      console.log('Server vẫn hoạt động nhưng dịch vụ AI có thể không khả dụng');
+    }
 });

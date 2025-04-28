@@ -164,6 +164,10 @@ const login = async (usernameOrEmail, password) => {
     if (response.data.data?.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      
+      // Dispatch sự kiện đăng nhập thành công
+      window.dispatchEvent(new Event('login'));
+      window.dispatchEvent(new Event('loginStatusChanged'));
     } else {
       throw new Error('Không nhận được token xác thực từ server');
     }
@@ -235,6 +239,10 @@ const login = async (usernameOrEmail, password) => {
 const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  
+  // Dispatch sự kiện đăng xuất
+  window.dispatchEvent(new Event('logout'));
+  window.dispatchEvent(new Event('loginStatusChanged'));
 };
 
 // Lấy thông tin người dùng hiện tại

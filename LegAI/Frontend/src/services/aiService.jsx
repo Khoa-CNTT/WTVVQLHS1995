@@ -1,112 +1,157 @@
-const API_KEY = "AIzaSyCvF2ZiBEliIFc729xeqsxYM0VyQkwgVlc";
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 import axios from 'axios';
 import { API_URL as BASE_API_URL } from '../config/constants';
 
-// Thông tin cơ bản về các dịch vụ pháp lý
-const LEGAL_SERVICES = {
-  civil: 'Tư vấn dân sự: hợp đồng, tranh chấp đất đai, thừa kế, hôn nhân, bồi thường thiệt hại',
-  criminal: 'Tư vấn hình sự: bào chữa, bảo vệ quyền lợi, tham gia tố tụng, xin giảm nhẹ hình phạt',
-  intellectual: 'Sở hữu trí tuệ: bảo hộ nhãn hiệu, bản quyền, sáng chế, xử lý xâm phạm'
+// URL của Ollama API với qwen2.5-3b
+const OLLAMA_API_URL = "http://localhost:11434/api/chat";
+const MODEL_NAME = "qwen2.5:3b";
+
+// Khóa lưu trữ cho localStorage
+const CHAT_HISTORY_KEY = 'legai_chat_history';
+
+// Lưu lịch sử chat vào localStorage
+const saveChatHistory = (history) => {
+  try {
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+  } catch (error) {
+    console.error("Lỗi khi lưu lịch sử chat:", error);
+  }
 };
 
-// Các thủ tục pháp lý cơ bản
-const LEGAL_PROCEDURES = [
-  'Đăng ký kết hôn: CMND/CCCD, Giấy xác nhận tình trạng hôn nhân, nộp hồ sơ tại UBND cấp xã', 
-  'Ly hôn: nộp đơn tại tòa án nơi bị đơn cư trú, hòa giải, xét xử, thời gian 2-4 tháng',
-  'Khai sinh: trong 60 ngày kể từ ngày sinh, mang giấy chứng sinh đến UBND cấp xã',
-  'Đăng ký thừa kế: công chứng di chúc tại phòng công chứng, nộp thuế thu nhập cá nhân',
-  'Tranh chấp đất đai: hòa giải tại địa phương, khởi kiện tại tòa án có thẩm quyền'
-];
-
-// Hàm lấy danh sách luật sư để cung cấp cho AI
-const getLawyersData = async () => {
+// Lấy lịch sử chat từ localStorage
+const getChatHistory = () => {
   try {
-    const response = await axios.get(`${BASE_API_URL}/auth/lawyers?limit=5`);
-    if (response.data && response.data.data && response.data.data.lawyers) {
-      return response.data.data.lawyers.map(lawyer => 
-        `${lawyer.fullName} (${lawyer.specialization || 'Chuyên gia pháp lý'}, ${lawyer.rating}/5 sao)`
-      ).join('; ');
-    }
-    return '';
+    const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+    return savedHistory ? JSON.parse(savedHistory) : [];
   } catch (error) {
-    console.log('Không thể lấy dữ liệu luật sư:', error);
-    return '';
+    console.error("Lỗi khi đọc lịch sử chat:", error);
+    return [];
+  }
+};
+
+// Xóa lịch sử chat
+const clearChatHistory = () => {
+  try {
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    return true;
+  } catch (error) {
+    console.error("Lỗi khi xóa lịch sử chat:", error);
+    return false;
   }
 };
 
 /**
- * Gửi tin nhắn đến Gemini API và nhận phản hồi
+ * Gửi tin nhắn đến API và nhận phản hồi (sử dụng RAG)
  * @param {string} message - Tin nhắn người dùng
  * @param {Array} history - Lịch sử cuộc trò chuyện (tùy chọn)
  * @returns {Promise<string>} - Phản hồi từ AI
  */
 const sendMessageToAI = async (message, history = []) => {
   try {
-    // Lấy thông tin luật sư nếu là lần đầu chat
-    let systemContext = '';
-    if (history.length === 0) {
-      const lawyersData = await getLawyersData();
-      systemContext = `Bạn là LegAI, trợ lý pháp lý AI. Dịch vụ: ${Object.values(LEGAL_SERVICES).join('. ')}. Thủ tục: ${LEGAL_PROCEDURES.join('. ')}. Luật sư hàng đầu: ${lawyersData}. Trả lời ngắn gọn, súc tích,dễ thương và thân thiện.`;
-    }
-
-    // Chuẩn bị lịch sử trò chuyện và thêm context
-    const contents = history.length > 0 
-      ? [...history, { role: "user", parts: [{ text: message }] }]
-      : [
-          { role: "model", parts: [{ text: systemContext }] },
-          { role: "user", parts: [{ text: message }] }
-        ];
-
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2048,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE",
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE",
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE",
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE",
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || "Lỗi khi gọi AI");
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Không có phản hồi từ AI";
+    // Nếu không có lịch sử được truyền vào, lấy từ localStorage
+    const chatHistory = history.length > 0 ? history : getChatHistory();
     
-    return aiResponse;
+    // Gọi API backend với RAG để có câu trả lời chính xác hơn
+    const response = await axios.post(`${BASE_API_URL}/ai/ask`, {
+      question: message,
+      options: {
+        temperature: 0.3,
+        top_p: 0.95,
+        top_k: 40,
+        topK: 5
+      }
+    });
+    
+    if (response.data && response.data.success) {
+      const aiResponse = response.data.data.answer;
+      
+      // Lưu tin nhắn người dùng và phản hồi của AI vào lịch sử
+      const updatedHistory = [...chatHistory, 
+        { role: "user", parts: [{ text: message }] },
+        { role: "model", parts: [{ text: aiResponse }] }
+      ];
+      
+      // Lưu lịch sử vào localStorage
+      saveChatHistory(updatedHistory);
+      
+      return aiResponse;
+    } else {
+      throw new Error(response.data?.message || "Lỗi không xác định từ API");
+    }
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);
-    throw new Error("Không thể kết nối với dịch vụ AI. Vui lòng thử lại sau.");
+
+    // Nếu API backend không khả dụng, dùng Ollama trực tiếp làm backup (không có RAG)
+    try {
+      // Đảm bảo sử dụng lại chatHistory đã định nghĩa ở scope ngoài
+      const localChatHistory = history.length > 0 ? history : getChatHistory();
+      
+      const messages = [
+        {
+          role: "system",
+          content: "Bạn là LegAI - trợ lý pháp lý thông minh. Bạn giúp trả lời các câu hỏi về pháp luật Việt Nam. Nếu không biết câu trả lời, hãy thành thật nói rằng bạn không có thông tin đầy đủ và khuyên người dùng tham khảo các nguồn chính thức."
+        }
+      ];
+      
+      // Thêm lịch sử trò chuyện nếu có
+      if (localChatHistory.length > 0) {
+        localChatHistory.forEach(msg => {
+          messages.push({
+            role: msg.role === "model" ? "assistant" : msg.role,
+            content: msg.parts[0].text
+          });
+        });
+      }
+      
+      // Thêm tin nhắn hiện tại của người dùng
+      messages.push({
+        role: "user",
+        content: message
+      });
+
+      // Gọi API của Ollama để tạo phản hồi
+      const ollamaResponse = await fetch(OLLAMA_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL_NAME,
+          messages: messages,
+          stream: false,
+          options: {
+            temperature: 0.7, 
+            top_p: 0.9,
+            top_k: 40
+          }
+        }),
+      });
+
+      if (!ollamaResponse.ok) {
+        throw new Error("Lỗi khi gọi API Ollama");
+      }
+
+      const data = await ollamaResponse.json();
+      const fallbackResponse = data.message?.content || "Không có phản hồi từ AI";
+      
+      // Lưu tin nhắn người dùng và phản hồi của AI vào lịch sử
+      const updatedHistory = [...localChatHistory, 
+        { role: "user", parts: [{ text: message }] },
+        { role: "model", parts: [{ text: fallbackResponse }] }
+      ];
+      
+      // Lưu lịch sử vào localStorage
+      saveChatHistory(updatedHistory);
+      
+      return fallbackResponse;
+    } catch (fallbackError) {
+      console.error("Lỗi khi gọi API Ollama:", fallbackError);
+      throw new Error("Không thể kết nối với dịch vụ AI. Vui lòng thử lại sau.");
+    }
   }
 };
 
 export default {
-  sendMessageToAI
+  sendMessageToAI,
+  getChatHistory,
+  clearChatHistory
 }; 

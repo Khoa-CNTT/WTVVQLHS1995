@@ -1,0 +1,53 @@
+{
+  "laws": [
+    {
+      "id": 1,
+      "title": "Luật Hôn nhân và Gia đình 2014",
+      "content": "Luật Hôn nhân và Gia đình số 52/2014/QH13 được Quốc hội thông qua ngày 19/6/2014 và có hiệu lực từ ngày 01/01/2015. Theo Điều 8, điều kiện kết hôn gồm: Nam từ đủ 20 tuổi trở lên, nữ từ đủ 18 tuổi trở lên; việc kết hôn do nam và nữ tự nguyện quyết định; không bị mất năng lực hành vi dân sự; việc kết hôn không thuộc một trong các trường hợp cấm kết hôn theo quy định. Điều 9 quy định các trường hợp cấm kết hôn. Điều 14 quy định thủ tục đăng ký kết hôn: Nam, nữ yêu cầu đăng ký kết hôn phải nộp tờ khai đăng ký kết hôn theo mẫu quy định. Khi đủ điều kiện kết hôn theo quy định, cơ quan đăng ký hộ tịch tổ chức đăng ký kết hôn và trao Giấy chứng nhận kết hôn cho hai bên."
+    },
+    {
+      "id": 2,
+      "title": "Luật Doanh nghiệp 2020",
+      "content": "Luật Doanh nghiệp số 59/2020/QH14 được Quốc hội thông qua ngày 17/6/2020 và có hiệu lực từ ngày 01/01/2021. Luật này quy định về thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp. Theo Điều 7, người thành lập doanh nghiệp có quyền tự do kinh doanh trong những ngành, nghề mà luật không cấm; tự chủ lựa chọn loại hình doanh nghiệp; chủ động đăng ký thành lập doanh nghiệp, quyết định phương thức huy động, sử dụng vốn. Điều 25 quy định về hồ sơ đăng ký doanh nghiệp đối với công ty TNHH. Điều 28 quy định về trình tự, thủ tục, thời hạn cấp Giấy chứng nhận đăng ký doanh nghiệp."
+    },
+    {
+      "id": 3,
+      "title": "Bộ luật Dân sự 2015",
+      "content": "Bộ luật Dân sự số 91/2015/QH13 được Quốc hội thông qua ngày 24/11/2015 và có hiệu lực từ ngày 01/01/2017. Bộ luật này quy định địa vị pháp lý, chuẩn mực pháp lý cho cách ứng xử của cá nhân, pháp nhân; quyền, nghĩa vụ về nhân thân và tài sản của cá nhân, pháp nhân trong các quan hệ dân sự. Theo Điều 123, quyền sở hữu bao gồm quyền chiếm hữu, quyền sử dụng và quyền định đoạt. Điều 186 quy định về thừa kế theo pháp luật và thứ tự thừa kế. Điều 463 quy định về hợp đồng dân sự và các điều kiện có hiệu lực của hợp đồng dân sự."
+    }
+  ],
+  "faqs": [
+    {
+      "id": 1,
+      "question": "Thủ tục đăng ký kết hôn tại Việt Nam?",
+      "answer": "Thủ tục đăng ký kết hôn tại Việt Nam theo Luật Hôn nhân và Gia đình 2014 gồm các bước sau: (1) Nam, nữ chuẩn bị hồ sơ gồm: Tờ khai đăng ký kết hôn theo mẫu, giấy tờ tùy thân (CMND/CCCD/Hộ chiếu), giấy xác nhận tình trạng hôn nhân nếu cần thiết; (2) Nộp hồ sơ tại UBND cấp xã nơi cư trú của một trong hai bên; (3) Sau khi kiểm tra đủ điều kiện, cơ quan đăng ký hộ tịch sẽ tổ chức đăng ký kết hôn; (4) Hai bên nam nữ phải có mặt, ký tên vào Sổ đăng ký kết hôn; (5) Cơ quan đăng ký hộ tịch trao Giấy chứng nhận kết hôn cho hai bên. Lưu ý: Không phải nộp lệ phí đăng ký kết hôn."
+    },
+    {
+      "id": 2,
+      "question": "Thủ tục đăng ký kinh doanh hộ cá thể?",
+      "answer": "Thủ tục đăng ký kinh doanh hộ kinh doanh cá thể bao gồm: (1) Chuẩn bị hồ sơ gồm: Giấy đề nghị đăng ký hộ kinh doanh theo mẫu, bản sao giấy tờ tùy thân của chủ hộ kinh doanh, giấy tờ chứng minh quyền sử dụng địa điểm kinh doanh; (2) Nộp hồ sơ tại cơ quan đăng ký kinh doanh cấp huyện nơi đặt địa điểm kinh doanh; (3) Nộp lệ phí đăng ký kinh doanh theo quy định; (4) Trong thời hạn 3 ngày làm việc kể từ ngày nhận đủ hồ sơ hợp lệ, cơ quan đăng ký kinh doanh cấp huyện sẽ cấp Giấy chứng nhận đăng ký hộ kinh doanh."
+    },
+    {
+      "id": 3,
+      "question": "Thủ tục ly hôn thuận tình tại Việt Nam?",
+      "answer": "Thủ tục ly hôn thuận tình tại Việt Nam theo Luật Hôn nhân và Gia đình 2014 và Bộ luật Tố tụng dân sự 2015 gồm các bước: (1) Vợ chồng cùng nhau chuẩn bị hồ sơ gồm: Đơn xin ly hôn thuận tình (cả hai cùng ký), bản sao Giấy chứng nhận kết hôn, bản thỏa thuận về việc nuôi con, chia tài sản, nghĩa vụ chung; (2) Nộp hồ sơ tại Tòa án nhân dân cấp huyện nơi bị đơn cư trú hoặc làm việc; (3) Nộp tạm ứng án phí; (4) Tòa án thụ lý và giải quyết theo thủ tục thông thường hoặc thủ tục rút gọn tùy trường hợp; (5) Tham gia phiên hòa giải tại Tòa án; (6) Tham dự phiên tòa xét xử; (7) Nhận bản án/quyết định của Tòa án và thi hành."
+    }
+  ],
+  "articles": [
+    {
+      "id": 1,
+      "title": "Hướng dẫn đăng ký kinh doanh",
+      "content": "Đăng ký kinh doanh là thủ tục bắt buộc đối với mọi cá nhân, tổ chức khi bắt đầu hoạt động kinh doanh tại Việt Nam. Tùy vào quy mô và loại hình kinh doanh, việc đăng ký sẽ được thực hiện tại Phòng Đăng ký kinh doanh thuộc Sở Kế hoạch và Đầu tư (đối với doanh nghiệp) hoặc Phòng Tài chính - Kế hoạch cấp huyện (đối với hộ kinh doanh cá thể). Khi thành lập doanh nghiệp, các giấy tờ cần thiết bao gồm: Giấy đề nghị đăng ký doanh nghiệp, Điều lệ công ty (đối với công ty TNHH, cổ phần), danh sách thành viên/cổ đông sáng lập, bản sao giấy tờ pháp lý của người đại diện theo pháp luật và các thành viên/cổ đông sáng lập. Thời gian xử lý hồ sơ thông thường là 3 ngày làm việc. Sau khi đăng ký kinh doanh, doanh nghiệp cần tiến hành các thủ tục về con dấu, tài khoản ngân hàng, thuế và bảo hiểm xã hội. Đặc biệt, doanh nghiệp phải thực hiện khai thuế ban đầu và đăng ký phương pháp tính thuế trong thời hạn 10 ngày kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp."
+    },
+    {
+      "id": 2,
+      "title": "Quyền và nghĩa vụ trong quan hệ lao động",
+      "content": "Quyền và nghĩa vụ trong quan hệ lao động tại Việt Nam được quy định chi tiết trong Bộ luật Lao động 2019. Người lao động có quyền làm việc, tự do lựa chọn việc làm, học nghề, nâng cao trình độ nghề nghiệp, được đảm bảo các điều kiện làm việc an toàn, được trả lương tương xứng, được nghỉ ngơi, được tham gia bảo hiểm xã hội, bảo hiểm y tế. Người sử dụng lao động có quyền tuyển dụng, bố trí, điều hành lao động theo nhu cầu sản xuất, kinh doanh, có quyền khen thưởng và xử lý vi phạm kỷ luật lao động. Mức lương tối thiểu vùng được điều chỉnh hàng năm, thời giờ làm việc không quá 8 giờ/ngày và 48 giờ/tuần. Người lao động được nghỉ ít nhất 1 ngày/tuần, được nghỉ lễ, tết 11 ngày/năm với đầy đủ lương. Hợp đồng lao động phải được giao kết bằng văn bản (trừ công việc tạm thời dưới 1 tháng), có thể là xác định thời hạn hoặc không xác định thời hạn. Khi chấm dứt hợp đồng lao động, người sử dụng lao động có trách nhiệm thanh toán các khoản tiền liên quan đến quyền lợi của người lao động."
+    },
+    {
+      "id": 3,
+      "title": "Thủ tục khởi kiện dân sự",
+      "content": "Thủ tục khởi kiện dân sự tại Tòa án được quy định trong Bộ luật Tố tụng dân sự 2015. Người khởi kiện cần chuẩn bị đơn khởi kiện theo mẫu, trong đó nêu rõ ngày, tháng, năm; tên Tòa án; thông tin về người khởi kiện, người bị kiện, người có quyền lợi nghĩa vụ liên quan; nội dung tranh chấp và yêu cầu cụ thể. Kèm theo đơn khởi kiện là các tài liệu, chứng cứ chứng minh yêu cầu khởi kiện là có căn cứ và hợp pháp. Đơn khởi kiện và tài liệu kèm theo phải được nộp tại Tòa án có thẩm quyền giải quyết theo quy định về thẩm quyền. Người khởi kiện phải nộp tạm ứng án phí (trừ trường hợp được miễn hoặc không phải nộp). Trong thời hạn 3 ngày làm việc kể từ ngày nhận đơn, Tòa án phải vào sổ nhận đơn; trong thời hạn 5 ngày làm việc, Chánh án phân công Thẩm phán giải quyết; trong thời hạn 3 ngày làm việc, Thẩm phán phải xem xét đơn khởi kiện và ra một trong các quyết định: yêu cầu sửa đổi, bổ sung đơn khởi kiện; tiến hành thủ tục thụ lý vụ án nếu đơn đã hợp lệ; chuyển đơn khởi kiện cho Tòa án có thẩm quyền; trả lại đơn khởi kiện trong các trường hợp luật định."
+    }
+  ]
+} 

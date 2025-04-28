@@ -10,7 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './theme';
 import AppRouter from './router';
 import { Toaster } from 'react-hot-toast';
-// import Chatbot from './components/Chatbot/Chatbot';
+import ChatManager from './components/layout/Chat/ChatManager';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -158,7 +158,7 @@ function App() {
       <CssBaseline />
       <Toaster position="top-right" />
       <AppRouter />
-      {/* <Chatbot /> */}
+      <ChatManager />
     </ThemeProvider>
   );
 }

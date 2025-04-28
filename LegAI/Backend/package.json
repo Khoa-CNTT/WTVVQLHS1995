@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@elastic/elasticsearch": "^9.0.0",
+    "@xenova/transformers": "^2.5.0",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
@@ -30,9 +31,14 @@
     "pdfkit": "^0.17.0",
     "pg": "^8.14.1",
     "puppeteer": "^24.6.1",
-    "textract": "^2.5.0"
+    "sharp": "^0.34.1",
+    "textract": "^2.5.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
+  },
+  "optionalDependencies": {
+    "sharp-cli": "^4.1.0"
   }
 }

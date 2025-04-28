@@ -355,7 +355,7 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         
         // Gọi API Gemini với lịch sử chat
-        const aiResponseText = await aiService.sendMessageToAI(currentInput, []);
+        const aiResponseText = await aiService.sendMessageToAI(currentInput);
         
         // Hiển thị hiệu ứng typing trước khi hiển thị tin nhắn
         await simulateTyping(aiResponseText);
@@ -502,6 +502,12 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
       
       // Đóng menu slide
       toggleSlideMenu();
+      
+      // Sử dụng hàm clearChatHistory từ aiService
+      if (chatType === 'ai') {
+        aiService.clearChatHistory();
+      }
+      
       toast.success('Đã xóa lịch sử trò chuyện');
     } else if (chatType === 'human' && currentChatId) {
       // Thực hiện xóa phía backend nếu cần
