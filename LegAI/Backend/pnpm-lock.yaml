@@ -2999,6 +2999,7 @@ snapshots:
       bcryptjs: 3.0.2
       cheerio: 1.0.0
       cors: 2.8.5
+      crypto-js: 4.2.0
       dotenv: 16.4.7
       express: 4.21.2
       html-pdf: 3.0.1
@@ -3010,6 +3011,7 @@ snapshots:
       pdfkit: 0.17.0
       pg: 8.14.1
       puppeteer: 24.6.1
+      textract: 2.5.0
     transitivePeerDependencies:
       - bare-buffer
       - bufferutil
