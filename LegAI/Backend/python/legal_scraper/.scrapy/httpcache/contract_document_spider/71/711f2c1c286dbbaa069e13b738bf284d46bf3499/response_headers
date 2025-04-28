@@ -1,0 +1,18 @@
+Date: Tue, 22 Apr 2025 07:18:00 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private
+Vary: Accept-Encoding
+Set-Cookie: ASP.NET_SessionId=2wkb1vanggswwcwms1d4h134; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: Culture=vi; domain=thuvienphapluat.vn; expires=Wed, 22-Apr-2026 07:18:00 GMT; path=/
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: DYNAMIC
+Server-Timing: cfCacheStatus;desc="DYNAMIC"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=79896&min_rtt=79324&rtt_var=17171&sent=5&recv=7&lost=0&retrans=0&sent_bytes=2844&recv_bytes=1087&delivery_rate=52825&cwnd=252&unsent_bytes=0&cid=21fc756b8b3ae557&ts=173&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=3Ea3yAA8Jnj2fn76Gp5pYCywoIc2ieLGOschMioZL0TXtu93v8jPN5psn5Ea9Zqls4VqU0ahuZOxn2fGFosISFl49QhmcOPhWX%2Bi1G7ZBSBr2aWMQxHOTX4ivwCdp2d%2FsGl5mg%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 9343583a7ee7472e-SIN
+Content-Encoding: gzip
+Alt-Svc: h3=":443"; ma=86400

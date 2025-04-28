@@ -1,0 +1,16 @@
+Date: Tue, 22 Apr 2025 03:48:12 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private
+Location: /page/checkvb.aspx?ReturnUrl=%2fcontent.aspx%3fct%3dvc%26type%3dvan-ban%26field%3dLao-dong-Tien-luong%26title%3dBo-Luat-lao-dong-2012%26lid%3d142187%26tab%3d2
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: BYPASS
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=82105&min_rtt=70829&rtt_var=1011&sent=972&recv=650&lost=0&retrans=0&sent_bytes=1240564&recv_bytes=8745&delivery_rate=1937914&cwnd=320&unsent_bytes=0&cid=793b954c5cb0ea4c&ts=18865&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=Z1nWJ3ss4m%2FCIAs%2Ble3sbhFaRZ6xUfbTpv1VJRMw18tWA5%2FmG1ZOoJ5BW54Du6bPHa%2BgUoJ%2BHCs1YU01g%2BagRB1lf3N2JScBykU0lkW13VxVjJRc10HnSDdFIth0BOM7g5IajQ%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Vary: Accept-Encoding
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 934224ebadf4fe1b-SIN
+Alt-Svc: h3=":443"; ma=86400

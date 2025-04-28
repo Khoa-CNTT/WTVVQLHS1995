@@ -1,0 +1,362 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.4rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #000;
+}
+
+.modalBody {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modalFooter {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.documentInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.fileIcon {
+  font-size: 2rem;
+  color: #4285f4;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(66, 133, 244, 0.1);
+  border-radius: 8px;
+}
+
+.docDetails {
+  flex: 1;
+}
+
+.docTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: #333;
+}
+
+.docMeta {
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.progressSection {
+  margin: 15px 0 25px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progressHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.progressStatus {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.progressBar {
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #4285f4;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.results {
+  margin-top: 20px;
+}
+
+.resultSection {
+  margin-bottom: 25px;
+}
+
+.resultSection h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resultSection h3 i {
+  color: #4285f4;
+  font-size: 1rem;
+}
+
+.summaryText {
+  line-height: 1.6;
+  color: #333;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 3px solid #4285f4;
+}
+
+.keywordsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.keyword {
+  background-color: rgba(66, 133, 244, 0.1);
+  color: #4285f4;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+}
+
+.entityList {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.entityItem {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+}
+
+.entityType {
+  font-size: 0.85rem;
+  color: #666;
+  background-color: #f1f1f1;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.analyzeButton, .closeButton {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.analyzeButton {
+  background-color: #4285f4;
+  color: white;
+}
+
+.analyzeButton:hover {
+  background-color: #3367d6;
+}
+
+.analyzeButton:disabled {
+  background-color: #a9c2fa;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background-color: #f1f1f1;
+  color: #333;
+  border: none;
+}
+
+.secondaryButton:hover {
+  background-color: #e4e4e4;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.spinner {
+  font-size: 2rem;
+  color: #4285f4;
+  animation: spin 1s linear infinite;
+}
+
+.loadingText {
+  margin-top: 15px;
+  color: #666;
+  font-size: 0.9rem;
+}
+.completeButton {
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completeButton:hover {
+  background-color: #3367d6;
+}
+.cancelButton {
+  background-color: #f1f1f1;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.cancelButton:hover {
+  background-color: #e4e4e4;
+}
+
+
+
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.2rem;
+  }
+  
+  .documentInfo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .fileIcon {
+    margin-bottom: 10px;
+  }
+  
+  .modalFooter {
+    flex-direction: column;
+  }
+  
+  .analyzeButton, .secondaryButton {
+    width: 100%;
+    justify-content: center;
+  }
+} 

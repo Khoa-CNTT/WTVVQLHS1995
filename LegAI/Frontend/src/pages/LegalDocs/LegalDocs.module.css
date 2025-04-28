@@ -1,0 +1,534 @@
+/* Trang quản lý tài liệu pháp lý */
+.container {
+  width: 80%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1rem;
+  min-height: calc(100vh - 70px);
+  padding-top: 70px; /* Thêm padding-top để tránh bị che bởi navbar */
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-top: 1rem;
+  background-color: #f9fafb;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pageTitle {
+  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  position: relative;
+}
+
+.pageTitle::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 3px;
+  background-color: #4264d0;
+  margin-top: 0.5rem;
+}
+
+.pageDescription {
+  color: #4b5563;
+  font-size: 1rem;
+  margin: 0.5rem 0 0 0;
+  max-width: 600px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #4264d0;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(66, 100, 208, 0.3);
+}
+
+.primaryButton:hover {
+  background-color: #3653b0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 100, 208, 0.4);
+}
+
+.primaryButton i, .primaryButton svg {
+  font-size: 1rem;
+}
+
+.secondaryButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.secondaryButton:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+  background-color: white;
+  border-radius: 0.5rem 0.5rem 0 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 0 1rem;
+}
+
+.tab {
+  position: relative;
+  padding: 1rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab:hover {
+  color: #4264d0;
+}
+
+.activeTab {
+  color: #4264d0;
+  font-weight: 600;
+}
+
+.activeTab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 3px;
+  background-color: #4264d0;
+  animation: tabActivate 0.3s ease-out;
+}
+
+@keyframes tabActivate {
+  from {
+    width: 0;
+    left: 50%;
+  }
+  to {
+    width: 100%;
+    left: 0;
+  }
+}
+
+.content {
+  padding: 1rem 0;
+  animation: contentFadeIn 0.5s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.filterSection {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.docsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  animation: gridAppear 0.5s ease-out;
+}
+
+@keyframes gridAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.emptyState {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.emptyState svg {
+  font-size: 3.5rem;
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  opacity: 0.7;
+}
+
+.emptyState h3 {
+  font-size: 1.25rem;
+  color: #4b5563;
+  margin: 0 0 1.25rem 0;
+}
+
+.uploadButton {
+  background-color: #4264d0;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(66, 100, 208, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uploadButton:hover {
+  background-color: #3653b0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 100, 208, 0.4);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pageButton {
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pageButton:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.currentPage {
+  background-color: #4264d0;
+  color: white;
+  border: 1px solid #4264d0;
+}
+
+.currentPage:hover {
+  background-color: #3653b0;
+  border-color: #3653b0;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(66, 100, 208, 0.1);
+  border-radius: 50%;
+  border-left-color: #4264d0;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.filterControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filterLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 0.375rem;
+}
+
+.filterSelect, .filterInput {
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.filterSelect:focus, .filterInput:focus {
+  border-color: #4264d0;
+  box-shadow: 0 0 0 2px rgba(66, 100, 208, 0.2);
+  outline: none;
+}
+
+.filterButton {
+  padding: 0.625rem 1rem;
+  background-color: #4264d0;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(66, 100, 208, 0.3);
+  margin-top: 1.5rem;
+  align-self: flex-end;
+}
+
+.filterButton:hover {
+  background-color: #3653b0;
+  box-shadow: 0 2px 5px rgba(66, 100, 208, 0.4);
+}
+
+.clearFilterButton {
+  padding: 0.625rem 1rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 0.2s;
+  margin-top: 1.5rem;
+  align-self: flex-end;
+}
+
+.clearFilterButton:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 10;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.dropdownItem:hover {
+  background-color: #f9fafb;
+  color: #4264d0;
+}
+
+.dropdownItem i, .dropdownItem svg {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0.375rem 0;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 0.75rem;
+    padding-top: 70px;
+  }
+  
+  .docsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .actionButtons {
+    width: 100%;
+  }
+  
+  .primaryButton, .secondaryButton {
+    padding: 0.625rem 1rem;
+  }
+  
+  .filterControls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filterGroup {
+    width: 100%;
+  }
+  
+  .docsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0;
+  }
+  
+  .tab {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .activeTab {
+    font-weight: 500;
+  }
+  
+  .activeTab::after {
+    height: 2px;
+  }
+  
+  .docsGrid {
+    gap: 1rem;
+  }
+  
+  .pagination {
+    padding: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .pageButton {
+    min-width: 2rem;
+    padding: 0.375rem 0.5rem;
+  }
+} 

@@ -1,0 +1,15 @@
+Content-Length: 7202
+Date: Tue, 22 Apr 2025 07:05:35 GMT
+Content-Type: text/html; charset=UTF-8
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=t6YO9App3olzXlBH0Y4iee%2FlSgCDWjaWTl7iL6pMdvFGJ6kAKUCb4VDA%2B4CeBql7HKbZaaPqsuZQU064%2FTTo76Qk6%2BA6p8jkwRCZfJ0zbWbvofjJXP8l%2F9NScCXJKQnVPgZNAA%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Vary: Accept-Encoding
+Speculation-Rules: "/cdn-cgi/speculation"
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: same-origin
+Cache-Control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Expires: Thu, 01 Jan 1970 00:00:01 GMT
+Server: cloudflare
+Cf-Ray: 93434607ceab5fa2-SIN
+Alt-Svc: h3=":443"; ma=86400
+Server-Timing: cfL4;desc="?proto=TCP&rtt=63897&min_rtt=62238&rtt_var=338&sent=46889&recv=32394&lost=0&retrans=43&sent_bytes=59701722&recv_bytes=482741&delivery_rate=1493508&cwnd=323&unsent_bytes=0&cid=6f7d76f354c4a204&ts=2316684&x=0"

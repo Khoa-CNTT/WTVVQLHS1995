@@ -5,6 +5,12 @@ import authService from './services/authService';
 import userService from './services/userService';
 import './App.css';
 import { useLocation } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { theme } from './theme';
+import AppRouter from './router';
+import { Toaster } from 'react-hot-toast';
+import ChatManager from './components/layout/Chat/ChatManager';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -147,7 +153,14 @@ function App() {
     return <Loading />;
   }
 
-  return null;
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Toaster position="top-right" />
+      <AppRouter />
+      <ChatManager />
+    </ThemeProvider>
+  );
 }
 
 export default App;

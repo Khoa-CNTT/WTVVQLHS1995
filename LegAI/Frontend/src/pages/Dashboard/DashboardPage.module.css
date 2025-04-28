@@ -206,7 +206,7 @@ body {
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 0;
 }
 
 .header h1 {
@@ -230,45 +230,223 @@ body {
 
 .currentDate {
   font-size: 0.9rem;
-  color: var(--text-light);
+  color: var(--text-dark);
   margin-top: 0.5rem;
 }
 
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  position: relative;
 }
 
 .notifications {
+  margin-right: 15px;
   position: relative;
   cursor: pointer;
+  z-index: 1050;
 }
 
 .notificationIcon {
-  font-size: 1.25rem;
-  color: var(--text-light);
-  transition: var(--transition);
+  font-size: 20px;
+  color: #5a5c69;
+  transition: color 0.2s;
+  user-select: none; /* Không cho chọn văn bản */
 }
 
 .notifications:hover .notificationIcon {
-  color: var(--secondary-color);
+  color: #4e73df;
 }
 
 .notificationBadge {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #ef4444;
+  background-color: #e74a3b;
   color: white;
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 0.75rem;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-sm);
+  font-weight: bold;
+  z-index: 1055;
+}
+
+.notificationDropdown {
+  position: absolute;
+  top: 35px;
+  right: -10px;
+  width: 350px;
+  max-height: 400px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  z-index: 1060;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.notificationDropdown:before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 16px;
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  transform: rotate(45deg);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  z-index: 1;
+}
+
+.notificationTitle {
+  padding: 12px 15px;
+  margin: 0;
+  border-bottom: 1px solid #eaecf4;
+  font-size: 16px;
+  color: #4e73df;
+  background: #f8f9fc;
+  position: relative;
+  z-index: 2;
+}
+
+.notificationList {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.notificationItem {
+  display: flex;
+  padding: 10px;
+  border-bottom: 1px solid #eaecf4;
+  transition: background-color 0.2s;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.notificationItem:hover {
+  background-color: #f8f9fc;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notificationContent {
+  flex: 1;
+  padding-right: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.notificationDetails {
+  margin: 0 0 5px 0;
+  font-size: 13px;
+  color: #5a5c69;
+}
+
+.notificationTime {
+  margin: 0;
+  font-size: 11px;
+  color: #858796;
+  font-style: italic;
+}
+
+.markReadButton {
+  background-color: #1cc88a;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  align-self: center;
+  position: relative;
+  z-index: 3;
+}
+
+.markReadButton:hover {
+  background-color: #17a673;
+  transform: scale(1.1);
+}
+
+.notificationLoading {
+  padding: 20px;
+  text-align: center;
+  color: #858796;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  position: relative;
+  z-index: 2;
+}
+
+.notificationLoading .spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4e73df;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.notificationLoading p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.emptyNotification {
+  padding: 30px 20px;
+  text-align: center;
+  color: #858796;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.emptyIcon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+.emptyNotification p {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .userName {
@@ -289,6 +467,8 @@ body {
   font-size: 1rem;
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
+  user-select: none; /* Không cho chọn văn bản */
 }
 
 .userAvatar:hover {
@@ -297,14 +477,30 @@ body {
 }
 
 .userDropdownMenu {
-  position: absolute;
-  top: 60px;
-  right: 0;
-  width: 200px;
-  background: var(--card-bg);
+  position: fixed;
+  top: auto;
+  right: auto;
+  width: 220px;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: var(--shadow-md);
-  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1050;
+  transition: all 0.2s ease;
+  padding: 8px 0;
+  overflow: visible;
+}
+
+.userDropdownMenu::before {
+  content: '';
+  position: absolute;
+  right: 110px; /* Căn chỉnh với avatar */
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff; /* Màu của menu */
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
 }
 
 .userMenuItem {
@@ -314,24 +510,35 @@ body {
   cursor: pointer;
   color: var(--text-dark);
   font-size: 0.9rem;
-  transition: var(--transition);
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.userMenuItem:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.userMenuItem:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
 }
 
 .userMenuItem span {
   margin-right: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .userMenuItem:hover {
-  background: rgba(255, 215, 0, 0.1);
+  background: rgba(255, 215, 0, 0.15);
+  transform: translateX(3px);
 }
-
-
 
 .contentSection {
   background: var(--card-bg);
   border-radius: var(--border-radius);
   padding: 2rem;
   box-shadow: var(--shadow-sm);
+  z-index: 10;
   transition: var(--transition);
 }
 
@@ -580,13 +787,22 @@ body {
     display: none;
   }
 
-
   .contentSection {
     padding: 1.5rem;
   }
 
   .cardGrid {
     grid-template-columns: 1fr;
+  }
+
+  .notificationDropdown {
+    width: 280px;
+    right: -15px;
+    z-index: 10000;
+  }
+  
+  .notificationDropdown:before {
+    right: 56px;
   }
 }
 
@@ -615,4 +831,49 @@ body {
     width: 100%;
     justify-content: center;
   }
+
+  .notificationDropdown {
+    width: 250px;
+    right: -50px;
+    z-index: 10000;
+  }
+  
+  .notificationDropdown:before {
+    right: 86px;
+  }
+}
+.updateButton {
+  margin-left: 15px;
+  padding: 8px 15px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  float: right;
+}
+
+.updateButton:hover { 
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comingSoon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 50px 20px;
+  margin: 20px 0;
+  color: #777;
+  font-size: 1.2rem;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  border: 1px dashed #ccc;
 }

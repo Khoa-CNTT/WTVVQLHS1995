@@ -1,0 +1,16 @@
+Date: Tue, 22 Apr 2025 03:48:14 GMT
+Content-Type: text/html; charset=utf-8
+Cache-Control: private
+Location: /page/checkvb.aspx?ReturnUrl=%2fcontent.aspx%3fct%3dvc%26type%3dvan-ban%26field%3dGiao-thong-Van-tai%26title%3dBo-luat-hang-hai-Viet-Nam-2015%26lid%3d298374%26tab%3d3
+X-Aspnet-Version: 4.0.30319
+X-Powered-By: ASP.NET
+Cf-Cache-Status: BYPASS
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Server-Timing: cfL4;desc="?proto=TCP&rtt=80841&min_rtt=64067&rtt_var=22188&sent=789&recv=553&lost=0&retrans=0&sent_bytes=1001359&recv_bytes=10075&delivery_rate=2459855&cwnd=373&unsent_bytes=0&cid=6fc9408eb02f5599&ts=20457&x=0"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=%2BrGOwc7Ny17P%2FddDo5DKge4%2FCYLYVZtoroeUcq1S7%2Ftl%2FWEWDT9n%2B%2BOIfOJR1%2FUILeSRSKtq%2F2WeOMiGeRFsU6y0hC23gXuxXlnFGCBRAzLZ2%2Bs6%2FI7ZdsWSgpfQkddmmAXkpA%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+Vary: Accept-Encoding
+Speculation-Rules: "/cdn-cgi/speculation"
+Server: cloudflare
+Cf-Ray: 934224f69c33fe8e-SIN
+Alt-Svc: h3=":443"; ma=86400

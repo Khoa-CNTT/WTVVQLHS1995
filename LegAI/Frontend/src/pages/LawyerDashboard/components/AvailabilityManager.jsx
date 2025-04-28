@@ -229,7 +229,7 @@ const AvailabilityManager = () => {
 
     try {
       const response = await appointmentService.deleteAvailability(availabilityId);
-      if (response.status === 'success') {
+      if (response.success === true) {
         if (currentUser?.id) {
           await fetchAvailabilities(currentUser.id);
         }

@@ -1,114 +1,84 @@
-import axios from 'axios';
+import axios from '../config/axios';
 import { API_URL } from '../config/constants';
 
 /**
- * Lấy token từ localStorage
+ * Service để tương tác với API văn bản pháp luật
  */
+
+// Lấy token xác thực từ localStorage (nếu có)
 const getToken = () => {
   return localStorage.getItem('token');
 };
 
-/**
- * Cấu hình headers cho request
- */
+// Cấu hình headers cho request
 const getHeaders = () => {
   const token = getToken();
   return {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+      ...(token && { Authorization: `Bearer ${token}` })
     }
   };
 };
 
 /**
- * Tìm kiếm văn bản pháp luật
+ * Lấy danh sách văn bản pháp luật với tùy chọn tìm kiếm
  * @param {Object} searchParams - Tham số tìm kiếm
- * @param {string} searchParams.q - Từ khóa tìm kiếm
- * @param {string} searchParams.type - Loại văn bản
- * @param {string} searchParams.fromDate - Từ ngày (định dạng YYYY-MM-DD)
- * @param {string} searchParams.toDate - Đến ngày (định dạng YYYY-MM-DD)
- * @param {string} searchParams.issuingBody - Cơ quan ban hành
- * @param {string} searchParams.field - Lĩnh vực
- * @param {string} searchParams.status - Trạng thái hiệu lực
- * @param {number} searchParams.page - Trang hiện tại
- * @param {number} searchParams.limit - Số kết quả mỗi trang
- * @returns {Promise<Object>} Kết quả tìm kiếm văn bản pháp luật
+ * @returns {Promise} Promise chứa kết quả tìm kiếm
  */
-const searchLegalDocuments = async (searchParams = {}) => {
+const getLegalDocuments = async (searchParams = {}) => {
   try {
-    // Trích xuất tất cả tham số với giá trị mặc định
     const { 
-      q = '', 
-      type = '', 
-      fromDate = null, 
-      toDate = null, 
-      issuingBody = '',
-      field = '',
-      status = '',
+      search, 
+      document_type, 
+      from_date, 
+      to_date, 
       page = 1, 
-      limit = 10 
+      limit = 10,
+      case_insensitive = true  // Mặc định sử dụng tìm kiếm không phân biệt hoa thường
     } = searchParams;
     
+    // Xây dựng query string
     const queryParams = new URLSearchParams();
-    
-    // Đảm bảo tham số q (từ khóa tìm kiếm) luôn được gửi, ngay cả khi là chuỗi trống
-    queryParams.append('q', q);
-    
-    // Thêm tất cả các tham số lọc nếu có giá trị
-    if (type) queryParams.append('type', type);
-    if (fromDate) queryParams.append('fromDate', fromDate);
-    if (toDate) queryParams.append('toDate', toDate);
-    if (issuingBody) queryParams.append('issuingBody', issuingBody);
-    if (field) queryParams.append('field', field);
-    if (status) queryParams.append('status', status);
-    
-    // Thêm tham số phân trang
+    if (search) queryParams.append('search', search);
+    if (document_type) queryParams.append('document_type', document_type);
+    if (from_date) queryParams.append('from_date', from_date);
+    if (to_date) queryParams.append('to_date', to_date);
     queryParams.append('page', page);
     queryParams.append('limit', limit);
-    
-    const requestUrl = `${API_URL}/legal/documents?${queryParams.toString()}`;
-    
-    const response = await axios.get(requestUrl, getHeaders());
-    
+    if (case_insensitive) queryParams.append('case_insensitive', 'true');
+
+    const response = await axios.get(`${API_URL}/legal/documents?${queryParams.toString()}`, getHeaders());
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tìm kiếm văn bản pháp luật:', error);
-    if (error.response) {
-      console.error('Chi tiết lỗi từ server:', error.response.status, error.response.data);
-    }
     throw error;
   }
 };
 
 /**
- * Lấy chi tiết văn bản pháp luật
- * @param {number} id - ID văn bản cần lấy
- * @returns {Promise<Object>} Thông tin chi tiết văn bản
+ * Lấy chi tiết văn bản pháp luật theo ID
+ * @param {string|number} id - ID của văn bản
+ * @returns {Promise} Promise chứa thông tin chi tiết văn bản
  */
 const getLegalDocumentById = async (id) => {
   try {
-    console.log(`Gửi request lấy chi tiết văn bản ID=${id}`);
     const response = await axios.get(`${API_URL}/legal/documents/${id}`, getHeaders());
-    console.log(`Nhận response chi tiết văn bản:`, response.status);
     return response.data;
   } catch (error) {
-    console.error(`Lỗi khi lấy thông tin văn bản ID=${id}:`, error.message);
-    if (error.response) {
-      console.error('Chi tiết lỗi:', error.response.status, error.response.data);
-    }
+    console.error(`Lỗi khi lấy chi tiết văn bản có ID ${id}:`, error);
     throw error;
   }
 };
 
 /**
  * Lấy danh sách loại văn bản pháp luật
- * @returns {Promise<Array>} Danh sách loại văn bản
+ * @returns {Promise} Promise chứa danh sách loại văn bản
  */
 const getDocumentTypes = async () => {
   try {
     const response = await axios.get(`${API_URL}/legal/document-types`, getHeaders());
-    return response.data;
+    return response.data.data;
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại văn bản:', error);
     throw error;
@@ -117,12 +87,12 @@ const getDocumentTypes = async () => {
 
 /**
  * Lấy danh sách cơ quan ban hành
- * @returns {Promise<Array>} Danh sách cơ quan ban hành
+ * @returns {Promise} Promise chứa danh sách cơ quan ban hành
  */
 const getIssuingBodies = async () => {
   try {
     const response = await axios.get(`${API_URL}/legal/issuing-bodies`, getHeaders());
-    return response.data;
+    return response.data.data;
   } catch (error) {
     console.error('Lỗi khi lấy danh sách cơ quan ban hành:', error);
     throw error;
@@ -130,54 +100,22 @@ const getIssuingBodies = async () => {
 };
 
 /**
- * Lấy danh sách lĩnh vực pháp luật
- * @returns {Promise<Array>} Danh sách lĩnh vực
- */
-const getLegalFields = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/legal/fields`, getHeaders());
-    return response.data;
-  } catch (error) {
-    console.error('Lỗi khi lấy danh sách lĩnh vực pháp luật:', error);
-    throw error;
-  }
-};
-
-/**
- * Lấy danh sách trạng thái hiệu lực
- * @returns {Promise<Array>} Danh sách trạng thái hiệu lực
- */
-const getEffectStatus = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/legal/effect-status`, getHeaders());
-    return response.data;
-  } catch (error) {
-    console.error('Lỗi khi lấy danh sách trạng thái hiệu lực:', error);
-    throw error;
-  }
-};
-
-/**
- * Tìm kiếm mẫu văn bản
+ * Lấy danh sách mẫu văn bản với tùy chọn tìm kiếm
  * @param {Object} searchParams - Tham số tìm kiếm
- * @param {string} searchParams.q - Từ khóa tìm kiếm
- * @param {string} searchParams.type - Loại mẫu văn bản
- * @param {number} searchParams.page - Trang hiện tại
- * @param {number} searchParams.limit - Số kết quả mỗi trang
- * @returns {Promise<Object>} Kết quả tìm kiếm mẫu văn bản
+ * @returns {Promise} Promise chứa kết quả tìm kiếm
  */
-const searchDocumentTemplates = async (searchParams = {}) => {
+const getDocumentTemplates = async (searchParams = {}) => {
   try {
-    const { q = '', type = '', page = 1, limit = 10 } = searchParams;
+    const { search, template_type, page = 1, limit = 10 } = searchParams;
     
+    // Xây dựng query string
     const queryParams = new URLSearchParams();
-    if (q) queryParams.append('q', q);
-    if (type) queryParams.append('type', type);
+    if (search) queryParams.append('search', search);
+    if (template_type) queryParams.append('template_type', template_type);
     queryParams.append('page', page);
     queryParams.append('limit', limit);
-    
+
     const response = await axios.get(`${API_URL}/legal/templates?${queryParams.toString()}`, getHeaders());
-    
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tìm kiếm mẫu văn bản:', error);
@@ -186,23 +124,23 @@ const searchDocumentTemplates = async (searchParams = {}) => {
 };
 
 /**
- * Lấy chi tiết mẫu văn bản
- * @param {number} id - ID mẫu văn bản cần lấy
- * @returns {Promise<Object>} Thông tin chi tiết mẫu văn bản
+ * Lấy chi tiết mẫu văn bản theo ID
+ * @param {string|number} id - ID của mẫu văn bản
+ * @returns {Promise} Promise chứa thông tin chi tiết mẫu văn bản
  */
 const getDocumentTemplateById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/legal/templates/${id}`, getHeaders());
     return response.data;
   } catch (error) {
-    console.error(`Lỗi khi lấy thông tin mẫu văn bản ID=${id}:`, error);
+    console.error(`Lỗi khi lấy chi tiết mẫu văn bản có ID ${id}:`, error);
     throw error;
   }
 };
 
 /**
  * Lấy danh sách loại mẫu văn bản
- * @returns {Promise<Array>} Danh sách loại mẫu văn bản
+ * @returns {Promise} Promise chứa danh sách loại mẫu văn bản
  */
 const getTemplateTypes = async () => {
   try {
@@ -210,73 +148,178 @@ const getTemplateTypes = async () => {
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
+    // Trả về mảng rỗng nếu có lỗi để xử lý phía client
+    return [];
+  }
+};
+
+/**
+ * Thực hiện tìm kiếm tổng hợp (cả văn bản pháp luật và mẫu văn bản)
+ * @param {Object} searchParams - Tham số tìm kiếm
+ * @returns {Promise} Promise chứa kết quả tìm kiếm
+ */
+const searchAll = async (searchParams = {}) => {
+  try {
+    const { 
+      search, 
+      page = 1, 
+      limit = 50, // Tăng giới hạn mặc định lên 50
+      document_type,
+      from_date,
+      to_date,
+      language
+    } = searchParams;
+    
+    // Xây dựng query string
+    const queryParams = new URLSearchParams();
+    if (search) {
+      // Chuyển đổi từ khóa tìm kiếm thành chữ thường và loại bỏ dấu cách thừa
+      const normalizedSearch = search.toLowerCase().trim();
+      queryParams.append('search', normalizedSearch);
+    }
+    queryParams.append('page', page);
+    queryParams.append('limit', limit);
+    
+    // Thêm các tham số tìm kiếm mở rộng
+    if (document_type) queryParams.append('document_type', document_type);
+    if (from_date) queryParams.append('from_date', from_date);
+    if (to_date) queryParams.append('to_date', to_date);
+    if (language) queryParams.append('language', language);
+
+    const response = await axios.get(`${API_URL}/legal/search?${queryParams.toString()}`, getHeaders());
+    
+    // Nếu không tìm thấy kết quả nào và từ khóa tìm kiếm có độ dài > 0, thử tìm kiếm mở rộng
+    if (response.data && response.data.data && response.data.data.length === 0 && search && search.length > 0) {
+      
+      // Nếu từ khóa có nhiều từ, thử tìm kiếm với từng từ riêng lẻ
+      if (search.includes(' ')) {
+        // Tách từ khóa thành các từ riêng lẻ, loại bỏ từ quá ngắn
+        const keywords = search.toLowerCase().split(/\s+/).filter(word => word.length > 1);
+        
+        if (keywords.length > 0) {
+          
+          // Tìm kiếm song song với từng từ khóa
+          const searchPromises = keywords.map(keyword => {
+            const newParams = new URLSearchParams();
+            newParams.append('search', keyword);
+            newParams.append('page', 1);
+            newParams.append('limit', 20);
+            
+            if (document_type) newParams.append('document_type', document_type);
+            if (from_date) newParams.append('from_date', from_date);
+            if (to_date) newParams.append('to_date', to_date);
+            if (language) newParams.append('language', language);
+            
+            return axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
+          });
+          
+          // Chờ tất cả các yêu cầu tìm kiếm hoàn thành
+          const results = await Promise.all(searchPromises);
+          
+          // Gộp kết quả và loại bỏ trùng lặp
+          const allResults = [];
+          const seenIds = new Set();
+          
+          results.forEach(result => {
+            if (result.data && result.data.data) {
+              result.data.data.forEach(item => {
+                if (!seenIds.has(item.id)) {
+                  seenIds.add(item.id);
+                  allResults.push(item);
+                }
+              });
+            }
+          });
+          
+          // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
+          if (allResults.length > 0) {
+            return {
+              status: 'success',
+              data: allResults,
+              pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(allResults.length / limit),
+                total: allResults.length,
+                limit: limit
+              }
+            };
+          }
+        }
+      }
+      
+      // Nếu từ khóa là một từ duy nhất và dài hơn 3 ký tự, thử tìm kiếm với một phần của từ
+      if (!search.includes(' ') && search.length > 3) {
+        // Lấy một phần đầu của từ khóa để tìm kiếm mở rộng
+        const partialSearch = search.substring(0, Math.max(3, Math.floor(search.length * 0.7)));
+        
+        const newParams = new URLSearchParams();
+        newParams.append('search', partialSearch);
+        newParams.append('page', 1);
+        newParams.append('limit', 30);
+        
+        if (document_type) newParams.append('document_type', document_type);
+        if (from_date) newParams.append('from_date', from_date);
+        if (to_date) newParams.append('to_date', to_date);
+        if (language) newParams.append('language', language);
+        
+        const partialResult = await axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
+        
+        if (partialResult.data && partialResult.data.data && partialResult.data.data.length > 0) {
+          return partialResult.data;
+        }
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi tìm kiếm tổng hợp:', error);
     throw error;
   }
 };
 
 /**
- * Tìm kiếm tổng hợp (cả văn bản pháp luật và mẫu văn bản)
- * @param {Object} searchParams - Tham số tìm kiếm
- * @param {string} searchParams.q - Từ khóa tìm kiếm
- * @param {string} searchParams.type - Loại văn bản
- * @param {string} searchParams.fromDate - Từ ngày (định dạng YYYY-MM-DD)
- * @param {string} searchParams.toDate - Đến ngày (định dạng YYYY-MM-DD)
- * @param {string} searchParams.language - Ngôn ngữ mẫu văn bản
- * @param {number} searchParams.page - Trang hiện tại
- * @param {number} searchParams.limit - Số kết quả mỗi trang
- * @returns {Promise<Object>} Kết quả tìm kiếm tổng hợp
+ * Tải xuống văn bản pháp luật dưới dạng PDF
+ * @param {string|number} id - ID của văn bản
  */
-const searchAll = async (searchParams = {}) => {
+const downloadLegalDocument = async (id) => {
   try {
-    const { 
-      q = '', 
-      type = '',
-      fromDate = null,
-      toDate = null,
-      language = '',
-      page = 1, 
-      limit = 10 
-    } = searchParams;
+    // Tạo URL tải xuống
+    const downloadUrl = `${API_URL}/legal/documents/${id}/download`;
     
-    const queryParams = new URLSearchParams();
-    queryParams.append('q', q); // Luôn gửi tham số q, ngay cả khi là chuỗi trống
-    
-    // Thêm các tham số lọc nếu có
-    if (type) queryParams.append('type', type);
-    if (fromDate) queryParams.append('fromDate', fromDate);
-    if (toDate) queryParams.append('toDate', toDate);
-    if (language) queryParams.append('language', language);
-    
-    // Thêm tham số phân trang
-    queryParams.append('page', page);
-    queryParams.append('limit', limit);
-    
-    const requestUrl = `${API_URL}/legal/search?${queryParams.toString()}`;
-    console.log(`Gửi request tìm kiếm tổng hợp: ${requestUrl}`);
-    
-    const response = await axios.get(requestUrl, getHeaders());
-    console.log('Nhận được response với status:', response.status);
-    console.log('Dữ liệu phân trang từ server:', response.data.pagination);
-    
-    return response.data;
+    // Mở URL trong tab mới để tải xuống
+    window.open(downloadUrl, '_blank');
   } catch (error) {
-    console.error('Lỗi khi tìm kiếm tổng hợp:', error);
-    if (error.response) {
-      console.error('Chi tiết lỗi từ server:', error.response.status, error.response.data);
-    }
+    console.error(`Lỗi khi tải xuống văn bản có ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Tải xuống mẫu văn bản dưới dạng PDF
+ * @param {string|number} id - ID của mẫu văn bản
+ */
+const downloadDocumentTemplate = async (id) => {
+  try {
+    // Tạo URL tải xuống
+    const downloadUrl = `${API_URL}/legal/templates/${id}/download`;
+    
+    // Mở URL trong tab mới để tải xuống
+    window.open(downloadUrl, '_blank');
+  } catch (error) {
+    console.error(`Lỗi khi tải xuống mẫu văn bản có ID ${id}:`, error);
     throw error;
   }
 };
 
 export default {
-  searchLegalDocuments,
+  getLegalDocuments, 
   getLegalDocumentById,
   getDocumentTypes,
-  searchDocumentTemplates,
+  getIssuingBodies,
+  getDocumentTemplates,
   getDocumentTemplateById,
   getTemplateTypes,
   searchAll,
-  getIssuingBodies,
-  getLegalFields,
-  getEffectStatus
+  downloadLegalDocument,
+  downloadDocumentTemplate
 }; 

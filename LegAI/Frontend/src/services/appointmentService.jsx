@@ -153,6 +153,27 @@ const getAppointments = async (status = null) => {
       console.error('API trả về dữ liệu không hợp lệ');
       throw new Error('Không thể lấy danh sách lịch hẹn');
     }
+    
+    // Xử lý dữ liệu trùng lặp nếu có
+    if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+      // Lọc các ID trùng lặp
+      const uniqueAppointments = [];
+      const uniqueIds = new Set();
+      
+      response.data.data.forEach(app => {
+        if (!uniqueIds.has(app.id)) {
+          uniqueIds.add(app.id);
+          uniqueAppointments.push(app);
+        }
+      });
+      
+      // Ghi đè lại dữ liệu đã lọc
+      response.data.data = uniqueAppointments;
+      console.log(`Đã lọc ${response.data.data.length} lịch hẹn độc nhất từ ${response.data.count} bản ghi`);
+      
+      // Cập nhật count
+      response.data.count = uniqueAppointments.length;
+    }
 
     return response.data;
   } catch (error) {
@@ -375,7 +396,6 @@ export const addAvailability = async (availabilityData) => {
 
     // Kiểm tra xem người dùng có phải là luật sư không
     if (!currentUser || !currentUser.role || currentUser.role.toLowerCase() !== 'lawyer') {
-      console.log('Người dùng không phải là luật sư:', currentUser);
       return { success: false, message: 'Chỉ luật sư mới có thể thêm lịch trống', code: 403 };
     }
 
@@ -474,7 +494,11 @@ const deleteAvailability = async (id) => {
       };
     }
 
-    const response = await axios.delete(`${API_URL}/appointments/availability/${id}`, getHeaders());
+    // Sửa: Truyền đúng headers vào config thay vì tham số thứ hai
+    const response = await axios.delete(
+      `${API_URL}/appointments/availability/${id}`, 
+      { headers: getHeaders() }
+    );
     
     return {
       success: true,

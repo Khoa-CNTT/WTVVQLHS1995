@@ -12,7 +12,7 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
     if (isOpen && initialUser) {
       // Nên sử dụng một bản sao để tránh hiệu ứng nhấp nháy
       setCurrentUser(initialUser);
-      
+
       // Làm mới thông tin người dùng từ server
       userService.refreshUserData()
         .then(updatedUser => {
@@ -44,15 +44,15 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
             <i className="fas fa-times"></i>
           </button>
         </div>
-        
+
         {currentUser && (
           <div className={styles.sideMenuUser}>
             <div className={styles.sideMenuAvatar}>
               {currentUser.avatarUrl ? (
-                <img 
-                  src={userService.getFullAvatarUrl(currentUser.avatarUrl)} 
-                  alt={currentUser.fullName || 'User'} 
-                  className={styles.sideMenuAvatarImg} 
+                <img
+                  src={userService.getFullAvatarUrl(currentUser.avatarUrl)}
+                  alt={currentUser.fullName || 'User'}
+                  className={styles.sideMenuAvatarImg}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = '/default-avatar.png';
@@ -71,38 +71,47 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
             </div>
           </div>
         )}
-        
+
         <div className={styles.sideMenuContent}>
           <Link to="/" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-home"></i> Trang chủ
           </Link>
-          
+
+          {currentUser && (
+            <>
+              <Link to="/legal-docs" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-file-contract"></i> Hồ sơ pháp lý cá nhân
+              </Link>
+              <Link to="/contracts" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-file-alt"></i> Hợp đồng cá nhân
+              </Link></>
+          )}
+
           <Link to="/services" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-briefcase"></i> Dịch vụ
           </Link>
-          
+
           <Link to="/lawyers" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-user-tie"></i> Luật sư
           </Link>
-          
+
           <Link to="/documents" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-file-alt"></i> Xem tất cả văn bản
           </Link>
-          
           <Link to="/templates" className={styles.sideMenuItem} onClick={onClose}>
-            <i className="fas fa-file-contract"></i> Mẫu văn bản
+            <i className="fas fa-file-alt"></i> Xem tất cả mẫu
           </Link>
-          
+
           <Link to="/news" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-newspaper"></i> Tin tức
           </Link>
-          
+
           <Link to="/contact" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-envelope"></i> Liên hệ
           </Link>
-          
+
           <div className={styles.sideMenuDivider}></div>
-          
+
           {currentUser ? (
             <>
               {/* Kiểm tra vai trò admin */}
@@ -112,7 +121,7 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
                   <span>Quản trị hệ thống</span>
                 </Link>
               )}
-              
+
               {/* Kiểm tra vai trò luật sư */}
               {isLawyer && (
                 <Link to="/lawyer-dashboard" className={styles.sideMenuItem} onClick={onClose}>
@@ -120,7 +129,7 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
                   <span>Bảng điều khiển luật sư</span>
                 </Link>
               )}
-              
+
               {/* Hiển thị tùy chọn đăng ký làm luật sư cho người dùng thông thường */}
               {isUser && (
                 <Link to="/lawyers/signup" className={styles.sideMenuItem} onClick={onClose}>
@@ -128,12 +137,12 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
                   <span>Đăng ký làm luật sư</span>
                 </Link>
               )}
-              
+
               <Link to="/profile" className={styles.sideMenuItem} onClick={onClose}>
                 <i className="fas fa-user"></i>
                 <span>Hồ sơ cá nhân</span>
               </Link>
-              
+
               <span className={styles.sideMenuItem} onClick={() => { onLogout(); onClose(); }}>
                 <i className="fas fa-sign-out-alt"></i>
                 <span>Đăng xuất</span>
@@ -145,7 +154,7 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
                 <i className="fas fa-sign-in-alt"></i>
                 <span>Đăng nhập</span>
               </Link>
-              
+
               <Link to="/register" className={styles.sideMenuItem} onClick={onClose}>
                 <i className="fas fa-user-plus"></i>
                 <span>Đăng ký</span>
@@ -154,7 +163,7 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
           )}
         </div>
       </div>
-      
+
       {isOpen && <div className={styles.overlay} onClick={onClose}></div>}
     </>
   );

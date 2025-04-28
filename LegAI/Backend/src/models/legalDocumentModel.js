@@ -1,16 +1,4 @@
 const pool = require('../config/database');
-const axios = require('axios');
-
-// API Endpoints 
-const API_BASE_URL = 'https://vanbanphapluat.co/api';
-const API_ENDPOINTS = {
-  DOCUMENTS: '/vanban',
-  DOCUMENT_TYPES: '/loai-van-ban',
-  SEARCH: '/search',
-  ISSUING_BODIES: '/coquanbanhanh',
-  FIELDS: '/linhvuc',
-  EFFECT_STATUS: '/tinhtranghieuluc'
-};
 
 /**
  * Lấy tất cả văn bản pháp luật với phân trang và tìm kiếm
@@ -21,6 +9,7 @@ const API_ENDPOINTS = {
  * @param {Date} options.toDate - Đến ngày
  * @param {number} options.page - Trang hiện tại
  * @param {number} options.limit - Số lượng kết quả mỗi trang
+ * @param {boolean} options.caseInsensitive - Có phân biệt hoa thường hay không
  * @returns {Promise<Array>} Danh sách văn bản pháp luật
  */
 const getAllLegalDocuments = async (options = {}) => {
@@ -31,21 +20,23 @@ const getAllLegalDocuments = async (options = {}) => {
       fromDate = null,
       toDate = null,
       page = 1,
-      limit = 10
+      limit = 10,
+      caseInsensitive = true
     } = options;
-
-    // Thử lấy từ API bên ngoài trước
-    try {
-      const externalResults = await searchExternalLegalDocuments(searchTerm, documentType, fromDate, toDate, page, limit);
-      return externalResults;
-    } catch (externalError) {
-      console.error('Lỗi khi tìm kiếm từ API bên ngoài:', externalError);
-      // Nếu API bên ngoài lỗi, sử dụng database nội bộ
-    }
 
     // Xây dựng truy vấn từ database nội bộ
     let query = `
-      SELECT * FROM LegalDocuments
+      SELECT 
+        ld.id, 
+        ld.title, 
+        ld.document_type, 
+        ld.version,
+        ld.content,
+        ld.summary, 
+        ld.issued_date, 
+        ld.created_at,
+        ld.language
+      FROM LegalDocuments ld
       WHERE 1=1
     `;
 
@@ -55,10 +46,10 @@ const getAllLegalDocuments = async (options = {}) => {
     // Thêm điều kiện tìm kiếm theo từ khóa
     if (searchTerm) {
       query += ` AND (
-        title ILIKE $${paramIndex} 
-        OR content ILIKE $${paramIndex} 
-        OR summary ILIKE $${paramIndex}
-        OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $${paramIndex})
+        ld.title ILIKE $${paramIndex} 
+        OR ld.content ILIKE $${paramIndex} 
+        OR ld.summary ILIKE $${paramIndex}
+        OR ld.id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $${paramIndex})
       )`;
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;
@@ -66,222 +57,160 @@ const getAllLegalDocuments = async (options = {}) => {
 
     // Thêm điều kiện tìm kiếm theo loại văn bản
     if (documentType) {
-      query += ` AND document_type = $${paramIndex}`;
+      if (caseInsensitive) {
+        query += ` AND LOWER(ld.document_type) = LOWER($${paramIndex})`;
+      } else {
+        query += ` AND ld.document_type = $${paramIndex}`;
+      }
       queryParams.push(documentType);
       paramIndex++;
     }
 
     // Thêm điều kiện tìm kiếm theo khoảng thời gian
     if (fromDate) {
-      query += ` AND issued_date >= $${paramIndex}`;
+      query += ` AND ld.issued_date >= $${paramIndex}`;
       queryParams.push(fromDate);
       paramIndex++;
     }
 
     if (toDate) {
-      query += ` AND issued_date <= $${paramIndex}`;
+      query += ` AND ld.issued_date <= $${paramIndex}`;
       queryParams.push(toDate);
       paramIndex++;
     }
 
-    // Thêm phân trang
-    const offset = (page - 1) * limit;
-    
-    // Đếm tổng số bản ghi
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
-    const countResult = await pool.query(countQuery, queryParams);
-    
-    const total = parseInt(countResult.rows[0].count);
-    const totalPages = Math.ceil(total / limit);
-    
-    query += ` ORDER BY issued_date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    queryParams.push(limit, offset);
+    // Truy vấn đếm tổng số bản ghi 
+    let countQuery = `
+      SELECT COUNT(*) as total 
+      FROM LegalDocuments ld
+      WHERE 1=1
+    `;
 
-    const result = await pool.query(query, queryParams);
-
-    // Lấy keywords cho mỗi văn bản
-    for (const doc of result.rows) {
-      const keywordsResult = await pool.query(
-        'SELECT keyword FROM LegalKeywords WHERE document_id = $1',
-        [doc.id]
-      );
-      doc.keywords = keywordsResult.rows.map(row => row.keyword);
+    // Thêm điều kiện cho countQuery
+    if (searchTerm) {
+      countQuery += ` AND (
+        ld.title ILIKE $1 
+        OR ld.content ILIKE $1 
+        OR ld.summary ILIKE $1
+        OR ld.id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
+      )`;
     }
 
+    if (documentType) {
+      const docTypeParamIndex = searchTerm ? 2 : 1;
+      if (caseInsensitive) {
+        countQuery += ` AND LOWER(ld.document_type) = LOWER($${docTypeParamIndex})`;
+      } else {
+        countQuery += ` AND ld.document_type = $${docTypeParamIndex}`;
+      }
+    }
+
+    if (fromDate) {
+      const fromDateParamIndex = (searchTerm ? 1 : 0) + (documentType ? 1 : 0) + 1;
+      countQuery += ` AND ld.issued_date >= $${fromDateParamIndex}`;
+    }
+
+    if (toDate) {
+      const toDateParamIndex = (searchTerm ? 1 : 0) + (documentType ? 1 : 0) + (fromDate ? 1 : 0) + 1;
+      countQuery += ` AND ld.issued_date <= $${toDateParamIndex}`;
+    }
+
+    const countParams = [];
+    if (searchTerm) countParams.push(`%${searchTerm}%`);
+    if (documentType) countParams.push(documentType);
+    if (fromDate) countParams.push(fromDate);
+    if (toDate) countParams.push(toDate);
+
+    // Thêm phân trang
+    const offset = (page - 1) * limit;
+    query += ` ORDER BY ld.issued_date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limit, offset);
+
+    // Thực hiện truy vấn
+    const [documentsResult, countResult] = await Promise.all([
+      pool.query(query, queryParams),
+      pool.query(countQuery, countParams)
+    ]);
+
+    const documents = documentsResult.rows;
+    
+    // Lấy từ khóa cho mỗi văn bản
+    const documentIds = documents.map(doc => doc.id);
+    
+    // Nếu có văn bản, lấy từ khóa cho mỗi văn bản
+    if (documentIds.length > 0) {
+      // Sử dụng một truy vấn duy nhất để lấy tất cả từ khóa cho tất cả văn bản
+      const keywordsQuery = `
+        SELECT document_id, keyword 
+        FROM LegalKeywords 
+        WHERE document_id = ANY($1::int[])
+        ORDER BY document_id, keyword
+      `;
+      
+      const keywordsResult = await pool.query(keywordsQuery, [documentIds]);
+      
+      // Tạo map từ ID văn bản tới danh sách từ khóa
+      const keywordsByDocId = {};
+      keywordsResult.rows.forEach(row => {
+        if (!keywordsByDocId[row.document_id]) {
+          keywordsByDocId[row.document_id] = [];
+        }
+        keywordsByDocId[row.document_id].push(row.keyword);
+      });
+      
+      // Gán từ khóa vào từng văn bản
+      documents.forEach(doc => {
+        doc.keywords = keywordsByDocId[doc.id] || [];
+      });
+    } else {
+      // Nếu không có văn bản, gán mảng rỗng cho tất cả
+      documents.forEach(doc => {
+        doc.keywords = [];
+      });
+    }
+
+    // Định dạng kết quả trả về
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      documents: result.rows,
+      data: documents,
       pagination: {
         total,
-        totalPages,
-        currentPage: page,
-        limit
+        page: Number(page),
+        limit: Number(limit),
+        totalPages
       }
     };
   } catch (error) {
+    console.error('Lỗi khi lấy danh sách văn bản pháp luật:', error);
     throw error;
   }
 };
 
 /**
- * Tìm kiếm văn bản pháp luật từ API bên ngoài
- * @param {string} searchTerm - Từ khóa tìm kiếm
- * @param {string} documentType - Loại văn bản
- * @param {Date} fromDate - Từ ngày
- * @param {Date} toDate - Đến ngày
- * @param {number} page - Trang hiện tại
- * @param {number} limit - Số lượng kết quả mỗi trang
- * @returns {Promise<Object>} Kết quả tìm kiếm
+ * Định dạng ngày cho database
+ * @param {Date} date - Đối tượng Date
+ * @returns {string} Chuỗi ngày định dạng YYYY-MM-DD
  */
-const searchExternalLegalDocuments = async (searchTerm, documentType, fromDate, toDate, page, limit) => {
-  try {
-    let apiUrl = `${API_BASE_URL}${API_ENDPOINTS.SEARCH}`;
-    const queryParams = new URLSearchParams();
-    
-    // Luôn gửi tham số kwd ngay cả khi tìm kiếm rỗng
-    queryParams.append('kwd', encodeURIComponent(searchTerm || ''));
-    
-    if (documentType) {
-      queryParams.append('LoaiVanBanID', documentType);
-    }
-    
-    // Thêm tham số từ ngày, đến ngày nếu có
-    if (fromDate) {
-      queryParams.append('fromDate', formatDateForAPI(fromDate));
-    }
-    
-    if (toDate) {
-      queryParams.append('toDate', formatDateForAPI(toDate));
-    }
-    
-    // Thêm tham số phân trang
-    queryParams.append('p', page);
-    // Sử dụng tham số RowPerPage từ API bên ngoài để chỉ định số lượng kết quả trên một trang
-    queryParams.append('RowPerPage', limit);
-    
-    // Gọi API
-    const response = await axios.get(`${apiUrl}?${queryParams.toString()}`);
-    
-    // Xử lý kết quả từ API
-    const items = response.data.Items || [];
-    
-    // Hàm chuẩn hóa độ dài văn bản
-    const normalizeText = (text, maxLength = 100) => {
-      if (!text) return '';
-      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
-    
-    // Chuyển đổi định dạng kết quả để phù hợp với hệ thống
-    const documents = items.map(item => {
-      // Chuẩn hóa tiêu đề để các văn bản hiển thị đồng đều
-      let title = item.Title || item.TrichYeu || '';
-      title = normalizeText(title, 120);
-      
-      // Chuẩn hóa tóm tắt
-      let summary = item.TrichYeu || '';
-      summary = normalizeText(summary, 200);
-      
-      // Chuẩn hóa tên cơ quan ban hành
-      let issuer = '';
-      if (Array.isArray(item.CoQuanBanHanh)) {
-        issuer = item.CoQuanBanHanh.map(cq => cq.Title).join(', ');
-        issuer = normalizeText(issuer, 80);
-      }
-      
-      // Chuẩn hóa người ký
-      let signer = '';
-      if (Array.isArray(item.NguoiKy)) {
-        signer = item.NguoiKy.map(nk => nk.Title).join(', ');
-        signer = normalizeText(signer, 50);
-      }
-      
-      // Chuyển đổi định dạng ngày tháng để đồng nhất
-      const formatDate = (dateStr) => {
-        if (!dateStr) return null;
-        try {
-          const date = new Date(dateStr);
-          if (isNaN(date.getTime())) return dateStr;
-          return date.toISOString();
-        } catch (e) {
-          return dateStr;
-        }
-      };
-      
-      return {
-        id: item.UID,
-        title: title,
-        document_type: item.LoaiVanBan?.Title || '',
-        document_number: item.SoHieu || '',
-        issued_date: formatDate(item.NgayBanHanh),
-        effective_date: formatDate(item.NgayHieuLuc),
-        published_date: formatDate(item.NgayCongBao),
-        issuer: issuer,
-        signer: signer,
-        status: item.TrinhTrangHieuLuc?.Title || '',
-        summary: summary,
-        content: '', // Nội dung chi tiết sẽ được lấy khi xem chi tiết
-        fields: Array.isArray(item.LinhVuc) ? item.LinhVuc.map(lv => lv.Title).join(', ') : '',
-        keywords: Array.isArray(item.LinhVuc) ? item.LinhVuc.map(lv => lv.Title) : [] // Sử dụng lĩnh vực làm từ khóa
-      };
-    });
-    
-    // Lấy thông tin phân trang từ API response
-    const total = response.data.Option?.TotalRow || 0;
-    const currentPage = response.data.Option?.CurrentPage || page;
-    const rowPerPage = response.data.Option?.RowPerPage || limit;
-    
-    const pagination = {
-      total: total,
-      totalPages: Math.ceil(total / rowPerPage),
-      currentPage: currentPage,
-      limit: rowPerPage
-    };
-    
-    return {
-      documents,
-      pagination
-    };
-  } catch (error) {
-    console.error('Lỗi khi tìm kiếm văn bản từ API bên ngoài:', error.message);
-    // Trả về kết quả trống thay vì ném lỗi
-    return {
-      documents: [],
-      pagination: {
-        total: 0,
-        totalPages: 0,
-        currentPage: parseInt(page) || 1,
-        limit: parseInt(limit) || 10
-      }
-    };
-  }
+const formatDateForDB = (date) => {
+  if (!date) return null;
+  
+  // Nếu là string, chuyển thành đối tượng Date
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Định dạng YYYY-MM-DD
+  return dateObj.toISOString().split('T')[0];
 };
 
-/**
- * Định dạng ngày cho API bên ngoài
- * @param {Date|string} date - Đối tượng Date hoặc chuỗi ngày cần định dạng
- * @returns {string} Chuỗi ngày theo định dạng yyyy-MM-dd
- */
-const formatDateForAPI = (date) => {
-  if (!date) return '';
-  
-  // Xử lý trường hợp date là chuỗi
-  if (typeof date === 'string') {
-    try {
-      date = new Date(date);
-    } catch (e) {
-      console.error('Lỗi chuyển đổi chuỗi ngày:', e);
-      return '';
-    }
-  }
-  
-  // Kiểm tra date có phải là đối tượng Date hợp lệ không
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
-    return '';
-  }
-  
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+// Định dạng ngày tháng để hiển thị
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 };
 
 /**
@@ -291,286 +220,171 @@ const formatDateForAPI = (date) => {
  */
 const getLegalDocumentById = async (documentId) => {
   try {
-    console.log('Bắt đầu lấy văn bản với ID:', documentId);
+    // Lấy thông tin văn bản
+    const documentQuery = `
+      SELECT 
+        id, 
+        title, 
+        document_type, 
+        version, 
+        content,
+        summary,
+        issued_date,
+        created_at,
+        language
+      FROM LegalDocuments 
+      WHERE id = $1
+    `;
     
-    // Kiểm tra xem documentId có phải là UID từ API bên ngoài hay không
-    if (typeof documentId === 'string') {
-      // Loại bỏ dấu / ở đầu nếu có
-      let normalizedId = documentId.startsWith('/') ? documentId.substring(1) : documentId;
-      
-      // Xem xét các trường hợp của UID
-      // 1. Định dạng nghi-dinh-63-2010-nd-cp-kiem-soat-thu-tuc-hanh-chinh
-      // 2. Định dạng decree-53-2018-nd-cp-the-exportation-or-importation...
-      // 3. Định dạng luat-thue-thu-nhap-doanh-nghiep
-      if (/^decree-|^nghi-dinh-|^quyet-dinh-|^thong-tu-|^luat-|^van-ban-/.test(normalizedId)) {
-        console.log('Đang lấy văn bản từ API bên ngoài với ID (có định dạng đặc biệt):', normalizedId);
-        try {
-          const externalDocument = await getExternalLegalDocumentById(normalizedId);
-          if (externalDocument) {
-            return externalDocument;
-          } else {
-            console.log('Không tìm được văn bản với định dạng đặc biệt, đang thử phương thức khác');
-          }
-        } catch (err) {
-          console.error('Lỗi khi lấy văn bản với định dạng đặc biệt:', err.message);
-        }
-      }
-      
-      // Nếu ID có dạng đường dẫn như /decree-53-2018-nd-cp... hoặc path/to/document
-      // thử lấy từ API bên ngoài dưới dạng URL thông thường
-      try {
-        console.log('Thử lấy văn bản từ API bên ngoài với ID thông thường:', normalizedId);
-        const externalDocument = await getExternalLegalDocumentById(normalizedId);
-        if (externalDocument) {
-          return externalDocument;
-        } else {
-          console.log('Không tìm được văn bản với ID thông thường từ API bên ngoài');
-        }
-      } catch (externalError) {
-        console.error('Lỗi khi lấy chi tiết văn bản từ API bên ngoài:', externalError.message);
-      }
+    const documentResult = await pool.query(documentQuery, [documentId]);
+    
+    if (documentResult.rows.length === 0) {
+      return null;
     }
     
-    // Nếu ID là số hoặc không lấy được từ API bên ngoài, lấy từ database nội bộ
-    if (!isNaN(parseInt(documentId))) {
-      console.log('Đang lấy văn bản từ database nội bộ với ID số:', documentId);
-      const result = await pool.query(
-        'SELECT * FROM LegalDocuments WHERE id = $1',
-        [documentId]
-      );
-      
-      if (result.rows.length > 0) {
-        // Lấy các từ khóa liên quan
-        const keywordsResult = await pool.query(
-          'SELECT keyword FROM LegalKeywords WHERE document_id = $1',
-          [documentId]
-        );
-        
-        const document = result.rows[0];
-        document.keywords = keywordsResult.rows.map(row => row.keyword);
-        
-        console.log('Đã tìm thấy văn bản trong database nội bộ:', document.title);
-        return document;
-      } else {
-        console.log('Không tìm thấy văn bản trong database nội bộ với ID:', documentId);
-      }
-    } else {
-      console.log('ID không phải là số, không thể truy vấn trong database nội bộ:', documentId);
+    const document = documentResult.rows[0];
+    
+    // Lấy từ khóa liên quan
+    const keywordsQuery = `
+      SELECT keyword 
+      FROM LegalKeywords 
+      WHERE document_id = $1
+      ORDER BY keyword
+    `;
+    
+    const keywordsResult = await pool.query(keywordsQuery, [documentId]);
+    
+    // Đảm bảo document.keywords luôn là một mảng, không phụ thuộc vào kết quả truy vấn
+    document.keywords = keywordsResult.rows.map(row => row.keyword);
+    
+    // Định dạng các trường ngày tháng nếu cần
+    if (document.issued_date) {
+      document.issued_date_formatted = formatDate(document.issued_date);
     }
     
-    console.log('Không tìm thấy văn bản trong cả API bên ngoài và database nội bộ');
-    return null;
+    return document;
   } catch (error) {
-    console.error('Lỗi trong quá trình lấy văn bản:', error.message);
+    console.error('Lỗi khi lấy chi tiết văn bản pháp luật:', error);
     throw error;
   }
 };
 
 /**
- * Lấy chi tiết văn bản pháp luật từ API bên ngoài
- * @param {string} uid - UID của văn bản
- * @returns {Promise<Object>} Thông tin chi tiết văn bản
- */
-const getExternalLegalDocumentById = async (uid) => {
-  try {
-    console.log('Lấy chi tiết văn bản từ API bên ngoài với UID:', uid);
-    
-    // Xử lý đặc biệt cho ID dạng URL
-    // Loại bỏ dấu "/" ở đầu nếu có
-    let normalizedUid = uid;
-    if (normalizedUid.startsWith('/')) {
-      normalizedUid = normalizedUid.substring(1);
-    }
-    
-    // Xử lý trường hợp slug có dạng luat-xxx hoặc decree-xxx
-    if (/^luat-|^nghi-dinh-|^quyet-dinh-|^thong-tu-|^decree-/.test(normalizedUid)) {
-      console.log('ID có định dạng đặc biệt, dạng:', normalizedUid);
-    }
-    
-    // Gọi trực tiếp tới API để lấy dữ liệu
-    console.log(`Đang gọi API với URL: ${API_BASE_URL}/vanban/${normalizedUid}`);
-    
-    try {
-      const response = await axios.get(`${API_BASE_URL}/vanban/${normalizedUid}`);
-      
-      if (!response.data || !response.data.SoHieu) {
-        console.log('Không tìm thấy dữ liệu văn bản từ API bên ngoài');
-        console.log('Dữ liệu trả về:', JSON.stringify(response.data, null, 2));
-        return null;
-      }
-      
-      console.log('Đã nhận được dữ liệu từ API');
-      
-      const document = {
-        id: normalizedUid, // Sử dụng normalizedUid làm ID
-        title: response.data.TrichYeu || response.data.Title || 'Không có tiêu đề',
-        document_type: response.data.LoaiVanBan?.Title || 'Không xác định',
-        content: response.data.ToanVan || 'Không có nội dung',
-        summary: response.data.TrichYeu || 'Không có trích yếu',
-        issued_date: formatDateForAPI(response.data.NgayBanHanh) || null,
-        effective_date: formatDateForAPI(response.data.NgayHieuLuc) || null,
-        published_date: formatDateForAPI(response.data.NgayCongBao) || null,
-        document_number: response.data.SoHieu || 'Không có số hiệu',
-        document_symbol: response.data.SoHieu || '',
-        issuing_body: response.data.CoQuanBanHanh?.[0]?.Title || 'Không xác định',
-        signer: response.data.NguoiKy?.[0]?.Title || 'Không xác định',
-        status: response.data.TrinhTrangHieuLuc?.Title || 'Không xác định',
-        field: response.data.LinhVuc?.[0]?.Title || 'Không xác định',
-        language: response.data.IsEn ? 'en' : 'vi',
-        is_external: true, // Đánh dấu đây là văn bản từ API bên ngoài
-        external_uid: normalizedUid,
-        doc_url: response.data.DOCUrl || '',
-        pdf_url: response.data.PDFUrl || '',
-        doc_size: response.data.DOCSize || 0,
-        pdf_size: response.data.PDFSize || 0,
-        poster_url: response.data.Poster || '',
-        updated_at: formatDateForAPI(response.data.Updated) || null
-      };
-      
-      console.log('Đã lấy được chi tiết văn bản từ API bên ngoài:', document.title);
-      
-      return document;
-    } catch (apiError) {
-      console.error('Lỗi khi gọi API với URL:', apiError.message);
-      return null;
-    }
-  } catch (error) {
-    console.error('Lỗi khi lấy chi tiết văn bản từ API bên ngoài:', error.message);
-    if (error.response) {
-      console.error('Mã lỗi:', error.response.status);
-      console.error('Dữ liệu lỗi:', error.response.data);
-    }
-    return null; // Thay vì throw error, trả về null để xử lý ở phía trên
-  }
-};
-
-/**
- * Lấy các loại văn bản pháp luật
+ * Lấy các loại văn bản pháp luật (nhóm theo tên không phân biệt hoa thường)
  * @returns {Promise<Array>} Danh sách loại văn bản
  */
 const getDocumentTypes = async () => {
   try {
-    // Thử lấy từ API bên ngoài
-    try {
-      const externalTypes = await getExternalDocumentTypes();
-      return externalTypes;
-    } catch (externalError) {
-      console.error('Lỗi khi lấy loại văn bản từ API bên ngoài:', externalError);
-      // Nếu API bên ngoài lỗi, sử dụng database nội bộ
-    }
+    const query = `
+      SELECT DISTINCT document_type 
+      FROM LegalDocuments 
+      ORDER BY document_type
+    `;
     
-    // Lấy từ database nội bộ
-    const result = await pool.query(
-      'SELECT DISTINCT document_type FROM LegalDocuments ORDER BY document_type'
-    );
-    return result.rows.map(row => row.document_type);
+    const result = await pool.query(query);
+    
+    // Tạo map để nhóm các loại văn bản không phân biệt hoa thường
+    const documentTypeMap = new Map();
+    
+    result.rows.forEach(row => {
+      const lowerCaseType = row.document_type.toLowerCase();
+      // Nếu loại này chưa có trong map hoặc version hiện tại dài hơn, cập nhật
+      if (!documentTypeMap.has(lowerCaseType) || 
+          row.document_type.length > documentTypeMap.get(lowerCaseType).length) {
+        documentTypeMap.set(lowerCaseType, row.document_type);
+      }
+    });
+    
+    // Chuyển map thành array kết quả
+    return Array.from(documentTypeMap.values()).map(docType => ({
+      id: docType,
+      name: docType
+    })).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   } catch (error) {
+    console.error('Lỗi khi lấy danh sách loại văn bản:', error);
     throw error;
   }
 };
 
 /**
- * Lấy danh sách loại văn bản pháp luật từ API bên ngoài
- * @returns {Promise<Array>} Danh sách loại văn bản
- */
-const getExternalDocumentTypes = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.DOCUMENT_TYPES}`);
-    
-    // Xử lý kết quả và trả về danh sách loại văn bản
-    if (Array.isArray(response.data)) {
-      return response.data.map(item => ({
-        id: item.UID,
-        name: item.Title
-      }));
-    }
-    
-    return [];
-  } catch (error) {
-    console.error('Lỗi khi lấy loại văn bản từ API bên ngoài:', error);
-    throw error;
-  }
-};
-
-/**
- * Lấy danh sách cơ quan ban hành từ API bên ngoài
+ * Lấy danh sách cơ quan ban hành
  * @returns {Promise<Array>} Danh sách cơ quan ban hành
  */
-const getExternalIssuingBodies = async () => {
+const getIssuingBodies = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.ISSUING_BODIES}`);
+    // Giả sử ta lưu cơ quan ban hành trong trường document_type hoặc trích từ tiêu đề
+    const query = `
+      SELECT DISTINCT document_type as issuing_body
+      FROM LegalDocuments
+      ORDER BY document_type
+    `;
     
-    // Xử lý kết quả và trả về danh sách cơ quan ban hành
-    if (Array.isArray(response.data)) {
-      return response.data.map(item => ({
-        id: item.UID,
-        name: item.Title
-      }));
-    }
+    const result = await pool.query(query);
     
-    return [];
+    return result.rows.map(row => ({
+      id: row.issuing_body,
+      name: row.issuing_body
+    }));
   } catch (error) {
-    console.error('Lỗi khi lấy cơ quan ban hành từ API bên ngoài:', error);
+    console.error('Lỗi khi lấy danh sách cơ quan ban hành:', error);
     throw error;
   }
 };
 
 /**
- * Lấy danh sách lĩnh vực từ API bên ngoài
+ * Lấy danh sách lĩnh vực pháp luật
  * @returns {Promise<Array>} Danh sách lĩnh vực
  */
-const getExternalFields = async () => {
+const getLegalFields = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.FIELDS}`);
+    // Để đơn giản, ta có thể lấy từ các từ khóa phổ biến
+    const query = `
+      SELECT keyword as field
+      FROM LegalKeywords
+      GROUP BY keyword
+      ORDER BY COUNT(*) DESC
+      LIMIT 20
+    `;
     
-    // Xử lý kết quả và trả về danh sách lĩnh vực
-    if (Array.isArray(response.data)) {
-      return response.data.map(item => ({
-        id: item.UID,
-        name: item.Title
-      }));
-    }
+    const result = await pool.query(query);
     
-    return [];
+    return result.rows.map(row => ({
+      id: row.field,
+      name: row.field
+    }));
   } catch (error) {
-    console.error('Lỗi khi lấy lĩnh vực từ API bên ngoài:', error);
+    console.error('Lỗi khi lấy danh sách lĩnh vực:', error);
     throw error;
   }
 };
 
 /**
- * Lấy danh sách trạng thái hiệu lực từ API bên ngoài
- * @returns {Promise<Array>} Danh sách trạng thái hiệu lực
+ * Lấy danh sách trạng thái hiệu lực
+ * @returns {Promise<Array>} Danh sách trạng thái
  */
-const getExternalEffectStatus = async () => {
+const getEffectStatus = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.EFFECT_STATUS}`);
+    // Giả sử ta có các trạng thái cố định 
+    const statuses = [
+      { id: 'active', name: 'Còn hiệu lực' },
+      { id: 'expired', name: 'Hết hiệu lực' },
+      { id: 'pending', name: 'Chưa có hiệu lực' },
+      { id: 'amended', name: 'Được sửa đổi, bổ sung' }
+    ];
     
-    // Xử lý kết quả và trả về danh sách trạng thái hiệu lực
-    if (Array.isArray(response.data)) {
-      return response.data.map(item => ({
-        id: item.UID,
-        name: item.Title
-      }));
-    }
-    
-    return [];
+    return statuses;
   } catch (error) {
-    console.error('Lỗi khi lấy trạng thái hiệu lực từ API bên ngoài:', error);
+    console.error('Lỗi khi lấy danh sách trạng thái hiệu lực:', error);
     throw error;
   }
 };
 
 /**
- * Tìm kiếm mẫu văn bản
+ * Lấy danh sách mẫu văn bản
  * @param {Object} options - Các tùy chọn tìm kiếm
- * @param {string} options.searchTerm - Từ khóa tìm kiếm
- * @param {string} options.templateType - Loại mẫu văn bản
- * @param {number} options.page - Trang hiện tại
- * @param {number} options.limit - Số lượng kết quả mỗi trang
  * @returns {Promise<Object>} Kết quả tìm kiếm
  */
-const getDocumentTemplates = async (options = {}) => {
+async function getDocumentTemplates(options = {}) {
   try {
     const {
       searchTerm = '',
@@ -581,7 +395,14 @@ const getDocumentTemplates = async (options = {}) => {
 
     // Xây dựng truy vấn
     let query = `
-      SELECT * FROM DocumentTemplates
+      SELECT 
+        id, 
+        title, 
+        template_type, 
+        content,
+        created_at,
+        language
+      FROM DocumentTemplates
       WHERE 1=1
     `;
 
@@ -592,164 +413,523 @@ const getDocumentTemplates = async (options = {}) => {
     if (searchTerm) {
       query += ` AND (
         title ILIKE $${paramIndex} 
-        OR content ILIKE $${paramIndex} 
-        OR description ILIKE $${paramIndex}
+        OR content ILIKE $${paramIndex}
       )`;
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;
     }
 
-    // Thêm điều kiện tìm kiếm theo loại mẫu văn bản
+    // Thêm điều kiện tìm kiếm theo loại mẫu
     if (templateType) {
       query += ` AND template_type = $${paramIndex}`;
       queryParams.push(templateType);
       paramIndex++;
     }
 
+    // Truy vấn đếm tổng số bản ghi
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM DocumentTemplates 
+      WHERE 1=1
+      ${searchTerm ? ` AND (title ILIKE $1 OR content ILIKE $1)` : ''}
+      ${templateType ? ` AND template_type = $${searchTerm ? 2 : 1}` : ''}
+    `;
+
+    const countParams = [];
+    if (searchTerm) countParams.push(`%${searchTerm}%`);
+    if (templateType) countParams.push(templateType);
+
     // Thêm phân trang
     const offset = (page - 1) * limit;
-    
-    // Đếm tổng số bản ghi
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
-    const countResult = await pool.query(countQuery, queryParams);
-    
-    const total = parseInt(countResult.rows[0].count);
-    const totalPages = Math.ceil(total / limit);
-    
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     queryParams.push(limit, offset);
 
-    const result = await pool.query(query, queryParams);
+    // Thực hiện truy vấn
+    const [templatesResult, countResult] = await Promise.all([
+      pool.query(query, queryParams),
+      pool.query(countQuery, countParams)
+    ]);
+
+    const templates = templatesResult.rows;
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
 
     return {
-      templates: result.rows,
+      data: templates,
       pagination: {
         total,
-        totalPages,
-        currentPage: page,
-        limit
+        page: Number(page),
+        limit: Number(limit),
+        totalPages
       }
     };
   } catch (error) {
+    console.error('Lỗi khi lấy danh sách mẫu văn bản:', error);
+    throw error;
+  }
+}
+
+/**
+ * Lấy chi tiết mẫu văn bản theo ID
+ * @param {number|string} id - ID mẫu văn bản
+ * @returns {Promise<Object>} Thông tin mẫu văn bản
+ */
+async function getDocumentTemplateById(id) {
+  try {
+    const query = `
+      SELECT 
+        id, 
+        title, 
+        template_type, 
+        content,
+        created_at,
+        language
+      FROM DocumentTemplates 
+      WHERE id = $1
+    `;
+    
+    const result = await pool.query(query, [id]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Lỗi khi lấy chi tiết mẫu văn bản:', error);
+    throw error;
+  }
+}
+
+/**
+ * Lấy danh sách loại mẫu văn bản
+ * @returns {Promise<Array>} Danh sách loại mẫu văn bản
+ */
+async function getTemplateTypes() {
+  try {
+    const query = `
+      SELECT DISTINCT template_type
+      FROM DocumentTemplates
+      ORDER BY template_type
+    `;
+    
+    const result = await pool.query(query);
+    
+    return result.rows.map(row => ({
+      id: row.template_type,
+      name: row.template_type
+    }));
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
+    throw error;
+  }
+}
+
+/**
+ * Tìm kiếm tổng hợp các văn bản pháp luật và mẫu văn bản
+ * @param {Object} options - Các tùy chọn tìm kiếm
+ * @returns {Promise<Object>} Kết quả tìm kiếm
+ */
+async function searchAll(options = {}) {
+  try {
+    const { searchTerm = '', page = 1, limit = 10 } = options;
+    const offset = (page - 1) * limit;
+    
+    if (!searchTerm) {
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: 0
+        }
+      };
+    }
+    
+    // Truy vấn UNION để kết hợp kết quả từ cả văn bản pháp luật và mẫu văn bản
+    const query = `
+      (
+        SELECT 
+          id, 
+          title, 
+          document_type as type,
+          summary,
+          issued_date as date,
+          'legal_document' as result_type
+        FROM LegalDocuments
+        WHERE (
+          title ILIKE $1 
+          OR content ILIKE $1 
+          OR summary ILIKE $1
+          OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
+        )
+      )
+      
+      UNION
+      
+      (
+        SELECT 
+          id,
+          title,
+          template_type as type,
+          content as summary,
+          created_at as date,
+          'template' as result_type
+        FROM DocumentTemplates
+        WHERE (
+          title ILIKE $1 
+          OR content ILIKE $1
+        )
+      )
+      
+      ORDER BY date DESC
+      LIMIT $2 OFFSET $3
+    `;
+    
+    const queryParams = [`%${searchTerm}%`, limit, offset];
+    
+    // Truy vấn đếm tổng số kết quả
+    const countQuery = `
+      SELECT COUNT(*) as total FROM (
+        (
+          SELECT id
+          FROM LegalDocuments
+          WHERE (
+            title ILIKE $1 
+            OR content ILIKE $1 
+            OR summary ILIKE $1
+            OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
+          )
+        )
+        
+        UNION
+        
+        (
+          SELECT id
+          FROM DocumentTemplates
+          WHERE (
+            title ILIKE $1 
+            OR content ILIKE $1
+          )
+        )
+      ) as results
+    `;
+    
+    const [resultsData, countData] = await Promise.all([
+      pool.query(query, queryParams),
+      pool.query(countQuery, [`%${searchTerm}%`])
+    ]);
+    
+    const results = resultsData.rows;
+    const total = parseInt(countData.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      data: results,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages
+      }
+    };
+  } catch (error) {
+    console.error('Lỗi khi tìm kiếm:', error);
+    throw error;
+  }
+}
+
+/**
+ * Tạo văn bản pháp luật mới
+ * @param {Object} documentData - Dữ liệu văn bản
+ * @returns {Promise<Object>} Văn bản mới tạo
+ */
+const createLegalDocument = async (documentData) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const {
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      keywords = []
+    } = documentData;
+    
+    // Thêm văn bản mới
+    const documentQuery = `
+      INSERT INTO LegalDocuments(
+        title,
+        document_type,
+        version,
+        content,
+        summary,
+        issued_date,
+        language
+      )
+      VALUES($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    
+    const documentValues = [
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language
+    ];
+    
+    const documentResult = await client.query(documentQuery, documentValues);
+    const newDocument = documentResult.rows[0];
+    
+    // Thêm các từ khóa nếu có
+    if (keywords && keywords.length > 0) {
+      // Loại bỏ các từ khóa trùng lặp và khoảng trắng
+      const uniqueKeywords = [...new Set(keywords)].filter(keyword => keyword.trim());
+      
+      if (uniqueKeywords.length > 0) {
+        const keywordQuery = `
+          INSERT INTO LegalKeywords(document_id, keyword)
+          VALUES($1, $2)
+        `;
+        
+        for (const keyword of uniqueKeywords) {
+          await client.query(keywordQuery, [newDocument.id, keyword.trim()]);
+        }
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    // Thêm từ khóa đã xử lý vào dữ liệu trả về
+    newDocument.keywords = keywords && keywords.length > 0 
+      ? [...new Set(keywords)].filter(keyword => keyword.trim()).map(keyword => keyword.trim()) 
+      : [];
+    
+    return newDocument;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Lỗi khi tạo văn bản pháp luật:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Cập nhật văn bản pháp luật
+ * @param {number|string} documentId - ID văn bản
+ * @param {Object} documentData - Dữ liệu cập nhật
+ * @returns {Promise<Object>} Văn bản đã cập nhật
+ */
+const updateLegalDocument = async (documentId, documentData) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const {
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      keywords = []
+    } = documentData;
+    
+    // Cập nhật văn bản
+    const documentQuery = `
+      UPDATE LegalDocuments
+      SET
+        title = $1,
+        document_type = $2,
+        version = $3,
+        content = $4,
+        summary = $5,
+        issued_date = $6,
+        language = $7
+      WHERE id = $8
+      RETURNING *
+    `;
+    
+    const documentValues = [
+      title,
+      document_type,
+      version,
+      content,
+      summary,
+      issued_date,
+      language,
+      documentId
+    ];
+    
+    const documentResult = await client.query(documentQuery, documentValues);
+    
+    if (documentResult.rows.length === 0) {
+      throw new Error(`Không tìm thấy văn bản có ID ${documentId}`);
+    }
+    
+    const updatedDocument = documentResult.rows[0];
+    
+    // Xóa từ khóa cũ
+    await client.query('DELETE FROM LegalKeywords WHERE document_id = $1', [documentId]);
+    
+    // Thêm từ khóa mới nếu có
+    if (keywords && keywords.length > 0) {
+      // Loại bỏ các từ khóa trùng lặp
+      const uniqueKeywords = [...new Set(keywords)].filter(keyword => keyword.trim());
+      
+      if (uniqueKeywords.length > 0) {
+        const keywordQuery = `
+          INSERT INTO LegalKeywords(document_id, keyword)
+          VALUES($1, $2)
+        `;
+        
+        for (const keyword of uniqueKeywords) {
+          await client.query(keywordQuery, [documentId, keyword.trim()]);
+        }
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    // Thêm từ khóa vào dữ liệu trả về để hiển thị ngay cho người dùng
+    updatedDocument.keywords = keywords && keywords.length > 0 
+      ? [...new Set(keywords)].filter(keyword => keyword.trim()).map(keyword => keyword.trim()) 
+      : [];
+    
+    return updatedDocument;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Lỗi khi cập nhật văn bản pháp luật:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Xóa văn bản pháp luật
+ * @param {number|string} documentId - ID văn bản
+ * @returns {Promise<boolean>} Kết quả xóa
+ */
+const deleteLegalDocument = async (documentId) => {
+  try {
+    // Xóa văn bản (các từ khóa sẽ bị xóa theo do ràng buộc ON DELETE CASCADE)
+    const result = await pool.query(
+      'DELETE FROM LegalDocuments WHERE id = $1 RETURNING id',
+      [documentId]
+    );
+    
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Lỗi khi xóa văn bản pháp luật:', error);
     throw error;
   }
 };
 
 /**
- * Lấy chi tiết mẫu văn bản
- * @param {number} templateId - ID của mẫu văn bản
- * @returns {Promise<Object>} Thông tin mẫu văn bản
+ * Tạo mẫu văn bản mới
+ * @param {Object} templateData - Dữ liệu mẫu văn bản
+ * @returns {Promise<Object>} Mẫu văn bản mới tạo
  */
-const getDocumentTemplateById = async (templateId) => {
+const createDocumentTemplate = async (templateData) => {
+  try {
+    const {
+      title,
+      template_type,
+      content,
+      language
+    } = templateData;
+    
+    const query = `
+      INSERT INTO DocumentTemplates(
+        title,
+        template_type,
+        content,
+        language
+      )
+      VALUES($1, $2, $3, $4)
+      RETURNING *
+    `;
+    
+    const values = [title, template_type, content, language];
+    
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Lỗi khi tạo mẫu văn bản:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cập nhật mẫu văn bản
+ * @param {number|string} templateId - ID mẫu văn bản
+ * @param {Object} templateData - Dữ liệu cập nhật
+ * @returns {Promise<Object>} Mẫu văn bản đã cập nhật
+ */
+const updateDocumentTemplate = async (templateId, templateData) => {
+  try {
+    const {
+      title,
+      template_type,
+      content,
+      language
+    } = templateData;
+    
+    const query = `
+      UPDATE DocumentTemplates
+      SET
+        title = $1,
+        template_type = $2,
+        content = $3,
+        language = $4
+      WHERE id = $5
+      RETURNING *
+    `;
+    
+    const values = [title, template_type, content, language, templateId];
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Không tìm thấy mẫu văn bản có ID ${templateId}`);
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Lỗi khi cập nhật mẫu văn bản:', error);
+    throw error;
+  }
+};
+
+/**
+ * Xóa mẫu văn bản
+ * @param {number|string} templateId - ID mẫu văn bản
+ * @returns {Promise<boolean>} Kết quả xóa
+ */
+const deleteDocumentTemplate = async (templateId) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM DocumentTemplates WHERE id = $1',
+      'DELETE FROM DocumentTemplates WHERE id = $1 RETURNING id',
       [templateId]
     );
     
-    return result.rows.length > 0 ? result.rows[0] : null;
+    return result.rows.length > 0;
   } catch (error) {
+    console.error('Lỗi khi xóa mẫu văn bản:', error);
     throw error;
-  }
-};
-
-/**
- * Lấy các loại mẫu văn bản
- * @returns {Promise<Array>} Danh sách loại mẫu văn bản
- */
-const getTemplateTypes = async () => {
-  try {
-    const result = await pool.query(
-      'SELECT DISTINCT template_type FROM DocumentTemplates ORDER BY template_type'
-    );
-    return result.rows.map(row => row.template_type);
-  } catch (error) {
-    throw error;
-  }
-};
-
-/**
- * Tìm kiếm tổng hợp (cả văn bản pháp luật và mẫu văn bản)
- * @param {Object} options - Các tùy chọn tìm kiếm
- * @param {string} options.searchTerm - Từ khóa tìm kiếm
- * @param {string} options.documentType - Loại văn bản
- * @param {Date} options.fromDate - Từ ngày
- * @param {Date} options.toDate - Đến ngày
- * @param {string} options.language - Ngôn ngữ mẫu văn bản
- * @param {number} options.page - Trang hiện tại
- * @param {number} options.limit - Số lượng kết quả mỗi trang
- * @returns {Promise<Object>} Kết quả tìm kiếm
- */
-const searchAll = async (options = {}) => {
-  try {
-    const {
-      searchTerm = '',
-      documentType = '',
-      fromDate = null,
-      toDate = null,
-      language = '',
-      page = 1,
-      limit = 10
-    } = options;
-
-    console.log(`Thực hiện tìm kiếm tổng hợp với từ khóa: "${searchTerm}", loại: "${documentType}"`);
-
-    // Lấy danh sách văn bản pháp luật từ API bên ngoài
-    const legalDocumentResults = await searchExternalLegalDocuments(
-      searchTerm,
-      documentType,
-      fromDate,
-      toDate,
-      page,
-      limit
-    );
-
-    // Lấy danh sách mẫu văn bản từ CSDL nội bộ với bộ lọc ngôn ngữ
-    const templateResults = await getDocumentTemplates({
-      searchTerm,
-      templateType: '', // Không lọc theo loại mẫu văn bản cụ thể
-      language, // Thêm tham số lọc theo ngôn ngữ
-      page,
-      limit
-    });
-
-    // Tính toán số trang tổng cộng dựa trên tổng số kết quả và limit
-    const totalItems = (legalDocumentResults.pagination?.total || 0) + 
-                      (templateResults.pagination?.total || 0);
-    const totalPages = Math.ceil(totalItems / limit);
-
-    console.log('Kết quả tìm kiếm pháp luật:', legalDocumentResults.documents?.length);
-    console.log('Kết quả tìm kiếm mẫu văn bản:', templateResults.templates?.length);
-    console.log('Tổng số kết quả:', totalItems);
-    console.log('Tổng số trang:', totalPages);
-
-    return {
-      legalDocuments: legalDocumentResults.documents || [],
-      documentTemplates: templateResults.templates || [],
-      totalDocuments: legalDocumentResults.pagination?.total || 0,
-      totalTemplates: templateResults.pagination?.total || 0,
-      pagination: {
-        total: totalItems,
-        currentPage: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: totalPages
-      }
-    };
-  } catch (error) {
-    console.error('Lỗi khi thực hiện tìm kiếm tổng hợp:', error.message);
-    // Trả về kết quả trống thay vì ném lỗi
-    return {
-      legalDocuments: [],
-      documentTemplates: [],
-      totalDocuments: 0,
-      totalTemplates: 0,
-      pagination: {
-        total: 0,
-        currentPage: parseInt(options.page) || 1,
-        limit: parseInt(options.limit) || 10,
-        totalPages: 0
-      }
-    };
   }
 };
 
@@ -757,11 +937,17 @@ module.exports = {
   getAllLegalDocuments,
   getLegalDocumentById,
   getDocumentTypes,
+  getIssuingBodies,
+  getLegalFields,
+  getEffectStatus,
   getDocumentTemplates,
   getDocumentTemplateById,
   getTemplateTypes,
   searchAll,
-  getExternalIssuingBodies,
-  getExternalFields,
-  getExternalEffectStatus
+  createLegalDocument,
+  updateLegalDocument,
+  deleteLegalDocument,
+  createDocumentTemplate,
+  updateDocumentTemplate,
+  deleteDocumentTemplate
 }; 

@@ -1,453 +1,443 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCalendarAlt, faFilter, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
-import legalService from '../../services/legalService';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Documents.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import legalService from '../../services/legalService';
+import { BsJournalText, BsCalendar3, BsSearch } from 'react-icons/bs';
+import { FaTag, FaArrowRight, FaFilter, FaSpinner } from 'react-icons/fa';
+import Loader from '../../components/layout/Loading/Loading';
 
+/**
+ * Trang hiển thị danh sách văn bản pháp luật
+ */
 const Documents = () => {
-  const [documents, setDocuments] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [documentTypes, setDocumentTypes] = useState([]);
-  const [issuingBodies, setIssuingBodies] = useState([]);
-  const [legalFields, setLegalFields] = useState([]);
-  const [effectStatus, setEffectStatus] = useState([]);
-  const [advancedFilterVisible, setAdvancedFilterVisible] = useState(false);
-  
-  // Bộ lọc
-  const [filters, setFilters] = useState({
-    type: '',
-    fromDate: '',
-    toDate: '',
-    issuingBody: '',
-    field: '',
-    status: ''
+  const [documents, setDocuments] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
   });
-  
-  const navigate = useNavigate();
-  
+  const [filters, setFilters] = useState({
+    search: '',
+    document_type: '',
+    from_date: '',
+    to_date: ''
+  });
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Đọc trạng thái filter từ URL khi trang được tải
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const urlFilters = {
+      search: queryParams.get('search') || '',
+      document_type: queryParams.get('document_type') || '',
+      from_date: queryParams.get('from_date') || '',
+      to_date: queryParams.get('to_date') || ''
+    };
+    
+    const urlPage = parseInt(queryParams.get('page')) || 1;
+    
+    setFilters(urlFilters);
+    setPagination(prev => ({
+      ...prev,
+      page: urlPage
+    }));
+    
+    // Không gọi fetchDocuments ở đây vì nó sẽ được gọi thông qua useEffect bên dưới
+  }, [location.search]);
+
+  // Tải danh sách văn bản pháp luật khi component được tải hoặc khi filter/pagination thay đổi
   useEffect(() => {
     fetchDocuments();
-    fetchFilterOptions();
-  }, [currentPage]);
-  
-  const fetchFilterOptions = async () => {
-    try {
-      // Lấy các tùy chọn lọc từ API
-      const [typesRes, bodiesRes, fieldsRes, statusRes] = await Promise.all([
-        legalService.getDocumentTypes(),
-        legalService.getIssuingBodies(),
-        legalService.getLegalFields(),
-        legalService.getEffectStatus()
-      ]);
-      
-      setDocumentTypes(typesRes.data || []);
-      setIssuingBodies(bodiesRes.data || []);
-      setLegalFields(fieldsRes.data || []);
-      setEffectStatus(statusRes.data || []);
-    } catch (error) {
-      console.error('Lỗi khi lấy tùy chọn lọc:', error);
-    }
-  };
+    fetchDocumentTypes();
+  }, [pagination.page, filters]);
 
-  const fetchDocuments = async (page = 1) => {
+  // Cập nhật URL khi filters hoặc pagination thay đổi
+  useEffect(() => {
+    // Tạo object chứa tất cả tham số query hiện tại
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các filter có giá trị vào URL
+    if (filters.search) queryParams.set('search', filters.search);
+    if (filters.document_type) queryParams.set('document_type', filters.document_type);
+    if (filters.from_date) queryParams.set('from_date', filters.from_date);
+    if (filters.to_date) queryParams.set('to_date', filters.to_date);
+    
+    // Thêm thông tin trang hiện tại
+    if (pagination.page > 1) queryParams.set('page', pagination.page.toString());
+    
+    // Cập nhật URL mà không reload trang
+    const newUrl = `${location.pathname}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    navigate(newUrl, { replace: true });
+  }, [filters, pagination.page, navigate, location.pathname]);
+
+  // Hàm tìm kiếm văn bản pháp luật
+  const fetchDocuments = async () => {
     try {
-      setLoading(true);
+      setError(null);
+
+      // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
+      const normalizedSearch = filters.search ? filters.search.toLowerCase().trim() : '';
       
-      // Đảm bảo tham số đúng định dạng
+      // Giữ nguyên document_type vì phía backend đã xử lý không phân biệt hoa thường
       const queryParams = {
-        q: searchTerm,
-        page: page,
-        limit: 10
+        search: normalizedSearch,
+        document_type: filters.document_type,
+        from_date: filters.from_date,
+        to_date: filters.to_date,
+        page: pagination.page,
+        limit: pagination.limit,
+        case_insensitive: true // Thêm flag để xử lý không phân biệt hoa thường
       };
+
+      const response = await legalService.getLegalDocuments(queryParams);
       
-      // Thêm các bộ lọc nếu có giá trị
-      if (filters.type) queryParams.type = filters.type;
-      if (filters.fromDate) queryParams.fromDate = filters.fromDate;
-      if (filters.toDate) queryParams.toDate = filters.toDate;
-      if (filters.issuingBody) queryParams.issuingBody = filters.issuingBody;
-      if (filters.field) queryParams.field = filters.field;
-      if (filters.status) queryParams.status = filters.status;
-      
-      console.log('Đang gửi request tìm kiếm với các tham số:', queryParams);
-      
-      const response = await legalService.searchLegalDocuments(queryParams);
-      
-      console.log('Nhận được response:', response);
-      
-      if (response && response.status === 'success') {
+      if (response.status === 'success') {
         setDocuments(response.data || []);
-        
-        // Kiểm tra và cập nhật thông tin phân trang
-        if (response.pagination) {
-          console.log('Thông tin phân trang:', response.pagination);
-          setTotalPages(response.pagination.totalPages || 1);
-          setCurrentPage(response.pagination.currentPage || 1);
-        } else {
-          console.warn('Không có thông tin phân trang trong response');
-          setTotalPages(1);
-          setCurrentPage(1);
-        }
-        
-        setError(null);
+        setPagination(response.pagination || {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0
+        });
       } else {
-        console.error('Response không có định dạng mong đợi:', response);
-        setError('Không thể tải danh sách văn bản pháp luật. Dữ liệu trả về không hợp lệ.');
+        setError('Không thể tải danh sách văn bản pháp luật');
       }
-    } catch (err) {
-      console.error('Lỗi khi tải văn bản pháp luật:', err);
-      setError('Không thể tải danh sách văn bản pháp luật. Vui lòng thử lại sau.');
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách văn bản:', error);
+      setError('Đã xảy ra lỗi khi tải danh sách văn bản pháp luật');
     } finally {
       setLoading(false);
+      setIsResetting(false);
     }
   };
 
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+  // Lấy danh sách loại văn bản
+  const fetchDocumentTypes = async () => {
+    try {
+      const types = await legalService.getDocumentTypes();
+      setDocumentTypes(types || []);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách loại văn bản:', error);
     }
   };
 
-  const handleDocumentClick = (documentId) => {
-    // Đảm bảo ID có định dạng đúng cho URL
-    let formattedId = documentId;
-    
-    if (typeof formattedId === 'string') {
-      // Loại bỏ dấu / ở đầu nếu có, vì đường dẫn URL không cần dấu /
-      if (formattedId.startsWith('/')) {
-        formattedId = formattedId.substring(1);
-      }
-      
-      console.log(`Chuyển hướng đến trang chi tiết văn bản: /documents/${formattedId}`);
-    } else {
-      console.log(`Chuyển hướng đến trang chi tiết văn bản với ID không phải chuỗi: ${formattedId}`);
-    }
-    
-    navigate(`/documents/${formattedId}`);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchDocuments(1);
-  };
-
+  // Xử lý thay đổi bộ lọc
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
+    setFilters(prevFilters => ({
+      ...prevFilters,
       [name]: value
     }));
   };
-  
-  const toggleAdvancedFilter = () => {
-    setAdvancedFilterVisible(!advancedFilterVisible);
-  };
 
-  const handleApplyFilters = () => {
-    setCurrentPage(1);
-    fetchDocuments(1);
-    console.log('Áp dụng bộ lọc mới:', filters);
+  // Xử lý sự kiện submit form tìm kiếm
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Reset về trang đầu tiên khi áp dụng bộ lọc mới
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
   
-  const handleClearFilters = () => {
+  // Reset lại tất cả filter và tải lại dữ liệu
+  const resetFilters = () => {
+    setIsResetting(true);
     setFilters({
-      type: '',
-      fromDate: '',
-      toDate: '',
-      issuingBody: '',
-      field: '',
-      status: ''
+      search: '',
+      document_type: '',
+      from_date: '',
+      to_date: ''
     });
-    setCurrentPage(1);
-    fetchDocuments(1);
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
 
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    const pageNumbers = [];
-    const maxPagesToShow = 5;
-    
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i);
-    }
-
-    return (
-      <div className={styles['pagination']}>
-        <button 
-          className={styles['pagination-button']} 
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          &laquo; Trang trước
-        </button>
-        
-        {startPage > 1 && (
-          <>
-            <button className={styles['pagination-button']} onClick={() => handlePageChange(1)}>1</button>
-            {startPage > 2 && <span className={styles['pagination-ellipsis']}>...</span>}
-          </>
-        )}
-        
-        {pageNumbers.map(number => (
-          <button
-            key={number}
-            className={`${styles['pagination-button']} ${number === currentPage ? styles.active : ''}`}
-            onClick={() => handlePageChange(number)}
-          >
-            {number}
-          </button>
-        ))}
-        
-        {endPage < totalPages && (
-          <>
-            {endPage < totalPages - 1 && <span className={styles['pagination-ellipsis']}>...</span>}
-            <button className={styles['pagination-button']} onClick={() => handlePageChange(totalPages)}>
-              {totalPages}
-            </button>
-          </>
-        )}
-        
-        <button 
-          className={styles['pagination-button']} 
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Trang sau &raquo;
-        </button>
-      </div>
-    );
+  // Điều hướng đến trang chi tiết văn bản
+  const handleDocumentClick = (documentId) => {
+    navigate(`/legal/documents/${documentId}`);
   };
 
+  // Định dạng ngày tháng
   const formatDate = (dateString) => {
-    if (!dateString) return 'Không xác định';
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Hiển thị phân trang
+  const renderPagination = () => {
+    const { page, totalPages } = pagination;
+    const pageButtons = [];
     
-    try {
-      const date = new Date(dateString);
-      return formatDistanceToNow(date, { addSuffix: true, locale: vi });
-    } catch (error) {
-      return dateString;
+    // Giới hạn số nút phân trang hiển thị
+    const maxPageButtons = 5;
+    const startPage = Math.max(1, page - Math.floor(maxPageButtons / 2));
+    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    
+    // Nút quay lại trang trước
+    pageButtons.push(
+      <button
+        key="prev"
+        className={styles['pagination-button']}
+        disabled={page <= 1}
+        onClick={() => handlePageChange(page - 1)}
+      >
+        &laquo;
+      </button>
+    );
+    
+    // Các nút số trang
+    for (let i = startPage; i <= endPage; i++) {
+      pageButtons.push(
+        <button
+          key={i}
+          className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
     }
+    
+    // Nút tiến đến trang sau
+    pageButtons.push(
+      <button
+        key="next"
+        className={styles['pagination-button']}
+        disabled={page >= totalPages}
+        onClick={() => handlePageChange(page + 1)}
+      >
+        &raquo;
+      </button>
+    );
+    
+    return pageButtons;
+  };
+
+  // Thêm hàm xử lý chuyển trang để đảm bảo phân trang hoạt động đúng
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
   };
 
   return (
-    <div className={styles['documents-container']}>
+    <>
       <Navbar />
-      
-      <div className={styles['documents-content']}>
+      <div className={styles['documents-container']}>
         <div className={styles['documents-header']}>
           <h1>Văn bản pháp luật</h1>
-          <p>Tra cứu cơ sở dữ liệu văn bản pháp luật và văn bản liên quan</p>
+          <p>Tra cứu các văn bản pháp luật mới nhất và cập nhật</p>
         </div>
-        
-        <div className={styles['search-section']}>
-          <div className={styles['search-form']}>
-            <form onSubmit={handleSearchSubmit}>
-              <div className={styles['search-input-wrapper']}>
-                <input
-                  type="text"
-                  className={styles['search-input']}
-                  placeholder="Tìm kiếm văn bản pháp luật..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                />
-                <button type="submit" className={styles['search-button']}>
-                  <FontAwesomeIcon icon={faSearch} /> Tìm kiếm
-                </button>
-              </div>
-            </form>
-          </div>
-          
-          <div className={styles['filters-section']}>
-            <div className={styles['filter-header']}>
-              <h3>Bộ lọc</h3>
-              <button 
-                className={styles['filter-toggle']}
-                onClick={toggleAdvancedFilter}
-              >
-                <FontAwesomeIcon icon={advancedFilterVisible ? faChevronUp : faChevronDown} />
-                {advancedFilterVisible ? 'Thu gọn bộ lọc' : 'Mở rộng bộ lọc'}
-              </button>
-            </div>
-            
+
+        <div className={styles['filters-section']}>
+          <form onSubmit={handleSubmit}>
             <div className={styles['filter-controls']}>
               <div className={styles['filter-group']}>
-                <label htmlFor="type">Loại văn bản:</label>
-                <select
-                  id="type"
-                  name="type"
+                <label htmlFor="search">
+                  <BsSearch style={{ marginRight: '5px' }} /> Từ khóa
+                </label>
+                <input
+                  type="text"
+                  id="search"
+                  name="search"
                   className={styles['filter-select']}
-                  value={filters.type}
+                  value={filters.search}
+                  onChange={handleFilterChange}
+                  placeholder="Nhập từ khóa tìm kiếm..."
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="document_type">
+                  <FaFilter style={{ marginRight: '5px' }} /> Loại văn bản
+                </label>
+                <select
+                  id="document_type"
+                  name="document_type"
+                  className={styles['filter-select']}
+                  value={filters.document_type}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Tất cả</option>
+                  <option value="">Tất cả loại văn bản</option>
                   {documentTypes.map(type => (
-                    <option key={type.id || type} value={type.id || type}>{type.name || type}</option>
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
                   ))}
                 </select>
               </div>
-              
-              {advancedFilterVisible && (
-                <>
-                  <div className={styles['filter-group']}>
-                    <label htmlFor="fromDate">Từ ngày:</label>
-                    <div className={styles['date-input-wrapper']}>
-                      <FontAwesomeIcon icon={faCalendarAlt} className={styles['date-icon']} />
-                      <input
-                        type="date"
-                        id="fromDate"
-                        name="fromDate"
-                        className={styles['filter-input']}
-                        value={filters.fromDate}
-                        onChange={handleFilterChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className={styles['filter-group']}>
-                    <label htmlFor="toDate">Đến ngày:</label>
-                    <div className={styles['date-input-wrapper']}>
-                      <FontAwesomeIcon icon={faCalendarAlt} className={styles['date-icon']} />
-                      <input
-                        type="date"
-                        id="toDate"
-                        name="toDate"
-                        className={styles['filter-input']}
-                        value={filters.toDate}
-                        onChange={handleFilterChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className={styles['filter-group']}>
-                    <label htmlFor="issuingBody">Cơ quan ban hành:</label>
-                    <select
-                      id="issuingBody"
-                      name="issuingBody"
-                      className={styles['filter-select']}
-                      value={filters.issuingBody}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Tất cả</option>
-                      {issuingBodies.map(body => (
-                        <option key={body.id} value={body.id}>{body.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className={styles['filter-group']}>
-                    <label htmlFor="field">Lĩnh vực:</label>
-                    <select
-                      id="field"
-                      name="field"
-                      className={styles['filter-select']}
-                      value={filters.field}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Tất cả</option>
-                      {legalFields.map(field => (
-                        <option key={field.id} value={field.id}>{field.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className={styles['filter-group']}>
-                    <label htmlFor="status">Hiệu lực:</label>
-                    <select
-                      id="status"
-                      name="status"
-                      className={styles['filter-select']}
-                      value={filters.status}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Tất cả</option>
-                      {effectStatus.map(status => (
-                        <option key={status.id} value={status.id}>{status.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-              
-              <div className={styles['filter-actions']}>
-                <button className={styles['filter-button']} onClick={handleApplyFilters}>
-                  <FontAwesomeIcon icon={faFilter} /> Lọc kết quả
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="from_date">
+                  <BsCalendar3 style={{ marginRight: '5px' }} /> Từ ngày
+                </label>
+                <input
+                  type="date"
+                  id="from_date"
+                  name="from_date"
+                  className={styles['filter-select']}
+                  value={filters.from_date}
+                  onChange={handleFilterChange}
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label htmlFor="to_date">
+                  <BsCalendar3 style={{ marginRight: '5px' }} /> Đến ngày
+                </label>
+                <input
+                  type="date"
+                  id="to_date"
+                  name="to_date"
+                  className={styles['filter-select']}
+                  value={filters.to_date}
+                  onChange={handleFilterChange}
+                />
+              </div>
+
+              <div className={styles['filter-group']}>
+                <label>&nbsp;</label>
+                <button
+                  type="submit"
+                  className={styles['filter-select']}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className={styles['spinner-icon']} /> Đang tìm...
+                    </>
+                  ) : (
+                    <>Tìm kiếm</>
+                  )}
                 </button>
-                {(filters.type || filters.fromDate || filters.toDate || filters.issuingBody || filters.field || filters.status) && (
-                  <button className={styles['filter-clear']} onClick={handleClearFilters}>
-                    Xóa bộ lọc
-                  </button>
-                )}
               </div>
             </div>
-          </div>
-        </div>
-        
-        <div className={styles['documents-list']}>
-          {loading ? (
-            <div className={styles.loading}>Đang tải văn bản pháp luật...</div>
-          ) : error ? (
-            <div className={styles.error}>{error}</div>
-          ) : documents.length === 0 ? (
-            <div className={styles['no-documents']}>
-              Không tìm thấy văn bản pháp luật nào phù hợp với tiêu chí tìm kiếm.
-            </div>
-          ) : (
-            documents.map(doc => (
-              <div 
-                key={doc.id} 
-                className={styles['document-item']}
-                onClick={() => handleDocumentClick(doc.id)}
+          </form>
+          
+          {(filters.search || filters.document_type || filters.from_date || filters.to_date) && (
+            <div className={styles['reset-filter-container']}>
+              <button 
+                className={styles['reset-filter-button']} 
+                onClick={resetFilters}
+                disabled={isResetting}
               >
-                <div className={styles['document-type-badge']}>
-                  {doc.document_type || 'Văn bản'}
-                </div>
-                <h3 className={styles['document-title']}>{doc.title}</h3>
-                <div className={styles['document-meta']}>
-                  <span className={styles['document-number']}>{doc.document_number || 'Không có số hiệu'}</span>
-                  <span className={styles['document-date']}>
-                    {doc.issued_date ? `Ban hành: ${formatDate(doc.issued_date)}` : ''}
-                  </span>
-                  <span className={styles['document-issuer']}>{doc.issuer || 'Chưa rõ cơ quan ban hành'}</span>
-                  <span className={styles['document-status']}>{doc.status || ''}</span>
-                </div>
-                <p className={styles['document-summary']}>
-                  {doc.summary || 'Không có tóm tắt cho văn bản này.'}
-                </p>
-                {doc.keywords && doc.keywords.length > 0 && (
-                  <div className={styles['keywords-container']}>
-                    {doc.keywords.map((keyword, index) => (
-                      <span key={index} className={styles['keyword-tag']}>{keyword}</span>
-                    ))}
-                  </div>
+                {isResetting ? (
+                  <>
+                    <FaSpinner className={styles['spinner-icon']} /> Đang đặt lại...
+                  </>
+                ) : (
+                  <>Đặt lại bộ lọc</>
                 )}
-              </div>
-            ))
+              </button>
+            </div>
           )}
         </div>
-        
-        {renderPagination()}
+
+        {loading ? (
+          <div className={styles['loading']}>
+            <Loader />
+            <p>Đang tải dữ liệu văn bản...</p>
+          </div>
+        ) : error ? (
+          <div className={styles['error']}>
+            <p>{error}</p>
+            <button 
+              className={styles['retry-button']} 
+              onClick={() => fetchDocuments()}
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : documents.length === 0 ? (
+          <div className={styles['no-documents']}>
+            <p>Không tìm thấy văn bản pháp luật nào phù hợp với điều kiện tìm kiếm.</p>
+            {(filters.search || filters.document_type || filters.from_date || filters.to_date) && (
+              <button onClick={resetFilters}>
+                Xóa bộ lọc và hiển thị tất cả văn bản
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={styles['results-count']}>
+              Tìm thấy {pagination.total} văn bản pháp luật
+            </div>
+
+            <div className={styles['documents-list']}>
+              {documents.map(document => (
+                <div
+                  key={document.id}
+                  className={styles['document-item']}
+                  onClick={() => handleDocumentClick(document.id)}
+                >
+                  <div className={styles['document-type-badge']}>
+                    {document.document_type}
+                  </div>
+                  <h3 className={styles['document-title']}>{document.title}</h3>
+                  <div className={styles['document-meta']}>
+                    <span>
+                      <BsCalendar3 /> Ngày ban hành: {formatDate(document.issued_date)}
+                    </span>
+                  </div>
+                  <p className={styles['document-summary']}>
+                    {document.summary ? (
+                      document.summary.length > 200 
+                        ? `${document.summary.substring(0, 200)}...` 
+                        : document.summary
+                    ) : 'Không có tóm tắt nội dung'}
+                  </p>
+                  
+                  <div className={styles['document-footer']}>
+                    {document.keywords && document.keywords.length > 0 && (
+                      <div className={styles['keywords-container']}>
+                        {document.keywords.slice(0, 3).map((keyword, index) => (
+                          <span key={index} className={styles['keyword-tag']}>
+                            <FaTag /> {keyword}
+                          </span>
+                        ))}
+                        {document.keywords.length > 3 && (
+                          <span className={styles['keyword-tag']}>
+                            +{document.keywords.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    <button className={styles['read-more-button']}>
+                      Xem chi tiết <FaArrowRight />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {pagination.totalPages > 1 && (
+              <div className={styles['pagination']}>
+                {renderPagination()}
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </>
   );
 };
 

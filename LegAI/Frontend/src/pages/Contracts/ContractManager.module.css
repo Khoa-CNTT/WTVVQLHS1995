@@ -1,0 +1,967 @@
+.contractManagerContainer {
+  min-height: 80vh;
+  padding: 120px 5% 5rem;
+  background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin-top: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-radius: 15px;
+}
+
+.contractTable {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.contractTable thead {
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+}
+
+.contractTable th {
+  font-weight: 600;
+  color: #ffffff;
+  padding: 1.2rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.85rem;
+  border: none;
+  text-align: left;
+}
+
+.contractTable td {
+  padding: 1.2rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f5f5f5;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.contractTable tr:hover td {
+  background-color: #f9f9f9;
+}
+
+.contractTitleLink {
+  color: #0d6efd;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-weight: 500;
+}
+
+.contractTitleLink:hover {
+  color: #0a58ca;
+  text-decoration: underline;
+}
+
+.actionButtons {
+  white-space: nowrap;
+  min-width: 180px;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButtons button {
+  border-radius: 8px;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  background-color: transparent;
+  color: #555;
+  cursor: pointer;
+}
+
+.actionButtons button:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+  color: #0d6efd;
+}
+
+.sectionHeader {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.sectionTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(to right, #0d6efd, #0b5ed7);
+  border-radius: 2px;
+}
+
+.sectionDescription {
+  font-size: 1.1rem;
+  color: #6c757d;
+  max-width: 700px;
+  line-height: 1.6;
+}
+
+.actionHeader {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.addButton {
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+  border: none;
+  border-radius: 30px;
+  padding: 0.8rem 2rem;
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+  cursor: pointer;
+}
+
+.addButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+  background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+}
+
+.addButton svg {
+  font-size: 1rem;
+}
+
+/* Alert styles */
+.alertSuccess, .alertError {
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  position: relative;
+  animation: slideDown 0.3s ease-in-out;
+}
+
+.alertSuccess {
+  background-color: #d4edda;
+  color: #155724;
+  border-left: 4px solid #28a745;
+}
+
+.alertError {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-left: 4px solid #dc3545;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Loading container */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  color: #666;
+}
+
+.loadingContainer p {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+}
+
+/* Loading overlay */
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* Empty state */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 15px;
+  margin-top: 2rem;
+}
+
+.emptyStateIcon {
+  font-size: 4rem;
+  color: #dee2e6;
+  margin-bottom: 1.5rem;
+}
+
+.emptyStateTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.emptyStateDescription {
+  color: #adb5bd;
+  max-width: 500px;
+  margin: 0 auto 1.5rem;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .actionButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .actionButtons button {
+    width: auto;
+    flex: 1;
+  }
+  
+  .sectionTitle {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .contractManagerContainer {
+    padding: 100px 15px 3rem;
+  }
+  
+  .contractTable {
+    font-size: 0.85rem;
+  }
+  
+  .actionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .actionButtons button {
+    margin-right: 0 !important;
+    width: 100%;
+  }
+  
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+  
+  .sectionTitle::after {
+    width: 80px;
+  }
+  
+  .addButton {
+    padding: 0.7rem 1.5rem;
+  }
+}
+
+/* Hiển thị chi tiết hợp đồng */
+.contract-detail {
+  padding: 1rem 0;
+}
+
+.contract-detail-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.contract-detail-type {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.detail-group {
+  margin-bottom: 0.5rem;
+}
+
+.detail-group label {
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.detail-group p {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Modal styles */
+.modal-title {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* Form styles */
+.form-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.form-control, .form-select {
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  border: 1px solid #ced4da;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #fff;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* File input custom styling */
+input[type="file"] {
+  padding: 0.7rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #ced4da;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Date input styling */
+input[type="date"] {
+  height: calc(1.5em + 0.75rem + 2px);
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+}
+
+/* Form row styling */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -5px;
+  margin-left: -5px;
+  gap: 0;
+}
+
+.form-row > .col,
+.form-row > [class*="col-"] {
+  padding-right: 10px;
+  padding-left: 10px;
+  margin-bottom: 15px;
+}
+
+/* Tùy chỉnh modal để hiển thị đúng */
+:global(.modal-dialog) {
+  max-width: 800px;
+  margin: 1.75rem auto;
+}
+
+:global(.modal-content) {
+  border-radius: 15px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+:global(.modal-header) {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 1.5rem;
+}
+
+:global(.modal-body) {
+  padding: 1.5rem;
+}
+
+:global(.modal-footer) {
+  border-top: 1px solid #f0f0f0;
+  padding: 1.2rem 1.5rem;
+}
+
+:global(.form-text) {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 0.3rem;
+}
+
+:global(.modal) {
+  padding-right: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto;
+}
+
+:global(.modal-backdrop) {
+  opacity: 0.5;
+}
+
+:global(.modal.show .modal-dialog) {
+  transform: none;
+  margin-top: 80px;
+}
+
+/* Custom Form Styles - Thiết kế mới */
+.customForm {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.formField {
+  margin-bottom: 10px;
+}
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.formLabel > span {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.formInput, .formSelect {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #fff;
+  color: #333;
+  outline: none;
+}
+
+.formInput:focus, .formSelect:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.inputWithIcon {
+  position: relative;
+}
+
+.inputWithIcon .formInput {
+  padding-right: 40px;
+}
+
+.inputIcon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.customSelect {
+  position: relative;
+}
+
+.selectIcon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.formHelper {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.fileUploadContainer {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fileInput {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: #333;
+}
+
+.fileInputLabel:hover {
+  background-color: #e0e0e0;
+}
+
+.fileName {
+  font-size: 0.9rem;
+  color: #666;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  gap: 15px;
+}
+
+.cancelButton {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  background-color: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background-color: #e0e0e0;
+}
+
+.submitButton {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  background-color: #0d6efd;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+}
+
+.submitButton:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-2px);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loadingSpinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Detail Display Styles */
+.contractDetailContainer {
+  padding: 20px 0;
+}
+
+.contractDetailHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  gap: 15px;
+}
+
+.contractDetailIcon {
+  font-size: 2.5rem;
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.contractDetailTitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.contractDetailType {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+  border-radius: 20px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.detailValue {
+  padding: 12px 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.contractDetailActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.downloadButton, .editButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.downloadButton {
+  background-color: #f8f9fa;
+  color: #0d6efd;
+  border: 1px solid #0d6efd;
+}
+
+.downloadButton:hover {
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+.editButton {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-2px);
+}
+
+/* Delete Confirmation Styles */
+.deleteConfirmContainer {
+  padding: 10px 0;
+}
+
+.warningHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.warningIcon {
+  font-size: 2rem;
+  color: #dc3545;
+}
+
+.warningHeader h3 {
+  color: #dc3545;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.deleteQuestion {
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+.contractSummary {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summaryItem svg {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.warningText {
+  color: #dc3545;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+
+.warningText svg {
+  font-size: 1rem;
+}
+
+.deleteActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.deleteButton:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.deleteButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .formGrid, .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .contractDetailActions, .deleteActions, .formActions {
+    flex-direction: column;
+  }
+  
+  .downloadButton, .editButton, .cancelButton, .submitButton, .deleteButton {
+    width: 100%;
+  }
+  
+  .fileUploadContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .fileInputLabel {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .fileName {
+    max-width: 100%;
+  }
+}
+
+/* Ensure modals display properly */
+:global(.modal-body) {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Custom Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modalClose:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.modalBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Custom Spinner */
+.spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(13, 110, 253, 0.3);
+  border-radius: 50%;
+  border-top-color: #0d6efd;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .modalContent {
+    max-width: 95%;
+  }
+  
+  .modalBody {
+    padding: 16px;
+  }
+} 

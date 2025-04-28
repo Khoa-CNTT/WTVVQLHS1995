@@ -1,156 +1,298 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCalendarAlt, faEye, faDownload } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
+// Templates.jsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Templates.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
-import ChatManager from '../../components/layout/Chat/ChatManager';
-import { API_URL } from '../../config/constants';
+import Loader from '../../components/layout/Loading/Loading';
+import legalService from '../../services/legalService';
+import { FaRegFile, FaCalendarAlt, FaSearch, FaFilter, FaLanguage, FaArrowRight, FaSpinner } from 'react-icons/fa';
 
+/**
+ * Trang hiển thị danh sách mẫu văn bản
+ */
 const Templates = () => {
-  const [templates, setTemplates] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0
+  });
+  const [filters, setFilters] = useState({
+    search: '',
+    template_type: ''
+  });
   const [templateTypes, setTemplateTypes] = useState([]);
-  const [selectedType, setSelectedType] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   
-  const navigate = useNavigate();
-
-    const fetchTemplates = async (page = 1) => {
-        setLoading(true);
-        try {
-            // Gọi API tìm kiếm mẫu văn bản với các tham số
-            const response = await axios.get(`${API_URL}/legal/templates`, {
-                params: {
-                    page,
-                    q: searchTerm, // Gửi searchTerm ngay cả khi rỗng
-                    type: selectedType || undefined
-                }
-            });
-
-            if (response.data && response.data.status === 'success') {
-                setTemplates(response.data.data || []);
-                setTotalPages(
-                    Math.ceil(response.data.pagination?.total / response.data.pagination?.limit) || 1
-                );
-                setError(null);
-            } else {
-                setError('Không thể tải mẫu văn bản. Vui lòng thử lại sau.');
-                console.error('API trả về lỗi:', response.data);
-            }
-        } catch (err) {
-            setError('Không thể tải mẫu văn bản. Vui lòng thử lại sau.');
-            console.error('Error fetching templates:', err);
-        } finally {
-            setLoading(false);
-        }
+  // Đọc trạng thái filter từ URL khi trang được tải
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const urlFilters = {
+      search: queryParams.get('search') || '',
+      template_type: queryParams.get('template_type') || ''
     };
+    
+    const urlPage = parseInt(queryParams.get('page')) || 1;
+    
+    setFilters(urlFilters);
+    setPagination(prev => ({
+      ...prev,
+      page: urlPage
+    }));
+    
+    // Không gọi fetchTemplates ở đây vì nó sẽ được gọi thông qua useEffect với dependency
+  }, [location.search]);
+  
+  // Cập nhật URL khi filters hoặc pagination thay đổi
+  useEffect(() => {
+    // Tạo object chứa tất cả tham số query hiện tại
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các filter có giá trị vào URL
+    if (filters.search) queryParams.set('search', filters.search);
+    if (filters.template_type) queryParams.set('template_type', filters.template_type);
+    
+    // Thêm thông tin trang hiện tại
+    if (pagination.page > 1) queryParams.set('page', pagination.page.toString());
+    
+    // Cập nhật URL mà không reload trang
+    const newUrl = `${location.pathname}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    navigate(newUrl, { replace: true });
+  }, [filters, pagination.page, navigate, location.pathname]);
+  
+  // Hàm tìm kiếm mẫu văn bản
+  const fetchTemplates = useCallback(async () => {
+    try {
+      setError(null);
 
-    const fetchTemplateTypes = async () => {
-        try {
-            const response = await axios.get(`${API_URL}/legal/template-types`);
-            if (response.data && response.data.status === 'success') {
-                setTemplateTypes(response.data.data || []);
-            } else {
-                console.error('Không thể tải loại mẫu văn bản:', response.data);
-            }
-        } catch (err) {
-            console.error('Error fetching template types:', err);
+      // Chuẩn hóa từ khóa tìm kiếm thành chữ thường để không phân biệt hoa thường
+      const normalizedSearch = filters.search.trim() ? filters.search.trim().toLowerCase() : '';
+
+      // Tạo bản sao của filter để tránh lỗi tham chiếu
+      const queryParams = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      
+      // Chỉ thêm vào tham số khi có giá trị
+      if (normalizedSearch) {
+        queryParams.search = normalizedSearch;
+      }
+      
+      if (filters.template_type) {
+        queryParams.template_type = filters.template_type;
+      }
+      
+      const response = await legalService.getDocumentTemplates(queryParams);
+      
+      if (response.status === 'success') {
+        // Lấy dữ liệu từ response
+        let filteredTemplates = response.data || [];
+        
+        // Lọc thêm ở client nếu cần (chuyển đổi thành chữ thường để không phân biệt hoa thường)
+        if (normalizedSearch) {
+          const searchTerms = normalizedSearch.split(/\s+/);
+          filteredTemplates = filteredTemplates.filter(template => {
+            // Tìm kiếm theo tiêu đề và loại mẫu (chuyển cả hai thành chữ thường)
+            const normalizedTitle = template.title.toLowerCase();
+            const normalizedType = template.template_type ? template.template_type.toLowerCase() : '';
+            
+            return searchTerms.every(term => 
+              normalizedTitle.includes(term) || 
+              normalizedType.includes(term)
+            );
+          });
         }
-    };
-
-    // Tải dữ liệu ban đầu khi component được mount
-    useEffect(() => {
-        fetchTemplates(currentPage);
-        fetchTemplateTypes();
-    }, [currentPage]);
-
-  const handleFilterChange = (e) => {
-    setSelectedType(e.target.value);
-  };
-
-  const handleApplyFilter = () => {
-    setCurrentPage(1);
-    fetchTemplates(1);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchTemplates(1);
-  };
-
-  const handleSearchInputChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleTemplateClick = (templateId) => {
-    navigate(`/templates/${templateId}`);
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-  };
-
-  const renderPagination = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        
+        setTemplates(filteredTemplates);
+        setPagination(prev => ({
+          ...prev,
+          page: response.pagination?.currentPage || prev.page,
+          limit: response.pagination?.limit || prev.limit,
+          total: response.pagination?.total || filteredTemplates.length,
+          totalPages: response.pagination?.totalPages || Math.ceil(filteredTemplates.length / 12)
+        }));
+      } else {
+        setError('Không thể tải danh sách mẫu văn bản');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách mẫu văn bản:', error);
+      setError('Đã xảy ra lỗi khi tải danh sách mẫu văn bản');
+    } finally {
+      setLoading(false);
+      setIsResetting(false);
     }
+  }, [pagination.page, pagination.limit, filters]);
+  
+  // Tải danh sách mẫu văn bản khi component được tải hoặc khi filter/pagination thay đổi
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+  
+  // Tải danh sách loại mẫu khi component mount
+  useEffect(() => {
+    fetchTemplateTypes();
+  }, []);
 
-    // Previous button
-    pages.push(
-      <button
-        key="prev"
+  // Lấy danh sách loại mẫu văn bản
+  const fetchTemplateTypes = async () => {
+    try {
+      const response = await legalService.getTemplateTypes();
+      
+      // Đảm bảo chúng ta có một mảng hợp lệ
+      let types = [];
+      if (response && response.status === 'success') {
+        types = response.data || [];
+      } else if (Array.isArray(response)) {
+        types = response;
+      }
+      
+      // Nếu mảng rỗng, tạo một số loại mẫu mặc định
+      if (types.length === 0) {
+        types = [
+          { id: 'don', name: 'Đơn' },
+          { id: 'hop-dong', name: 'Hợp đồng' },
+          { id: 'bao-cao', name: 'Báo cáo' },
+          { id: 'bien-ban', name: 'Biên bản' },
+          { id: 'to-trinh', name: 'Tờ trình' }
+        ];
+      }
+      
+      setTemplateTypes(types);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
+      // Sử dụng danh sách loại mẫu mặc định nếu có lỗi
+      const defaultTypes = [
+        { id: 'don', name: 'Đơn' },
+        { id: 'hop-dong', name: 'Hợp đồng' },
+        { id: 'bao-cao', name: 'Báo cáo' },
+        { id: 'bien-ban', name: 'Biên bản' },
+        { id: 'to-trinh', name: 'Tờ trình' }
+      ];
+      setTemplateTypes(defaultTypes);
+    }
+  };
+
+  // Xử lý thay đổi bộ lọc
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      [name]: value
+    }));
+  };
+
+  // Xử lý sự kiện submit form tìm kiếm
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Reset về trang đầu tiên khi áp dụng bộ lọc mới
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
+  };
+  
+  // Reset lại tất cả filter và tải lại dữ liệu
+  const resetFilters = () => {
+    setIsResetting(true);
+    setFilters({
+      search: '',
+      template_type: ''
+    });
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
+  };
+
+  // Điều hướng đến trang chi tiết mẫu văn bản
+  const handleTemplateClick = (templateId) => {
+    navigate(`/legal/templates/${templateId}`);
+  };
+
+  // Định dạng ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    // Kiểm tra định dạng ngày hợp lệ
+    const date = new Date(dateString);
+    
+    // Kiểm tra nếu ngày không hợp lệ (Invalid Date)
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Thêm hàm xử lý chuyển trang để đảm bảo phân trang hoạt động đúng
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
+  };
+
+  // Hiển thị phân trang
+  const renderPagination = () => {
+    const { page, totalPages } = pagination;
+    const pageButtons = [];
+    
+    // Giới hạn số nút phân trang hiển thị
+    const maxPageButtons = 5;
+    const startPage = Math.max(1, page - Math.floor(maxPageButtons / 2));
+    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    
+    // Nút quay lại trang trước
+    pageButtons.push(
+      <button 
+        key="prev" 
         className={styles['pagination-button']}
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1}
+        disabled={page <= 1}
+        onClick={() => handlePageChange(page - 1)}
       >
-        &lt;
+        «
       </button>
     );
-
-    // Page buttons
+    
+    // Các nút số trang
     for (let i = startPage; i <= endPage; i++) {
-      pages.push(
+      pageButtons.push(
         <button
           key={i}
-          className={`${styles['pagination-button']} ${currentPage === i ? styles.active : ''}`}
+          className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
           onClick={() => handlePageChange(i)}
         >
           {i}
         </button>
       );
     }
-
-    // Next button
-    pages.push(
-      <button
-        key="next"
+    
+    // Nút tiến đến trang sau
+    pageButtons.push(
+      <button 
+        key="next" 
         className={styles['pagination-button']}
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
+        disabled={page >= totalPages}
+        onClick={() => handlePageChange(page + 1)}
       >
-        &gt;
+        »
       </button>
     );
-
-    return pages;
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    
+    return pageButtons;
   };
 
   return (
@@ -158,99 +300,164 @@ const Templates = () => {
       <Navbar />
       <div className={styles['templates-container']}>
         <div className={styles['templates-header']}>
-          <h1>Mẫu Văn Bản Pháp Lý</h1>
-          <p>Tìm kiếm và sử dụng các mẫu văn bản pháp lý đã được biên soạn sẵn</p>
+          <h1>Mẫu văn bản pháp lý</h1>
+          <p>Tra cứu và tải xuống các mẫu văn bản pháp lý phổ biến</p>
         </div>
-
-        <div className={styles['search-section']}>
-          <form className={styles['search-form']} onSubmit={handleSearch}>
-            <div className={styles['search-input-wrapper']}>
-              <input
-                type="text"
-                className={styles['search-input']}
-                placeholder="Tìm kiếm mẫu văn bản..."
-                value={searchTerm}
-                onChange={handleSearchInputChange}
-              />
-              <button type="submit" className={styles['search-button']}>
-                <FontAwesomeIcon icon={faSearch} />
-              </button>
+        
+        <div className={styles['filters-section']}>
+          <form onSubmit={handleSubmit}>
+            <div className={styles['filter-controls']}>
+              <div className={styles['filter-group']}>
+                <label htmlFor="search">
+                  <FaSearch style={{ marginRight: '5px' }} /> Từ khóa
+                </label>
+                <input
+                  type="text"
+                  id="search"
+                  name="search"
+                  className={styles['filter-select']}
+                  value={filters.search}
+                  onChange={handleFilterChange}
+                  placeholder="Nhập từ khóa tìm kiếm..."
+                />
+              </div>
+              
+              <div className={styles['filter-group']}>
+                <label htmlFor="template_type">
+                  <FaFilter style={{ marginRight: '5px' }} /> Loại mẫu
+                </label>
+                <select
+                  id="template_type"
+                  name="template_type"
+                  className={styles['filter-select']}
+                  value={filters.template_type}
+                  onChange={handleFilterChange}
+                  disabled={templateTypes.length === 0}
+                >
+                  <option value="">Tất cả loại mẫu</option>
+                  {templateTypes.length > 0 ? (
+                    templateTypes.map(type => (
+                      <option key={type.id || type.name} value={type.id || type.name}>
+                        {type.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Đang tải loại mẫu...</option>
+                  )}
+                </select>
+              </div>
+              
+              <div className={styles['filter-group']}>
+                <label>&nbsp;</label>
+                <button
+                  type="submit"
+                  className={styles['filter-select']}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className={styles['spinner-icon']} /> Đang tìm...
+                    </>
+                  ) : (
+                    <>Tìm kiếm</>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
-        </div>
-
-        <div className={styles['filters-section']}>
-          <div className={styles['filter-controls']}>
-            <div className={styles['filter-group']}>
-              <label htmlFor="templateType">Loại văn bản</label>
-              <select
-                id="templateType"
-                className={styles['filter-select']}
-                value={selectedType}
-                onChange={handleFilterChange}
+          
+          {(filters.search || filters.template_type) && (
+            <div className={styles['reset-filter-container']}>
+              <button 
+                className={styles['reset-filter-button']} 
+                onClick={resetFilters}
+                disabled={isResetting}
               >
-                <option value="">Tất cả</option>
-                {templateTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
+                {isResetting ? (
+                  <>
+                    <FaSpinner className={styles['spinner-icon']} /> Đang đặt lại...
+                  </>
+                ) : (
+                  <>Đặt lại bộ lọc</>
+                )}
+              </button>
             </div>
-            <button onClick={handleApplyFilter} className={styles['filter-button']}>
-              Áp dụng
+          )}
+        </div>
+        
+        {loading ? (
+          <div className={styles['loading']}>
+            <Loader />
+            <p>Đang tải dữ liệu mẫu văn bản...</p>
+          </div>
+        ) : error ? (
+          <div className={styles['error']}>
+            <p>{error}</p>
+            <button 
+              className={styles['retry-button']} 
+              onClick={() => fetchTemplates()}
+            >
+              Thử lại
             </button>
           </div>
-        </div>
-
-        {loading ? (
-          <div className={styles.loading}>Đang tải mẫu văn bản...</div>
-        ) : error ? (
-          <div className={styles.error}>{error}</div>
         ) : templates.length === 0 ? (
           <div className={styles['no-templates']}>
-            Không tìm thấy mẫu văn bản nào. Vui lòng thử lại với từ khóa khác.
+            <p>Không tìm thấy mẫu văn bản nào phù hợp với điều kiện tìm kiếm.</p>
+            {(filters.search || filters.template_type) && (
+              <button 
+                className={styles['reset-filter']} 
+                onClick={resetFilters}
+                disabled={isResetting}
+              >
+                {isResetting ? 'Đang đặt lại...' : 'Xóa bộ lọc và hiển thị tất cả'}
+              </button>
+            )}
           </div>
         ) : (
           <>
-            <div className={styles['templates-grid']}>
-              {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className={styles['template-card']}
+            <div className={styles['results-count']}>
+              Tìm thấy {pagination.total} mẫu văn bản
+            </div>
+            
+            <div className={styles['templates-list']}>
+              {templates.map(template => (
+                <div 
+                  key={template.id} 
+                  className={styles['template-item']}
                   onClick={() => handleTemplateClick(template.id)}
                 >
-                  <div className={styles['template-type']}>
-                    {template.type_name || template.type || 'Mẫu văn bản'}
+                  <div className={styles['template-type-badge']}>
+                    <FaFilter style={{ marginRight: '5px' }} />
+                    {template.template_type}
                   </div>
                   <h3 className={styles['template-title']}>{template.title}</h3>
                   <div className={styles['template-meta']}>
                     <span className={styles['template-date']}>
-                      <FontAwesomeIcon icon={faCalendarAlt} /> {formatDate(template.created_at)}
+                      <FaCalendarAlt /> {formatDate(template.created_at)}
                     </span>
-                    <span className={styles['template-views']}>
-                      <FontAwesomeIcon icon={faEye} /> {template.views || 0}
+                    <span className={styles['template-language']}>
+                      <FaLanguage /> {template.language || 'Tiếng Việt'}
                     </span>
                   </div>
-                  <p className={styles['template-description']}>{template.description}</p>
-                  <div className={styles['template-actions']}>
-                    <button className={styles['action-button']}>
+                  <div className={styles['template-description']}>
+                    <button className={styles['view-details-button']}>
                       Xem chi tiết
-                    </button>
-                    <button className={styles['action-button']}>
-                      <FontAwesomeIcon icon={faDownload} /> Tải xuống
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className={styles.pagination}>{renderPagination()}</div>
+            
+            {pagination.totalPages > 1 && (
+              <div className={styles['pagination']}>
+                {renderPagination()}
+              </div>
+            )}
           </>
         )}
       </div>
-      <ChatManager />
     </>
   );
 };
 
-export default Templates; 
+export default Templates;

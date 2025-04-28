@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaKey, FaFileAlt, FaUserCircle, FaPen, FaUpload, FaCalendarAlt, FaHistory, FaBalanceScale, FaStar, FaBookmark } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaKey, FaFileAlt, FaUserCircle, FaPen, FaUpload, FaCalendarAlt, FaHistory, FaBalanceScale } from 'react-icons/fa';
 import styles from './Profile.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import authService from '../../services/authService';
 import userService from '../../services/userService';
-import legalService from '../../services/legalService';
 import ChangePasswordPage from './ChangePassword/ChangePasssword';
 import ChatManager from '../../components/layout/Chat/ChatManager';
 import AppointmentsPage from './Appointments/AppointmentsPage';
@@ -36,16 +35,6 @@ function Profile() {
     confirmPassword: ''
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [favorites, setFavorites] = useState([]);
-  const [bookmarks, setBookmarks] = useState([]);
-  const [favoriteDocuments, setFavoriteDocuments] = useState([]);
-  const [bookmarkedDocuments, setBookmarkedDocuments] = useState([]);
-  const [collectionLoading, setCollectionLoading] = useState(false);
-  
-  // Thêm state cho phân trang
-  const [currentFavoritePage, setCurrentFavoritePage] = useState(1);
-  const [currentBookmarkPage, setCurrentBookmarkPage] = useState(1);
-  const itemsPerPage = 5;
 
   useEffect(() => {
     // Kiểm tra đăng nhập
@@ -86,8 +75,6 @@ function Profile() {
     };
 
     refreshData();
-    // Tải danh sách yêu thích và đánh dấu
-    loadFavoritesAndBookmarks();
   }, [navigate]);
 
   const fetchUserProfile = async (userId) => {
@@ -343,80 +330,6 @@ function Profile() {
     }
   };
 
-  // Thêm hàm tải danh sách yêu thích và đánh dấu
-  const loadFavoritesAndBookmarks = async () => {
-    try {
-      setCollectionLoading(true);
-      // Lấy ID từ localStorage
-      const favoritesIds = JSON.parse(localStorage.getItem('favorites') || '[]');
-      const bookmarksIds = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-      
-      setFavorites(favoritesIds);
-      setBookmarks(bookmarksIds);
-      
-      // Lấy thông tin chi tiết của các văn bản yêu thích
-      const favoriteDocsData = [];
-      for (const id of favoritesIds) {
-        try {
-          const response = await legalService.getLegalDocumentById(id);
-          if (response.status === 'success' && response.data) {
-            favoriteDocsData.push(response.data);
-          }
-        } catch (error) {
-          console.error(`Lỗi khi lấy thông tin văn bản yêu thích ${id}:`, error);
-        }
-      }
-      setFavoriteDocuments(favoriteDocsData);
-      
-      // Lấy thông tin chi tiết của các văn bản đánh dấu
-      const bookmarkedDocsData = [];
-      for (const id of bookmarksIds) {
-        try {
-          const response = await legalService.getLegalDocumentById(id);
-          if (response.status === 'success' && response.data) {
-            bookmarkedDocsData.push(response.data);
-          }
-        } catch (error) {
-          console.error(`Lỗi khi lấy thông tin văn bản đánh dấu ${id}:`, error);
-        }
-      }
-      setBookmarkedDocuments(bookmarkedDocsData);
-      
-      // Reset về trang đầu tiên sau khi tải lại dữ liệu
-      setCurrentFavoritePage(1);
-      setCurrentBookmarkPage(1);
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách yêu thích và đánh dấu:', error);
-    } finally {
-      setCollectionLoading(false);
-    }
-  };
-
-  // Thêm hàm xử lý phân trang
-  const handleFavoritePageChange = (page) => {
-    setCurrentFavoritePage(page);
-  };
-  
-  const handleBookmarkPageChange = (page) => {
-    setCurrentBookmarkPage(page);
-  };
-
-  // Thêm hàm xóa khỏi yêu thích
-  const removeFromFavorites = (documentId) => {
-    const updatedFavorites = favorites.filter(id => id !== documentId);
-    localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-    setFavorites(updatedFavorites);
-    setFavoriteDocuments(favoriteDocuments.filter(doc => doc.id !== documentId));
-  };
-
-  // Thêm hàm xóa khỏi đánh dấu
-  const removeFromBookmarks = (documentId) => {
-    const updatedBookmarks = bookmarks.filter(id => id !== documentId);
-    localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-    setBookmarks(updatedBookmarks);
-    setBookmarkedDocuments(bookmarkedDocuments.filter(doc => doc.id !== documentId));
-  };
-
   if (loading && !user) {
     return (
       <div className={styles.skeletonContainer}>
@@ -440,68 +353,6 @@ function Profile() {
     { id: 'contact', label: 'Liên hệ hỗ trợ', icon: 'phone-alt' },
     { id: 'delete-account', label: 'Xóa tài khoản', icon: 'trash-alt', className: styles.dangerSection }
   ];
-
-  // Hàm tạo phân trang
-  const renderPagination = (totalItems, currentPage, onPageChange) => {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    
-    if (totalPages <= 1) return null;
-    
-    const paginationItems = [];
-    
-    // Nút Previous
-    paginationItems.push(
-      <button 
-        key="prev" 
-        className={styles.paginationButton}
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        &laquo;
-      </button>
-    );
-    
-    // Hiển thị tối đa 5 nút phân trang
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-    
-    if (endPage - startPage < 4) {
-      startPage = Math.max(1, endPage - 4);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      paginationItems.push(
-        <button
-          key={i}
-          className={`${styles.paginationButton} ${currentPage === i ? styles.active : ''}`}
-          onClick={() => onPageChange(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-    
-    // Nút Next
-    paginationItems.push(
-      <button 
-        key="next" 
-        className={styles.paginationButton}
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        &raquo;
-      </button>
-    );
-    
-    return <div className={styles.pagination}>{paginationItems}</div>;
-  };
-  
-  // Tính toán dữ liệu được phân trang
-  const getPaginatedData = (data, currentPage) => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return data.slice(startIndex, endIndex);
-  };
 
   const renderContent = () => {
     if (activeTab === 'appointments') {
@@ -554,7 +405,7 @@ function Profile() {
           </div>
 
           <div className={styles.activityLinks}>
-            <a href="#" className={styles.activityLink} onClick={(e) => { e.preventDefault(); setActiveTab('collection'); }}>
+            <a href="#" className={styles.activityLink}>
               <FaFileAlt /> Xem tài liệu của tôi
             </a>
             <a href="#" className={styles.activityLink}>
@@ -566,125 +417,6 @@ function Profile() {
             <a href="#" className={styles.activityLink}>
               <FaUserCircle /> Lịch sử tư vấn
             </a>
-          </div>
-        </div>
-      );
-    } else if (activeTab === 'collection') {
-      // Phân trang cho dữ liệu
-      const paginatedFavorites = getPaginatedData(favoriteDocuments, currentFavoritePage);
-      const paginatedBookmarks = getPaginatedData(bookmarkedDocuments, currentBookmarkPage);
-      
-      return (
-        <div className={styles.collectionTab}>
-          <div className={styles.sectionHeader}>
-            <h2>Bộ sưu tập tài liệu</h2>
-            <button className={styles.refreshButton} onClick={loadFavoritesAndBookmarks} disabled={collectionLoading}>
-              {collectionLoading ? 'Đang tải...' : 'Làm mới'}
-            </button>
-          </div>
-          
-          {/* Phần yêu thích */}
-          <div className={styles.collectionSection}>
-            <h3>
-              <FaStar className={styles.collectionIcon} /> 
-              Văn bản yêu thích 
-              <span className={styles.documentCount}>({favoriteDocuments.length})</span>
-            </h3>
-            
-            {collectionLoading ? (
-              <div className={styles.loadingMessage}>Đang tải danh sách văn bản yêu thích...</div>
-            ) : favoriteDocuments.length > 0 ? (
-              <>
-                <div className={styles.documentsList}>
-                  {paginatedFavorites.map(doc => (
-                    <div key={doc.id} className={styles.documentItem}>
-                      <div className={styles.documentInfo}>
-                        <Link to={`/documents/${doc.id}`} className={styles.documentTitle}>
-                          {doc.title}
-                        </Link>
-                        <div className={styles.documentMeta}>
-                          <span className={styles.documentType}>{doc.document_type}</span>
-                          {doc.issued_date && (
-                            <span className={styles.documentDate}>
-                              Ban hành: {formatDate(doc.issued_date)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className={styles.documentActions}>
-                        <button 
-                          className={styles.removeButton} 
-                          onClick={() => removeFromFavorites(doc.id)}
-                          title="Xóa khỏi danh sách yêu thích"
-                        >
-                          <FaStar /> Bỏ yêu thích
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Thêm phân trang cho văn bản yêu thích */}
-                {renderPagination(favoriteDocuments.length, currentFavoritePage, handleFavoritePageChange)}
-              </>
-            ) : (
-              <div className={styles.emptyMessage}>
-                Bạn chưa có văn bản yêu thích nào. 
-                <Link to="/documents" className={styles.browseLink}>Duyệt văn bản</Link>
-              </div>
-            )}
-          </div>
-          
-          {/* Phần đánh dấu */}
-          <div className={styles.collectionSection}>
-            <h3>
-              <FaBookmark className={styles.collectionIcon} /> 
-              Văn bản đã đánh dấu
-              <span className={styles.documentCount}>({bookmarkedDocuments.length})</span>
-            </h3>
-            
-            {collectionLoading ? (
-              <div className={styles.loadingMessage}>Đang tải danh sách văn bản đánh dấu...</div>
-            ) : bookmarkedDocuments.length > 0 ? (
-              <>
-                <div className={styles.documentsList}>
-                  {paginatedBookmarks.map(doc => (
-                    <div key={doc.id} className={styles.documentItem}>
-                      <div className={styles.documentInfo}>
-                        <Link to={`/documents/${doc.id}`} className={styles.documentTitle}>
-                          {doc.title}
-                        </Link>
-                        <div className={styles.documentMeta}>
-                          <span className={styles.documentType}>{doc.document_type}</span>
-                          {doc.issued_date && (
-                            <span className={styles.documentDate}>
-                              Ban hành: {formatDate(doc.issued_date)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className={styles.documentActions}>
-                        <button 
-                          className={styles.removeButton} 
-                          onClick={() => removeFromBookmarks(doc.id)}
-                          title="Xóa khỏi danh sách đánh dấu"
-                        >
-                          <FaBookmark /> Bỏ đánh dấu
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Thêm phân trang cho văn bản đánh dấu */}
-                {renderPagination(bookmarkedDocuments.length, currentBookmarkPage, handleBookmarkPageChange)}
-              </>
-            ) : (
-              <div className={styles.emptyMessage}>
-                Bạn chưa có văn bản đánh dấu nào. 
-                <Link to="/documents" className={styles.browseLink}>Duyệt văn bản</Link>
-              </div>
-            )}
           </div>
         </div>
       );
@@ -944,18 +676,6 @@ function Profile() {
                 <FaUser /> Thông tin cá nhân
               </button>
               <button
-                className={`${styles.menuItem} ${activeTab === 'collection' ? styles.active : ''}`}
-                onClick={() => setActiveTab('collection')}
-              >
-                <FaFileAlt /> Bộ sưu tập
-              </button>
-              <button
-                className={`${styles.menuItem} ${activeTab === 'activity' ? styles.active : ''}`}
-                onClick={() => setActiveTab('activity')}
-              >
-                <FaHistory /> Hoạt động
-              </button>
-              <button
                 className={`${styles.menuItem} ${activeTab === 'appointments' ? styles.active : ''}`}
                 onClick={() => setActiveTab('appointments')}
               >
@@ -966,6 +686,18 @@ function Profile() {
                 onClick={() => setActiveTab('password')}
               >
                 <FaKey /> Đổi mật khẩu
+              </button>
+              <button
+                className={`${styles.menuItem} ${activeTab === 'activity' ? styles.active : ''}`}
+                onClick={() => setActiveTab('activity')}
+              >
+                <FaFileAlt /> Hoạt động
+              </button>
+              <button
+                className={`${styles.menuItem} ${activeTab === 'contact' ? styles.active : ''}`}
+                onClick={() => setActiveTab('contact')}
+              >
+                <FaEnvelope /> Liên hệ hỗ trợ
               </button>
             </div>
           </div>
