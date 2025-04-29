@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import styles from '../DashboardPage.module.css';
+import { Card, List, Button, Typography, Empty, Spin, Badge, Tooltip } from 'antd';
+import { BellOutlined, CheckOutlined, InboxOutlined } from '@ant-design/icons';
+import 'animate.css';
+
+const { Title, Text } = Typography;
 
 const NotificationMenuPortal = ({ isOpen, position, onClose, notifications, loading, onMarkAsRead, formatDateTime }) => {
   const [portalContainer, setPortalContainer] = useState(null);
@@ -55,49 +59,67 @@ const NotificationMenuPortal = ({ isOpen, position, onClose, notifications, load
         onClick={onClose}
       />
       
-      <div
-        className={`${styles.notificationDropdown} animate__animated animate__fadeIn`}
+      <Card
+        title={
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <BellOutlined style={{ marginRight: 8 }} />
+            <span>Thông báo cập nhật</span>
+          </div>
+        }
         style={{
-          top: `${position.top}px`,
-          right: `${position.right}px`,
+          position: 'fixed',
+          top: position.top,
+          right: position.right,
+          width: 350,
+          maxHeight: 450,
+          overflow: 'auto',
+          boxShadow: '0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
+          zIndex: 1050
         }}
+        bodyStyle={{ padding: 0 }}
+        className="animate__animated animate__fadeIn"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className={styles.notificationTitle}>Thông báo cập nhật</h3>
-        
         {loading ? (
-          <div className={styles.notificationLoading}>
-            <div className={styles.spinner}></div>
-            <p>Đang tải thông báo...</p>
+          <div style={{ padding: '30px 0', textAlign: 'center' }}>
+            <Spin tip="Đang tải thông báo..." />
           </div>
         ) : notifications.length > 0 ? (
-          <div className={styles.notificationList}>
-            {notifications.map(item => (
-              <div key={item.id} className={styles.notificationItem}>
-                <div className={styles.notificationContent}>
-                  <p className={styles.notificationDetails}>{item.details}</p>
-                  <p className={styles.notificationTime}>{formatDateTime(item.created_at)}</p>
-                </div>
-                <button 
-                  className={styles.markReadButton}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMarkAsRead(item.id);
-                  }}
-                  title="Đánh dấu đã đọc"
-                >
-                  ✓
-                </button>
-              </div>
-            ))}
-          </div>
+          <List
+            dataSource={notifications}
+            renderItem={item => (
+              <List.Item
+                key={item.id}
+                actions={[
+                  <Tooltip title="Đánh dấu đã đọc">
+                    <Button 
+                      type="text" 
+                      shape="circle" 
+                      icon={<CheckOutlined />} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkAsRead(item.id);
+                      }}
+                    />
+                  </Tooltip>
+                ]}
+                style={{ padding: '10px 16px', borderBottom: '1px solid #f0f0f0' }}
+              >
+                <List.Item.Meta
+                  title={<span>{item.details}</span>}
+                  description={<Text type="secondary">{formatDateTime(item.created_at)}</Text>}
+                />
+              </List.Item>
+            )}
+          />
         ) : (
-          <div className={styles.emptyNotification}>
-            <span className={styles.emptyIcon}>📭</span>
-            <p>Không có thông báo mới</p>
-          </div>
+          <Empty
+            image={<InboxOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />}
+            description="Không có thông báo mới"
+            style={{ padding: '30px 0' }}
+          />
         )}
-      </div>
+      </Card>
     </>,
     portalContainer
   );

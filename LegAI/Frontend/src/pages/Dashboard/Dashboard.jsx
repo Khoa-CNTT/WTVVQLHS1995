@@ -1,5 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Layout, Menu, Button, Typography, Avatar, Badge, Space, Card, Divider, Row, Col, Statistic, Empty, Spin } from 'antd';
+import { 
+  MenuFoldOutlined, 
+  MenuUnfoldOutlined, 
+  HomeOutlined, 
+  TeamOutlined, 
+  FileTextOutlined, 
+  FolderOutlined, 
+  BankOutlined, 
+  FileProtectOutlined, 
+  RobotOutlined, 
+  MessageOutlined, 
+  DollarOutlined, 
+  LogoutOutlined,
+  BellOutlined,
+  UserOutlined
+} from '@ant-design/icons';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
 import authService from '../../services/authService';
@@ -13,10 +30,14 @@ import UpdateNotification from '../../components/Dashboard/UpdateNotification';
 import UserLegalDocsManager from './UserLegalDocs/UserLegalDocsManager';
 import NotificationMenuPortal from './components/NotificationMenuPortal';
 
+const { Header, Sider, Content } = Layout;
+const { Title, Text, Paragraph } = Typography;
+
 function Dashboard() {
   const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
   const [activeMenu, setActiveMenu] = useState('tổng-quan');
   const [statCounts, setStatCounts] = useState({
     documents: 0,
@@ -28,7 +49,6 @@ function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationItems, setNotificationItems] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuTimeoutRef = useRef(null);
@@ -125,7 +145,8 @@ function Dashboard() {
     authService.logout();
     navigate('/login');
   };
-  const toggleSidebar = () => setMenuVisible(!menuVisible);
+  
+  const toggleCollapsed = () => setCollapsed(!collapsed);
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const goToProfilePage = () => navigate('/profile');
 
@@ -173,15 +194,15 @@ function Dashboard() {
   };
 
   const menuItems = [
-    { id: 'tổng-quan', label: 'Tổng Quan', icon: '⚖️' },
-    { id: 'người-dùng', label: 'Tài Khoản', icon: '👨‍⚖️', table: 'Users, UserProfiles' },
-    { id: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: '📜', table: 'LegalDocuments, DocumentTemplates' },
-    { id: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: '📁', table: 'UserLegalDocs' },
-    { id: 'vụ-án', label: 'Mẫu văn bản', icon: '🏛️', table: 'LegalCases' },
-    { id: 'hợp-đồng', label: 'Hợp Đồng', icon: '📋', table: 'Contracts, DigitalSignatures' },
-    { id: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: '🤖', table: 'AIConsultations' },
-    { id: 'tin-nhắn', label: 'Tin Nhắn', icon: '💬', table: 'LiveChats' },
-    { id: 'giao-dịch', label: 'Giao Dịch', icon: '💰', table: 'Transactions, FeeReferences' }
+    { key: 'tổng-quan', label: 'Tổng Quan', icon: <HomeOutlined />, title: 'Tổng quan hệ thống' },
+    { key: 'người-dùng', label: 'Tài Khoản', icon: <TeamOutlined />, title: 'Quản lý tài khoản người dùng' },
+    { key: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: <FileTextOutlined />, title: 'Quản lý tài liệu pháp luật' },
+    { key: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: <FolderOutlined />, title: 'Quản lý hồ sơ pháp lý' },
+    { key: 'vụ-án', label: 'Mẫu văn bản', icon: <BankOutlined />, title: 'Mẫu văn bản pháp luật' },
+    { key: 'hợp-đồng', label: 'Hợp Đồng', icon: <FileProtectOutlined />, title: 'Quản lý hợp đồng' },
+    { key: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: <RobotOutlined />, title: 'Hệ thống tư vấn AI' },
+    { key: 'tin-nhắn', label: 'Tin Nhắn', icon: <MessageOutlined />, title: 'Hệ thống tin nhắn' },
+    { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' }
   ];
 
   const userMenuItems = [
@@ -191,83 +212,105 @@ function Dashboard() {
   ];
 
   const renderDashboardOverview = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+    <div className="animate__animated animate__fadeIn">
       <UpdateNotification />
-      <h2 className={styles.sectionTitle}>Tổng Quan Hoạt Động</h2>
-      <div className={styles.legalQuote}>
-        "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy là đang được thực thi"
-      </div>
-      <div className={styles.cardGrid}>
-        {[
-          { icon: '📄', title: 'Tài Liệu Pháp Lý', stat: statCounts.documents, desc: 'tài liệu mới được cập nhật', subDesc: 'Văn bản, luật, nghị định, mẫu hợp đồng', menu: 'tài-liệu-pháp-lý' },
-          { icon: '⚖️', title: 'Vụ Án Đang Xử Lý', stat: statCounts.cases, desc: 'vụ án đang chờ xử lý', subDesc: 'Các vụ án pháp lý đang được theo dõi và xử lý', menu: 'vụ-án' },
-          { icon: '📅', title: 'Lịch Hẹn Sắp Tới', stat: statCounts.appointments, desc: 'cuộc hẹn trong tuần này', subDesc: 'Các cuộc hẹn tư vấn với luật sư đã được đặt lịch', menu: 'lịch-hẹn' },
-          { icon: '📋', title: 'Hợp Đồng Mới', stat: statCounts.contracts, desc: 'hợp đồng cần xem xét', subDesc: 'Các hợp đồng mới cần xem xét và ký kết', menu: 'hợp-đồng' }
-        ].map(({ icon, title, stat, desc, subDesc, menu }, index) => (
-          <div key={index} className={styles.card}>
-            <div className={styles.cardTitle}>
-              <span className={styles.legalIcon}>{icon}</span>
-              {title}
-            </div>
-            <div className={styles.cardContent}>
-              <p><span className={styles.statNumber}>{stat}</span> {desc}</p>
-              <small>{subDesc}</small>
-            </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu(menu)}>
-              Xem Chi Tiết <span>→</span>
-            </button>
-          </div>
-        ))}
-      </div>
-      <div className={styles.legalDivider}></div>
-      <h2 className={styles.sectionTitle}>Hoạt Động Gần Đây</h2>
-      <div className={styles.recentActivities}>
-        {[
-          { icon: '📝', title: 'Tài liệu pháp lý "Luật doanh nghiệp 2023" được thêm vào', time: '2 giờ trước' },
-          { icon: '👨‍⚖️', title: 'Cuộc hẹn với Luật sư Nguyễn Văn A về vụ án kinh doanh', time: 'Hôm qua, 15:30' },
-          { icon: '💰', title: 'Giao dịch thanh toán tư vấn luật sư hoàn tất - 2.500.000đ', time: '3 ngày trước' },
-          { icon: '📋', title: 'Hợp đồng mua bán đã được ký kết với chữ ký điện tử', time: '5 ngày trước' }
-        ].map(({ icon, title, time }, index) => (
-          <div key={index} className={`${styles.activityItem} animate__animated animate__slideInUp`} style={{ animationDelay: `${index * 0.1}s` }}>
-            <span className={styles.activityIcon}>{icon}</span>
-            <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>{title}</div>
-              <div className={styles.activityTime}>{time}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <Title level={3}>Tổng Quan Hoạt Động</Title>
+      <Card style={{ marginBottom: 16, textAlign: 'center', fontStyle: 'italic' }}>
+        <Paragraph>"Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy là đang được thực thi"</Paragraph>
+      </Card>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable>
+            <Statistic 
+              title="Văn bản pháp lý" 
+              value={statCounts.documents} 
+              suffix="tài liệu"
+              valueStyle={{ color: '#3f8600' }} 
+            />
+            <Divider />
+            <Button 
+              type="primary" 
+              onClick={handleScrapeLegalDocuments}
+              block
+            >
+              Cập nhật dữ liệu
+            </Button>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable>
+            <Statistic 
+              title="Vụ án" 
+              value={statCounts.cases} 
+              suffix="vụ án" 
+              valueStyle={{ color: '#cf1322' }}
+            />
+            <Divider />
+            <Button type="default" block disabled>
+              Xem chi tiết
+            </Button>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable>
+            <Statistic 
+              title="Lịch hẹn" 
+              value={statCounts.appointments} 
+              suffix="cuộc hẹn"
+              valueStyle={{ color: '#1890ff' }}
+            />
+            <Divider />
+            <Button type="default" block disabled>
+              Quản lý lịch hẹn
+            </Button>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable>
+            <Statistic 
+              title="Hợp đồng" 
+              value={statCounts.contracts} 
+              suffix="bản"
+              valueStyle={{ color: '#722ed1' }}
+            />
+            <Divider />
+            <Button 
+              type="primary" 
+              onClick={handleScrapeContracts}
+              block
+            >
+              Cập nhật dữ liệu
+            </Button>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 
   const renderUserProfile = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý tài khoản người dùng</h2>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Quản lý tài khoản người dùng</Title>
       <UsersManagerPage />
     </div>
   );
 
   const renderLegalDocuments = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý tài liệu pháp luật
-        <button className={styles.updateButton} onClick={handleScrapeLegalDocuments}>Cập nhật dữ liệu mới từ thư viện pháp luật</button>
-      </h2>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Quản lý tài liệu pháp luật</Title>
       <LegalDocumentsManager />
     </div>
   );
 
   const renderDocumentTemplates = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý mẫu văn bản
-      <button className={styles.updateButton} onClick={handleScrapeContracts}>Cập nhật dữ liệu mới từ thư viện pháp luật</button>
-      </h2>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Quản lý mẫu văn bản</Title>
       <DocumentTemplatesManager />
     </div>
   );
 
   const renderUserLegalDocs = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h2 className={styles.sectionTitle}>Quản lý hồ sơ pháp lý của người dùng</h2>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Quản lý hồ sơ pháp lý của người dùng</Title>
       <UserLegalDocsManager />
     </div>
   );
@@ -280,21 +323,18 @@ function Dashboard() {
       'vụ-án': renderDocumentTemplates(),
       'hồ-sơ-người-dùng': renderUserLegalDocs(),
       'hợp-đồng': (
-        <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-          <h2 className={styles.sectionTitle}>Quản Lý Hợp Đồng
-          </h2>
-          <div className={styles.comingSoon}>Tính năng đang được phát triển</div>
+        <div className="animate__animated animate__fadeIn">
+          <Title level={3}>Quản Lý Hợp Đồng</Title>
+          <Card>
+            <Empty description="Tính năng đang được phát triển" />
+          </Card>
         </div>
       ),
-      'tư-vấn-ai': <h2 className={styles.sectionTitle}>Tư Vấn AI</h2>,
-      'tin-nhắn': <h2 className={styles.sectionTitle}>Tin Nhắn</h2>,
-      'giao-dịch': <h2 className={styles.sectionTitle}>Giao Dịch</h2>
+      'tư-vấn-ai': <Title level={3}>Tư Vấn AI</Title>,
+      'tin-nhắn': <Title level={3}>Tin Nhắn</Title>,
+      'giao-dịch': <Title level={3}>Giao Dịch</Title>
     };
-    return (
-      <div className={styles.contentSection}>
-        {sections[activeMenu] || 'Chọn một mục từ menu'}
-      </div>
-    );
+    return sections[activeMenu] || <Card>Chọn một mục từ menu</Card>;
   };
 
   const getCurrentDate = () => new Date().toLocaleDateString('vi-VN', {
@@ -371,91 +411,157 @@ function Dashboard() {
   };
 
   return (
-    <div className={`${styles.dashboardContainer} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
-      <div className={`${styles.sidebar} ${!menuVisible ? styles.sidebarCollapsed : ''}`}>
-        <div className={styles.logoContainer} onClick={goToHomePage} title="Về trang chủ">
-          <h2>LegAI</h2>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed}
+        width={280}
+        style={{
+          background: 'linear-gradient(180deg, #1e3a8a, #3b82f6)',
+          overflowY: 'auto',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          zIndex: 1000
+        }}
+      >
+        <div 
+          style={{ 
+            padding: '20px 0', 
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.2)',
+            cursor: 'pointer'
+          }}
+          onClick={goToHomePage}
+        >
+          <Title 
+            level={3} 
+            style={{ 
+              margin: 0, 
+              color: 'white',
+              background: 'linear-gradient(45deg, #fff, #ffd700)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
+            LegAI
+          </Title>
         </div>
-        <div className={styles.menuContainer}>
-          {menuItems.map(item => (
-            <div
-              key={item.id}
-              className={`${styles.menuItem} ${activeMenu === item.id ? styles.active : ''} animate__animated animate__fadeIn`}
-              onClick={() => setActiveMenu(item.id)}
-              title={item.table ? `Bảng dữ liệu: ${item.table}` : item.label}
-            >
-              <span className={styles.menuIcon}>{item.icon}</span>
-              {menuVisible && <span className={styles.menuLabel}>{item.label}</span>}
-            </div>
-          ))}
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[activeMenu]}
+          items={menuItems}
+          onClick={e => setActiveMenu(e.key)}
+          style={{ background: 'transparent', borderRight: 0 }}
+        />
+        <div 
+          style={{ 
+            position: 'absolute', 
+            bottom: 0, 
+            width: '100%', 
+            padding: '16px', 
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <Button 
+            type="default" 
+            icon={<LogoutOutlined />} 
+            onClick={handleLogout}
+            block
+            danger
+            style={{ background: 'transparent', borderColor: '#ffd700', color: 'white' }}
+          >
+            {!collapsed && 'Đăng xuất'}
+          </Button>
         </div>
-        <div className={styles.logoutContainer}>
-          <button className={styles.logoutButton} onClick={handleLogout}>
-            🚪 {menuVisible ? 'Đăng xuất' : ''}
-          </button>
-        </div>
-      </div>
-      <button className={styles.menuToggle} onClick={toggleSidebar}>
-        {menuVisible ? '◀' : '▶'}
-      </button>
-      <div className={styles.mainContent}>
-        <div className={`${styles.header} animate__animated animate__fadeInDown`}>
-          <div>
-            <h1>HỆ THỐNG QUẢN LÝ PHÁP LÝ</h1>
-            <div className={styles.currentDate}>{getCurrentDate()}</div>
+      </Sider>
+      <Layout style={{ marginLeft: collapsed ? 80 : 280, transition: 'margin-left 0.3s' }}>
+        <Button
+          type="primary"
+          onClick={toggleCollapsed}
+          style={{
+            position: 'fixed',
+            top: 20,
+            left: collapsed ? 80 : 280,
+            transform: 'translateX(-50%)',
+            zIndex: 1001,
+            width: 32,
+            height: 32,
+            padding: 0,
+            borderRadius: '50%'
+          }}
+          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        />
+        <Header 
+          style={{ 
+            background: 'white', 
+            padding: '0 24px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 999,
+            width: '100%'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Title level={4} style={{ margin: 0,padding: 0 }}>HỆ THỐNG QUẢN LÝ PHÁP LÝ</Title>
+            <Text type="secondary">{getCurrentDate()}</Text>
           </div>
-          <div className={styles.userInfo}>
-            <div className={styles.notifications}>
-              <span 
+          <Space size="middle">
+            <Badge count={notifications}>
+              <Avatar
                 ref={notificationIconRef}
-                className={styles.notificationIcon} 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleNotifications();
-                }}
-              >
-                🔔
-              </span>
-              {notifications > 0 && 
-                <span className={styles.notificationBadge}>{notifications}</span>
-              }
-              
-              <NotificationMenuPortal
-                isOpen={showNotifications}
-                position={notificationPosition}
-                onClose={() => setShowNotifications(false)}
-                notifications={notificationItems}
-                loading={notificationsLoading}
-                onMarkAsRead={handleMarkAsRead}
-                formatDateTime={formatDateTime}
+                icon={<BellOutlined />}
+                style={{ cursor: 'pointer', background: '#1890ff' }}
+                onClick={toggleNotifications}
               />
-            </div>
-            <span className={styles.userName}>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</span>
-            <div 
+            </Badge>
+            <Text>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</Text>
+            <Avatar 
               ref={userAvatarRef}
-              className={styles.userAvatar} 
-              // onClick={toggleUserMenu}
+              style={{ 
+                backgroundColor: '#f56a00', 
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
               onMouseEnter={handleUserMenuMouseEnter}
               onMouseLeave={handleUserMenuMouseLeave}
             >
               {getUserInitials()}
-            </div>
-            
-            <UserMenuPortal 
-              isOpen={userMenuOpen}
-              position={dropdownPosition}
-              onMouseEnter={handleUserMenuMouseEnter}
-              onMouseLeave={handleUserMenuMouseLeave}
-              onClose={() => setUserMenuOpen(false)}
-              items={userMenuItems}
-            />
-          </div>
-        </div>
-        <div className={styles.contentWrapper}>
+            </Avatar>
+          </Space>
+          
+          <NotificationMenuPortal
+            isOpen={showNotifications}
+            position={notificationPosition}
+            onClose={() => setShowNotifications(false)}
+            notifications={notificationItems}
+            loading={notificationsLoading}
+            onMarkAsRead={handleMarkAsRead}
+            formatDateTime={formatDateTime}
+          />
+          
+          <UserMenuPortal 
+            isOpen={userMenuOpen}
+            position={dropdownPosition}
+            onMouseEnter={handleUserMenuMouseEnter}
+            onMouseLeave={handleUserMenuMouseLeave}
+            onClose={() => setUserMenuOpen(false)}
+            items={userMenuItems}
+          />
+        </Header>
+        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
           {renderContent()}
-        </div>
-      </div>
-    </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }
 

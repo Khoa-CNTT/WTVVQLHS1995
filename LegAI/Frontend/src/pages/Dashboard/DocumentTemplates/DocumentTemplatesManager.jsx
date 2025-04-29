@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Table, Card, Button, Input, Select, Space, Pagination, Modal, Form, Spin, Typography, Alert, Upload, message } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined, UploadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import styles from './DocumentTemplatesManager.module.css';
 import axiosInstance from '../../../config/axios';
 import { API_URL } from '../../../config/constants';
-import Spinner from '../../../components/Common/Spinner';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TextArea } = Input;
+const { confirm } = Modal;
 
 const DocumentTemplatesManager = () => {
   const [templates, setTemplates] = useState([]);
@@ -11,6 +17,7 @@ const DocumentTemplatesManager = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTemplateType, setSelectedTemplateType] = useState('');
   const [templateTypes, setTemplateTypes] = useState([]);
@@ -21,6 +28,7 @@ const DocumentTemplatesManager = () => {
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [form] = Form.useForm();
   const pdfFileRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -55,6 +63,7 @@ const DocumentTemplatesManager = () => {
       if (response.data && response.data.status === 'success') {
         setTemplates(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
+        setTotalItems(response.data.pagination.totalItems || response.data.pagination.totalPages * 10);
       }
     } catch (err) {
       console.error('Lỗi khi lấy danh sách mẫu văn bản:', err);
@@ -77,6 +86,7 @@ const DocumentTemplatesManager = () => {
   };
 
   const openAddModal = () => {
+    form.resetFields();
     setFormData({
       title: '',
       template_type: '',
@@ -93,13 +103,28 @@ const DocumentTemplatesManager = () => {
       ...template,
       template_type: template.template_type
     });
+    form.setFieldsValue({
+      ...template,
+      template_type: template.template_type
+    });
     setModalMode('edit');
     setIsModalOpen(true);
   };
 
   const openDeleteModal = (template) => {
     setSelectedTemplate(template);
-    setIsDeleteModalOpen(true);
+    confirm({
+      title: 'Xác nhận xóa mẫu văn bản',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: `Bạn có chắc chắn muốn xóa mẫu văn bản "${template.title}" không? 
+                Hành động này không thể hoàn tác.`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk() {
+        handleDelete();
+      },
+    });
   };
 
   const openPdfModal = () => {
@@ -107,113 +132,114 @@ const DocumentTemplatesManager = () => {
     setIsPdfModalOpen(true);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (name, value) => {
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
   };
 
   const handleSearchInputChange = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset về trang 1 khi tìm kiếm mới
+    setCurrentPage(1);
   };
 
-  const handleTemplateTypeChange = (e) => {
-    setSelectedTemplateType(e.target.value);
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi loại mẫu
+  const handleTemplateTypeChange = (value) => {
+    setSelectedTemplateType(value);
+    setCurrentPage(1);
   };
 
-  const handleSubmitForm = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.title || !formData.template_type || !formData.content) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
-      return;
-    }
-    
+  const handleSubmitForm = async () => {
     try {
+      const values = await form.validateFields();
+      setLoading(true);
+      
       if (modalMode === 'add') {
-        const response = await axiosInstance.post(`${API_URL}/legal/templates`, formData);
+        const response = await axiosInstance.post(`${API_URL}/legal/templates`, values);
         if (response.data && response.data.status === 'success') {
-          toast.success('Thêm mẫu văn bản thành công');
+          toast.success('Thêm mẫu văn bản mới thành công');
+          setIsModalOpen(false);
           fetchTemplates();
-          closeModal();
         }
-      } else {
+      } else if (modalMode === 'edit' && selectedTemplate) {
         const response = await axiosInstance.put(
-          `${API_URL}/legal/templates/${selectedTemplate.id}`, 
-          formData
+          `${API_URL}/legal/templates/${selectedTemplate.id}`,
+          values
         );
         if (response.data && response.data.status === 'success') {
           toast.success('Cập nhật mẫu văn bản thành công');
+          setIsModalOpen(false);
           fetchTemplates();
-          closeModal();
         }
       }
     } catch (err) {
       console.error('Lỗi khi lưu mẫu văn bản:', err);
-      toast.error(err.response?.data?.message || 'Lỗi khi lưu mẫu văn bản');
+      toast.error('Không thể lưu mẫu văn bản: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async () => {
     try {
-      const response = await axiosInstance.delete(`${API_URL}/legal/templates/${selectedTemplate.id}`);
+      setLoading(true);
+      
+      const response = await axiosInstance.delete(
+        `${API_URL}/legal/templates/${selectedTemplate.id}`
+      );
+      
       if (response.data && response.data.status === 'success') {
         toast.success('Xóa mẫu văn bản thành công');
         fetchTemplates();
-        closeDeleteModal();
       }
     } catch (err) {
       console.error('Lỗi khi xóa mẫu văn bản:', err);
-      toast.error(err.response?.data?.message || 'Lỗi khi xóa mẫu văn bản');
+      toast.error('Không thể xóa mẫu văn bản: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+      setSelectedTemplate(null);
     }
   };
 
-  const handleUploadPdf = async (e) => {
-    e.preventDefault();
-    const fileInput = pdfFileRef.current;
-    
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-      toast.error('Vui lòng chọn file PDF để tải lên');
+  const handleUploadPdf = async (info) => {
+    if (info.file.status === 'uploading') {
+      setIsUploading(true);
       return;
     }
     
-    const file = fileInput.files[0];
-    if (file.type !== 'application/pdf') {
-      toast.error('Vui lòng chỉ chọn file PDF');
+    if (info.file.status !== 'done') {
       return;
     }
-    
-    const formDataForUpload = new FormData();
-    formDataForUpload.append('pdf_file', file);
     
     try {
-      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('pdf', info.file.originFileObj);
+      
       const response = await axiosInstance.post(
-        `${API_URL}/legal/upload-pdf`, 
-        formDataForUpload,
+        `${API_URL}/legal/templates/convert-pdf`,
+        formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
       
       if (response.data && response.data.status === 'success') {
-        setHtmlContent(response.data.data.html);
-        setFormData({
-          ...formData,
-          content: response.data.data.html
+        setHtmlContent(response.data.data.content);
+        form.setFieldsValue({
+          content: response.data.data.content
         });
+        setFormData(prev => ({
+          ...prev,
+          content: response.data.data.content
+        }));
         toast.success('Chuyển đổi PDF thành HTML thành công');
-        closePdfModal();
+        setIsPdfModalOpen(false);
       }
     } catch (err) {
-      console.error('Lỗi khi tải lên file PDF:', err);
-      toast.error('Lỗi khi tải lên hoặc chuyển đổi file PDF');
+      console.error('Lỗi khi chuyển đổi PDF:', err);
+      toast.error('Không thể chuyển đổi PDF: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploading(false);
     }
@@ -222,18 +248,11 @@ const DocumentTemplatesManager = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTemplate(null);
-  };
-
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedTemplate(null);
+    form.resetFields();
   };
 
   const closePdfModal = () => {
     setIsPdfModalOpen(false);
-    if (pdfFileRef.current) {
-      pdfFileRef.current.value = '';
-    }
   };
 
   const handlePageChange = (page) => {
@@ -241,318 +260,255 @@ const DocumentTemplatesManager = () => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    
+    const options = { 
+      year: 'numeric', 
+      month: 'numeric', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    
+    return new Date(dateString).toLocaleDateString('vi-VN', options);
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`${styles.pageButton} ${currentPage === i ? styles.activePage : ''}`}
-          onClick={() => handlePageChange(i)}
-          disabled={currentPage === i}
-        >
-          {i}
-        </button>
-      );
-    }
-    
-    return (
-      <div className={styles.pagination}>
-        <button
-          className={styles.pageButton}
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          &laquo;
-        </button>
-        {pages}
-        <button
-          className={styles.pageButton}
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          &raquo;
-        </button>
-      </div>
-    );
-  };
+  const columns = [
+    {
+      title: 'STT',
+      key: 'index',
+      width: '8%',
+      render: (_, __, index) => (currentPage - 1) * 10 + index + 1,
+    },
+    {
+      title: 'Tiêu đề',
+      dataIndex: 'title',
+      key: 'title',
+      width: '40%',
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'Loại mẫu',
+      dataIndex: 'template_type',
+      key: 'template_type',
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (text) => formatDate(text),
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: '15%',
+      render: (_, record) => (
+        <Space>
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => openEditModal(record)}
+            size="small"
+          />
+          <Button 
+            type="primary" 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => openDeleteModal(record)}
+            size="small"
+          />
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className={styles.container}>
+    <Card className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.searchBar}>
-          <input
-            type="text"
-            placeholder="Tìm kiếm mẫu văn bản..."
-            value={searchTerm}
-            onChange={handleSearchInputChange}
-            className={styles.searchInput}
-          />
-          <select
-            value={selectedTemplateType}
-            onChange={handleTemplateTypeChange}
-            className={styles.selectFilter}
-          >
-            <option value="">Tất cả loại mẫu</option>
-            {templateTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button className={styles.addButton} onClick={openAddModal}>
-          <i className="fas fa-plus"></i> Thêm mẫu mới
-        </button>
+        <Button 
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={openAddModal}
+        >
+          Thêm mẫu văn bản
+        </Button>
       </div>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner />
-          <p>Đang tải dữ liệu...</p>
-        </div>
-      ) : error ? (
-        <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>{error}</p>
-          <button className={styles.retryButton} onClick={fetchTemplates}>
-            Thử lại
-          </button>
-        </div>
-      ) : templates.length === 0 ? (
-        <div className={styles.emptyContainer}>
-          <p>Không có mẫu văn bản nào</p>
-          <button className={styles.addButton} onClick={openAddModal}>
-            <i className="fas fa-plus"></i> Thêm mẫu mới
-          </button>
-        </div>
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
+        <Input
+          placeholder="Tìm kiếm mẫu văn bản..."
+          value={searchTerm}
+          onChange={handleSearchInputChange}
+          prefix={<SearchOutlined />}
+          style={{ flex: 1 }}
+        />
+        <Select
+          placeholder="Loại mẫu văn bản"
+          value={selectedTemplateType}
+          onChange={handleTemplateTypeChange}
+          style={{ width: 200 }}
+          allowClear
+        >
+          {templateTypes.map((type) => (
+            <Option key={type} value={type}>
+              {type}
+            </Option>
+          ))}
+        </Select>
+      </div>
+
+      {error ? (
+        <Alert
+          message="Lỗi"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button onClick={fetchTemplates} type="primary" size="small">
+              Thử lại
+            </Button>
+          }
+        />
       ) : (
-        <>
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>STT</th>
-                  <th>Tiêu đề</th>
-                  <th>Loại mẫu</th>
-                  <th>Ngày tạo</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.map((template, index) => (
-                  <tr key={template.id}>
-                    <td>{(currentPage - 1) * 10 + index + 1}</td>
-                    <td>
-                      <div className={styles.templateTitle}>
-                        {template.title}
-                      </div>
-                    </td>
-                    <td>{template.template_type}</td>
-                    <td>{formatDate(template.created_at)}</td>
-                    <td>
-                      <div className={styles.actions}>
-                        <button
-                          className={styles.editButton}
-                          onClick={() => openEditModal(template)}
-                          title="Chỉnh sửa"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => openDeleteModal(template)}
-                          title="Xóa"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && renderPagination()}
-        </>
+        <Table
+          columns={columns}
+          dataSource={templates}
+          rowKey="id"
+          pagination={false}
+          loading={loading}
+        />
       )}
 
-      {/* Modal thêm/sửa mẫu */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{modalMode === 'add' ? 'Thêm mẫu văn bản mới' : 'Chỉnh sửa mẫu văn bản'}</h2>
-              <button className={styles.closeButton} onClick={closeModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <form onSubmit={handleSubmitForm}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="title">Tiêu đề <span className={styles.required}>*</span></label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="template_type">Loại mẫu <span className={styles.required}>*</span></label>
-                    <input
-                      type="text"
-                      id="template_type"
-                      name="template_type"
-                      value={formData.template_type}
-                      onChange={handleInputChange}
-                      placeholder="Ví dụ: Hợp đồng, Đơn, Biên bản..."
-                      required
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="language">Ngôn ngữ</label>
-                    <select
-                      id="language"
-                      name="language"
-                      value={formData.language}
-                      onChange={handleInputChange}
-                    >
-                      <option value="Tiếng Việt">Tiếng Việt</option>
-                      <option value="English">Tiếng Anh</option>
-                    </select>
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="content">Nội dung <span className={styles.required}>*</span></label>
-                  <div className={styles.editorControls}>
-                    <button
-                      type="button"
-                      className={styles.pdfButton}
-                      onClick={openPdfModal}
-                      title="Tải lên file PDF"
-                    >
-                      <i className="fas fa-file-pdf"></i> Tải lên PDF
-                    </button>
-                  </div>
-                  <textarea
-                    id="content"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    rows={15}
-                    required
-                  ></textarea>
-                </div>
-                <div className={styles.modalActions}>
-                  <button type="submit" className={styles.saveButton}>
-                    {modalMode === 'add' ? 'Thêm mẫu văn bản' : 'Cập nhật'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cancelButton}
-                    onClick={closeModal}
-                  >
-                    Hủy bỏ
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+      {totalPages > 1 && (
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <Pagination
+            current={currentPage}
+            total={totalItems}
+            pageSize={10}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+          />
         </div>
       )}
 
-      {/* Modal xác nhận xóa */}
-      {isDeleteModalOpen && selectedTemplate && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.deleteModal}>
-            <div className={styles.modalHeader}>
-              <h2>Xác nhận xóa</h2>
-              <button className={styles.closeButton} onClick={closeDeleteModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Bạn có chắc chắn muốn xóa mẫu văn bản <strong>"{selectedTemplate.title}"</strong> không?</p>
-              <p className={styles.warningText}>
-                <i className="fas fa-exclamation-triangle"></i> Hành động này không thể hoàn tác!
-              </p>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.deleteButton} onClick={handleDelete}>
-                Xóa mẫu văn bản
-              </button>
-              <button className={styles.cancelButton} onClick={closeDeleteModal}>
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={modalMode === 'add' ? 'Thêm mẫu văn bản mới' : 'Chỉnh sửa mẫu văn bản'}
+        open={isModalOpen}
+        onCancel={closeModal}
+        footer={[
+          <Button key="back" onClick={closeModal}>
+            Hủy bỏ
+          </Button>,
+          <Button
+            key="pdf"
+            type="default"
+            icon={<UploadOutlined />}
+            onClick={openPdfModal}
+          >
+            Tải PDF
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={handleSubmitForm}
+          >
+            {modalMode === 'add' ? 'Thêm mới' : 'Cập nhật'}
+          </Button>,
+        ]}
+        width={800}
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={formData}
+        >
+          <Form.Item
+            name="title"
+            label="Tiêu đề"
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề mẫu văn bản' }]}
+          >
+            <Input placeholder="Nhập tiêu đề mẫu văn bản" />
+          </Form.Item>
+          
+          <Form.Item
+            name="template_type"
+            label="Loại mẫu văn bản"
+            rules={[{ required: true, message: 'Vui lòng chọn loại mẫu văn bản' }]}
+          >
+            <Select placeholder="Chọn loại mẫu văn bản">
+              {templateTypes.map((type) => (
+                <Option key={type} value={type}>
+                  {type}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="language"
+            label="Ngôn ngữ"
+            rules={[{ required: true, message: 'Vui lòng chọn ngôn ngữ' }]}
+          >
+            <Select>
+              <Option value="Tiếng Việt">Tiếng Việt</Option>
+              <Option value="English">English</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="content"
+            label="Nội dung HTML"
+            rules={[{ required: true, message: 'Vui lòng nhập nội dung mẫu văn bản' }]}
+          >
+            <TextArea
+              rows={15}
+              placeholder="Nhập mã HTML cho mẫu văn bản"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
-      {/* Modal tải lên PDF */}
-      {isPdfModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.pdfModal}>
-            <div className={styles.modalHeader}>
-              <h2>Tải lên và chuyển đổi file PDF</h2>
-              <button className={styles.closeButton} onClick={closePdfModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Chọn file PDF để tự động chuyển đổi thành nội dung HTML.</p>
-              <div className={styles.pdfUploadForm}>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  ref={pdfFileRef}
-                  className={styles.fileInput}
-                />
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.uploadButton}
-                onClick={handleUploadPdf}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Spinner size="small" /> Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-upload"></i> Tải lên và chuyển đổi
-                  </>
-                )}
-              </button>
-              <button className={styles.cancelButton} onClick={closePdfModal}>
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
+      <Modal
+        title="Tải lên và chuyển đổi file PDF"
+        open={isPdfModalOpen}
+        onCancel={closePdfModal}
+        footer={null}
+      >
+        <p>Chọn file PDF để tự động chuyển đổi thành nội dung HTML.</p>
+        <Upload.Dragger
+          name="pdf"
+          accept=".pdf"
+          action={`${API_URL}/legal/templates/convert-pdf`}
+          onChange={handleUploadPdf}
+          showUploadList={false}
+          customRequest={({ file, onSuccess }) => {
+            setTimeout(() => {
+              onSuccess("ok");
+            }, 0);
+          }}
+        >
+          <p className="ant-upload-drag-icon">
+            <FileTextOutlined />
+          </p>
+          <p className="ant-upload-text">Nhấp hoặc kéo thả file PDF vào khu vực này</p>
+          <p className="ant-upload-hint">Chỉ hỗ trợ tệp PDF</p>
+        </Upload.Dragger>
+        <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+          <Button onClick={closePdfModal} style={{ marginRight: 8 }}>
+            Hủy bỏ
+          </Button>
+          <Button
+            type="primary"
+            loading={isUploading}
+            icon={<UploadOutlined />}
+          >
+            Tải lên và chuyển đổi
+          </Button>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Card>
   );
 };
 

@@ -45,6 +45,9 @@ router.post('/', protect, upload.array('files', 5), legalCaseController.createLe
 // Lấy danh sách vụ án của người dùng hiện tại
 router.get('/', protect, legalCaseController.getLegalCases);
 
+// Lấy danh sách vụ án của luật sư hiện tại
+router.get('/lawyer-cases', protect, authorize('lawyer', 'admin'), legalCaseController.getLawyerCases);
+
 // Lấy chi tiết vụ án theo ID
 router.get('/:id', protect, legalCaseController.getLegalCaseById);
 
@@ -74,5 +77,8 @@ router.get('/:id/documents/:documentId', protect, legalCaseController.downloadDo
 
 // Lấy loại vụ án
 router.get('/case-types', legalCaseController.getCaseTypes);
+
+// Cập nhật trạng thái vụ án
+router.put('/:id/status', protect, authorize('lawyer', 'admin'), legalCaseController.updateCaseStatus);
 
 module.exports = router; 

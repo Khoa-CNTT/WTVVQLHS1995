@@ -1,6 +1,11 @@
 import React from 'react';
-import styles from '../ContractManager.module.css';
-import { FaCalendarAlt, FaFileUpload, FaSignature, FaBuilding, FaFileContract } from 'react-icons/fa';
+import { Form, Input, Button, Select, DatePicker, Upload, Space, Typography, Row, Col, Divider } from 'antd';
+import { UploadOutlined, FileTextOutlined, TeamOutlined, 
+  SignatureOutlined, CalendarOutlined, FileOutlined, LoadingOutlined } from '@ant-design/icons';
+import moment from 'moment';
+
+const { Option } = Select;
+const { Text } = Typography;
 
 const ContractForm = ({ 
   formData, 
@@ -12,157 +17,178 @@ const ContractForm = ({
   isEdit,
   contractTypes 
 }) => {
+  // Hàm chuyển đổi cho DatePicker
+  const handleDateChange = (date, dateString, fieldName) => {
+    const event = {
+      target: {
+        name: fieldName,
+        value: dateString
+      }
+    };
+    handleInputChange(event);
+  };
+
+  // Chuẩn bị giá trị ngày tháng cho DatePicker
+  const getDateValue = (dateString) => {
+    return dateString ? moment(dateString) : null;
+  };
+
   return (
-    <form onSubmit={handleSubmit} className={styles.customForm}>
-      <div className={styles.formGrid}>
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Tiêu đề hợp đồng</span>
-            <input
-              type="text"
+    <Form layout="vertical" onSubmit={(e) => e.preventDefault()}>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item 
+            label="Tiêu đề hợp đồng" 
+            required
+            tooltip="Tiêu đề hợp đồng là bắt buộc"
+          >
+            <Input
+              prefix={<FileTextOutlined />}
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              required
-              className={styles.formInput}
               placeholder="Nhập tiêu đề hợp đồng"
+              required
             />
-          </label>
-        </div>
+          </Form.Item>
+        </Col>
         
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Loại hợp đồng</span>
-            <div className={styles.customSelect}>
-              <select
-                name="contract_type"
-                value={formData.contract_type}
-                onChange={handleInputChange}
-                required
-                className={styles.formSelect}
-              >
-                <option value="">Chọn loại hợp đồng</option>
-                {contractTypes.map((type, index) => (
-                  <option key={index} value={type}>{type}</option>
-                ))}
-              </select>
-              <FaFileContract className={styles.selectIcon} />
-            </div>
-          </label>
-        </div>
+        <Col span={12}>
+          <Form.Item 
+            label="Loại hợp đồng"
+            required
+            tooltip="Loại hợp đồng là bắt buộc"
+          >
+            <Select
+              name="contract_type"
+              value={formData.contract_type}
+              onChange={(value) => {
+                handleInputChange({
+                  target: { name: 'contract_type', value }
+                });
+              }}
+              placeholder="Chọn loại hợp đồng"
+              suffixIcon={<FileOutlined />}
+            >
+              <Option value="">Chọn loại hợp đồng</Option>
+              {contractTypes.map((type, index) => (
+                <Option key={index} value={type}>{type}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
         
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Đối tác</span>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="text"
-                name="partner"
-                value={formData.partner}
-                onChange={handleInputChange}
-                placeholder="Tên đối tác"
-                required
-                className={styles.formInput}
-              />
-              <FaBuilding className={styles.inputIcon} />
-            </div>
-          </label>
-        </div>
+        <Col span={12}>
+          <Form.Item 
+            label="Đối tác"
+            required
+            tooltip="Đối tác là bắt buộc"
+          >
+            <Input
+              prefix={<TeamOutlined />}
+              name="partner"
+              value={formData.partner}
+              onChange={handleInputChange}
+              placeholder="Tên đối tác"
+              required
+            />
+          </Form.Item>
+        </Col>
         
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Chữ ký</span>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="text"
-                name="signature"
-                value={formData.signature}
-                onChange={handleInputChange}
-                placeholder="Tên người ký"
-                className={styles.formInput}
-              />
-              <FaSignature className={styles.inputIcon} />
-            </div>
-          </label>
-        </div>
+        <Col span={12}>
+          <Form.Item 
+            label="Chữ ký"
+          >
+            <Input
+              prefix={<SignatureOutlined />}
+              name="signature"
+              value={formData.signature}
+              onChange={handleInputChange}
+              placeholder="Tên người ký"
+            />
+          </Form.Item>
+        </Col>
         
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Ngày bắt đầu</span>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleInputChange}
-                required
-                className={styles.formInput}
-              />
-              <FaCalendarAlt className={styles.inputIcon} />
-            </div>
-          </label>
-        </div>
+        <Col span={12}>
+          <Form.Item 
+            label="Ngày bắt đầu"
+            required
+            tooltip="Ngày bắt đầu là bắt buộc"
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="YYYY-MM-DD"
+              placeholder="Chọn ngày bắt đầu"
+              value={getDateValue(formData.start_date)}
+              onChange={(date, dateString) => handleDateChange(date, dateString, 'start_date')}
+              suffixIcon={<CalendarOutlined />}
+            />
+          </Form.Item>
+        </Col>
         
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>
-            <span>Ngày kết thúc</span>
-            <div className={styles.inputWithIcon}>
-              <input
-                type="date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleInputChange}
-                className={styles.formInput}
-              />
-              <FaCalendarAlt className={styles.inputIcon} />
-            </div>
-          </label>
-        </div>
-      </div>
+        <Col span={12}>
+          <Form.Item 
+            label="Ngày kết thúc"
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="YYYY-MM-DD"
+              placeholder="Chọn ngày kết thúc"
+              value={getDateValue(formData.end_date)}
+              onChange={(date, dateString) => handleDateChange(date, dateString, 'end_date')}
+              suffixIcon={<CalendarOutlined />}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
       
-      <div className={styles.formField} style={{marginTop: '20px'}}>
-        <label className={styles.formLabel}>
-          <span>
-            {isEdit ? 'Tải lên file hợp đồng mới (tùy chọn)' : 'Tải lên file hợp đồng'}
-          </span>
-          <div className={styles.fileUploadContainer}>
-            <input
-              type="file"
-              id="contract-file"
-              onChange={handleFileChange}
-              required={!isEdit}
-              accept=".pdf,.doc,.docx"
-              className={styles.fileInput}
-            />
-            <label htmlFor="contract-file" className={styles.fileInputLabel}>
-              <FaFileUpload />
-              <span>Chọn file</span>
-            </label>
-            <span className={styles.fileName}>
-              {formData.file ? formData.file.name : 'Chưa chọn file nào'}
-            </span>
-          </div>
-        </label>
-        <p className={styles.formHelper}>
+      <Divider />
+      
+      <Form.Item
+        label={isEdit ? 'Tải lên file hợp đồng mới (tùy chọn)' : 'Tải lên file hợp đồng'}
+        required={!isEdit}
+        tooltip={isEdit ? "Nếu không tải lên file mới, file hợp đồng hiện tại sẽ được giữ nguyên." : "Chỉ chấp nhận file PDF, DOC hoặc DOCX. Kích thước tối đa 10MB."}
+      >
+        <Upload
+          beforeUpload={() => false}
+          accept=".pdf,.doc,.docx"
+          fileList={formData.file ? [formData.file] : []}
+          onChange={({ file }) => {
+            const customEvent = {
+              target: {
+                files: [file]
+              }
+            };
+            handleFileChange(customEvent);
+          }}
+          maxCount={1}
+        >
+          <Button icon={<UploadOutlined />}>Chọn file</Button>
+        </Upload>
+        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
           {isEdit 
             ? 'Nếu không tải lên file mới, file hợp đồng hiện tại sẽ được giữ nguyên.'
             : 'Chỉ chấp nhận file PDF, DOC hoặc DOCX. Kích thước tối đa 10MB.'}
-        </p>
-      </div>
+        </Text>
+      </Form.Item>
       
-      <div className={styles.formActions}>
-        <button type="button" onClick={handleCancel} className={styles.cancelButton}>
-          Hủy
-        </button>
-        <button type="submit" disabled={loading} className={styles.submitButton}>
-          {loading ? (
-            <span className={styles.loadingSpinner}></span>
-          ) : (
-            isEdit ? 'Cập nhật hợp đồng' : 'Tạo hợp đồng'
-          )}
-        </button>
-      </div>
-    </form>
+      <Divider />
+      
+      <Form.Item>
+        <Space>
+          <Button onClick={handleCancel}>
+            Hủy
+          </Button>
+          <Button 
+            type="primary" 
+            onClick={handleSubmit}
+            loading={loading}
+          >
+            {isEdit ? 'Cập nhật hợp đồng' : 'Tạo hợp đồng'}
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
   );
 };
 

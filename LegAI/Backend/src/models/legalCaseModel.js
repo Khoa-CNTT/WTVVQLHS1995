@@ -141,6 +141,69 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
 };
 
 /**
+ * Lấy danh sách vụ án của luật sư
+ * @param {number} lawyerId - ID luật sư
+ * @param {Object} options - Tùy chọn: page, limit, status
+ * @returns {Promise<Array>} Danh sách vụ án
+ */
+const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
+  try {
+    const { page = 1, limit = 10, status } = options;
+    const offset = (page - 1) * limit;
+    
+    let query = `
+      SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.created_at, c.updated_at,
+        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
+          ELSE json_agg(json_build_object(
+            'id', d.id,
+            'original_name', d.original_name,
+            'mime_type', d.mime_type
+          )) 
+        END AS documents,
+        u.username AS user_name,
+        u.full_name AS customer_name,
+        u.email AS customer_email,
+        u.phone AS customer_phone,
+        CASE WHEN l.id IS NULL THEN NULL
+          ELSE json_build_object(
+            'id', l.id,
+            'username', l.username,
+            'full_name', l.full_name
+          )
+        END AS lawyer
+      FROM LegalCases c
+      LEFT JOIN CaseDocuments d ON c.id = d.case_id
+      LEFT JOIN Users u ON c.user_id = u.id
+      LEFT JOIN Users l ON c.lawyer_id = l.id
+      WHERE c.lawyer_id = $1 AND c.deleted_at IS NULL
+    `;
+    
+    const values = [lawyerId];
+    let paramIndex = 2;
+    
+    if (status) {
+      query += ` AND c.status = $${paramIndex++}`;
+      values.push(status);
+    }
+    
+    query += `
+      GROUP BY c.id, u.username, u.full_name, u.email, u.phone, l.id, l.username, l.full_name
+      ORDER BY c.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `;
+    
+    values.push(limit, offset);
+    
+    const result = await pool.query(query, values);
+    return result.rows;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách vụ án của luật sư:', error);
+    throw error;
+  }
+};
+
+/**
  * Lấy chi tiết vụ án theo ID
  * @param {number} caseId - ID vụ án
  * @returns {Promise<Object>} Chi tiết vụ án
@@ -149,7 +212,7 @@ const getLegalCaseById = async (caseId) => {
   try {
     const query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.ai_content,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.ai_content, c.notes,
         c.created_at, c.updated_at,
         CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
           ELSE json_agg(json_build_object(
@@ -163,15 +226,23 @@ const getLegalCaseById = async (caseId) => {
           ELSE json_build_object(
             'id', l.id,
             'username', l.username,
-            'full_name', l.full_name
+            'full_name', l.full_name,
+            'email', l.email,
+            'specialization', ld.specialization,
+            'experience_years', ld.experience_years,
+            'rating', ld.rating,
+            'avatar_url', up.avatar_url
           )
         END AS lawyer
       FROM LegalCases c
       LEFT JOIN CaseDocuments d ON c.id = d.case_id
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
+      LEFT JOIN LawyerDetails ld ON l.id = ld.lawyer_id
+      LEFT JOIN UserProfiles up ON l.id = up.user_id
       WHERE c.id = $1 AND c.deleted_at IS NULL
-      GROUP BY c.id, u.username, l.id, l.username, l.full_name
+      GROUP BY c.id, u.username, l.id, l.username, l.full_name, l.email, 
+               ld.specialization, ld.experience_years, ld.rating, up.avatar_url
     `;
     
     const result = await pool.query(query, [caseId]);
@@ -222,13 +293,30 @@ const assignLawyer = async (caseId, lawyerId) => {
  */
 const createAppointment = async (appointmentData) => {
   try {
+    // Kiểm tra các trường bắt buộc
+    if (!appointmentData.customer_id || !appointmentData.lawyer_id) {
+      throw new Error('Thiếu thông tin khách hàng hoặc luật sư');
+    }
+    
+    // Kiểm tra và thiết lập thời gian mặc định nếu cần
+    if (!appointmentData.start_time || !appointmentData.end_time) {
+      const now = new Date();
+      const startTime = appointmentData.start_time ? new Date(appointmentData.start_time) : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const endTime = appointmentData.end_time ? new Date(appointmentData.end_time) : new Date(startTime.getTime() + 60 * 60 * 1000);
+      
+      appointmentData.start_time = startTime.toISOString();
+      appointmentData.end_time = endTime.toISOString();
+    }
+    
+    // Chuẩn bị câu lệnh SQL với đầy đủ các trường
     const query = `
       INSERT INTO Appointments (
-        customer_id, lawyer_id, case_id, status, notes, appointment_type
+        customer_id, lawyer_id, case_id, status, notes, appointment_type,
+        start_time, end_time, purpose
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, customer_id, lawyer_id, case_id, status, notes, 
-        appointment_type, created_at
+        appointment_type, start_time, end_time, created_at
     `;
     
     const values = [
@@ -237,7 +325,10 @@ const createAppointment = async (appointmentData) => {
       appointmentData.case_id,
       appointmentData.status || 'pending',
       appointmentData.notes || '',
-      appointmentData.appointment_type || 'case_consultation'
+      appointmentData.appointment_type || 'case_consultation',
+      appointmentData.start_time,
+      appointmentData.end_time,
+      appointmentData.purpose || 'Tư vấn pháp lý'
     ];
     
     const result = await pool.query(query, values);
@@ -734,5 +825,6 @@ module.exports = {
   getDocumentTemplateById,
   updateLegalCase,
   deleteLegalCase,
-  getCaseTypes
+  getCaseTypes,
+  getLegalCasesByLawyerId
 }; 

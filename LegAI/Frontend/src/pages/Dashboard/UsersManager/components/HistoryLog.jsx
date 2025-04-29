@@ -1,53 +1,69 @@
 import React from 'react';
-import styles from '../UsersManagerPage.module.css';
+import { Timeline, Card, Typography, Empty, Tag, Space } from 'antd';
+import { HistoryOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, KeyOutlined, InfoCircleOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 const HistoryLog = ({ history }) => {
   const getActionIcon = (action) => {
-    if (action.includes('Chỉnh sửa')) return 'fa-edit';
-    if (action.includes('Xóa')) return 'fa-trash-alt';
-    if (action.includes('khóa')) return action.includes('Đã khóa') ? 'fa-lock' : 'fa-unlock';
-    if (action.includes('mật khẩu')) return 'fa-key';
-    return 'fa-history';
+    if (action.includes('Chỉnh sửa')) return <EditOutlined style={{ fontSize: '16px' }} />;
+    if (action.includes('Xóa')) return <DeleteOutlined style={{ fontSize: '16px', color: '#ff4d4f' }} />;
+    if (action.includes('Đã khóa')) return <LockOutlined style={{ fontSize: '16px', color: '#ff4d4f' }} />;
+    if (action.includes('mở khóa')) return <UnlockOutlined style={{ fontSize: '16px', color: '#52c41a' }} />;
+    if (action.includes('mật khẩu')) return <KeyOutlined style={{ fontSize: '16px', color: '#faad14' }} />;
+    return <HistoryOutlined style={{ fontSize: '16px' }} />;
   };
 
-  const getActionClass = (action) => {
-    if (action.includes('Xóa')) return styles.historyDelete;
-    if (action.includes('Đã khóa')) return styles.historyLock;
-    if (action.includes('mở khóa')) return styles.historyUnlock;
-    if (action.includes('Chỉnh sửa')) return styles.historyEdit;
-    if (action.includes('mật khẩu')) return styles.historyReset;
-    return '';
+  const getActionColor = (action) => {
+    if (action.includes('Xóa')) return 'error';
+    if (action.includes('Đã khóa')) return 'error';
+    if (action.includes('mở khóa')) return 'success';
+    if (action.includes('Chỉnh sửa')) return 'processing';
+    if (action.includes('mật khẩu')) return 'warning';
+    return 'default';
   };
 
   return (
-    <div className={styles.history}>
-      <div className={styles.historyHeader}>
-        <h2 className={styles.sectionTitle}>
-          <i className="fas fa-history"></i> Lịch Sử Thay Đổi
-        </h2>
-      </div>
-      
+    <Card
+      title={
+        <Space>
+          <HistoryOutlined />
+          <span>Lịch Sử Thay Đổi</span>
+        </Space>
+      }
+      style={{ marginTop: 16 }}
+    >
       {history && history.length > 0 ? (
-        <ul className={styles.historyList}>
-          {history.map((entry, index) => (
-            <li key={index} className={`${styles.historyItem} ${getActionClass(entry.action)}`}>
-              <div className={styles.historyIcon}>
-                <i className={`fas ${getActionIcon(entry.action)}`}></i>
+        <Timeline
+          items={history.map((entry, index) => ({
+            key: index,
+            dot: getActionIcon(entry.action),
+            color: getActionColor(entry.action),
+            children: (
+              <div>
+                <Space direction="vertical" size={0} style={{ display: 'flex' }}>
+                  <Text strong>{entry.action}</Text>
+                  <Space>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>{entry.timestamp}</Text>
+                    <Tag size="small">ID: {entry.userId}</Tag>
+                  </Space>
+                </Space>
               </div>
-              <div className={styles.historyDetails}>
-                <span className={styles.historyTimestamp}>{entry.timestamp}</span>
-                <span className={styles.historyAction}>{entry.action}</span>
-                <span className={styles.historyUserID}>ID: {entry.userId}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
+            ),
+          }))}
+        />
       ) : (
-        <div className={styles.noHistory}>
-          <i className="fas fa-info-circle"></i> Chưa có thay đổi nào.
-        </div>
+        <Empty 
+          image={Empty.PRESENTED_IMAGE_SIMPLE} 
+          description={
+            <Text type="secondary">
+              <InfoCircleOutlined style={{ marginRight: 8 }} />
+              Chưa có thay đổi nào.
+            </Text>
+          } 
+        />
       )}
-    </div>
+    </Card>
   );
 };
 

@@ -84,7 +84,11 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
               </Link>
               <Link to="/contracts" className={styles.sideMenuItem} onClick={onClose}>
                 <i className="fas fa-file-alt"></i> Hợp đồng cá nhân
-              </Link></>
+              </Link>
+              <Link to="/legal-cases" className={styles.sideMenuItem} onClick={onClose}>
+                <i className="fas fa-file-alt"></i> Xử lý vụ án
+              </Link>
+            </>
           )}
 
           <Link to="/services" className={styles.sideMenuItem} onClick={onClose}>

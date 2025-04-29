@@ -558,7 +558,6 @@ const fetchDocuments = async () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h3 className={styles.tableTitle}>Danh sách hồ sơ pháp lý</h3>
         {selectedUser && (
           <span className={styles.noticeText}>
             <i className="fas fa-info-circle"></i> Chức năng xem hồ sơ của người dùng khác tạm thời không khả dụng. Chỉ hiển thị hồ sơ của bạn.

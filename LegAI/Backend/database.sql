@@ -67,6 +67,7 @@ CREATE TABLE LegalCases (
     is_ai_generated BOOLEAN DEFAULT FALSE,
     fee_amount DECIMAL(12, 2),
     fee_details JSONB,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,

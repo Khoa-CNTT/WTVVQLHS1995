@@ -272,17 +272,34 @@ exports.assignLawyer = asyncHandler(async (req, res) => {
     // Cập nhật vụ án với luật sư mới
     const updatedCase = await legalCaseModel.assignLawyer(caseId, lawyer_id);
     
-    // Tạo lịch hẹn tư vấn
-    const appointmentData = {
-      customer_id: userId,
-      lawyer_id: lawyer_id,
-      case_id: caseId,
-      status: 'pending',
-      notes: `Tư vấn cho vụ án: ${legalCase.title}`,
-      appointment_type: 'case_consultation'
-    };
+    // Thêm dữ liệu vào LegalCases trước, sau đó xử lý Appointments riêng
+    let appointmentResult = null;
     
-    const appointment = await legalCaseModel.createAppointment(appointmentData);
+    try {
+      // Tạo thời gian mặc định cho lịch hẹn (hiện tại + 1 ngày)
+      const now = new Date();
+      const startTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Ngày mai
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);  // Kéo dài 1 giờ
+      
+      // Tạo lịch hẹn tư vấn với đầy đủ thông tin thời gian
+      const appointmentData = {
+        customer_id: userId,
+        lawyer_id: lawyer_id,
+        case_id: caseId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: 'pending',
+        notes: `Tư vấn cho vụ án: ${legalCase.title}`,
+        purpose: 'Tư vấn pháp lý',
+        appointment_type: 'case_consultation'
+      };
+      
+      // Thử tạo lịch hẹn, nhưng không để lỗi ở đây ảnh hưởng đến việc gán luật sư
+      appointmentResult = await legalCaseModel.createAppointment(appointmentData);
+    } catch (appointmentError) {
+      console.error('Lỗi khi tạo lịch hẹn tư vấn:', appointmentError);
+      // Không ném lỗi, chỉ ghi log
+    }
     
     // Ghi log
     await auditLogModel.addAuditLog({
@@ -297,7 +314,7 @@ exports.assignLawyer = asyncHandler(async (req, res) => {
       success: true,
       data: {
         case: updatedCase,
-        appointment: appointment
+        appointment: appointmentResult
       },
       message: 'Đã gán luật sư thành công'
     });
@@ -713,6 +730,112 @@ exports.getCaseTypes = asyncHandler(async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy danh sách loại vụ án'
+    });
+  }
+});
+
+// Lấy danh sách vụ án của luật sư
+exports.getLawyerCases = asyncHandler(async (req, res) => {
+  try {
+    const lawyerId = req.user.id;
+    const { page = 1, limit = 10, status } = req.query;
+    
+    // Kiểm tra quyền (chỉ luật sư mới được phép gọi API này)
+    const isLawyer = req.user.role && req.user.role.toLowerCase() === 'lawyer';
+    const isAdmin = req.user.role && req.user.role.toLowerCase() === 'admin';
+    
+    if (!isLawyer && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền truy cập danh sách này'
+      });
+    }
+    
+    const cases = await legalCaseModel.getLegalCasesByLawyerId(lawyerId, {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      status
+    });
+    
+    return res.status(200).json({
+      success: true,
+      count: cases.length,
+      data: cases
+    });
+    
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách vụ án của luật sư:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách vụ án của luật sư'
+    });
+  }
+});
+
+// Cập nhật trạng thái vụ án
+exports.updateCaseStatus = asyncHandler(async (req, res) => {
+  try {
+    const caseId = req.params.id;
+    const { status, notes } = req.body;
+    const userId = req.user.id;
+    
+    // Kiểm tra quyền (luật sư được gán hoặc admin)
+    const legalCase = await legalCaseModel.getLegalCaseById(caseId);
+    
+    if (!legalCase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy vụ án'
+      });
+    }
+    
+    const isAssignedLawyer = legalCase.lawyer_id === userId;
+    const isAdmin = req.user.role && req.user.role.toLowerCase() === 'admin';
+    
+    if (!isAssignedLawyer && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền cập nhật vụ án này'
+      });
+    }
+    
+    // Kiểm tra trạng thái hợp lệ
+    const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trạng thái không hợp lệ'
+      });
+    }
+    
+    // Cập nhật trạng thái vụ án
+    const updatedCase = await legalCaseModel.updateCaseStatus(caseId, status);
+    
+    // Nếu có ghi chú, cập nhật vào vụ án
+    if (notes) {
+      await legalCaseModel.updateLegalCase(caseId, { notes });
+    }
+    
+    // Ghi log
+    await auditLogModel.addAuditLog({
+      userId: userId,
+      action: 'UPDATE_CASE_STATUS',
+      tableName: 'LegalCases',
+      recordId: caseId,
+      details: `Cập nhật trạng thái vụ án ID ${caseId} thành ${status}`
+    });
+    
+    return res.status(200).json({
+      success: true,
+      data: updatedCase,
+      message: 'Cập nhật trạng thái vụ án thành công'
+    });
+    
+  } catch (error) {
+    console.error('Lỗi khi cập nhật trạng thái vụ án:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật trạng thái vụ án'
     });
   }
 }); 

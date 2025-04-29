@@ -1,11 +1,23 @@
 // Templates.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import styles from './Templates.module.css';
+import { 
+  Layout, Typography, Input, Select, Button, Card, Row, Col, 
+  Pagination, List, Space, Empty, Tag, Spin, Alert, Divider, Badge
+} from 'antd';
+import { 
+  SearchOutlined, FilterOutlined, GlobalOutlined, 
+  RightOutlined, CalendarOutlined, ReloadOutlined,
+  FileOutlined, ArrowLeftOutlined, ArrowRightOutlined,
+  CheckCircleOutlined, LoadingOutlined
+} from '@ant-design/icons';
 import Navbar from '../../components/layout/Nav/Navbar';
-import Loader from '../../components/layout/Loading/Loading';
 import legalService from '../../services/legalService';
-import { FaRegFile, FaCalendarAlt, FaSearch, FaFilter, FaLanguage, FaArrowRight, FaSpinner } from 'react-icons/fa';
+
+const { Content } = Layout;
+const { Title, Text, Paragraph } = Typography;
+const { Search } = Input;
+const { Option } = Select;
 
 /**
  * Trang hiển thị danh sách mẫu văn bản
@@ -44,8 +56,6 @@ const Templates = () => {
       ...prev,
       page: urlPage
     }));
-    
-    // Không gọi fetchTemplates ở đây vì nó sẽ được gọi thông qua useEffect với dependency
   }, [location.search]);
   
   // Cập nhật URL khi filters hoặc pagination thay đổi
@@ -179,9 +189,7 @@ const Templates = () => {
   };
 
   // Xử lý thay đổi bộ lọc
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    
+  const handleFilterChange = (name, value) => {
     setFilters(prevFilters => ({
       ...prevFilters,
       [name]: value
@@ -189,8 +197,7 @@ const Templates = () => {
   };
 
   // Xử lý sự kiện submit form tìm kiếm
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     // Reset về trang đầu tiên khi áp dụng bộ lọc mới
     setPagination(prev => ({
       ...prev,
@@ -235,227 +242,228 @@ const Templates = () => {
     });
   };
 
-  // Thêm hàm xử lý chuyển trang để đảm bảo phân trang hoạt động đúng
-  const handlePageChange = (newPage) => {
-    if (newPage < 1 || newPage > pagination.totalPages) return;
-    
+  // Xử lý chuyển trang
+  const handlePageChange = (page) => {
     setPagination(prev => ({
       ...prev,
-      page: newPage
+      page
     }));
-  };
-
-  // Hiển thị phân trang
-  const renderPagination = () => {
-    const { page, totalPages } = pagination;
-    const pageButtons = [];
-    
-    // Giới hạn số nút phân trang hiển thị
-    const maxPageButtons = 5;
-    const startPage = Math.max(1, page - Math.floor(maxPageButtons / 2));
-    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
-    
-    // Nút quay lại trang trước
-    pageButtons.push(
-      <button 
-        key="prev" 
-        className={styles['pagination-button']}
-        disabled={page <= 1}
-        onClick={() => handlePageChange(page - 1)}
-      >
-        «
-      </button>
-    );
-    
-    // Các nút số trang
-    for (let i = startPage; i <= endPage; i++) {
-      pageButtons.push(
-        <button
-          key={i}
-          className={`${styles['pagination-button']} ${page === i ? styles.active : ''}`}
-          onClick={() => handlePageChange(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-    
-    // Nút tiến đến trang sau
-    pageButtons.push(
-      <button 
-        key="next" 
-        className={styles['pagination-button']}
-        disabled={page >= totalPages}
-        onClick={() => handlePageChange(page + 1)}
-      >
-        »
-      </button>
-    );
-    
-    return pageButtons;
   };
 
   return (
     <>
-      <Navbar />
-      <div className={styles['templates-container']}>
-        <div className={styles['templates-header']}>
-          <h1>Mẫu văn bản pháp lý</h1>
-          <p>Tra cứu và tải xuống các mẫu văn bản pháp lý phổ biến</p>
+    <Navbar />
+    <Layout>
+      <Content style={{ padding: '120px 30px 60px', maxWidth: 1200, margin: '0 auto', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <Title 
+            level={1} 
+            style={{ 
+              fontSize: '2.75rem', 
+              fontWeight: 700, 
+              background: 'linear-gradient(90deg, #1e293b, #4a6cf7)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
+            Mẫu văn bản pháp lý
+          </Title>
+          <Paragraph style={{ fontSize: '1.2rem', color: '#64748b', maxWidth: 600, margin: '0 auto' }}>
+            Tra cứu và tải xuống các mẫu văn bản pháp lý phổ biến
+          </Paragraph>
         </div>
         
-        <div className={styles['filters-section']}>
-          <form onSubmit={handleSubmit}>
-            <div className={styles['filter-controls']}>
-              <div className={styles['filter-group']}>
-                <label htmlFor="search">
-                  <FaSearch style={{ marginRight: '5px' }} /> Từ khóa
-                </label>
-                <input
-                  type="text"
-                  id="search"
-                  name="search"
-                  className={styles['filter-select']}
-                  value={filters.search}
-                  onChange={handleFilterChange}
-                  placeholder="Nhập từ khóa tìm kiếm..."
-                />
-              </div>
-              
-              <div className={styles['filter-group']}>
-                <label htmlFor="template_type">
-                  <FaFilter style={{ marginRight: '5px' }} /> Loại mẫu
-                </label>
-                <select
-                  id="template_type"
-                  name="template_type"
-                  className={styles['filter-select']}
-                  value={filters.template_type}
-                  onChange={handleFilterChange}
-                  disabled={templateTypes.length === 0}
-                >
-                  <option value="">Tất cả loại mẫu</option>
-                  {templateTypes.length > 0 ? (
-                    templateTypes.map(type => (
-                      <option key={type.id || type.name} value={type.id || type.name}>
-                        {type.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="" disabled>Đang tải loại mẫu...</option>
-                  )}
-                </select>
-              </div>
-              
-              <div className={styles['filter-group']}>
-                <label>&nbsp;</label>
-                <button
-                  type="submit"
-                  className={styles['filter-select']}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <FaSpinner className={styles['spinner-icon']} /> Đang tìm...
-                    </>
-                  ) : (
-                    <>Tìm kiếm</>
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
+        <Card 
+          style={{ 
+            marginBottom: '2.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+            borderRadius: '16px'
+          }}
+        >
+          <Row gutter={[24, 16]} align="bottom">
+            <Col xs={24} sm={24} md={8}>
+              <Text strong>
+                <SearchOutlined style={{ marginRight: 8 }} />
+                Từ khóa
+              </Text>
+              <Search
+                placeholder="Nhập từ khóa tìm kiếm..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                style={{ marginTop: 8 }}
+                allowClear
+              />
+            </Col>
+            
+            <Col xs={24} sm={12} md={8}>
+              <Text strong>
+                <FilterOutlined style={{ marginRight: 8 }} />
+                Loại mẫu
+              </Text>
+              <Select
+                placeholder="Tất cả loại mẫu"
+                value={filters.template_type}
+                onChange={(value) => handleFilterChange('template_type', value)}
+                style={{ width: '100%', marginTop: 8 }}
+                allowClear
+              >
+                <Option value="">Tất cả loại mẫu</Option>
+                {templateTypes.map(type => (
+                  <Option key={type.id || type.name} value={type.id || type.name}>
+                    {type.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            
+            <Col xs={24} sm={12} md={8}>
+              <Button 
+                type="primary" 
+                onClick={handleSubmit}
+                loading={loading}
+                style={{ marginTop: 27, width: '100%' }}
+                icon={<SearchOutlined />}
+              >
+                Tìm kiếm
+              </Button>
+            </Col>
+          </Row>
           
           {(filters.search || filters.template_type) && (
-            <div className={styles['reset-filter-container']}>
-              <button 
-                className={styles['reset-filter-button']} 
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <Button 
                 onClick={resetFilters}
-                disabled={isResetting}
+                loading={isResetting}
+                icon={<ReloadOutlined />}
               >
-                {isResetting ? (
-                  <>
-                    <FaSpinner className={styles['spinner-icon']} /> Đang đặt lại...
-                  </>
-                ) : (
-                  <>Đặt lại bộ lọc</>
-                )}
-              </button>
+                Đặt lại bộ lọc
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
         
         {loading ? (
-          <div className={styles['loading']}>
-            <Loader />
-            <p>Đang tải dữ liệu mẫu văn bản...</p>
+          <div style={{ textAlign: 'center', padding: '50px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>Đang tải dữ liệu mẫu văn bản...</div>
           </div>
         ) : error ? (
-          <div className={styles['error']}>
-            <p>{error}</p>
-            <button 
-              className={styles['retry-button']} 
-              onClick={() => fetchTemplates()}
-            >
-              Thử lại
-            </button>
-          </div>
+          <Alert
+            message="Đã xảy ra lỗi"
+            description={
+              <Space direction="vertical">
+                <Text>{error}</Text>
+                <Button type="primary" onClick={() => fetchTemplates()}>
+                  Thử lại
+                </Button>
+              </Space>
+            }
+            type="error"
+            showIcon
+          />
         ) : templates.length === 0 ? (
-          <div className={styles['no-templates']}>
-            <p>Không tìm thấy mẫu văn bản nào phù hợp với điều kiện tìm kiếm.</p>
-            {(filters.search || filters.template_type) && (
-              <button 
-                className={styles['reset-filter']} 
-                onClick={resetFilters}
-                disabled={isResetting}
-              >
-                {isResetting ? 'Đang đặt lại...' : 'Xóa bộ lọc và hiển thị tất cả'}
-              </button>
-            )}
-          </div>
+          <Empty
+            description={
+              <Space direction="vertical" align="center">
+                <Text>Không tìm thấy mẫu văn bản nào phù hợp với điều kiện tìm kiếm.</Text>
+                {(filters.search || filters.template_type) && (
+                  <Button 
+                    onClick={resetFilters}
+                    loading={isResetting}
+                  >
+                    Xóa bộ lọc và hiển thị tất cả
+                  </Button>
+                )}
+              </Space>
+            }
+          />
         ) : (
           <>
-            <div className={styles['results-count']}>
-              Tìm thấy {pagination.total} mẫu văn bản
-            </div>
+            <Badge
+              count={pagination.total}
+              showZero
+              overflowCount={9999}
+              style={{ backgroundColor: '#4a6cf7' }}
+            >
+              <Text style={{ fontSize: '1.05rem', color: '#64748b', marginBottom: 16, display: 'inline-block' }}>
+                Tìm thấy mẫu văn bản
+              </Text>
+            </Badge>
             
-            <div className={styles['templates-list']}>
-              {templates.map(template => (
-                <div 
-                  key={template.id} 
-                  className={styles['template-item']}
-                  onClick={() => handleTemplateClick(template.id)}
-                >
-                  <div className={styles['template-type-badge']}>
-                    <FaFilter style={{ marginRight: '5px' }} />
-                    {template.template_type}
-                  </div>
-                  <h3 className={styles['template-title']}>{template.title}</h3>
-                  <div className={styles['template-meta']}>
-                    <span className={styles['template-date']}>
-                      <FaCalendarAlt /> {formatDate(template.created_at)}
-                    </span>
-                    <span className={styles['template-language']}>
-                      <FaLanguage /> {template.language || 'Tiếng Việt'}
-                    </span>
-                  </div>
-                  <div className={styles['template-description']}>
-                    <button className={styles['view-details-button']}>
-                      Xem chi tiết
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <List
+              grid={{
+                gutter: 16,
+                xs: 1,
+                sm: 1,
+                md: 2,
+                lg: 3,
+                xl: 3,
+                xxl: 3,
+              }}
+              dataSource={templates}
+              renderItem={template => (
+                <List.Item>
+                  <Card
+                    hoverable
+                    onClick={() => handleTemplateClick(template.id)}
+                    style={{ 
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      height: '100%'
+                    }}
+                    bodyStyle={{ padding: '1.75rem' }}
+                  >
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="#4a6cf7" style={{ borderRadius: '30px', padding: '4px 12px' }}>
+                        <FilterOutlined style={{ marginRight: 5 }} />
+                        {template.template_type}
+                      </Tag>
+                    </div>
+                    
+                    <Title level={4} style={{ marginBottom: 16, lineHeight: 1.4 }} ellipsis={{ rows: 2 }}>
+                      {template.title}
+                    </Title>
+                    
+                    <Space split={<Divider type="vertical" />} style={{ marginBottom: 16, color: '#64748b' }}>
+                      <Space>
+                        <CalendarOutlined />
+                        {formatDate(template.created_at)}
+                      </Space>
+                      <Space>
+                        <GlobalOutlined />
+                        {template.language || 'Tiếng Việt'}
+                      </Space>
+                    </Space>
+                    
+                    <div style={{ marginTop: 16 }}>
+                      <Button 
+                        type="primary" 
+                        ghost
+                        style={{ borderRadius: '8px', width: '100%' }}
+                      >
+                        Xem chi tiết <RightOutlined />
+                      </Button>
+                    </div>
+                  </Card>
+                </List.Item>
+              )}
+            />
             
             {pagination.totalPages > 1 && (
-              <div className={styles['pagination']}>
-                {renderPagination()}
+              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                <Pagination
+                  current={pagination.page}
+                  total={pagination.total}
+                  pageSize={pagination.limit}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                />
               </div>
             )}
           </>
         )}
-      </div>
+      </Content>
+    </Layout>
     </>
   );
 };

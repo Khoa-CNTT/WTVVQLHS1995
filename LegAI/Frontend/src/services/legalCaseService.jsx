@@ -115,15 +115,63 @@ export const createAIDraft = async (draftData) => {
  */
 export const assignLawyer = async (caseId, lawyerId) => {
   try {
+    // Chuyển đổi lawyerId thành số nếu nó là chuỗi
+    const parsedLawyerId = typeof lawyerId === 'string' ? parseInt(lawyerId, 10) : lawyerId;
+    
+    if (isNaN(parsedLawyerId)) {
+      return {
+        success: false,
+        message: 'ID luật sư không hợp lệ'
+      };
+    }
+    
     const response = await axios.post(
       `${API_URL}/legal-cases/${caseId}/assign-lawyer`,
-      { lawyer_id: lawyerId },
+      { lawyer_id: parsedLawyerId },
       getHeaders()
     );
-    return response.data;
+    
+    // Đảm bảo kết quả trả về luôn có cấu trúc nhất quán
+    if (response.data && response.data.success) {
+      return response.data;
+    } else {
+      return {
+        success: true,
+        message: 'Đã gán luật sư thành công',
+        data: response.data
+      };
+    }
   } catch (error) {
     console.error('Lỗi khi gán luật sư cho vụ án:', error);
-    throw error.response ? error.response.data : error;
+    
+    // Kiểm tra xem luật sư đã được gán vào vụ án chưa, ngay cả khi có lỗi xảy ra
+    // (đôi khi lỗi xảy ra ở bước tạo lịch hẹn nhưng vụ án đã được gán thành công)
+    try {
+      const caseResponse = await axios.get(`${API_URL}/legal-cases/${caseId}`, getHeaders());
+      if (caseResponse.data && caseResponse.data.success && 
+          caseResponse.data.data && caseResponse.data.data.lawyer_id) {
+        // Nếu vụ án đã được gán luật sư thành công
+        return {
+          success: true,
+          message: 'Đã gán luật sư thành công, nhưng có lỗi khi tạo lịch hẹn',
+          data: caseResponse.data.data,
+          partial_success: true
+        };
+      }
+    } catch (checkError) {
+      console.error('Lỗi khi kiểm tra trạng thái vụ án:', checkError);
+      // Tiếp tục xử lý lỗi ban đầu
+    }
+    
+    // Trả về thông tin lỗi có cấu trúc
+    if (error.response && error.response.data) {
+      return error.response.data;
+    }
+    
+    return {
+      success: false,
+      message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.'
+    };
   }
 };
 
@@ -135,15 +183,133 @@ export const assignLawyer = async (caseId, lawyerId) => {
  */
 export const calculateFee = async (caseId, parameters = {}) => {
   try {
+    // Kiểm tra token trước khi gọi API
+    const token = getToken();
+    if (!token) {
+      return {
+        success: false,
+        message: 'Bạn cần đăng nhập để thực hiện tính phí'
+      };
+    }
+
+    // Lấy thông tin người dùng hiện tại
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    console.log('Gửi yêu cầu tính phí với tham số:', parameters);
+    console.log('Thông tin người dùng gửi yêu cầu:', {
+      id: userData.id,
+      role: userData.role
+    });
+
+    // Trước khi tính phí, kiểm tra trực tiếp xem người dùng có phải là luật sư được gán cho vụ án không
+    try {
+      // Lấy thông tin vụ án hiện tại
+      const caseResponse = await axios.get(
+        `${API_URL}/legal-cases/${caseId}`, 
+        getHeaders()
+      );
+      
+      if (caseResponse.data && caseResponse.data.success && caseResponse.data.data) {
+        const caseInfo = caseResponse.data.data;
+        
+        // Lấy ID luật sư được gán
+        const assignedLawyerId = caseInfo.lawyer?.id;
+        
+        // So sánh ID luật sư được gán với ID người dùng hiện tại
+        // Chuyển cả hai ID thành chuỗi để đảm bảo so sánh chính xác
+        const isExactAssignedLawyer = 
+          assignedLawyerId && 
+          userData.id && 
+          String(assignedLawyerId) === String(userData.id);
+        
+        // Nếu không phải luật sư được gán cho vụ án này, từ chối quyền
+        if (!isExactAssignedLawyer) {
+          console.log('Người dùng không phải luật sư được gán cho vụ án:', {
+            userId: userData.id,
+            assignedLawyerId
+          });
+          
+          return {
+            success: false,
+            message: 'Chỉ luật sư được gán cho vụ án này mới có quyền tính phí.',
+            permissionError: true
+          };
+        }
+        
+        console.log('Xác thực quyền tính phí thành công:', {
+          userId: userData.id,
+          assignedLawyerId,
+          isExactAssignedLawyer: true
+        });
+      }
+    } catch (checkError) {
+      console.error('Lỗi khi kiểm tra quyền tính phí:', checkError);
+      // Nếu không thể kiểm tra, từ chối luôn để đảm bảo an toàn
+      return {
+        success: false,
+        message: 'Không thể xác thực quyền hạn, vui lòng thử lại sau',
+        permissionError: true
+      };
+    }
+
+    // Tạo dữ liệu gửi đi với thông tin bổ sung về người dùng
+    const requestData = {
+      parameters,
+      lawyer_id: userData.id    // Gửi ID luật sư để backend xác thực
+    };
+
     const response = await axios.post(
       `${API_URL}/legal-cases/${caseId}/calculate-fee`,
-      { parameters },
+      requestData,
       getHeaders()
     );
+    
+    console.log('Phản hồi từ API tính phí:', response.data);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tính phí vụ án:', error);
-    throw error.response ? error.response.data : error;
+    
+    // Kiểm tra và xử lý các loại lỗi
+    if (!error.response) {
+      return {
+        success: false,
+        message: 'Không thể kết nối đến máy chủ, vui lòng kiểm tra kết nối mạng'
+      };
+    }
+    
+    // Lỗi xác thực
+    if (error.response.status === 401) {
+      return {
+        success: false,
+        message: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại',
+        authError: true
+      };
+    }
+    
+    // Lỗi quyền truy cập
+    if (error.response.status === 403) {
+      return {
+        success: false,
+        message: 'Bạn không có quyền thực hiện tính phí cho vụ án này. Chỉ luật sư được gán cho vụ án mới có quyền tính phí.',
+        permissionError: true
+      };
+    }
+    
+    // Các lỗi khác từ server
+    if (error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Có lỗi xảy ra khi tính phí vụ án',
+        error: error.response.data
+      };
+    }
+    
+    // Lỗi không xác định
+    return {
+      success: false,
+      message: 'Đã xảy ra lỗi khi tính phí vụ án',
+      error: error.message
+    };
   }
 };
 
@@ -245,6 +411,77 @@ export const deleteLegalCase = async (caseId) => {
   }
 };
 
+/**
+ * Lấy danh sách vụ án được gán cho luật sư
+ * @param {Object} params - Tham số tìm kiếm
+ * @returns {Promise<Object>} Danh sách vụ án
+ */
+export const getLawyerCases = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các tham số tìm kiếm vào URL
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append('status', params.status);
+    
+    const url = `${API_URL}/legal-cases/lawyer-cases?${queryParams.toString()}`;
+    const response = await axios.get(url, {
+      ...getHeaders(),
+      timeout: 30000 // Tăng timeout lên 30 giây
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách vụ án của luật sư:', error);
+    
+    // Nếu không thể kết nối đến server hoặc server không phản hồi
+    if (!error.response) {
+      return {
+        success: false,
+        message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+        data: []
+      };
+    }
+    
+    // Trả về thông tin lỗi từ server nếu có
+    if (error.response && error.response.data) {
+      return {
+        ...error.response.data,
+        data: []
+      };
+    }
+    
+    // Trường hợp khác
+    return {
+      success: false,
+      message: 'Có lỗi xảy ra khi lấy danh sách vụ án. Vui lòng thử lại sau.',
+      data: []
+    };
+  }
+};
+
+/**
+ * Cập nhật trạng thái vụ án
+ * @param {number} caseId - ID vụ án
+ * @param {string} status - Trạng thái mới
+ * @param {string} notes - Ghi chú bổ sung (tùy chọn)
+ * @returns {Promise<Object>} Vụ án đã cập nhật
+ */
+export const updateCaseStatus = async (caseId, status, notes = '') => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/legal-cases/${caseId}/status`,
+      { status, notes },
+      getHeaders()
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi cập nhật trạng thái vụ án:', error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
 export default {
   createLegalCase,
   getLegalCases,
@@ -256,5 +493,7 @@ export default {
   downloadDocument,
   getCaseTypes,
   updateLegalCase,
-  deleteLegalCase
+  deleteLegalCase,
+  getLawyerCases,
+  updateCaseStatus
 }; 

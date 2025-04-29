@@ -1,6 +1,9 @@
 import React from 'react';
-import { FaDownload, FaEdit, FaFileAlt, FaPencilAlt, FaCalendarAlt, FaBuilding, FaSignature, FaClock } from 'react-icons/fa';
-import styles from '../ContractManager.module.css';
+import { Card, Typography, Descriptions, Button, Space, Divider, Tag } from 'antd';
+import { FileTextOutlined, DownloadOutlined, EditOutlined, 
+  CalendarOutlined, BuildOutlined, EditFilled, ClockCircleOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 const ContractDetails = ({ 
   contract, 
@@ -12,85 +15,98 @@ const ContractDetails = ({
   if (!contract) return null;
   
   return (
-    <div className={styles.contractDetailContainer}>
-      <div className={styles.contractDetailHeader}>
-        <FaFileAlt className={styles.contractDetailIcon} />
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+        <FileTextOutlined style={{ fontSize: 24, color: '#1890ff', marginRight: 16 }} />
         <div>
-          <h3 className={styles.contractDetailTitle}>{contract.title}</h3>
-          <div className={styles.contractDetailType}>
-            {contract.contract_type}
-          </div>
+          <Title level={4} style={{ margin: 0 }}>{contract.title}</Title>
+          <Tag color="blue">{contract.contract_type}</Tag>
         </div>
       </div>
       
-      <div className={styles.detailsGrid}>
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaBuilding /> 
+      <Divider />
+      
+      <Descriptions 
+        bordered 
+        column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
+      >
+        <Descriptions.Item label={
+          <Space>
+            <BuildOutlined />
             <span>Đối tác</span>
-          </div>
-          <div className={styles.detailValue}>{contract.partner || 'Chưa xác định'}</div>
-        </div>
+          </Space>
+        }>
+          {contract.partner || 'Chưa xác định'}
+        </Descriptions.Item>
         
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaSignature /> 
+        <Descriptions.Item label={
+          <Space>
+            <EditFilled />
             <span>Chữ ký</span>
-          </div>
-          <div className={styles.detailValue}>{contract.signature || 'Chưa có'}</div>
-        </div>
+          </Space>
+        }>
+          {contract.signature || 'Chưa có'}
+        </Descriptions.Item>
         
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaCalendarAlt /> 
+        <Descriptions.Item label={
+          <Space>
+            <CalendarOutlined />
             <span>Ngày bắt đầu</span>
-          </div>
-          <div className={styles.detailValue}>{formatDate(contract.start_date)}</div>
-        </div>
+          </Space>
+        }>
+          {formatDate(contract.start_date)}
+        </Descriptions.Item>
         
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaCalendarAlt /> 
+        <Descriptions.Item label={
+          <Space>
+            <CalendarOutlined />
             <span>Ngày kết thúc</span>
-          </div>
-          <div className={styles.detailValue}>{formatDate(contract.end_date) || 'Không xác định'}</div>
-        </div>
+          </Space>
+        }>
+          {formatDate(contract.end_date) || 'Không xác định'}
+        </Descriptions.Item>
         
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaClock /> 
+        <Descriptions.Item label={
+          <Space>
+            <ClockCircleOutlined />
             <span>Ngày tạo</span>
-          </div>
-          <div className={styles.detailValue}>{formatDate(contract.created_at)}</div>
-        </div>
+          </Space>
+        }>
+          {formatDate(contract.created_at)}
+        </Descriptions.Item>
         
-        <div className={styles.detailItem}>
-          <div className={styles.detailLabel}>
-            <FaPencilAlt /> 
+        <Descriptions.Item label={
+          <Space>
+            <EditOutlined />
             <span>Cập nhật lần cuối</span>
-          </div>
-          <div className={styles.detailValue}>{formatDate(contract.updated_at)}</div>
-        </div>
-      </div>
+          </Space>
+        }>
+          {formatDate(contract.updated_at)}
+        </Descriptions.Item>
+      </Descriptions>
       
-      <div className={styles.contractDetailActions}>
-        <button 
-          className={styles.downloadButton} 
+      <Divider />
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <Button 
+          type="primary" 
+          icon={<DownloadOutlined />}
           onClick={() => handleDownloadFile(contract.id)}
         >
-          <FaDownload /> Tải xuống
-        </button>
-        <button 
-          className={styles.editButton}
+          Tải xuống
+        </Button>
+        <Button
+          type="default"
+          icon={<EditOutlined />}
           onClick={() => {
             handleCloseDetails();
             handleShowEditModal(contract);
           }}
         >
-          <FaEdit /> Chỉnh sửa
-        </button>
+          Chỉnh sửa
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 

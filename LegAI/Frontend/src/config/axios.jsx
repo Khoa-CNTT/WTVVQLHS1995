@@ -45,6 +45,16 @@ axiosInstance.interceptors.response.use(
     
     // Xử lý lỗi xác thực (401 Unauthorized hoặc 403 Forbidden)
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Trường hợp đặc biệt: Nếu đây là API tính phí hoặc API liên quan đến case detail, 
+      // không chuyển trang login mà trả về lỗi để component tự xử lý
+      if (error.config && (
+          error.config.url.includes('calculate-fee') || 
+          error.config.url.includes('legal-cases')
+      )) {
+        console.log('API đặc biệt, không chuyển trang login:', error.config.url);
+        return Promise.reject(error);
+      }
+      
       if (!isTokenAlertDisplayed) {
         // Đánh dấu là đã hiển thị thông báo
         isTokenAlertDisplayed = true;

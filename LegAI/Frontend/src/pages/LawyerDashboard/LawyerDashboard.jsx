@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import styles from './LawyerDashboard.module.css';
+import { Layout, Menu, Button, Avatar, Badge, Typography, Card, Row, Col, Space, Dropdown, Statistic, List, Divider, Tag } from 'antd';
+import { 
+  MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, BellOutlined, LogoutOutlined,
+  MessageOutlined, FileTextOutlined, CalendarOutlined, ScheduleOutlined, 
+  TeamOutlined, PhoneOutlined, DollarOutlined, AuditOutlined,
+  FileProtectOutlined, RightOutlined, SafetyOutlined, BookOutlined
+} from '@ant-design/icons';
+import 'animate.css';
 import authService from '../../services/authService';
 import userService from '../../services/userService';
 import appointmentService from '../../services/appointmentService';
@@ -8,8 +15,11 @@ import chatService from '../../services/chatService';
 import AppointmentsManager from './components/AppointmentsManager';
 import AvailabilityManager from './components/AvailabilityManager';
 import ChatManager from './components/ChatManager';
+import LawyerCaseManager from './LawyerCaseManager';
 import ContactForm from '../Contact/ContactForm';
-import 'animate.css';
+
+const { Header, Sider, Content } = Layout;
+const { Title, Text, Paragraph } = Typography;
 
 const LawyerDashboard = () => {
   const [activeMenu, setActiveMenu] = useState('overview');
@@ -21,7 +31,7 @@ const LawyerDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({});
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const navigate = useNavigate();
 
@@ -96,140 +106,186 @@ const LawyerDashboard = () => {
       console.error('Logout failed:', error);
     }
   };
-  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+
+  const toggleCollapsed = () => setCollapsed(!collapsed);
   const toggleUserMenu = () => setUserProfileOpen(!userProfileOpen);
 
   const menuItems = [
-    { id: 'overview', label: 'Tổng Quan', icon: 'chart-line', count: 0 },
-    { id: 'messages', label: 'Tin Nhắn', icon: 'envelope', count: pendingCount },
-    { id: 'cases', label: 'Vụ Án', icon: 'balance-scale', count: caseCount },
-    { id: 'appointments', label: 'Lịch Hẹn', icon: 'calendar-alt', count: appointmentCount },
-    { id: 'availability', label: 'Quản Lý Lịch Trống', icon: 'calendar-plus', count: 0 },
-    { id: 'documents', label: 'Tài Liệu', icon: 'file-alt', count: documentCount },
-    { id: 'contracts', label: 'Hợp Đồng', icon: 'file-signature', count: 0 },
-    { id: 'clients', label: 'Khách Hàng', icon: 'users', count: 0 },
-    { id: 'contact', label: 'Liên Hệ', icon: 'phone', count: 0 },
-    { id: 'transactions', label: 'Giao Dịch', icon: 'money-bill-wave', count: 0 },
-    { id: 'specialties', label: 'Chuyên Môn', icon: 'graduation-cap', count: 0 },
+    { key: 'overview', label: 'Tổng Quan', icon: <AuditOutlined />, count: 0 },
+    { key: 'messages', label: 'Tin Nhắn', icon: <MessageOutlined />, count: pendingCount },
+    { key: 'cases', label: 'Vụ Án', icon: <SafetyOutlined />, count: caseCount },
+    { key: 'appointments', label: 'Lịch Hẹn', icon: <CalendarOutlined />, count: appointmentCount },
+    { key: 'availability', label: 'Quản Lý Lịch Trống', icon: <ScheduleOutlined />, count: 0 },
+    { key: 'documents', label: 'Tài Liệu', icon: <FileTextOutlined />, count: documentCount },
+    { key: 'contracts', label: 'Hợp Đồng', icon: <FileProtectOutlined />, count: 0 },
+    { key: 'clients', label: 'Khách Hàng', icon: <TeamOutlined />, count: 0 },
+    { key: 'contact', label: 'Liên Hệ', icon: <PhoneOutlined />, count: 0 },
+    { key: 'transactions', label: 'Giao Dịch', icon: <DollarOutlined />, count: 0 },
+    { key: 'specialties', label: 'Chuyên Môn', icon: <BookOutlined />, count: 0 },
   ];
 
   const renderOverview = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <h1 className={styles.sectionTitle}>Tổng Quan Luật Sư</h1>
-      <div className={styles.legalQuote}>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Tổng Quan Luật Sư</Title>
+      <Paragraph 
+        style={{ 
+          fontSize: '16px', 
+          fontStyle: 'italic', 
+          borderLeft: '4px solid #1890ff', 
+          paddingLeft: 20, 
+          margin: '20px 0',
+          backgroundColor: '#f0f5ff',
+          padding: '15px'
+        }}
+      >
         "Công lý không chỉ phải được thực thi, mà còn phải được nhìn thấy đang được thực thi."
-      </div>
-      <div className={styles.cardGrid}>
+      </Paragraph>
+
+      <Row gutter={[16, 16]}>
         {[
-          { icon: 'envelope', title: 'Tin Nhắn Chưa Đọc', stat: pendingCount, desc: 'tin nhắn', menu: 'messages' },
-          { icon: 'calendar-alt', title: 'Lịch Hẹn Sắp Tới', stat: appointmentCount, desc: 'cuộc hẹn', menu: 'appointments' },
-          { icon: 'balance-scale', title: 'Vụ Án Đang Xử Lý', stat: caseCount, desc: 'vụ án', menu: 'cases' },
-          { icon: 'file-alt', title: 'Tài Liệu Cần Xem Xét', stat: documentCount, desc: 'tài liệu', menu: 'documents' },
-        ].map(({ icon, title, stat, desc, menu }, index) => (
-          <div key={index} className={styles.card}>
-            <div className={styles.cardTitle}>
-              <i className={`fas fa-${icon} ${styles.legalIcon}`}></i>
-              {title}
-            </div>
-            <div className={styles.cardContent}>
-              <span className={styles.statNumber}>{stat}</span> {desc}
-            </div>
-            <button className={styles.actionButton} onClick={() => setActiveMenu(menu)}>
-              Xem Chi Tiết <span>→</span>
-            </button>
-          </div>
+          { icon: <MessageOutlined />, title: 'Tin Nhắn Chưa Đọc', stat: pendingCount, desc: 'tin nhắn', menu: 'messages' },
+          { icon: <CalendarOutlined />, title: 'Lịch Hẹn Sắp Tới', stat: appointmentCount, desc: 'cuộc hẹn', menu: 'appointments' },
+          { icon: <SafetyOutlined />, title: 'Vụ Án Đang Xử Lý', stat: caseCount, desc: 'vụ án', menu: 'cases' },
+          { icon: <FileTextOutlined />, title: 'Tài Liệu Cần Xem Xét', stat: documentCount, desc: 'tài liệu', menu: 'documents' },
+        ].map((item, index) => (
+          <Col xs={24} sm={12} lg={6} key={index}>
+            <Card 
+              hoverable 
+              style={{ height: '100%' }}
+              styles={{ header: { borderBottom: 0 } }}
+              title={
+                <Space>
+                  {item.icon}
+                  <span>{item.title}</span>
+                </Space>
+              }
+            >
+              <Button 
+                type="primary" 
+                style={{ marginTop: 16 }} 
+                onClick={() => setActiveMenu(item.menu)}
+              >
+                Xem Chi Tiết <RightOutlined />
+              </Button>
+            </Card>
+          </Col>
         ))}
-      </div>
-      <div className={styles.legalDivider}></div>
-      <div className={styles.recentActivities}>
-        <h2 className={styles.subSectionTitle}>Hoạt Động Gần Đây</h2>
-        {notifications.map((notification, index) => (
-          <div
-            key={notification.id}
-            className={`${styles.activityItem} animate__animated animate__slideInUp`}
+      </Row>
+
+      <Divider />
+
+      <Title level={4}>Hoạt Động Gần Đây</Title>
+      <List
+        itemLayout="horizontal"
+        dataSource={notifications}
+        renderItem={(notification, index) => (
+          <List.Item 
+            className={`animate__animated animate__slideInUp`}
             style={{ animationDelay: `${index * 0.1}s` }}
           >
-            <div className={styles.activityIcon}>
-              <i className={`fas fa-${notification.icon}`}></i>
-            </div>
-            <div className={styles.activityContent}>
-              <div className={styles.activityTitle}>{notification.message}</div>
-              <div className={styles.activityTime}>{notification.time}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className={styles.rowContainer}>
-        <div className={styles.halfWidth}>
-          <h2 className={styles.subSectionTitle}>Lịch Hẹn Sắp Tới</h2>
-          <ul className={styles.dataFields}>
-            <li>Gặp khách hàng Nguyễn Văn A - <strong>9:00 AM, Hôm nay</strong></li>
-            <li>Tư vấn luật doanh nghiệp - <strong>11:30 AM, Hôm nay</strong></li>
-            <li>Hòa giải vụ kiện lao động - <strong>14:00 PM, Hôm nay</strong></li>
-            <li>Thảo luận hợp đồng với Công ty X - <strong>9:30 AM, Ngày mai</strong></li>
-          </ul>
-        </div>
-        <div className={styles.halfWidth}>
-          <h2 className={styles.subSectionTitle}>Thống Kê Tháng Này</h2>
-          <ul className={styles.dataFields}>
-            <li>Vụ án đã xử lý: <strong>8</strong></li>
-            <li>Lịch hẹn đã hoàn thành: <strong>24</strong></li>
-            <li>Tài liệu đã duyệt: <strong>35</strong></li>
-            <li>Khách hàng mới: <strong>12</strong></li>
-          </ul>
-        </div>
-      </div>
+            <List.Item.Meta
+              avatar={<Avatar icon={
+                notification.icon === 'calendar-check' ? <CalendarOutlined /> :
+                notification.icon === 'file-check' ? <FileTextOutlined /> : 
+                notification.icon === 'message' ? <MessageOutlined /> : <AuditOutlined />
+              } />}
+              title={notification.message}
+              description={notification.time}
+            />
+          </List.Item>
+        )}
+      />
+
+      <Row gutter={24} style={{ marginTop: 24 }}>
+        <Col xs={24} md={12}>
+          <Card title="Lịch Hẹn Sắp Tới">
+            <List
+              dataSource={[
+                'Gặp khách hàng Nguyễn Văn A - 9:00 AM, Hôm nay',
+                'Tư vấn luật doanh nghiệp - 11:30 AM, Hôm nay',
+                'Hòa giải vụ kiện lao động - 14:00, Hôm nay',
+                'Thảo luận hợp đồng với Công ty X - 9:30 AM, Ngày mai'
+              ]}
+              renderItem={item => {
+                const parts = item.split(' - ');
+                return (
+                  <List.Item>
+                    <Text>{parts[0]} - <Text strong>{parts[1]}</Text></Text>
+                  </List.Item>
+                );
+              }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={12}>
+          <Card title="Thống Kê Tháng Này">
+            <List
+              dataSource={[
+                'Vụ án đã xử lý: 8',
+                'Lịch hẹn đã hoàn thành: 24',
+                'Tài liệu đã duyệt: 35',
+                'Khách hàng mới: 12'
+              ]}
+              renderItem={item => {
+                const parts = item.split(': ');
+                return (
+                  <List.Item>
+                    <Text>{parts[0]}: <Text strong>{parts[1]}</Text></Text>
+                  </List.Item>
+                );
+              }}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 
   const renderMessages = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+    <div className="animate__animated animate__fadeIn">
       <ChatManager />
     </div>
   );
 
   const renderCases = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <p className={styles.sectionDescription}>
-        Quản lý và theo dõi tất cả các vụ án pháp lý đang xử lý.
-      </p>
-      <div className={styles.legalQuote}>
-        Tính năng này đang được phát triển. Sẽ sớm ra mắt!
-      </div>
+    <div className="animate__animated animate__fadeIn">
+      <LawyerCaseManager />
     </div>
   );
 
   const renderAppointments = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+    <div className="animate__animated animate__fadeIn">
       <AppointmentsManager />
     </div>
   );
 
   const renderAvailability = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
+    <div className="animate__animated animate__fadeIn">
       <AvailabilityManager />
     </div>
   );
 
   const renderDocuments = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <p className={styles.sectionDescription}>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Tài Liệu</Title>
+      <Paragraph>
         Quản lý và xem xét các tài liệu pháp lý, hợp đồng và hồ sơ vụ án.
-      </p>
-      <div className={styles.legalQuote}>
-        Tính năng này đang được phát triển. Sẽ sớm ra mắt!
-      </div>
+      </Paragraph>
+      <Card style={{ textAlign: 'center', padding: '30px' }}>
+        <Text italic style={{ fontSize: '18px' }}>
+          Tính năng này đang được phát triển. Sẽ sớm ra mắt!
+        </Text>
+      </Card>
     </div>
   );
 
   const renderContact = () => (
-    <div className={`${styles.contentSection} animate__animated animate__fadeIn`}>
-      <p className={styles.sectionDescription}>
+    <div className="animate__animated animate__fadeIn">
+      <Title level={3}>Liên Hệ</Title>
+      <Paragraph>
         Gửi thông tin liên hệ đến bộ phận hỗ trợ của LegAI.
-      </p>
-      <div className={styles.contactWrapper}>
-        <ContactForm />
-      </div>
+      </Paragraph>
+      <ContactForm />
     </div>
   );
 
@@ -242,10 +298,10 @@ const LawyerDashboard = () => {
       availability: renderAvailability(),
       documents: renderDocuments(),
       contact: renderContact(),
-      contracts: <h1 className={styles.sectionTitle}>Hợp Đồng</h1>,
-      clients: <h1 className={styles.sectionTitle}>Khách Hàng</h1>,
-      transactions: <h1 className={styles.sectionTitle}>Giao Dịch</h1>,
-      specialties: <h1 className={styles.sectionTitle}>Chuyên Môn</h1>,
+      contracts: <Title level={3}>Hợp Đồng</Title>,
+      clients: <Title level={3}>Khách Hàng</Title>,
+      transactions: <Title level={3}>Giao Dịch</Title>,
+      specialties: <Title level={3}>Chuyên Môn</Title>,
     };
     return sections[activeMenu] || renderOverview();
   };
@@ -268,77 +324,168 @@ const LawyerDashboard = () => {
       .substring(0, 2);
   };
 
+  const userMenuItems = [
+    {
+      key: '1',
+      label: 'Hồ Sơ Của Tôi',
+      icon: <UserOutlined />,
+      onClick: navigateToProfile,
+    },
+    {
+      key: '2',
+      label: 'Đăng Xuất',
+      icon: <LogoutOutlined />,
+      onClick: handleLogout,
+    },
+  ];
+
   return (
-    <div className={`${styles.dashboardContainer} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-      <div className={`${styles.sidebar} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-        <div className={styles.logoContainer} onClick={navigateToHome}>
-          <h2>LegAI</h2>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed} 
+        width={260}
+        style={{ 
+          background: '#fff', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+        }}
+      >
+        <div 
+          style={{ 
+            height: '64px', 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            fontSize: collapsed ? '24px' : '26px',
+            fontWeight: 'bold',
+            color: '#4a6cf7',
+            cursor: 'pointer'
+          }}
+          onClick={navigateToHome}
+        >
+          {collapsed ? 'L' : 'LegAI'}
         </div>
-        <button className={styles.menuToggle} onClick={toggleSidebar}>
-          <i className={`fas ${isSidebarCollapsed ? 'fa-angle-right' : 'fa-angle-left'}`}></i>
-        </button>
-        <div className={styles.menuContainer}>
-          {menuItems.map((item) => (
-            <div
-              key={item.id}
-              className={`${styles.menuItem} ${activeMenu === item.id ? styles.active : ''} animate__animated animate__fadeIn`}
-              onClick={() => setActiveMenu(item.id)}
-            >
-              <i className={`fas fa-${item.icon} ${styles.menuIcon}`}></i>
-              {!isSidebarCollapsed && <span className={styles.menuLabel}>{item.label}</span>}
-              {item.count > 0 && !isSidebarCollapsed && (
-                <span className={styles.notificationBadge}>{item.count}</span>
-              )}
+        
+        <Menu
+          theme="light"
+          mode="inline"
+          selectedKeys={[activeMenu]}
+          onClick={e => setActiveMenu(e.key)}
+          items={menuItems.map(item => ({
+            key: item.key,
+            icon: item.icon,
+            label: (
+              <span>
+                {item.label}
+                {item.count > 0 && (
+                  <Badge count={item.count} style={{ marginLeft: 10 }} />
+                )}
+              </span>
+            )
+          }))}
+        />
+        
+        <div 
+          style={{ 
+            padding: '16px',
+            position: 'absolute',
+            bottom: 0,
+            width: '100%',
+            borderTop: '1px solid #f0f0f0' 
+          }}
+        >
+          <Button 
+            type="primary" 
+            danger 
+            icon={<LogoutOutlined />} 
+            onClick={handleLogout}
+            style={{ width: '100%' }}
+          >
+            {!collapsed && 'Đăng Xuất'}
+          </Button>
+        </div>
+      </Sider>
+      
+      <Layout>
+        <Header 
+          style={{ 
+            background: '#fff', 
+            padding: '0 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={toggleCollapsed}
+              style={{ fontSize: '16px', width: 64, height: 64 }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <Title level={4} style={{ margin: 0 }}>
+                {activeMenu === 'overview'
+                  ? 'Bảng Điều Khiển Luật Sư'
+                  : menuItems.find((item) => item.key === activeMenu)?.label || 'Bảng Điều Khiển'}
+              </Title>
+              <Text type="secondary">{getCurrentDate()}</Text>
             </div>
-          ))}
-        </div>
-        <div className={styles.logoutContainer}>
-          <button onClick={handleLogout} className={styles.logoutButton}>
-            <i className="fas fa-sign-out-alt"></i>
-            {!isSidebarCollapsed && <span>Đăng Xuất</span>}
-          </button>
-        </div>
-      </div>
-      <div className={styles.mainContent}>
-        <div className={`${styles.header} animate__animated animate__fadeInDown`}>
-          <div>
-            <h1>
-              {activeMenu === 'overview'
-                ? 'Bảng Điều Khiển Luật Sư'
-                : menuItems.find((item) => item.id === activeMenu)?.label || 'Bảng Điều Khiển'}
-            </h1>
-            <div className={styles.currentDate}>{getCurrentDate()}</div>
           </div>
-          <div className={styles.userInfo}>
-            <div className={styles.notifications}>
-              <i className={`fas fa-bell ${styles.notificationIcon}`}></i>
-              {notifications.length > 0 && (
-                <span className={styles.notificationBadge}>{notifications.length}</span>
-              )}
-            </div>
+          
+          <Space>
+            <Badge count={notifications.length}>
+              <Avatar 
+                icon={<BellOutlined />} 
+                style={{ backgroundColor: '#4a6cf7', cursor: 'pointer' }} 
+              />
+            </Badge>
+            
             {currentUser.fullName && (
-              <div className={styles.userName}>{currentUser.fullName}</div>
+              <Text strong style={{ margin: '0 16px' }}>
+                {currentUser.fullName}
+              </Text>
             )}
-            <div className={styles.userAvatar} onClick={toggleUserMenu}>
-              {getInitials(currentUser.fullName)}
-              {userProfileOpen && (
-                <div className={`${styles.userDropdownMenu} animate__animated animate__fadeIn`}>
-                  {[
-                    { icon: 'user', label: 'Hồ Sơ Của Tôi', onClick: navigateToProfile },
-                    { icon: 'sign-out-alt', label: 'Đăng Xuất', onClick: handleLogout },
-                  ].map(({ icon, label, onClick }, index) => (
-                    <div key={index} className={styles.userMenuItem} onClick={onClick}>
-                      <i className={`fas fa-${icon}`}></i> {label}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            
+            <Dropdown 
+              menu={{ items: userMenuItems }} 
+              trigger={['click']}
+              placement="bottomRight"
+              arrow
+            >
+              <Avatar 
+                style={{ 
+                  backgroundColor: '#4a6cf7', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+                size="large"
+              >
+                {getInitials(currentUser.fullName)}
+              </Avatar>
+            </Dropdown>
+          </Space>
+        </Header>
+        
+        <Content style={{ margin: '24px', overflow: 'initial' }}>
+          <div 
+            style={{ 
+              padding: '24px', 
+              background: '#fff', 
+              borderRadius: '4px',
+              minHeight: '100%'
+            }}
+          >
+            {renderContent()}
           </div>
-        </div>
-        <div className={styles.contentWrapper}>{renderContent()}</div>
-      </div>
-    </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 

@@ -53,6 +53,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.13
       dompurify:
         specifier: ^3.2.5
         version: 3.2.5
@@ -67,7 +70,7 @@ importers:
         version: 4.0.0
       legai:
         specifier: 'file:'
-        version: file:(@emotion/is-prop-valid@1.3.1)(@fortawesome/fontawesome-svg-core@6.7.2)(@types/react@18.3.20)(i18next@25.0.1)(moment@2.30.1)(redux@5.0.1)
+        version: file:(@emotion/is-prop-valid@1.3.1)(@fortawesome/fontawesome-svg-core@6.7.2)(@types/react@18.3.20)(i18next@25.0.1)(redux@5.0.1)
       moment:
         specifier: ^2.30.1
         version: 2.30.1
@@ -3300,7 +3303,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  legai@file:(@emotion/is-prop-valid@1.3.1)(@fortawesome/fontawesome-svg-core@6.7.2)(@types/react@18.3.20)(i18next@25.0.1)(moment@2.30.1)(redux@5.0.1):
+  legai@file:(@emotion/is-prop-valid@1.3.1)(@fortawesome/fontawesome-svg-core@6.7.2)(@types/react@18.3.20)(i18next@25.0.1)(redux@5.0.1):
     dependencies:
       '@ant-design/icons': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@emotion/react': 11.14.0(@types/react@18.3.20)(react@18.3.1)
@@ -3321,6 +3324,7 @@ snapshots:
       emailjs-com: 3.2.0
       framer-motion: 12.6.3(@emotion/is-prop-valid@1.3.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       jwt-decode: 4.0.0
+      moment: 2.30.1
       nodemailer: 6.10.1
       prop-types: 15.8.1
       react: 18.3.1
@@ -3341,7 +3345,6 @@ snapshots:
       - debug
       - i18next
       - luxon
-      - moment
       - react-native
       - redux
       - supports-color

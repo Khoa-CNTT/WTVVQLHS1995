@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from '../Lawyers.module.css';
+import { 
+  Modal, Button, Form, Input, Radio, Space, Alert, Spin, Typography,
+  Card, List, Badge, Divider, Row, Col, Empty
+} from 'antd';
+import { 
+  CloseOutlined, ExclamationCircleOutlined, 
+  LoginOutlined, ClockCircleOutlined,
+  CalendarOutlined, CheckOutlined, LoadingOutlined
+} from '@ant-design/icons';
 import appointmentService from '../../../services/appointmentService';
 import authService from '../../../services/authService';
-import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import moment from 'moment';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 
 const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
   const [formData, setFormData] = useState({
     start_time: '',
@@ -37,7 +49,6 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
         return;
       }
 
-      
       // Lấy khung giờ từ API
       const result = await appointmentService.getLawyerAvailability(lawyer.id);
 
@@ -126,6 +137,10 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
       start_time: slot.start_time,
       end_time: slot.end_time
     });
+    
+    form.setFieldsValue({
+      purpose: formData.purpose
+    });
   };
 
   const handleChange = (e) => {
@@ -151,9 +166,7 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
     return 'Không thể đặt lịch hẹn. Vui lòng thử lại sau.';
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (values) => {
     if (!currentUser) {
       setError('Vui lòng đăng nhập để đặt lịch');
       toast.error('Vui lòng đăng nhập để đặt lịch');
@@ -187,10 +200,9 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
         customer_id: currentUser.id,
         start_time: startTimeDate.toISOString(),
         end_time: endTimeDate.toISOString(),
-        purpose: formData.purpose.trim(),
+        purpose: values.purpose.trim(),
         status: 'pending'
       };
-      
       
       const response = await appointmentService.createAppointment(appointmentData);
       
@@ -208,7 +220,13 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
           : 'Không thể đặt lịch hẹn';
         
         // Xử lý các lỗi cụ thể để hiển thị thông báo phù hợp
-        if (errorMessage.includes('trùng') || 
+        if (errorMessage.includes('Luật sư không có sẵn trong khoảng thời gian đã chọn')) {
+          setError('Luật sư không khả dụng trong khung giờ này. Vui lòng chọn thời gian khác.');
+          toast.error('Luật sư không khả dụng trong khung giờ này. Vui lòng chọn thời gian khác.');
+          
+          // Làm mới lại danh sách slot để cập nhật trạng thái
+          await fetchAvailability();
+        } else if (errorMessage.includes('trùng') || 
             errorMessage.includes('đã đặt') || 
             errorMessage.includes('đã có người đặt') || 
             errorMessage.includes('không có sẵn')) {
@@ -250,22 +268,6 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
   const groupedSlots = groupSlotsByDate();
   const availableDates = Object.keys(groupedSlots);
 
-  // Hàm kiểm tra trạng thái slot để hiển thị CSS tương ứng
-  const getSlotClassName = (slot) => {
-    let baseClass = styles.timeSlot;
-    
-    if (selectedSlot && selectedSlot.id === slot.id) {
-      baseClass += ` ${styles.selectedTimeSlot}`;
-    }
-    
-    // Kiểm tra nếu slot đã được đánh dấu là đã đặt
-    if (slot.status === 'booked' || slot.isBooked) {
-      baseClass += ` ${styles.bookedTimeSlot}`;
-    }
-    
-    return baseClass;
-  };
-
   // Kiểm tra slot có thể đặt được không (dùng cho disabled attribute)
   const isSlotDisabled = (slot) => {
     // Slot đã được đặt trước thì không thể chọn
@@ -288,130 +290,148 @@ const AppointmentForm = ({ lawyer, onClose, onSuccess }) => {
   // Kiểm tra người dùng đã đăng nhập chưa
   const isLoggedIn = authService.isAuthenticated();
 
+  const formatTime = (dateString) => {
+    return moment(dateString).format('HH:mm');
+  };
+
   return (
-    <div className={styles.appointmentModal}>
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <h3>Đặt lịch hẹn với {lawyer.full_name}</h3>
-          <button onClick={onClose} className={styles.closeButton}>
-            <i className="fas fa-times"></i>
-          </button>
+    <Modal
+      title={`Đặt lịch hẹn :`}
+      visible={true}
+      onCancel={onClose}
+      footer={null}
+      width={700}
+      destroyOnClose
+    >
+      {!isLoggedIn ? (
+        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+          <ExclamationCircleOutlined style={{ fontSize: 40, color: '#ff4d4f', marginBottom: 16 }} />
+          <Title level={4}>Vui lòng đăng nhập để đặt lịch hẹn</Title>
+          <Button 
+            type="primary" 
+            icon={<LoginOutlined />} 
+            href="/login"
+            style={{ marginTop: 16 }}
+          >
+            Đăng nhập
+          </Button>
         </div>
-
-        {!isLoggedIn ? (
-          <div className={styles.loginRequired}>
-            <i className="fas fa-exclamation-circle"></i>
-            <p>Vui lòng đăng nhập để đặt lịch hẹn</p>
-            <a href="/login" className={styles.loginButton}>
-              <i className="fas fa-sign-in-alt"></i> Đăng nhập
-            </a>
-          </div>
-        ) : loading ? (
-          <div className={styles.loading}>
-            <i className="fas fa-spinner fa-spin"></i> Đang tải...
-          </div>
-        ) : error ? (
-          <div className={styles.errorMessage}>
-            <i className="fas fa-exclamation-circle"></i> {error}
-          </div>
-        ) : availableDates.length === 0 ? (
-          <div className={styles.noAvailabilityWarning}>
-            <i className="fas fa-calendar-times"></i>
-            <p>Hiện tại luật sư chưa có lịch trống nào</p>
-
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className={styles.appointmentForm}>
-            <div className={styles.formSection}>
-              <h4>Chọn ngày:</h4>
-              <div className={styles.dateList}>
+      ) : loading ? (
+        <div style={{ textAlign: 'center', padding: '50px 0' }}>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 40 }} spin />} />
+          <div style={{ marginTop: 16 }}>Đang tải...</div>
+        </div>
+      ) : error ? (
+        <Alert
+          message="Thành công"
+          description={error}
+          type="success"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      ) : availableDates.length === 0 ? (
+        <Empty 
+          description="Hiện tại luật sư chưa có lịch trống nào" 
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      ) : (
+        <Form 
+          form={form} 
+          layout="vertical" 
+          onFinish={handleSubmit}
+          initialValues={{ purpose: formData.purpose }}
+        >
+          <Title level={5}>Chọn ngày:</Title>
+          <div style={{ marginBottom: 16 }}>
+            <Radio.Group 
+              onChange={(e) => handleDateSelection(e.target.value)}
+              value={selectedDate}
+              buttonStyle="solid"
+            >
+              <Space wrap>
                 {availableDates.map(date => (
-                  <button
-                    key={date}
-                    type="button"
-                    className={`${styles.dateButton} ${selectedDate === date ? styles.selectedDate : ''}`}
-                    onClick={() => handleDateSelection(date)}
-                  >
+                  <Radio.Button key={date} value={date}>
                     {new Date(date).toLocaleDateString('vi-VN', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
+                      weekday: 'short',
                       day: 'numeric',
-                      timeZone: 'Asia/Ho_Chi_Minh'
+                      month: 'numeric'
                     })}
-                  </button>
+                  </Radio.Button>
                 ))}
+              </Space>
+            </Radio.Group>
+          </div>
+
+          {selectedDate && (
+            <>
+              <Title level={5}>Chọn giờ:</Title>
+              <div style={{ marginBottom: 16 }}>
+                <Space wrap>
+                  {groupedSlots[selectedDate].map(slot => {
+                    const isDisabled = isSlotDisabled(slot);
+                    const isSelectedSlot = selectedSlot && selectedSlot.id === slot.id;
+                    
+                    return (
+                      <Button
+                        key={`${slot.id}-${slot.start_time}`}
+                        type={isSelectedSlot ? "primary" : "default"}
+                        onClick={() => handleSlotSelection(slot)}
+                        disabled={isDisabled}
+                        icon={<ClockCircleOutlined />}
+                        style={{ 
+                          margin: '0 8px 8px 0',
+                          opacity: isDisabled ? 0.5 : 1
+                        }}
+                      >
+                        {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                        {isDisabled && " (Đã đặt)"}
+                      </Button>
+                    );
+                  })}
+                </Space>
               </div>
-            </div>
+            </>
+          )}
 
-            {selectedDate && (
-              <div className={styles.formSection}>
-                <h4>Chọn giờ:</h4>
-                <div className={styles.timeSlotList}>
-                  {groupedSlots[selectedDate].map(slot => (
-                    <button
-                      key={`${slot.id}-${slot.start_time}`}
-                      type="button"
-                      className={getSlotClassName(slot)}
-                      onClick={() => handleSlotSelection(slot)}
-                      disabled={isSlotDisabled(slot)}
-                      title={isSlotDisabled(slot) ? 'Đã được đặt' : 'Có thể đặt lịch'}
-                    >
-                      {new Date(slot.start_time).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Ho_Chi_Minh'
-                      })}
-                      {' - '}
-                      {new Date(slot.end_time).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Ho_Chi_Minh'
-                      })}
-                      {(slot.status === 'booked' || slot.isBookable === false) && (
-                        <span className={styles.slotStatus}> (Đã đặt)</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          <Form.Item
+            name="purpose"
+            label="Mục đích tư vấn:"
+            rules={[
+              { required: true, message: 'Vui lòng nhập mục đích tư vấn' }
+            ]}
+          >
+            <TextArea
+              placeholder="Nhập mục đích tư vấn của bạn..."
+              autoSize={{ minRows: 4, maxRows: 8 }}
+              onChange={(e) => handleChange({ target: { name: 'purpose', value: e.target.value } })}
+            />
+          </Form.Item>
 
-            <div className={styles.formGroup}>
-              <label>Mục đích tư vấn:</label>
-              <textarea
-                value={formData.purpose}
-                onChange={handleChange}
-                name="purpose"
-                placeholder="Nhập mục đích tư vấn của bạn..."
-                required
-              />
-            </div>
-
-            <div className={styles.formActions}>
-              <button type="button" className={styles.cancelButton} onClick={onClose}>
-                <i className="fas fa-times"></i> Hủy
-              </button>
-              <button
-                type="submit"
-                className={styles.submitButton}
-                disabled={!selectedSlot || !formData.purpose.trim() || loading}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Button 
+                block 
+                onClick={onClose}
+                icon={<CloseOutlined />}
               >
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i> Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-check"></i> Xác nhận đặt lịch
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+                Hủy
+              </Button>
+            </Col>
+            <Col span={12}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                disabled={!selectedSlot || loading}
+                icon={loading ? <LoadingOutlined /> : <CheckOutlined />}
+              >
+                {loading ? 'Đang xử lý...' : 'Xác nhận'}
+              </Button>
+            </Col>
+          </Row>
+        </Form>
+      )}
+    </Modal>
   );
 };
 

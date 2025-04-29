@@ -159,7 +159,7 @@
 .aiDraftEditor {
   width: 100%;
   max-width: 800px; /* Giới hạn chiều rộng tối đa */
-  min-width: 300px; 
+  min-width: 300px;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   padding: 12px;
@@ -308,7 +308,24 @@
   align-items: center;
   margin-bottom: 24px;
 }
-
+.title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+.title::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(to right, #0d6efd, #0b5ed7);
+  border-radius: 2px;
+}
 .statusBadge {
   margin-right: 8px;
 }
@@ -563,15 +580,15 @@
     align-items: flex-start;
     gap: 16px;
   }
-  
+
   .searchBar {
     padding: 12px 0;
   }
-  
+
   .statusFilter {
     margin-top: 16px;
   }
-  
+
   .createButton {
     width: 100%;
   }
@@ -893,21 +910,21 @@
   .caseHeader {
     flex-direction: column;
   }
-  
+
   .headerButtons {
     margin-top: 20px;
     width: 100%;
   }
-  
+
   .headerButtons button {
     flex: 1;
   }
-  
+
   .disputeValueInput {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .amountInput {
     width: 100%;
   }
@@ -944,7 +961,7 @@
   .aiCard {
     margin-bottom: 24px;
   }
-  
+
   .aiFormActions,
   .formActions {
     display: flex;
@@ -952,14 +969,42 @@
     align-items: center;
     gap: 16px;
   }
-  
+
   .aiFormActions button,
   .formActions button {
     width: 100%;
   }
-  
+
   .uploadArea {
     padding: 16px;
     min-height: 120px;
   }
-} 
+}
+
+.lawyerNotes {
+  margin-top: 20px;
+}
+
+.notesCard {
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.notesContent {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.notesEditContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notesEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}

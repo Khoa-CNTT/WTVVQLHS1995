@@ -194,9 +194,34 @@ const getUserCases = async (userId, page = 1, limit = 10) => {
 const getUserAppointments = async (userId, page = 1, limit = 10) => {
   try {
     const response = await userAxios.get(`/auth/users/${userId}/appointments?page=${page}&limit=${limit}`);
-    return response.data;
+    
+    // Kiểm tra và chuẩn hóa dữ liệu trả về
+    const appointments = response.data && response.data.data 
+      ? Array.isArray(response.data.data) 
+        ? response.data.data 
+        : []
+      : [];
+    
+    // Thêm thông tin luật sư đầy đủ cho mỗi lịch hẹn
+    const enhancedAppointments = appointments.map(app => ({
+      ...app,
+      lawyer_name: app.lawyer_name || (app.lawyer ? app.lawyer.full_name : 'Luật sư'),
+      lawyer_avatar: app.avatar_url || (app.lawyer ? app.lawyer.avatar_url : null),
+      specialization: app.specialization || (app.lawyer ? app.lawyer.specialization : 'Luật sư đa lĩnh vực')
+    }));
+    
+    return {
+      success: true,
+      data: enhancedAppointments,
+      totalCount: response.data.count || enhancedAppointments.length
+    };
   } catch (error) {
-    throw error.response?.data || { message: 'Lỗi lấy danh sách cuộc hẹn' };
+    console.error('Lỗi khi lấy danh sách cuộc hẹn:', error);
+    return {
+      success: false,
+      data: [],
+      message: error.response?.data?.message || 'Lỗi lấy danh sách cuộc hẹn'
+    };
   }
 };
 
@@ -284,7 +309,17 @@ const getAllLawyers = async (page = 1, limit = 10, searchTerm = '', specializati
     return response.data;
   } catch (error) {
     console.error('Lỗi lấy danh sách luật sư:', error);
-    throw error;
+    // Trả về đối tượng với cấu trúc tương tự response thành công
+    return {
+      success: false,
+      message: 'Không thể tải danh sách luật sư: ' + (error.message || 'Lỗi không xác định'),
+      data: {
+        lawyers: [],
+        totalLawyers: 0,
+        totalPages: 0,
+        currentPage: page
+      }
+    };
   }
 };
 
