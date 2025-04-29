@@ -11,8 +11,31 @@ const ollamaService = require('../services/ollamaService');
 // Tạo vụ án pháp lý mới
 exports.createLegalCase = asyncHandler(async (req, res) => {
   try {
-    const { case_type, description, title, ai_draft, template_id, user_input, extracted_content } = req.body;
+    const { 
+      case_type, 
+      description, 
+      title, 
+      ai_draft, 
+      template_id, 
+      user_input, 
+      ai_content, 
+      extracted_content,
+      is_ai_generated 
+    } = req.body;
+    
     const userId = req.user.id;
+    
+    console.log('[BACKEND] Nhận request tạo vụ án:', {
+      case_type, 
+      title,
+      ai_draft: ai_draft === 'true',
+      has_template: !!template_id,
+      has_user_input: !!user_input,
+      has_ai_content: !!ai_content,
+      has_extracted_content: !!extracted_content,
+      is_ai_generated: is_ai_generated === 'true',
+      has_file: !!req.file
+    });
     
     // Kiểm tra dữ liệu đầu vào
     if (!case_type || !title) {
@@ -35,40 +58,52 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
       status: 'draft'
     };
     
+    // Xử lý nội dung AI hoặc file
+    // Ưu tiên sử dụng ai_content nếu có, sau đó đến extracted_content
+    if (ai_content) {
+      console.log('[BACKEND] Sử dụng ai_content từ request');
+      caseData.ai_content = ai_content;
+      caseData.is_ai_generated = is_ai_generated === 'true';
+    } else if (extracted_content) {
+      console.log('[BACKEND] Sử dụng extracted_content từ request');
+      caseData.ai_content = extracted_content;
+      caseData.is_ai_generated = is_ai_generated === 'true';
+    }
+    
     // Xử lý nếu có file upload
     if (req.file) {
       // Tạo đường dẫn file để lưu vào DB
       const fileUrl = `/uploads/legal-cases/${req.file.filename}`;
       caseData.file_url = fileUrl;
+      console.log('[BACKEND] File đã được lưu tại:', fileUrl);
       
-      // Nếu có nội dung trích xuất từ file được gửi lên từ frontend
-      if (extracted_content) {
-        caseData.ai_content = extracted_content;
-        caseData.is_ai_generated = false;
-      } else {
-        // Không có nội dung trích xuất, có thể thử đọc file text đơn giản
+      // Nếu không có nội dung từ frontend, thử đọc nội dung từ file
+      if (!caseData.ai_content) {
         try {
           const filePath = req.file.path;
           const fileExtension = path.extname(filePath).toLowerCase();
+          
+          console.log('[BACKEND] Đọc nội dung từ file với định dạng:', fileExtension);
           
           // Hiện tại chỉ hỗ trợ đọc file text đơn giản
           if (fileExtension === '.txt') {
             const fileContent = await fs.readFile(filePath, 'utf8');
             caseData.ai_content = fileContent;
             caseData.is_ai_generated = false;
+            console.log('[BACKEND] Đã đọc nội dung từ file text, độ dài:', fileContent.length);
           } else {
             // Đối với các loại file khác, chỉ lưu thông tin file
-            console.log('Không hỗ trợ trích xuất nội dung từ loại file:', fileExtension);
+            console.log('[BACKEND] Không hỗ trợ trích xuất nội dung từ loại file:', fileExtension);
           }
         } catch (extractError) {
-          console.error('Lỗi khi trích xuất nội dung file:', extractError);
+          console.error('[BACKEND] Lỗi khi trích xuất nội dung file:', extractError);
           // Không lưu nội dung nếu có lỗi xảy ra
         }
       }
     }
     
     // Xử lý nếu sử dụng AI để soạn thảo
-    if (ai_draft === 'true' && template_id && user_input) {
+    if (ai_draft === 'true' && template_id && user_input && !caseData.ai_content) {
       // Lấy thông tin mẫu văn bản
       const template = await legalCaseModel.getDocumentTemplateById(template_id);
       
@@ -97,12 +132,20 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
         // Lưu bản nháp vào caseData
         caseData.ai_content = aiResponse;
         caseData.is_ai_generated = true;
+        console.log('[BACKEND] Đã tạo nội dung AI thành công, độ dài:', aiResponse.length);
       } catch (aiError) {
-        console.error('Lỗi khi gọi AI để tạo bản nháp:', aiError);
+        console.error('[BACKEND] Lỗi khi gọi AI để tạo bản nháp:', aiError);
         caseData.ai_content = `Không thể tạo bản nháp tự động cho yêu cầu: ${user_input}. Vui lòng thử lại sau.`;
         caseData.is_ai_generated = true;
       }
     }
+    
+    // Kiểm tra lại một lần nữa trước khi lưu
+    console.log('[BACKEND] Chuẩn bị lưu dữ liệu vào DB:', {
+      has_ai_content: !!caseData.ai_content,
+      is_ai_generated: caseData.is_ai_generated,
+      has_file_url: !!caseData.file_url
+    });
     
     // Lưu vụ án vào database
     const newCase = await legalCaseModel.createLegalCase(caseData);
@@ -123,14 +166,14 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Lỗi khi tạo vụ án:', error);
+    console.error('[BACKEND] Lỗi khi tạo vụ án:', error);
     
     // Nếu có file đã upload, xóa file đó khi gặp lỗi
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
-        console.error('Lỗi khi xóa file tạm thời:', unlinkError);
+        console.error('[BACKEND] Lỗi khi xóa file tạm thời:', unlinkError);
       }
     }
     
@@ -194,6 +237,32 @@ exports.getLegalCaseById = asyncHandler(async (req, res) => {
         success: false,
         message: 'Bạn không có quyền truy cập vụ án này'
       });
+    }
+    
+    // Đảm bảo trường lawyer luôn tồn tại với cấu trúc nhất quán
+    if (!legalCase.lawyer && legalCase.lawyer_id) {
+      // Nếu có lawyer_id nhưng không có thông tin lawyer, lấy thêm thông tin
+      try {
+        const lawyerQuery = `
+          SELECT id, username, full_name, email, phone
+          FROM Users
+          WHERE id = $1
+        `;
+        const lawyerResult = await pool.query(lawyerQuery, [legalCase.lawyer_id]);
+        
+        if (lawyerResult.rows.length > 0) {
+          legalCase.lawyer = {
+            id: lawyerResult.rows[0].id,
+            username: lawyerResult.rows[0].username,
+            full_name: lawyerResult.rows[0].full_name,
+            email: lawyerResult.rows[0].email,
+            phone: lawyerResult.rows[0].phone
+          };
+        }
+      } catch (lawyerError) {
+        console.error('Lỗi khi lấy thông tin luật sư bổ sung:', lawyerError);
+        // Không để lỗi này ảnh hưởng đến response
+      }
     }
     
     return res.status(200).json({
@@ -369,8 +438,11 @@ exports.calculateFee = asyncHandler(async (req, res) => {
     const caseId = req.params.id;
     const { parameters } = req.body;
     const userId = req.user.id;
+    const userRole = req.user.role ? req.user.role.toLowerCase() : '';
     
-    // Kiểm tra vụ án tồn tại và thuộc về người dùng
+    console.log(`[BACKEND] Yêu cầu tính phí từ người dùng ID ${userId}, role: ${userRole}`);
+    
+    // Kiểm tra vụ án tồn tại
     const legalCase = await legalCaseModel.getLegalCaseById(caseId);
     
     if (!legalCase) {
@@ -380,10 +452,23 @@ exports.calculateFee = asyncHandler(async (req, res) => {
       });
     }
     
-    if (legalCase.user_id !== userId) {
+    console.log(`[BACKEND] Thông tin vụ án:`, {
+      case_id: caseId,
+      lawyer_id: legalCase.lawyer_id,
+      user_id: legalCase.user_id,
+      requester_id: userId
+    });
+    
+    // Kiểm tra quyền: Chỉ chủ sở hữu hoặc luật sư được gán mới có quyền
+    const isOwner = legalCase.user_id === userId;
+    const isAssignedLawyer = legalCase.lawyer_id === userId;
+    const isLawyer = userRole === 'lawyer' || userRole === 'luật sư';
+    
+    // Chỉ luật sư được gán có quyền tính phí
+    if (!(isAssignedLawyer && isLawyer)) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền truy cập vụ án này'
+        message: 'Chỉ luật sư được gán cho vụ án này mới có quyền tính phí'
       });
     }
     
@@ -392,6 +477,15 @@ exports.calculateFee = asyncHandler(async (req, res) => {
     
     // Cập nhật thông tin phí vào vụ án
     await legalCaseModel.updateFeeInfo(caseId, feeDetails);
+    
+    // Ghi log
+    await auditLogModel.addAuditLog({
+      userId: userId,
+      action: 'CALCULATE_FEE',
+      tableName: 'LegalCases',
+      recordId: caseId,
+      details: `Tính phí cho vụ án ID ${caseId}, số tiền ${feeDetails.total_fee}`
+    });
     
     return res.status(200).json({
       success: true,
@@ -652,8 +746,18 @@ exports.downloadDocument = asyncHandler(async (req, res) => {
 exports.updateLegalCase = asyncHandler(async (req, res) => {
   try {
     const caseId = req.params.id;
-    const { title, description, case_type } = req.body;
+    const { title, description, case_type, ai_content, is_ai_generated } = req.body;
     const userId = req.user.id;
+    
+    console.log('[BACKEND] Nhận request cập nhật vụ án:', {
+      case_id: caseId,
+      title,
+      case_type,
+      has_description: !!description,
+      has_ai_content: !!ai_content,
+      is_ai_generated: is_ai_generated === 'true',
+      has_file: !!req.file
+    });
     
     // Kiểm tra vụ án tồn tại và thuộc về người dùng
     const legalCase = await legalCaseModel.getLegalCaseById(caseId);
@@ -688,11 +792,23 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     if (description) updateData.description = description;
     if (case_type) updateData.case_type = case_type;
     
+    // Cập nhật nội dung AI nếu có
+    if (ai_content) {
+      console.log('[BACKEND] Cập nhật nội dung AI, độ dài:', ai_content.length);
+      updateData.ai_content = ai_content;
+      
+      // Cập nhật trạng thái is_ai_generated dựa trên tham số hoặc giữ nguyên giá trị cũ
+      updateData.is_ai_generated = is_ai_generated === 'true' ? true : 
+                                  (is_ai_generated === 'false' ? false : 
+                                  legalCase.is_ai_generated);
+    }
+    
     // Xử lý nếu có file upload mới
     if (req.file) {
       // Tạo đường dẫn file mới để lưu vào DB
       const fileUrl = `/uploads/legal-cases/${req.file.filename}`;
       updateData.file_url = fileUrl;
+      console.log('[BACKEND] Đã lưu file mới tại:', fileUrl);
       
       // Xóa file cũ nếu tồn tại
       if (legalCase.file_url) {
@@ -701,12 +817,15 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
           // Kiểm tra file tồn tại trước khi xóa
           await fs.access(oldFilePath);
           await fs.unlink(oldFilePath);
+          console.log('[BACKEND] Đã xóa file cũ:', legalCase.file_url);
         } catch (error) {
-          console.error('Không thể xóa file cũ:', error);
+          console.error('[BACKEND] Không thể xóa file cũ:', error);
           // Không ném lỗi, vẫn tiếp tục cập nhật
         }
       }
     }
+    
+    console.log('[BACKEND] Dữ liệu cập nhật:', updateData);
     
     // Cập nhật vụ án
     const updatedCase = await legalCaseModel.updateLegalCase(caseId, updateData);
@@ -727,14 +846,14 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Lỗi khi cập nhật vụ án:', error);
+    console.error('[BACKEND] Lỗi khi cập nhật vụ án:', error);
     
     // Nếu có file đã upload, xóa file đó khi gặp lỗi
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
-        console.error('Lỗi khi xóa file tạm thời:', unlinkError);
+        console.error('[BACKEND] Lỗi khi xóa file tạm thời:', unlinkError);
       }
     }
     
@@ -934,6 +1053,103 @@ exports.updateCaseStatus = asyncHandler(async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi cập nhật trạng thái vụ án'
+    });
+  }
+});
+
+// Trích xuất nội dung từ file tải lên
+exports.extractFileContent = asyncHandler(async (req, res) => {
+  try {
+    console.log('[BACKEND][EXTRACT] Bắt đầu trích xuất nội dung từ file');
+    
+    if (!req.file) {
+      console.log('[BACKEND][EXTRACT] Không tìm thấy file');
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy file được tải lên'
+      });
+    }
+
+    const filePath = req.file.path;
+    const fileExtension = path.extname(filePath).toLowerCase();
+    let extractedContent = '';
+    
+    console.log('[BACKEND][EXTRACT] Xử lý file:', {
+      path: filePath,
+      extension: fileExtension,
+      size: (await fs.stat(filePath)).size + ' bytes'
+    });
+    
+    // Trích xuất nội dung dựa vào định dạng file
+    if (fileExtension === '.txt') {
+      // Đọc trực tiếp file text
+      extractedContent = await fs.readFile(filePath, 'utf8');
+      console.log('[BACKEND][EXTRACT] Đã đọc nội dung text, độ dài:', extractedContent.length);
+    } else if (fileExtension === '.pdf') {
+      // Sử dụng pdf-parse hoặc thư viện tương tự để đọc PDF
+      try {
+        console.log('[BACKEND][EXTRACT] Đang xử lý file PDF');
+        const pdfParse = require('pdf-parse');
+        const dataBuffer = await fs.readFile(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+        extractedContent = pdfData.text;
+        console.log('[BACKEND][EXTRACT] Đã trích xuất nội dung PDF, độ dài:', extractedContent.length);
+      } catch (pdfError) {
+        console.error('[BACKEND][EXTRACT] Lỗi khi đọc file PDF:', pdfError);
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể đọc nội dung file PDF: ' + pdfError.message
+        });
+      }
+    } else if (['.doc', '.docx'].includes(fileExtension)) {
+      // Sử dụng mammoth hoặc thư viện tương tự để đọc DOCX
+      try {
+        console.log('[BACKEND][EXTRACT] Đang xử lý file DOCX/DOC');
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ path: filePath });
+        extractedContent = result.value;
+        console.log('[BACKEND][EXTRACT] Đã trích xuất nội dung DOCX/DOC, độ dài:', extractedContent.length);
+      } catch (docError) {
+        console.error('[BACKEND][EXTRACT] Lỗi khi đọc file DOC/DOCX:', docError);
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể đọc nội dung file DOC/DOCX: ' + docError.message
+        });
+      }
+    } else {
+      console.log('[BACKEND][EXTRACT] Định dạng file không được hỗ trợ:', fileExtension);
+      return res.status(400).json({
+        success: false,
+        message: 'Định dạng file không được hỗ trợ'
+      });
+    }
+
+    // Kiểm tra nội dung trích xuất có trống không
+    if (!extractedContent || extractedContent.trim() === '') {
+      console.log('[BACKEND][EXTRACT] Nội dung trích xuất trống');
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể trích xuất nội dung từ file. File có thể trống hoặc bị lỗi.'
+      });
+    }
+
+    console.log('[BACKEND][EXTRACT] Trích xuất thành công, trả về nội dung, độ dài:', extractedContent.length);
+    
+    // Trả về nội dung đã trích xuất
+    return res.status(200).json({
+      success: true,
+      data: {
+        content: extractedContent,
+        fileType: fileExtension,
+        contentLength: extractedContent.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('[BACKEND][EXTRACT] Lỗi khi trích xuất nội dung file:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi trích xuất nội dung file: ' + error.message
     });
   }
 }); 

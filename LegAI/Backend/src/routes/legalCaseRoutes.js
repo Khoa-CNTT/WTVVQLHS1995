@@ -39,6 +39,32 @@ const upload = multer({
   }
 });
 
+// Cấu hình multer cho việc tải lên file để trích xuất nội dung
+const extractFileUpload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, path.join(__dirname, '../../uploads/temp'));
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+  }),
+  fileFilter: function (req, file, cb) {
+    if (
+      file.mimetype === 'application/pdf' ||
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.mimetype === 'application/msword' ||
+      file.mimetype === 'text/plain'
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file PDF, DOC, DOCX hoặc TXT'), false);
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB
+});
+
 // Tạo vụ án mới (có thể kèm file hoặc tạo bằng AI)
 router.post('/', protect, upload.single('file'), legalCaseController.createLegalCase);
 
@@ -80,5 +106,13 @@ router.get('/case-types', legalCaseController.getCaseTypes);
 
 // Cập nhật trạng thái vụ án
 router.put('/:id/status', protect, authorize('lawyer', 'admin'), legalCaseController.updateCaseStatus);
+
+// Route để trích xuất nội dung từ file
+router.post(
+  '/extract-content',
+  protect,
+  extractFileUpload.single('file'),
+  legalCaseController.extractFileContent
+);
 
 module.exports = router; 

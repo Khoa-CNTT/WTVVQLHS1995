@@ -367,6 +367,32 @@ export const downloadDocument = async (caseId) => {
 };
 
 /**
+ * Trích xuất nội dung từ file binary (PDF, DOCX)
+ * @param {FormData} formData - FormData chứa file cần trích xuất nội dung
+ * @returns {Promise<Object>} Kết quả trích xuất nội dung
+ */
+export const extractFileContent = async (formData) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/legal-cases/extract-content`,
+      formData,
+      {
+        ...getHeaders(),
+        headers: {
+          ...getHeaders().headers,
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi trích xuất nội dung file:', error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
  * Lấy danh sách loại vụ án
  * @returns {Promise<Object>} Danh sách loại vụ án
  */
@@ -395,14 +421,54 @@ export const getCaseTypes = async () => {
  */
 export const updateLegalCase = async (caseId, formData) => {
   try {
+    // In ra thông tin formData để debug
+    console.log('[FRONTEND] FormData gửi đi trong updateLegalCase:');
+    for (let [key, value] of formData.entries()) {
+      if (key === 'file') {
+        console.log(`${key}: [File object]`);
+      } else if (key === 'ai_content') {
+        console.log(`${key}: [Nội dung với độ dài ${value.length}]`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    
     const response = await axios.put(`${API_URL}/legal-cases/${caseId}`, formData, {
       ...getHeaders(),
-      'Content-Type': 'multipart/form-data'
+      headers: {
+        ...getHeaders().headers,
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // Tăng timeout lên 60s cho file lớn
     });
+    
+    console.log('[FRONTEND] Kết quả cập nhật vụ án:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi cập nhật vụ án:', error);
-    throw error.response ? error.response.data : error;
+    console.error('[FRONTEND] Lỗi khi cập nhật vụ án:', error);
+    
+    // Thông tin lỗi chi tiết
+    if (error.response) {
+      console.error('[FRONTEND] Response error:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('[FRONTEND] Request error - không nhận được phản hồi');
+    } else {
+      console.error('[FRONTEND] Error message:', error.message);
+    }
+    
+    // Trả về thông tin lỗi từ server nếu có
+    if (error.response && error.response.data) {
+      return error.response.data;
+    }
+    
+    // Trường hợp khác
+    return {
+      success: false,
+      message: 'Không thể cập nhật vụ án. Vui lòng thử lại sau.'
+    };
   }
 };
 
@@ -501,6 +567,7 @@ export default {
   calculateFee,
   createPayment,
   downloadDocument,
+  extractFileContent,
   getCaseTypes,
   updateLegalCase,
   deleteLegalCase,

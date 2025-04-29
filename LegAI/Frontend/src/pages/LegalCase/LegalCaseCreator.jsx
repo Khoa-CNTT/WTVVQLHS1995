@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form, Input, Select, Upload, Button, Card, Checkbox, Space, message, Typography, Spin, Divider, Row, Col, Layout, Tooltip, Tabs } from 'antd';
 import { UploadOutlined, FileOutlined, FileTextOutlined, SaveOutlined, SendOutlined, ArrowLeftOutlined, InfoCircleOutlined, FilePdfOutlined, FileWordOutlined } from '@ant-design/icons';
 import legalCaseService from '../../services/legalCaseService';
@@ -33,6 +33,9 @@ const LegalCaseCreator = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [activeTab, setActiveTab] = useState('upload');
     
+    // Tham chiếu để theo dõi nội dung file trong quá trình xử lý bất đồng bộ
+    const fileContentRef = useRef('');
+    
     // State để kiểm soát hiển thị khu vực chỉnh sửa nội dung file
     const [showFileEditor, setShowFileEditor] = useState(false);
     
@@ -41,6 +44,13 @@ const LegalCaseCreator = () => {
     
     // State để kiểm soát khi nào nên hiển thị khu vực tải lên và khi nào nên hiển thị khu vực AI
     const [inputMethod, setInputMethod] = useState('upload'); // 'upload' hoặc 'ai'
+
+    // Cập nhật ref mỗi khi fileContent thay đổi
+    useEffect(() => {
+        fileContentRef.current = fileContent;
+        console.log('fileContentRef đã được cập nhật:', 
+            fileContent ? (fileContent.length > 100 ? fileContent.substring(0, 100) + '...' : fileContent) : 'null hoặc undefined');
+    }, [fileContent]);
 
     // Lấy danh sách loại vụ án và mẫu văn bản
     useEffect(() => {
@@ -161,34 +171,72 @@ const LegalCaseCreator = () => {
     const extractFileContent = (file) => {
         if (!file) return;
         
-        console.log('Đang trích xuất nội dung từ file:', file.name);
+        console.log('[FILE] Bắt đầu trích xuất nội dung từ file:', file.name);
         setFileProcessing(true);
         
         const reader = new FileReader();
         
         reader.onload = (event) => {
-            console.log('File đã được đọc, loại kết quả:', typeof event.target.result);
+            console.log('[FILE] File đã được đọc:', typeof event.target.result);
             const content = event.target.result;
+            
             if (typeof content === 'string') {
-                // Cho file text
-                console.log('Đã đọc nội dung text:', content.substring(0, 100) + '...');
+                // Xử lý file text
+                console.log('[FILE] Đã đọc nội dung text:', content.substring(0, 100) + '...');
                 setFileContent(content);
-                setEditableDraft(content); // Đồng bộ với phần chỉnh sửa
+                fileContentRef.current = content;
+                setEditableDraft(content);
             } else {
-                // Cho file binary (PDF, DOCX)
-                console.log('Đã đọc nội dung binary, không thể hiển thị trực tiếp');
-                // Đối với file binary, hiển thị nội dung mặc định để người dùng có thể chỉnh sửa
-                // Để trống để người dùng nhập nội dung
-                const defaultContent = '';
+                // Xử lý file binary (PDF, DOCX)
+                console.log('[FILE] Đã đọc nội dung binary, tiến hành gửi cho backend xử lý');
+                const defaultContent = 'Đang xử lý nội dung từ file. Vui lòng đợi trong giây lát...';
                 setFileContent(defaultContent);
+                fileContentRef.current = defaultContent;
                 setEditableDraft(defaultContent);
+                
+                // Tạo FormData để gửi file lên server
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Gọi API để trích xuất nội dung
+                legalCaseService.extractFileContent(formData)
+                    .then(response => {
+                        if (response && response.success) {
+                            const extractedContent = response.data.content || '';
+                            console.log('[FILE] Đã nhận nội dung từ server:', extractedContent.substring(0, 100) + '...');
+                            
+                            // Cập nhật cả hai state và ref
+                            setFileContent(extractedContent);
+                            fileContentRef.current = extractedContent;
+                            setEditableDraft(extractedContent);
+                            
+                            // Hiển thị thông báo thành công
+                            message.success('Đã trích xuất nội dung file thành công');
+                        } else {
+                            console.error('[FILE] Lỗi khi trích xuất nội dung:', response?.message);
+                            message.error(response?.message || 'Không thể trích xuất nội dung file');
+                            setFileContent('');
+                            fileContentRef.current = '';
+                            setEditableDraft('');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[FILE] Lỗi khi gọi API trích xuất nội dung:', error);
+                        message.error('Không thể trích xuất nội dung file. Vui lòng thử lại.');
+                        setFileContent('');
+                        fileContentRef.current = '';
+                        setEditableDraft('');
+                    })
+                    .finally(() => {
+                        setFileProcessing(false);
+                    });
+                
+                // Return sớm để tránh set fileProcessing = false trước khi API xử lý xong
+                return;
             }
             
             setFileProcessing(false);
-            
-            // Đảm bảo editor được hiển thị sau khi xử lý file
             setShowFileEditor(true);
-            console.log('Đã hoàn thành xử lý file, showFileEditor =', true);
         };
         
         reader.onerror = (error) => {
@@ -210,8 +258,11 @@ const LegalCaseCreator = () => {
     
     // Xử lý khi nội dung file được chỉnh sửa
     const handleFileContentChange = (e) => {
-        setFileContent(e.target.value);
-        setEditableDraft(e.target.value); // Đồng bộ với trạng thái AI
+        const newContent = e.target.value;
+        console.log('[FILE] Nội dung được chỉnh sửa, cập nhật state và ref');
+        setFileContent(newContent);
+        fileContentRef.current = newContent;
+        setEditableDraft(newContent);
     };
     
     // Xử lý khi thay đổi phương thức nhập liệu (Upload/AI)
@@ -327,46 +378,109 @@ const LegalCaseCreator = () => {
     const handleCreateCase = async (values) => {
         try {
             setSubmitting(true);
-
-            // Tạo form data để gửi file
+            
+            // Hiển thị log để kiểm tra các giá trị
+            console.log('[TẠO VỤ ÁN] Bắt đầu tạo vụ án với các giá trị:');
+            console.log('- fileContent:', fileContent ? fileContent.substring(0, 100) + '...' : 'trống');
+            console.log('- editableDraft:', editableDraft ? editableDraft.substring(0, 100) + '...' : 'trống');
+            console.log('- fileContentRef:', fileContentRef.current ? fileContentRef.current.substring(0, 100) + '...' : 'trống');
+            
+            // Tạo FormData mới để gửi lên server
             const formData = new FormData();
-
-            // Thêm các trường thông tin vào formData
+            
+            // 1. Thêm các trường cơ bản
             formData.append('title', values.title);
             formData.append('description', values.description || '');
             formData.append('case_type', values.case_type);
 
-            // Nếu sử dụng AI, thêm các trường liên quan
+            // 2. Xử lý nội dung dựa trên phương thức (AI hoặc File Upload)
+            // a. Nếu sử dụng AI
             if (useAI) {
-                // Lấy giá trị từ form
+                // Lấy giá trị từ form AI
                 const aiFormValues = aiForm.getFieldsValue(['template_id', 'user_input']);
                 formData.append('ai_draft', 'true');
                 formData.append('template_id', aiFormValues.template_id || '');
                 formData.append('user_input', aiFormValues.user_input || '');
-                formData.append('ai_content', editableDraft || '');
-            } else if (showFileEditor && fileContent) {
-                // Nếu không sử dụng AI nhưng có nội dung file đã chỉnh sửa
-                // Thêm nội dung đã chỉnh sửa vào formData
-                formData.append('extracted_content', fileContent);
+                
+                // Đảm bảo có nội dung AI
+                if (!editableDraft || editableDraft.trim() === '') {
+                    message.error('Nội dung AI không được tìm thấy. Vui lòng tạo nội dung AI trước khi tiếp tục.');
+                    setSubmitting(false);
+                    return;
+                }
+                
+                // Thêm nội dung AI vào cả hai trường để đảm bảo tương thích
+                formData.append('ai_content', editableDraft);
+                formData.append('extracted_content', editableDraft);
+                formData.append('is_ai_generated', 'true');
+                
+                console.log('[TẠO VỤ ÁN] Sử dụng nội dung AI:', editableDraft.substring(0, 100) + '...');
+            } 
+            // b. Nếu sử dụng File Upload
+            else {
+                formData.append('ai_draft', 'false');
+                formData.append('is_ai_generated', 'false');
+                
+                // Ưu tiên sử dụng giá trị từ fileContentRef, rồi đến fileContent, cuối cùng là editableDraft
+                let contentToUse = '';
+                
+                if (fileContentRef.current && fileContentRef.current.trim() !== '' && 
+                    fileContentRef.current !== 'Đang xử lý nội dung từ file. Vui lòng đợi trong giây lát...') {
+                    contentToUse = fileContentRef.current;
+                    console.log('[TẠO VỤ ÁN] Sử dụng nội dung từ fileContentRef');
+                } else if (fileContent && fileContent.trim() !== '' && 
+                           fileContent !== 'Đang xử lý nội dung từ file. Vui lòng đợi trong giây lát...') {
+                    contentToUse = fileContent;
+                    console.log('[TẠO VỤ ÁN] Sử dụng nội dung từ fileContent');
+                } else if (editableDraft && editableDraft.trim() !== '' && 
+                           editableDraft !== 'Đang xử lý nội dung từ file. Vui lòng đợi trong giây lát...') {
+                    contentToUse = editableDraft;
+                    console.log('[TẠO VỤ ÁN] Sử dụng nội dung từ editableDraft');
+                }
+                
+                if (!contentToUse) {
+                    message.warning('Không tìm thấy nội dung từ file. Vui lòng đảm bảo file đã được xử lý hoàn tất.');
+                    setSubmitting(false);
+                    return;
+                }
+                
+                // Thêm cả hai trường để đảm bảo tương thích với backend
+                formData.append('ai_content', contentToUse);
+                formData.append('extracted_content', contentToUse);
+                console.log('[TẠO VỤ ÁN] Đã thêm nội dung vào formData:', contentToUse.substring(0, 100) + '...');
             }
 
-            // Đảm bảo fileList không null hoặc undefined trước khi xử lý
+            // 3. Xử lý file đính kèm
             const safeFileList = Array.isArray(fileList) ? fileList : [];
-
-            // Thêm các file nếu có
             if (safeFileList.length > 0) {
                 const file = safeFileList[0];
                 if (file.originFileObj) {
                     formData.append('file', file.originFileObj);
+                    console.log('[TẠO VỤ ÁN] Đã thêm file:', file.originFileObj.name);
                 } else if (file instanceof File) {
                     formData.append('file', file);
+                    console.log('[TẠO VỤ ÁN] Đã thêm file:', file.name);
                 }
             }
 
+            // 4. Hiển thị tất cả các trường trong formData để kiểm tra
+            console.log('[TẠO VỤ ÁN] FormData cuối cùng:');
+            for (let [key, value] of formData.entries()) {
+                if (key === 'ai_content' || key === 'extracted_content') {
+                    console.log(`- ${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
+                } else if (key === 'file') {
+                    console.log(`- ${key}: ${value.name}`);
+                } else {
+                    console.log(`- ${key}: ${value}`);
+                }
+            }
+            
+            // 5. Gửi request API
             try {
-                // Gọi API tạo vụ án
                 const response = await legalCaseService.createLegalCase(formData);
-
+                
+                console.log('[TẠO VỤ ÁN] Kết quả từ API:', response);
+                
                 if (response && response.success) {
                     message.success('Tạo vụ án thành công');
                     navigate(`/legal-cases/${response.data.id}`);
@@ -374,11 +488,11 @@ const LegalCaseCreator = () => {
                     message.error(response?.message || 'Lỗi khi tạo vụ án');
                 }
             } catch (apiError) {
-                console.error('Lỗi khi gọi API tạo vụ án:', apiError);
+                console.error('[TẠO VỤ ÁN] Lỗi khi gọi API:', apiError);
                 message.error('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
             }
         } catch (error) {
-            console.error('Lỗi khi tạo vụ án:', error);
+            console.error('[TẠO VỤ ÁN] Lỗi không xác định:', error);
             message.error('Lỗi khi tạo vụ án. Vui lòng thử lại sau.');
         } finally {
             setSubmitting(false);
@@ -388,10 +502,40 @@ const LegalCaseCreator = () => {
     // Xử lý lưu vụ án khi sử dụng AI
     const handleSaveWithAI = () => {
         // Kiểm tra các trường bắt buộc
-        form.validateFields().then(values => {
-            handleCreateCase(values);
+        form.validateFields().then(mainFormValues => {
+            // Nếu đã có nội dung AI, không cần validate form AI 
+            if (editableDraft) {
+                console.log('Đã có bản nháp AI, không cần validate form AI');
+                
+                // Thêm thông tin template_id và user_input từ aiForm nếu có
+                try {
+                    const aiValues = aiForm.getFieldsValue(['template_id', 'user_input']);
+                    const combinedValues = { 
+                        ...mainFormValues, 
+                        template_id: aiValues.template_id || '',
+                        user_input: aiValues.user_input || ''
+                    };
+                    handleCreateCase(combinedValues);
+                } catch (error) {
+                    console.error('Lỗi khi lấy giá trị form AI:', error);
+                    // Vẫn tiếp tục tạo vụ án với dữ liệu chính
+                    handleCreateCase(mainFormValues);
+                }
+            } else {
+                // Nếu chưa có nội dung, kiểm tra form AI
+                aiForm.validateFields().then(aiValues => {
+                    const combinedValues = { 
+                        ...mainFormValues, 
+                        template_id: aiValues.template_id,
+                        user_input: aiValues.user_input
+                    };
+                    handleCreateCase(combinedValues);
+                }).catch(error => {
+                    message.error('Vui lòng điền đầy đủ thông tin mẫu và yêu cầu AI');
+                });
+            }
         }).catch(errorInfo => {
-            message.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+            message.error('Vui lòng điền đầy đủ thông tin cơ bản vụ án');
         });
     };
 
@@ -468,7 +612,27 @@ const LegalCaseCreator = () => {
     const handleSubmitWithAI = () => {
         // Kiểm tra các trường bắt buộc từ form chính
         form.validateFields().then(mainFormValues => {
-            // Kiểm tra các trường bắt buộc từ form AI
+            // Nếu đã có nội dung AI, không cần validate form AI
+            if (editableDraft) {
+                console.log('Đã có bản nháp AI, không cần validate lại form AI');
+                
+                // Thêm thông tin template_id và user_input từ aiForm nếu có
+                try {
+                    const aiValues = aiForm.getFieldsValue(['template_id', 'user_input']);
+                    const combinedValues = { 
+                        ...mainFormValues, 
+                        template_id: aiValues.template_id || '',
+                        user_input: aiValues.user_input || ''
+                    };
+                    handleCreateCase(combinedValues);
+                } catch (error) {
+                    console.error('Lỗi khi lấy giá trị form AI:', error);
+                    handleCreateCase(mainFormValues);
+                }
+                return;
+            }
+            
+            // Nếu chưa có nội dung, kiểm tra các trường bắt buộc từ form AI
             aiForm.validateFields().then(aiValues => {
                 console.log('Form chính đã xác thực:', mainFormValues);
                 console.log('Form AI đã xác thực:', aiValues);
@@ -671,7 +835,10 @@ const LegalCaseCreator = () => {
                                                     <Form.Item
                                                         name="template_id"
                                                         label="Chọn mẫu văn bản"
-                                                        rules={[{ required: useAI, message: 'Vui lòng chọn mẫu văn bản' }]}
+                                                        rules={[{ 
+                                                            required: useAI && !editableDraft, 
+                                                            message: 'Vui lòng chọn mẫu văn bản' 
+                                                        }]}
                                                     >
                                                         <Select placeholder="Chọn mẫu văn bản" size="large">
                                                             {templates.map(template => (
@@ -686,7 +853,10 @@ const LegalCaseCreator = () => {
                                                     <Form.Item
                                                         name="user_input"
                                                         label="Yêu cầu soạn thảo"
-                                                        rules={[{ required: useAI, message: 'Vui lòng nhập yêu cầu soạn thảo' }]}
+                                                        rules={[{ 
+                                                            required: useAI && !editableDraft, 
+                                                            message: 'Vui lòng nhập yêu cầu soạn thảo' 
+                                                        }]}
                                                     >
                                                         <TextArea
                                                             rows={4}
@@ -697,16 +867,17 @@ const LegalCaseCreator = () => {
                                             </Row>
 
                                             <Form.Item>
-                                                <Button
-                                                    type="primary"
-                                                    onClick={handleCreateAIDraft}
-                                                    icon={<FileTextOutlined />}
-                                                    loading={aiLoading}
-                                                    size="large"
-                                                    className={styles.draftButton}
-                                                >
-                                                    Tạo bản nháp
-                                                </Button>
+                                                {!editableDraft && (
+                                                    <Button
+                                                        type="primary"
+                                                        onClick={handleCreateAIDraft}
+                                                        icon={<FileTextOutlined />}
+                                                        loading={aiLoading}
+                                                        className={styles.draftButton}
+                                                    >
+                                                        Tạo bản nháp
+                                                    </Button>
+                                                )}
                                             </Form.Item>
 
                                             {aiLoading && (
@@ -721,9 +892,7 @@ const LegalCaseCreator = () => {
                                                         <Title level={4} className={styles.draftTitle}>Bản nháp AI</Title>
                                                     </Divider>
                                                     <div className={styles.draftEditorWrapper}>
-                                                        <Form.Item
-                                                            label="Bạn có thể chỉnh sửa nội dung này trước khi lưu"
-                                                        >
+                                                        <Form.Item>
                                                             <div className={styles.customTextAreaContainer}>
                                                                 <TextArea
                                                                     rows={20}
@@ -807,9 +976,7 @@ const LegalCaseCreator = () => {
                                                             <Title level={4} className={styles.draftTitle}>Nội dung</Title>
                                                         </Divider>
                                                         <div className={styles.draftEditorWrapper}>
-                                                            <Form.Item
-                                                                label="Bạn có thể chỉnh sửa nội dung này trước khi lưu"
-                                                            >
+                                                            <Form.Item>
                                                                 <div className={styles.customTextAreaContainer}>
                                                                     <TextArea
                                                                         rows={25}

@@ -166,6 +166,8 @@ const getLegalCaseById = async (caseId) => {
         c.notes, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
         u.full_name AS customer_name,
+        u.email AS customer_email,
+        u.phone AS customer_phone,
         CASE WHEN l.id IS NULL THEN NULL
           ELSE json_build_object(
             'id', l.id,

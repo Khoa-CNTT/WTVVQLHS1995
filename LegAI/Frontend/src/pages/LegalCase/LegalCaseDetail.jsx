@@ -43,19 +43,27 @@ const LegalCaseDetail = () => {
         const response = await legalCaseService.getLegalCaseById(id);
 
         if (response && response.success && response.data) {
-          setCaseData(response.data);
+          console.log('Dữ liệu vụ án nhận từ server:', response.data);
+          
+          // Đảm bảo các trường dữ liệu luôn tồn tại
+          const caseWithDefaults = {
+            ...response.data,
+            lawyer: response.data.lawyer || null,
+          };
+          
+          setCaseData(caseWithDefaults);
           
           // Kiểm tra quyền và vai trò
           const userData = authService.getCurrentUser() || {};
-          const isAssigned = response.data.lawyer && 
+          const isAssigned = caseWithDefaults.lawyer && 
                              userData.id && 
-                             response.data.lawyer.id === userData.id;
+                             caseWithDefaults.lawyer.id === userData.id;
           
           // Kiểm tra role không phân biệt hoa thường
           const userRole = userData.role ? userData.role.toLowerCase() : '';
           const isAdminUser = userRole === 'admin';
           const isLawyer = userRole === 'lawyer' || userRole === 'luật sư';
-          const isOwner = response.data.user_id === userData.id;
+          const isOwner = caseWithDefaults.user_id === userData.id;
           
           console.log('Thông tin vai trò người dùng:', {
             role: userRole,
@@ -69,9 +77,9 @@ const LegalCaseDetail = () => {
           setIsAdmin(isAdminUser);
           setIsOwner(isOwner);
           
-          // Nếu có luật sư, lấy thông tin chi tiết
-          if (response.data.lawyer && response.data.lawyer.id) {
-            fetchLawyerDetails(response.data.lawyer.id);
+          // Nếu có luật sư, lấy thông tin chi tiết (hoặc dùng từ dữ liệu có sẵn)
+          if (caseWithDefaults.lawyer && caseWithDefaults.lawyer.id) {
+            fetchLawyerDetails(caseWithDefaults.lawyer.id);
           }
         } else {
           message.error(response?.message || 'Không thể tải thông tin vụ án');
@@ -95,18 +103,26 @@ const LegalCaseDetail = () => {
       const response = await userService.getLawyerById(lawyerId);
       
       if (response && response.status === 'success' && response.data) {
+        console.log('Thông tin luật sư từ API:', response.data);
         setLawyerDetails(response.data);
+        
         // Cập nhật lại caseData.lawyer với thông tin chi tiết
-        setCaseData(prevData => ({
-          ...prevData,
-          lawyer: {
-            ...prevData.lawyer,
-            specialization: response.data.specialization,
-            experience_years: response.data.experience_years,
-            rating: response.data.rating,
-            avatar_url: response.data.avatar_url
-          }
-        }));
+        // nhưng giữ lại thông tin hiện có nếu không nhận được từ API
+        setCaseData(prevData => {
+          const updatedLawyer = {
+            ...(prevData.lawyer || {}),
+            specialization: response.data.specialization || prevData.lawyer?.specialization,
+            experience_years: response.data.experience_years || prevData.lawyer?.experience_years,
+            rating: response.data.rating || prevData.lawyer?.rating
+          };
+          
+          return {
+            ...prevData,
+            lawyer: updatedLawyer
+          };
+        });
+      } else {
+        console.log('Không nhận được thông tin luật sư từ API hoặc dữ liệu không hợp lệ');
       }
     } catch (error) {
       console.error('Lỗi khi lấy thông tin chi tiết luật sư:', error);
@@ -248,28 +264,31 @@ const LegalCaseDetail = () => {
         cancelText: 'Hủy',
         onOk: async () => {
           try {
-            // Chuyển đổi lawyerId thành số nếu cần
-            const parsedLawyerId = Number(lawyerId);
-            
-            const response = await legalCaseService.assignLawyer(id, parsedLawyerId);
+            const response = await legalCaseService.assignLawyer(id, lawyerId);
 
-            if (response && (response.success || response.partial_success)) {
-              if (response.partial_success) {
-                message.success('Đã gán luật sư thành công, nhưng có lỗi khi tạo lịch hẹn');
-              } else {
-                message.success('Đã gán luật sư thành công');
-              }
+            if (response.success) {
+              message.success('Đã gán luật sư thành công');
               
-              // Cập nhật trạng thái vụ án thành 'pending' (đang xử lý)
-              await legalCaseService.updateCaseStatus(id, 'pending', 'Vụ án đã được gán cho luật sư và đang chờ xử lý');
-              
-              // Cập nhật lại thông tin vụ án
+              // Lấy thông tin vụ án mới nhất sau khi gán luật sư
               const updatedCase = await legalCaseService.getLegalCaseById(id);
-              if (updatedCase && updatedCase.success) {
+              
+              if (updatedCase.success && updatedCase.data) {
+                // Cập nhật dữ liệu với thông tin mới
+                console.log('Dữ liệu vụ án sau khi gán luật sư:', updatedCase.data);
+                
+                // Cập nhật state với thông tin mới
                 setCaseData(updatedCase.data);
+                
+                // Nếu có thông tin luật sư, lấy thêm thông tin chi tiết
+                if (updatedCase.data.lawyer && updatedCase.data.lawyer.id) {
+                  fetchLawyerDetails(updatedCase.data.lawyer.id);
+                }
+                
+                // Đóng danh sách luật sư sau khi chọn thành công
+                setLawyers([]);
               }
             } else {
-              message.error(response?.message || 'Không thể gán luật sư');
+              message.error(response.message || 'Không thể gán luật sư');
             }
           } catch (error) {
             console.error('Lỗi khi gán luật sư:', error);
@@ -278,13 +297,13 @@ const LegalCaseDetail = () => {
             setAssigningLawyer(false);
           }
         },
-        onCancel: () => {
+        onCancel() {
           setAssigningLawyer(false);
-        }
+        },
       });
     } catch (error) {
-      console.error('Lỗi khi gán luật sư:', error);
-      message.error('Không thể gán luật sư. Vui lòng thử lại sau.');
+      console.error('Lỗi khi xử lý chọn luật sư:', error);
+      message.error('Không thể xử lý yêu cầu. Vui lòng thử lại sau.');
       setAssigningLawyer(false);
     }
   };
@@ -311,82 +330,70 @@ const LegalCaseDetail = () => {
         return;
       }
 
-      // Trực tiếp lấy thông tin vụ án để xác minh luật sư được gán
-      let canCalculateFee = false;
-      let assignedLawyerId = null;
+      console.log('Thông tin người dùng:', userData);
+      console.log('Thông tin vụ án:', caseData);
+
+      // Kiểm tra xem người dùng có phải là luật sư được gán không
+      const isLawyerRole = userData.role && (userData.role.toLowerCase() === 'lawyer' || userData.role.toLowerCase() === 'luật sư');
       
-      try {
-        const freshCaseData = await legalCaseService.getLegalCaseById(id);
-        
-        if (freshCaseData && freshCaseData.success && freshCaseData.data) {
-          const caseInfo = freshCaseData.data;
-          
-          // Cập nhật state với dữ liệu mới
-          setCaseData(caseInfo);
-          
-          // Lưu ID của luật sư được gán cho vụ án
-          assignedLawyerId = caseInfo.lawyer?.id;
-          
-          // QUAN TRỌNG: Kiểm tra xem người dùng có phải là luật sư được gán cho vụ án này không
-          // Chuyển cả hai ID thành chuỗi để đảm bảo so sánh chính xác
-          const isExactAssignedLawyer = 
-              caseInfo.lawyer && 
-              userData.id && 
-              String(caseInfo.lawyer.id) === String(userData.id);
-          
-          // Chỉ có luật sư được gán mới có thể tính phí
-          canCalculateFee = isExactAssignedLawyer;
-          
-          // Cập nhật state
-          setIsAssignedLawyer(isExactAssignedLawyer);
-        }
-      } catch (err) {
-        console.error('Lỗi khi lấy thông tin vụ án mới nhất:', err);
-      }
+      // Lấy ID luật sư từ cả hai nguồn có thể có
+      const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
       
-      // Nếu không có quyền tính phí, hiển thị thông báo và dừng
-      if (!canCalculateFee) {
-        message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
-        return;
-      }
+      console.log('Dữ liệu kiểm tra quyền tính phí:', {
+        caseData,
+        userRole: userData.role,
+        isLawyerRole,
+        userId: userData.id,
+        lawyerId: caseData.lawyer_id,
+        lawyerObjectId: caseData.lawyer?.id,
+        assignedLawyerId,
+        areIdsEqual: assignedLawyerId && String(userData.id) === String(assignedLawyerId)
+      });
+      
+      // QUAN TRỌNG: Kiểm tra xem người dùng có phải là luật sư được gán không
+      const canCalculateFee = isLawyerRole && assignedLawyerId && String(userData.id) === String(assignedLawyerId);
+      
+      if (canCalculateFee) {
+        setCalculatingFee(true);
 
-      setCalculatingFee(true);
+        const parameters = {
+          dispute_value: disputeValue
+        };
 
-      const parameters = {
-        dispute_value: disputeValue
-      };
+        // Gửi ID luật sư và case ID để xác thực
+        const response = await legalCaseService.calculateFee(id, parameters);
 
-      // Gửi ID luật sư và case ID để xác thực
-      const response = await legalCaseService.calculateFee(id, parameters);
+        if (response.success) {
+          message.success('Đã tính phí thành công');
 
-      if (response.success) {
-        message.success('Đã tính phí thành công');
-
-        // Cập nhật lại thông tin vụ án
-        const updatedCase = await legalCaseService.getLegalCaseById(id);
-        if (updatedCase.success) {
-          setCaseData(updatedCase.data);
+          // Cập nhật lại thông tin vụ án
+          const updatedCase = await legalCaseService.getLegalCaseById(id);
+          if (updatedCase.success) {
+            setCaseData(updatedCase.data);
+          }
+        } else {
+          // Nếu lỗi liên quan đến quyền truy cập
+          if (response.permissionError) {
+            message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
+            return;
+          }
+          
+          if (response.message && (
+              response.message.includes('unauthorized') || 
+              response.message.includes('unauthenticated') || 
+              response.message.includes('token') ||
+              response.message.includes('đăng nhập')
+          )) {
+            message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            setTimeout(() => {
+              navigate('/login', { state: { from: `/legal-cases/${id}` } });
+            }, 1500);
+          } else {
+            message.error(response.message || 'Không thể tính phí');
+          }
         }
       } else {
-        // Nếu lỗi liên quan đến quyền truy cập
-        if (response.permissionError) {
-          message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
-          return;
-        }
-        
-        if (response.message && (
-            response.message.includes('unauthorized') || 
-            response.message.includes('unauthenticated') || 
-            response.message.includes('token') ||
-            response.message.includes('đăng nhập')
-        )) {
-          message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-          setTimeout(() => {
-            navigate('/login', { state: { from: `/legal-cases/${id}` } });
-          }, 1500);
-        } else {
-          message.error(response.message || 'Không thể tính phí');
-        }
+        message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
       }
     } catch (error) {
       console.error('Lỗi khi tính phí vụ án:', error);
@@ -649,7 +656,11 @@ const LegalCaseDetail = () => {
                   <Space size={12} className={styles.caseHeaderTags}>
                     {renderStatus(caseData.status)}
                     <Tag color="#3d5a80">{caseData.case_type}</Tag>
-                    {caseData.is_ai_generated && <Tag color="purple">AI</Tag>}
+                    {caseData.ai_content && (
+                      caseData.is_ai_generated 
+                        ? <Tag color="purple">AI</Tag>
+                        : <Tag color="blue">Nội dung</Tag>
+                    )}
                   </Space>
                 </div>
                 {isOwner && (
@@ -718,10 +729,12 @@ const LegalCaseDetail = () => {
                         <Paragraph className={styles.caseDescription}>{caseData.description}</Paragraph>
 
                         {/* Hiển thị nội dung AI nếu có */}
-                        {caseData.is_ai_generated && caseData.ai_content && (
+                        {caseData.ai_content && (
                           <div className={styles.aiContentSection}>
                             <Divider orientation="left">
-                              <span className={styles.dividerTitle}>Nội dung do AI soạn thảo</span>
+                              <span className={styles.dividerTitle}>
+                                {caseData.is_ai_generated ? 'Nội dung do AI soạn thảo' : 'Nội dung vụ án'}
+                              </span>
                             </Divider>
                             <div className={styles.aiContent}>
                               {caseData.ai_content.split('\n').map((line, i) => (
@@ -769,88 +782,103 @@ const LegalCaseDetail = () => {
                     children: (
                       <div className={styles.tabContent}>
                         {caseData.lawyer ? (
-                          <div>
+                          <>
                             <Card bordered={false} className={styles.lawyerCard}>
                               <div className={styles.lawyerProfile}>
-                                <Avatar size={80} icon={<UserOutlined />} src={caseData.lawyer.avatar_url} className={styles.lawyerAvatar} />
+                                <Avatar 
+                                  size={80} 
+                                  icon={<UserOutlined />} 
+                                  className={styles.lawyerAvatar} 
+                                />
                                 <div className={styles.lawyerInfo}>
-                                  <Title level={4}>{caseData.lawyer.full_name}</Title>
-                                  <Text type="secondary">{caseData.lawyer.email}</Text>
+                                  <Title level={4}>{caseData.lawyer.full_name || 'Luật sư'}</Title>
+                                  <Text type="secondary">{caseData.lawyer.email || 'Không có thông tin email'}</Text>
+                                  <Text type="secondary">Điện thoại: {caseData.lawyer.phone || 'Không có thông tin'}</Text>
                                 </div>
                               </div>
-                              <Divider />
+
                               <Descriptions title="Thông tin luật sư" column={1} className={styles.lawyerDetails}>
                                 <Descriptions.Item label="Chuyên môn">
-                                  {caseData.lawyer.specialization ? 
-                                    (Array.isArray(caseData.lawyer.specialization) ? 
-                                      caseData.lawyer.specialization.join(', ') : 
-                                      caseData.lawyer.specialization) : 
+                                  {caseData.lawyer.specialization ?
+                                    (Array.isArray(caseData.lawyer.specialization) ?
+                                      caseData.lawyer.specialization.join(', ') :
+                                      caseData.lawyer.specialization) :
                                     'Chưa cập nhật'}
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Số năm kinh nghiệm">
+                                <Descriptions.Item label="Kinh nghiệm">
                                   {caseData.lawyer.experience_years || caseData.lawyer.experienceYears || '0'} năm
                                 </Descriptions.Item>
                                 <Descriptions.Item label="Đánh giá">
                                   <Rate disabled defaultValue={parseFloat(caseData.lawyer.rating || 0) || 0} allowHalf />
-                                  <span style={{ marginLeft: '10px' }}>
+                                  <span style={{ marginLeft: 8 }}>
                                     {parseFloat(caseData.lawyer.rating || 0).toFixed(1)}/5
                                   </span>
                                 </Descriptions.Item>
                               </Descriptions>
                             </Card>
-                          </div>
+                          </>
                         ) : (
                           <div className={styles.assignLawyerSection}>
-                            <Title level={4}>Chọn luật sư cho vụ án</Title>
-                            <Paragraph className={styles.sectionDescription}>
-                              Chọn một luật sư để được tư vấn và xử lý vụ án của bạn. Luật sư bạn đã đặt lịch hẹn thành công và đã được luật sư xác nhận mới có thể xử lý vụ án
-                            </Paragraph>
+                            <Empty 
+                              description="Chưa có luật sư được gán cho vụ án này" 
+                              image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                              style={{ marginBottom: 20 }}
+                            />
+                            
+                            {isOwner && (
+                              <>
+                                <Title level={4}>Chọn luật sư cho vụ án</Title>
+                                <Paragraph className={styles.sectionDescription}>
+                                  Chọn một luật sư để được tư vấn và xử lý vụ án của bạn. Luật sư bạn đã đặt lịch hẹn thành công và đã được luật sư xác nhận mới có thể xử lý vụ án
+                                </Paragraph>
 
-                            <Button
-                              type="primary"
-                              onClick={fetchLawyers}
-                              loading={lawyersLoading}
-                              size="large"
-                              className={styles.primaryButton}
-                            >
-                              Xem danh sách luật sư
-                            </Button>
+                                <Button
+                                  type="primary"
+                                  onClick={fetchLawyers}
+                                  loading={lawyersLoading}
+                                  size="large"
+                                  className={styles.primaryButton}
+                                >
+                                  Xem danh sách luật sư
+                                </Button>
 
-                            {lawyers.length > 0 && (
-                              <List
-                                itemLayout="horizontal"
-                                dataSource={lawyers}
-                                className={styles.lawyerList}
-                                renderItem={lawyer => (
-                                  <div className={styles.lawyerItem}>
-                                    <div className={styles.lawyerAvatar}>
-                                      <Avatar size={64} icon={<UserOutlined />} src={lawyer.avatar} />
-                                    </div>
-                                    <div className={styles.lawyerInfo}>
-                                      <div className={styles.lawyerName}>{lawyer.fullName || lawyer.full_name || lawyer.username || 'Luật sư'}</div>
-                                      <div className={styles.lawyerMeta}>
-                                        {lawyer.specialization ? (Array.isArray(lawyer.specialization) ? lawyer.specialization.join(', ') : lawyer.specialization) : 'Luật sư đa lĩnh vực'}
+                                {lawyers.length > 0 && (
+                                  <List
+                                    itemLayout="horizontal"
+                                    dataSource={lawyers}
+                                    className={styles.lawyerList}
+                                    renderItem={lawyer => (
+                                      <div className={styles.lawyerItem}>
+                                        <div className={styles.lawyerAvatar}>
+                                          <Avatar size={64} icon={<UserOutlined />} src={lawyer.avatar} />
+                                        </div>
+                                        <div className={styles.lawyerInfo}>
+                                          <div className={styles.lawyerName}>{lawyer.fullName || lawyer.full_name || lawyer.username || 'Luật sư'}</div>
+                                          <div className={styles.lawyerMeta}>
+                                            {lawyer.specialization ? (Array.isArray(lawyer.specialization) ? lawyer.specialization.join(', ') : lawyer.specialization) : 'Luật sư đa lĩnh vực'}
+                                          </div>
+                                          <div className={styles.lawyerRating}>
+                                            <Rate disabled defaultValue={parseFloat(lawyer.rating || 0) || 4} allowHalf />
+                                            <span className={styles.ratingCount}>
+                                              {parseFloat(lawyer.rating || 0) || 4}/5 ({lawyer.review_count || 0} đánh giá)
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className={styles.lawyerAction}>
+                                          <Button
+                                            type="primary"
+                                            onClick={() => handleAssignLawyer(lawyer.id)}
+                                            loading={assigningLawyer}
+                                            className={styles.assignButton}
+                                          >
+                                            Chọn
+                                          </Button>
+                                        </div>
                                       </div>
-                                      <div className={styles.lawyerRating}>
-                                        <Rate disabled defaultValue={parseFloat(lawyer.rating || 0) || 4} allowHalf />
-                                        <span className={styles.ratingCount}>
-                                          {parseFloat(lawyer.rating || 0) || 4}/5 ({lawyer.review_count || 0} đánh giá)
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className={styles.lawyerAction}>
-                                      <Button
-                                        type="primary"
-                                        onClick={() => handleAssignLawyer(lawyer.id)}
-                                        loading={assigningLawyer}
-                                        className={styles.assignButton}
-                                      >
-                                        Chọn
-                                      </Button>
-                                    </div>
-                                  </div>
+                                    )}
+                                  />
                                 )}
-                              />
+                              </>
                             )}
                           </div>
                         )}
@@ -944,90 +972,77 @@ const LegalCaseDetail = () => {
                                   const userData = JSON.parse(localStorage.getItem('user') || '{}');
                                   
                                   // Lấy thông tin luật sư được gán từ state
-                                  const assignedLawyerId = caseData.lawyer?.id;
+                                  const isLawyerRole = userData.role && (userData.role.toLowerCase() === 'lawyer' || userData.role.toLowerCase() === 'luật sư');
                                   
-                                  // QUAN TRỌNG: Chỉ có luật sư được gán chính xác mới có thể tính phí
-                                  const isExactAssignedLawyer = 
-                                      assignedLawyerId && 
-                                      userData.id && 
-                                      String(assignedLawyerId) === String(userData.id);
+                                  // Lấy ID luật sư từ cả hai nguồn có thể có
+                                  const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
                                   
-                                  // Phần này trả về text mô tả phần tính phí
-                                  return isExactAssignedLawyer
-                                    ? "Nhập giá trị tranh chấp (nếu có) để tính phí dịch vụ. Phí sẽ được tính dựa trên loại vụ án và các thông số bổ sung."
-                                    : "Phí dịch vụ sẽ được luật sư tính toán sau khi xem xét thông tin vụ án của bạn.";
-                                } catch (err) {
-                                  console.error('Lỗi khi kiểm tra quyền tính phí:', err);
-                                  return "Phí dịch vụ sẽ được luật sư tính toán sau khi xem xét thông tin vụ án của bạn.";
-                                }
-                              })()}
-                            </Paragraph>
+                                  console.log('Dữ liệu kiểm tra quyền tính phí:', {
+                                    caseData,
+                                    userRole: userData.role,
+                                    isLawyerRole,
+                                    userId: userData.id,
+                                    lawyerId: caseData.lawyer_id,
+                                    lawyerObjectId: caseData.lawyer?.id,
+                                    assignedLawyerId,
+                                    areIdsEqual: assignedLawyerId && String(userData.id) === String(assignedLawyerId)
+                                  });
+                                  
+                                  // QUAN TRỌNG: Kiểm tra xem người dùng có phải là luật sư được gán không
+                                  const canCalculateFee = isLawyerRole && assignedLawyerId && String(userData.id) === String(assignedLawyerId);
+                                  
+                                  if (canCalculateFee) {
+                                    return (
+                                      <>
+                                        <p>Nhập giá trị tranh chấp (nếu có) để tính phí dịch vụ. Phí sẽ được tính dựa trên loại vụ án và các thông số bổ sung.</p>
+                                        <Space direction="vertical" style={{ width: '100%' }} size="large">
+                                          <div className={styles.disputeValueInput}>
+                                            <span className={styles.inputLabel}>Giá trị tranh chấp (VNĐ):</span>
+                                            <InputNumber
+                                              className={styles.amountInput}
+                                              min={0}
+                                              step={1000000}
+                                              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                                              value={disputeValue}
+                                              onChange={value => setDisputeValue(value)}
+                                              size="large"
+                                            />
+                                          </div>
 
-                            {(() => {
-                              try {
-                                // Kiểm tra quyền tính phí
-                                const userData = JSON.parse(localStorage.getItem('user') || '{}');
-                                
-                                // Lấy thông tin luật sư được gán từ state
-                                const assignedLawyerId = caseData.lawyer?.id;
-                                
-                                // QUAN TRỌNG: Chỉ có luật sư được gán chính xác mới có thể tính phí, loại bỏ admin
-                                const isExactAssignedLawyer = 
-                                    assignedLawyerId && 
-                                    userData.id && 
-                                    String(assignedLawyerId) === String(userData.id);
-                                
-                                // Chỉ luật sư được gán mới có quyền tính phí
-                                const canCalculateFee = isExactAssignedLawyer;
-                                
-                                if (canCalculateFee) {
-                                  return (
-                                    <Space direction="vertical" style={{ width: '100%' }} size="large">
-                                      <div className={styles.disputeValueInput}>
-                                        <span className={styles.inputLabel}>Giá trị tranh chấp (VNĐ):</span>
-                                        <InputNumber
-                                          className={styles.amountInput}
-                                          min={0}
-                                          step={1000000}
-                                          formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                          parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                                          value={disputeValue}
-                                          onChange={value => setDisputeValue(value)}
-                                          size="large"
-                                        />
+                                          <Button
+                                            type="primary"
+                                            onClick={handleCalculateFee}
+                                            loading={calculatingFee}
+                                            size="large"
+                                            className={styles.primaryButton}
+                                          >
+                                            Tính phí
+                                          </Button>
+                                        </Space>
+                                      </>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className={styles.waitingForFee}>
+                                        <p className={styles.waitingText}>
+                                          Vui lòng đợi luật sư được phân công tính toán phí dịch vụ. Bạn sẽ có thể thanh toán sau khi phí được tính.
+                                        </p>
                                       </div>
-
-                                      <Button
-                                        type="primary"
-                                        onClick={handleCalculateFee}
-                                        loading={calculatingFee}
-                                        size="large"
-                                        className={styles.primaryButton}
-                                      >
-                                        Tính phí
-                                      </Button>
-                                    </Space>
-                                  );
-                                } else {
+                                    );
+                                  }
+                                } catch (err) {
+                                  console.error('Lỗi khi hiển thị phần tính phí:', err);
                                   return (
                                     <div className={styles.waitingForFee}>
                                       <p className={styles.waitingText}>
-                                        Vui lòng đợi luật sư được phân công tính toán phí dịch vụ. Bạn sẽ có thể thanh toán sau khi phí được tính.
+                                        Đã xảy ra lỗi khi tải phần tính phí. Vui lòng tải lại trang.
                                       </p>
                                     </div>
                                   );
                                 }
-                              } catch (err) {
-                                console.error('Lỗi khi hiển thị phần tính phí:', err);
-                                return (
-                                  <div className={styles.waitingForFee}>
-                                    <p className={styles.waitingText}>
-                                      Đã xảy ra lỗi khi tải phần tính phí. Vui lòng tải lại trang.
-                                    </p>
-                                  </div>
-                                );
-                              }
-                            })()}
+                              })()}
+                            </Paragraph>
                           </div>
                         )}
                       </div>
