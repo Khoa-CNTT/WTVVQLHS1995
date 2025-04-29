@@ -148,382 +148,47 @@ Dự án được chia thành hai phần chính:
 ### 1. Backend (Node.js/Express)
 - **Cấu trúc thư mục**:
   ```
-Backend/
-├── src/
-│   app.js
-│
-├───config
-│       database.js
-│       elasticsearch.js
-│       env.js
-│
-├───controllers
-│       aiController.js
-│       appointmentController.js
-│       authController.js
-│       autoUpdateController.js
-│       chatController.js
-│       contractController.js
-│       legalCaseController.js
-│       legalDocumentController.js
-│       legalDocumentController.test.js
-│       mailController.js
-│       nodeScraperController.js
-│       reviewController.js
-│       router.js
-│       userController.js
-│       userLegalDocController.js
-│
-├───data
-│       .gitkeep
-│       legal_data.json
-│
-├───database
-│   │   schema.sql
-│   │
-│   └───migrations
-├───middleware
-│       async.js
-│       auth.js
-│       authMiddleware.js
-│       errorMiddleware.js
-│
-├───models
-│       appointmentModel.js
-│       auditLogModel.js
-│       authModel.js
-│       chatModel.js
-│       contractModel.js
-│       legalCaseModel.js
-│       legalDocumentModel.js
-│       reviewModel.js
-│       userLegalDocModel.js
-│       userModel.js
-│
-├───routes
-│       aiRoutes.js
-│       appointmentRoutes.js
-│       authRoutes.js
-│       autoUpdateRoutes.js
-│       chatRoutes.js
-│       contractRoutes.js
-│       index.js
-│       legalCaseRoutes.js
-│       legalDocumentRoutes.js
-│       legalRoutes.js
-│       mailRoutes.js
-│       nodeScraperRoutes.js
-│       reviewRoutes.js
-│       userLegalDocRoutes.js
-│       userRoutes.js
-│
-├───services
-│       aiService.js
-│       authService.js
-│       autoUpdateService.js
-│       emailService.js
-│       nodeScraperService.js
-│       ollamaService.js
-│       ragService.js
-│       scrapingService.js
-│       userService.js
-│
-├───types
-│       authTypes.js
-│       userTypes.js
-│
-└───utils
-        errorResponse.js
-        helpers.js
-        logger.js
-        scraperUtil.js
-        simpleVectorStore.js
-```
+  Backend/
+  ├── src/
+  │   ├── config/        # Cấu hình ứng dụng
+  │   ├── controllers/   # Xử lý logic nghiệp vụ
+  │   ├── middleware/    # Middleware (auth, upload, validation)
+  │   ├── models/        # Mô hình dữ liệu và schema
+  │   ├── routes/        # API routes
+  │   ├── services/      # Logic nghiệp vụ
+  │   │   ├── ragService.js    # Dịch vụ RAG
+  │   │   ├── ollamaService.js # Kết nối với Ollama
+  │   │   └── ...
+  │   ├── data/          # Dữ liệu pháp lý
+  │   ├── utils/         # Tiện ích
+  │   └── app.js         # Entry point
+  ├── uploads/           # Thư mục lưu tài liệu upload
+  ├── migrations/        # Database migrations
+  └── ...
+  ```
 
 ### 2. Frontend (React/Vite)
 - **Cấu trúc thư mục**:
-```
-Frontend/
-│   App.css
-│   App.jsx
-│   index.css
-│   main.jsx
-│   theme.js
-│   
-├───assets
-│       react.svg
-│
-├───components
-│   │   TestApiConnection.jsx
-│   │
-│   ├───Common
-│   │       Spinner.css
-│   │       Spinner.jsx
-│   │
-│   ├───Dashboard
-│   │       UpdateNotification.jsx
-│   │       UpdateNotification.module.css
-│   │
-│   ├───DocCard
-│   │       DocCard.jsx
-│   │       DocCard.module.css
-│   │
-│   ├───DocSearchFilter
-│   │       DocSearchFilter.jsx
-│   │       DocSearchFilter.module.css
-│   │
-│   ├───hooks
-│   │       Profile.jsx
-│   │
-│   ├───layout
-│   │   │   AppLayout.jsx
-│   │   │   DashboardLayout.jsx
-│   │   │   ProtectedLayout.jsx
-│   │   │
-│   │   ├───Chat
-│   │   │       AIPrompt.jsx
-│   │   │       AIPrompt.module.css
-│   │   │       ChatManager.jsx
-│   │   │       ChatManager.module.css
-│   │   │       ChatWindow.jsx
-│   │   │       ChatWindow.module.css
-│   │   │
-│   │   ├───Loading
-│   │   │       Loading.jsx
-│   │   │       Loading.module.css
-│   │   │
-│   │   ├───Nav
-│   │   │       Footer.jsx
-│   │   │       Navbar.jsx
-│   │   │       Navbar.module.css
-│   │   │       NavLink.jsx
-│   │   │       SideMenu.jsx
-│   │   │
-│   │   └───TransitionPage
-│   │           PageTransition.jsx
-│   │           RouteChangeDetector.jsx
-│   │           RouteChangeDetector.module.css
-│   │
-│   ├───LegalCase
-│   │       CardLegalCase.jsx
-│   │
-│   ├───Swiper
-│   │       Swiper.jsx
-│   │       Swiper.module.css
-│   │
-│   ├───ui
-│   │       CustomModal.jsx
-│   │       CustomModal.module.css
-│   │       demo.jsx
-│   │
-│   └───untils
-│           demo.jsx
-│
-├───config
-│       axios.jsx
-│       constants.jsx
-│       env.jsx
-│       theme.jsx
-│
-├───examples
-├───hooks
-├───pages
-│   ├───About
-│   │       About.module.css
-│   │       demo.jsx
-│   │
-│   ├───AITools
-│   ├───Chats
-│   ├───Contact
-│   │       Contact.jsx
-│   │       Contact.module.css
-│   │       ContactForm.jsx
-│   │
-│   ├───Contracts
-│   │   │   ContractManager.jsx
-│   │   │   ContractManager.module.css
-│   │   │
-│   │   └───components
-│   │           ContractDetails.jsx
-│   │           ContractForm.jsx
-│   │           DeleteConfirmation.jsx
-│   │
-│   ├───Dashboard
-│   │   │   Dashboard.jsx
-│   │   │   DashboardPage.module.css
-│   │   │
-│   │   ├───components
-│   │   │       NotificationMenuPortal.jsx
-│   │   │       UserMenuPortal.jsx
-│   │   │
-│   │   ├───DocumentTemplates
-│   │   │       DocumentTemplatesManager.jsx
-│   │   │       DocumentTemplatesManager.module.css
-│   │   │
-│   │   ├───LegalDocuments
-│   │   │       LegalDocumentsManager.jsx
-│   │   │       LegalDocumentsManager.module.css
-│   │   │
-│   │   ├───UserLegalDocs
-│   │   │       UserLegalDocsManager.jsx
-│   │   │       UserLegalDocsManager.module.css
-│   │   │
-│   │   └───UsersManager
-│   │       │   UsersManager.jsx
-│   │       │   UsersManagerPage.module.css
-│   │       │
-│   │       └───components
-│   │               AddUserModal.jsx
-│   │               DeleteConfirmModal.jsx
-│   │               EditUserModal.jsx
-│   │               HistoryLog.jsx
-│   │               Notification.jsx
-│   │               Pagination.jsx
-│   │               ResetPasswordModal.jsx
-│   │               SearchBar.jsx
-│   │               UserTable.jsx
-│   │
-│   ├───Documents
-│   │       DocumentDetail.jsx
-│   │       DocumentDetail.module.css
-│   │       Documents.jsx
-│   │       Documents.module.css
-│   │
-│   ├───ForgotPassword
-│   │       ForgotPassword.jsx
-│   │       ForgotPassword.module.css
-│   │
-│   ├───Home
-│   │   │   Home.jsx
-│   │   │   Home.module.css
-│   │   │
-│   │   └───components
-│   ├───LawyerDashboard
-│   │   │   LawyerCaseManager.jsx
-│   │   │   LawyerDashboard.jsx
-│   │   │   LawyerDashboard.module.css
-│   │   │
-│   │   └───components
-│   │           AppointmentsManager.jsx
-│   │           AppointmentsManager.module.css
-│   │           AvailabilityManager.jsx
-│   │           AvailabilityManager.module.css
-│   │           ChatManager.jsx
-│   │           ChatManager.module.css
-│   │
-│   ├───Lawyers
-│   │   │   Lawyers.jsx
-│   │   │   Lawyers.module.css
-│   │   │
-│   │   ├───components
-│   │   │       AppointmentForm.jsx
-│   │   │
-│   │   └───signUp
-│   │           form_sign_up.module.css
-│   │           signUpLawyer.jsx
-│   │
-│   ├───LegalCase
-│   │       LegalCase.module.css
-│   │       LegalCaseCreator.jsx
-│   │       LegalCaseDetail.jsx
-│   │       LegalCaseEditor.jsx
-│   │       LegalCaseList.jsx
-│   │
-│   ├───LegalDocs
-│   │   │   LegalDocs.jsx
-│   │   │   LegalDocs.module.css
-│   │   │   LegalDocsPage.jsx
-│   │   │
-│   │   └───components
-│   │           DocAnalysisModal.jsx
-│   │           DocAnalysisModal.module.css
-│   │           DocCard.jsx
-│   │           DocCard.module.css
-│   │           DocDetailsModal.jsx
-│   │           DocDetailsModal.module.css
-│   │           DocSearchFilter.jsx
-│   │           DocSearchFilter.module.css
-│   │           DocShareModal.jsx
-│   │           DocShareModal.module.css
-│   │           DocUploadModal.jsx
-│   │           DocUploadModal.module.css
-│   │
-│   ├───Login
-│   │       Login.jsx
-│   │       LoginPage.jsx
-│   │       LoginPage.module.css
-│   │
-│   ├───News
-│   │       News.jsx
-│   │       News.module.css
-│   │
-│   ├───NotFound
-│   │       NotFound.jsx
-│   │
-│   ├───Profile
-│   │   │   Profile.jsx
-│   │   │   Profile.module.css
-│   │   │
-│   │   ├───Appointments
-│   │   │       AppointmentsPage.jsx
-│   │   │       AppointmentsPage.module.css
-│   │   │
-│   │   └───ChangePassword
-│   │           ChangePasssword.jsx
-│   │           ChangePassword.module.css
-│   │
-│   ├───Register
-│   │       Register.jsx
-│   │       RegisterPage.module.css
-│   │
-│   ├───Search
-│   │       SearchResults.jsx
-│   │       SearchResults.module.css
-│   │
-│   ├───Services
-│   │       Services.jsx
-│   │       Services.module.css
-│   │
-│   └───Templates
-│           TemplateDetail.jsx
-│           TemplateDetail.module.css
-│           Templates.jsx
-│           Templates.module.css
-│
-├───router
-│       index.jsx
-│       privateRoutes.jsx
-│       publicRoutes.jsx
-│
-├───scripts
-├───services
-│       aiService.jsx
-│       appointmentService.jsx
-│       authService.jsx
-│       chatService.jsx
-│       contractService.jsx
-│       emailService.js
-│       legalCaseService.jsx
-│       legalDocAIService.jsx
-│       legalDocService.jsx
-│       legalService.jsx
-│       scraperService.jsx
-│       userService.jsx
-│
-├───store
-│   │   index.jsx
-│   │
-│   └───features
-│       └───user
-├───styles
-│       global.css
-│
-├───types
-│       auth.jsx
-│       user.jsx
-│
-└───utils
-        fileIcons.js
+  ```
+  Frontend/
+  ├── src/
+  │   ├── assets/        # Tài nguyên tĩnh (hình ảnh, fonts)
+  │   ├── components/    # Components tái sử dụng
+  │   │   ├── layout/    # Components bố cục (Header, Footer, Navbar)
+  │   │   └── ...
+  │   ├── pages/         # Các trang
+  │   │   ├── Home/      # Trang chủ
+  │   │   ├── LegalCase/ # Trang quản lý vụ án
+  │   │   └── ...
+  │   ├── router/        # Cấu hình định tuyến
+  │   ├── services/      # Gọi API
+  │   ├── store/         # Quản lý trạng thái
+  │   ├── styles/        # CSS toàn cục
+  │   ├── hooks/         # React hooks
+  │   ├── utils/         # Tiện ích
+  │   ├── App.jsx        # Component App
+  │   └── main.jsx       # Entry point
+  └── ...
   ```
 
 ---
