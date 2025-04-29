@@ -15,6 +15,7 @@ const { Header, Content } = Layout;
 
 const LegalCaseCreator = () => {
     const [form] = Form.useForm();
+    const [aiForm] = Form.useForm();
     const navigate = useNavigate();
 
     const [useAI, setUseAI] = useState(false);
@@ -158,7 +159,7 @@ const LegalCaseCreator = () => {
             // Nếu sử dụng AI, thêm các trường liên quan
             if (useAI) {
                 // Lấy giá trị từ form
-                const aiFormValues = form.getFieldsValue(['template_id', 'user_input']);
+                const aiFormValues = aiForm.getFieldsValue(['template_id', 'user_input']);
                 formData.append('ai_draft', 'true');
                 formData.append('template_id', aiFormValues.template_id || '');
                 formData.append('user_input', aiFormValues.user_input || '');
@@ -266,6 +267,19 @@ const LegalCaseCreator = () => {
             md: 24,
             lg: 8
         };
+    };
+
+    // Xử lý submit form khi sử dụng AI
+    const handleSubmitWithAI = () => {
+        // Kiểm tra các trường bắt buộc
+        form.validateFields().then(values => {
+            // Gộp giá trị từ cả hai form
+            const aiValues = aiForm.getFieldsValue(['template_id', 'user_input']);
+            const combinedValues = { ...values, ...aiValues };
+            handleCreateCase(combinedValues);
+        }).catch(errorInfo => {
+            message.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+        });
     };
 
     return (
@@ -399,10 +413,9 @@ const LegalCaseCreator = () => {
                                         }
                                     >
                                         <Form
-                                            form={form}
+                                            form={aiForm}
                                             layout={formLayout}
                                             className={styles.aiForm}
-                                            onFinish={handleCreateCase}
                                         >
                                             <Row gutter={24}>
                                                 <Col xs={24} md={12}>
@@ -485,7 +498,7 @@ const LegalCaseCreator = () => {
                                                             loading={submitting}
                                                             size="large"
                                                             className={styles.submitButton}
-                                                            onClick={handleSaveWithAI}
+                                                            onClick={handleSubmitWithAI}
                                                         >
                                                             Lưu vụ án với bản nháp AI
                                                         </Button>

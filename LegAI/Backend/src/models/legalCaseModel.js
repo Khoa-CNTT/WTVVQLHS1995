@@ -20,7 +20,7 @@ const createLegalCase = async (caseData) => {
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, user_id, title, description, case_type, status, 
-        ai_content, is_ai_generated, created_at, updated_at
+        ai_content, is_ai_generated, file_url, created_at, updated_at
     `;
     
     const caseValues = [
@@ -31,46 +31,14 @@ const createLegalCase = async (caseData) => {
       caseData.status || 'draft',
       caseData.ai_content || null,
       caseData.is_ai_generated || false,
-      caseData.file_url || 'default_no_file.txt'
+      caseData.file_url || null
     ];
     
     const caseResult = await client.query(caseQuery, caseValues);
     const newCase = caseResult.rows[0];
     
-    // Nếu có files, thêm vào bảng CaseDocuments
-    if (caseData.files && caseData.files.length > 0) {
-      const documentValues = [];
-      const documentParams = [];
-      let paramIndex = 1;
-      
-      for (let i = 0; i < caseData.files.length; i++) {
-        const file = caseData.files[i];
-        documentParams.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
-        documentValues.push(
-          newCase.id,
-          file.original_name,
-          file.file_path,
-          file.mime_type,
-          file.encryption_key
-        );
-      }
-      
-      const documentQuery = `
-        INSERT INTO CaseDocuments (
-          case_id, original_name, file_path, mime_type, encryption_key
-        )
-        VALUES ${documentParams.join(', ')}
-        RETURNING id, case_id, original_name
-      `;
-      
-      await client.query(documentQuery, documentValues);
-    }
-    
     await client.query('COMMIT');
-    
-    // Lấy vụ án đầy đủ với documents
-    const result = await getLegalCaseById(newCase.id);
-    return result;
+    return newCase;
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Lỗi khi tạo vụ án:', error);
@@ -93,14 +61,7 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
     
     let query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.created_at, c.updated_at,
-        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
-          ELSE json_agg(json_build_object(
-            'id', d.id,
-            'original_name', d.original_name,
-            'mime_type', d.mime_type
-          )) 
-        END AS documents,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
         CASE WHEN l.id IS NULL THEN NULL
           ELSE json_build_object(
@@ -110,7 +71,6 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
           )
         END AS lawyer
       FROM LegalCases c
-      LEFT JOIN CaseDocuments d ON c.id = d.case_id
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
       WHERE c.user_id = $1 AND c.deleted_at IS NULL
@@ -125,7 +85,6 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
     }
     
     query += `
-      GROUP BY c.id, u.username, l.id, l.username, l.full_name
       ORDER BY c.created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
@@ -153,14 +112,7 @@ const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
     
     let query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.created_at, c.updated_at,
-        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
-          ELSE json_agg(json_build_object(
-            'id', d.id,
-            'original_name', d.original_name,
-            'mime_type', d.mime_type
-          )) 
-        END AS documents,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
         u.full_name AS customer_name,
         u.email AS customer_email,
@@ -173,7 +125,6 @@ const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
           )
         END AS lawyer
       FROM LegalCases c
-      LEFT JOIN CaseDocuments d ON c.id = d.case_id
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
       WHERE c.lawyer_id = $1 AND c.deleted_at IS NULL
@@ -188,7 +139,6 @@ const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
     }
     
     query += `
-      GROUP BY c.id, u.username, u.full_name, u.email, u.phone, l.id, l.username, l.full_name
       ORDER BY c.created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
@@ -206,54 +156,40 @@ const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
 /**
  * Lấy chi tiết vụ án theo ID
  * @param {number} caseId - ID vụ án
- * @returns {Promise<Object>} Chi tiết vụ án
+ * @returns {Promise<Object>} Thông tin chi tiết vụ án
  */
 const getLegalCaseById = async (caseId) => {
   try {
     const query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.ai_content, c.notes,
-        c.created_at, c.updated_at,
-        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
-          ELSE json_agg(json_build_object(
-            'id', d.id,
-            'original_name', d.original_name,
-            'mime_type', d.mime_type
-          )) 
-        END AS documents,
+        c.lawyer_id, c.fee_amount, c.fee_details, c.ai_content, c.is_ai_generated, 
+        c.notes, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
+        u.full_name AS customer_name,
         CASE WHEN l.id IS NULL THEN NULL
           ELSE json_build_object(
             'id', l.id,
             'username', l.username,
             'full_name', l.full_name,
             'email', l.email,
-            'specialization', ld.specialization,
-            'experience_years', ld.experience_years,
-            'rating', ld.rating,
-            'avatar_url', up.avatar_url
+            'phone', l.phone
           )
         END AS lawyer
       FROM LegalCases c
-      LEFT JOIN CaseDocuments d ON c.id = d.case_id
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
-      LEFT JOIN LawyerDetails ld ON l.id = ld.lawyer_id
-      LEFT JOIN UserProfiles up ON l.id = up.user_id
       WHERE c.id = $1 AND c.deleted_at IS NULL
-      GROUP BY c.id, u.username, l.id, l.username, l.full_name, l.email, 
-               ld.specialization, ld.experience_years, ld.rating, up.avatar_url
     `;
     
     const result = await pool.query(query, [caseId]);
     
     if (result.rows.length === 0) {
-      return null;
+      throw new Error('Không tìm thấy vụ án');
     }
     
     return result.rows[0];
   } catch (error) {
-    console.error('Lỗi khi lấy chi tiết vụ án:', error);
+    console.error(`Lỗi khi lấy chi tiết vụ án ID ${caseId}:`, error);
     throw error;
   }
 };
@@ -565,78 +501,6 @@ const updateCaseStatus = async (caseId, status) => {
 };
 
 /**
- * Lấy thông tin tài liệu vụ án
- * @param {number} caseId - ID vụ án
- * @param {number} documentId - ID tài liệu
- * @returns {Promise<Object>} Thông tin tài liệu
- */
-const getCaseDocumentById = async (caseId, documentId) => {
-  try {
-    const query = `
-      SELECT id, case_id, original_name, file_path, mime_type, 
-        encryption_key, created_at
-      FROM CaseDocuments
-      WHERE case_id = $1 AND id = $2
-    `;
-    
-    const result = await pool.query(query, [caseId, documentId]);
-    
-    if (result.rows.length === 0) {
-      return null;
-    }
-    
-    return result.rows[0];
-  } catch (error) {
-    console.error('Lỗi khi lấy thông tin tài liệu:', error);
-    throw error;
-  }
-};
-
-/**
- * Thêm tài liệu mới cho vụ án
- * @param {number} caseId - ID vụ án
- * @param {Array} files - Danh sách tài liệu
- * @returns {Promise<Array>} Danh sách tài liệu đã thêm
- */
-const addCaseDocuments = async (caseId, files) => {
-  try {
-    if (!files || files.length === 0) {
-      return [];
-    }
-    
-    const values = [];
-    const params = [];
-    let paramIndex = 1;
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      params.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
-      values.push(
-        caseId,
-        file.original_name,
-        file.file_path,
-        file.mime_type,
-        file.encryption_key
-      );
-    }
-    
-    const query = `
-      INSERT INTO CaseDocuments (
-        case_id, original_name, file_path, mime_type, encryption_key
-      )
-      VALUES ${params.join(', ')}
-      RETURNING id, case_id, original_name, mime_type, created_at
-    `;
-    
-    const result = await pool.query(query, values);
-    return result.rows;
-  } catch (error) {
-    console.error('Lỗi khi thêm tài liệu cho vụ án:', error);
-    throw error;
-  }
-};
-
-/**
  * Lấy thông tin người dùng theo ID
  * @param {number} userId - ID người dùng
  * @returns {Promise<Object>} Thông tin người dùng
@@ -705,50 +569,64 @@ const getDocumentTemplateById = async (templateId) => {
 };
 
 /**
- * Cập nhật vụ án
+ * Cập nhật thông tin vụ án
  * @param {number} caseId - ID vụ án
  * @param {Object} updateData - Dữ liệu cập nhật
  * @returns {Promise<Object>} Vụ án đã cập nhật
  */
 const updateLegalCase = async (caseId, updateData) => {
+  const client = await pool.connect();
+  
   try {
-    // Tạo câu query động dựa trên dữ liệu cần cập nhật
-    const keys = Object.keys(updateData);
+    await client.query('BEGIN');
     
-    if (keys.length === 0) {
-      return await getLegalCaseById(caseId);
-    }
-    
-    const setClauses = [];
+    // Xây dựng câu lệnh UPDATE động
+    const updateFields = [];
     const values = [];
     let paramIndex = 1;
     
-    keys.forEach(key => {
-      setClauses.push(`${key} = $${paramIndex++}`);
-      values.push(updateData[key]);
-    });
+    for (const [key, value] of Object.entries(updateData)) {
+      if (['title', 'description', 'case_type', 'file_url', 'status', 'ai_content', 'is_ai_generated', 'notes', 'fee_amount', 'fee_details'].includes(key)) {
+        updateFields.push(`${key} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+    }
     
-    setClauses.push(`updated_at = NOW()`);
+    // Luôn cập nhật trường updated_at
+    updateFields.push(`updated_at = NOW()`);
     
+    // Kiểm tra nếu không có trường nào được cập nhật
+    if (updateFields.length === 1 && updateFields[0] === 'updated_at = NOW()') {
+      return await getLegalCaseById(caseId);
+    }
+    
+    // Thực hiện câu lệnh UPDATE
     const query = `
       UPDATE LegalCases
-      SET ${setClauses.join(', ')}
+      SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex} AND deleted_at IS NULL
       RETURNING id
     `;
     
     values.push(caseId);
     
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
     
     if (result.rows.length === 0) {
-      throw new Error('Không tìm thấy vụ án hoặc không thể cập nhật');
+      throw new Error('Không tìm thấy vụ án hoặc vụ án đã bị xóa');
     }
     
+    await client.query('COMMIT');
+    
+    // Trả về vụ án đã cập nhật
     return await getLegalCaseById(caseId);
   } catch (error) {
-    console.error('Lỗi khi cập nhật vụ án:', error);
+    await client.query('ROLLBACK');
+    console.error(`Lỗi khi cập nhật vụ án ID ${caseId}:`, error);
     throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -810,6 +688,7 @@ const getCaseTypes = async () => {
 module.exports = {
   createLegalCase,
   getLegalCasesByUserId,
+  getLegalCasesByLawyerId,
   getLegalCaseById,
   assignLawyer,
   createAppointment,
@@ -819,12 +698,9 @@ module.exports = {
   getTransactionById,
   updateTransactionStatus,
   updateCaseStatus,
-  getCaseDocumentById,
-  addCaseDocuments,
   getUserById,
   getDocumentTemplateById,
   updateLegalCase,
   deleteLegalCase,
-  getCaseTypes,
-  getLegalCasesByLawyerId
+  getCaseTypes
 }; 

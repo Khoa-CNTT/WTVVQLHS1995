@@ -122,7 +122,7 @@ const DocumentTemplatesManager = () => {
       okType: 'danger',
       cancelText: 'Hủy',
       onOk() {
-        handleDelete();
+        handleDelete(template);
       },
     });
   };
@@ -180,12 +180,17 @@ const DocumentTemplatesManager = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (templ) => {
     try {
       setLoading(true);
+      const templateToDelete = templ || selectedTemplate;
+      
+      if (!templateToDelete || !templateToDelete.id) {
+        throw new Error('Không tìm thấy thông tin mẫu văn bản để xóa');
+      }
       
       const response = await axiosInstance.delete(
-        `${API_URL}/legal/templates/${selectedTemplate.id}`
+        `${API_URL}/legal/templates/${templateToDelete.id}`
       );
       
       if (response.data && response.data.status === 'success') {
@@ -213,10 +218,10 @@ const DocumentTemplatesManager = () => {
     
     try {
       const formData = new FormData();
-      formData.append('pdf', info.file.originFileObj);
+      formData.append('file', info.file.originFileObj);
       
       const response = await axiosInstance.post(
-        `${API_URL}/legal/templates/convert-pdf`,
+        `${API_URL}/legal/upload-pdf`,
         formData,
         {
           headers: {
@@ -234,12 +239,12 @@ const DocumentTemplatesManager = () => {
           ...prev,
           content: response.data.data.content
         }));
-        toast.success('Chuyển đổi PDF thành HTML thành công');
+        toast.success('Chuyển đổi Word/PDF thành HTML thành công');
         setIsPdfModalOpen(false);
       }
     } catch (err) {
-      console.error('Lỗi khi chuyển đổi PDF:', err);
-      toast.error('Không thể chuyển đổi PDF: ' + (err.response?.data?.message || err.message));
+      console.error('Lỗi khi chuyển đổi Word/PDF:', err);
+      toast.error('Không thể chuyển đổi Word/PDF: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploading(false);
     }
@@ -350,8 +355,8 @@ const DocumentTemplatesManager = () => {
           allowClear
         >
           {templateTypes.map((type) => (
-            <Option key={type} value={type}>
-              {type}
+            <Option key={type.id || type} value={type.id || type}>
+              {type.name || type}
             </Option>
           ))}
         </Select>
@@ -405,7 +410,7 @@ const DocumentTemplatesManager = () => {
             icon={<UploadOutlined />}
             onClick={openPdfModal}
           >
-            Tải PDF
+            Tải tệp
           </Button>,
           <Button
             key="submit"
@@ -439,8 +444,8 @@ const DocumentTemplatesManager = () => {
           >
             <Select placeholder="Chọn loại mẫu văn bản">
               {templateTypes.map((type) => (
-                <Option key={type} value={type}>
-                  {type}
+                <Option key={type.id || type} value={type.id || type}>
+                  {type.name || type}
                 </Option>
               ))}
             </Select>
@@ -471,16 +476,16 @@ const DocumentTemplatesManager = () => {
       </Modal>
 
       <Modal
-        title="Tải lên và chuyển đổi file PDF"
+        title="Tải lên và chuyển đổi file Word/PDF"
         open={isPdfModalOpen}
         onCancel={closePdfModal}
         footer={null}
       >
-        <p>Chọn file PDF để tự động chuyển đổi thành nội dung HTML.</p>
+        <p>Chọn file Word (DOCX, DOC) hoặc PDF để tự động chuyển đổi thành nội dung HTML.</p>
         <Upload.Dragger
-          name="pdf"
-          accept=".pdf"
-          action={`${API_URL}/legal/templates/convert-pdf`}
+          name="file"
+          accept=".pdf,.doc,.docx"
+          action={`${API_URL}/legal/upload-pdf`}
           onChange={handleUploadPdf}
           showUploadList={false}
           customRequest={({ file, onSuccess }) => {
@@ -492,8 +497,8 @@ const DocumentTemplatesManager = () => {
           <p className="ant-upload-drag-icon">
             <FileTextOutlined />
           </p>
-          <p className="ant-upload-text">Nhấp hoặc kéo thả file PDF vào khu vực này</p>
-          <p className="ant-upload-hint">Chỉ hỗ trợ tệp PDF</p>
+          <p className="ant-upload-text">Nhấp hoặc kéo thả file vào khu vực này</p>
+          <p className="ant-upload-hint">Hỗ trợ tệp DOCX, DOC và PDF</p>
         </Upload.Dragger>
         <div style={{ marginTop: '1rem', textAlign: 'right' }}>
           <Button onClick={closePdfModal} style={{ marginRight: 8 }}>

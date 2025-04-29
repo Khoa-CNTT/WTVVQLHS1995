@@ -624,6 +624,7 @@ function Profile() {
           <div className={styles.sidebar}>
             <div className={styles.userCard}>
               <div className={`${styles.avatarWrapper} ${avatarLoading ? styles.avatarLoading : ''}`}>
+                <img src='/defaultFrame.gif'className={styles.avatarFrame}></img>
                 <img
                   src={previewUrl || (user && user.avatarUrl && userService.getFullAvatarUrl(user.avatarUrl)) || '/default-avatar.png'}
                   alt="Ảnh đại diện"

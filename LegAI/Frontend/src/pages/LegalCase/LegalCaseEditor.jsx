@@ -16,6 +16,7 @@ const { Header, Content } = Layout;
 const LegalCaseEditor = () => {
     const { id } = useParams();
     const [form] = Form.useForm();
+    const [aiForm] = Form.useForm();
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
@@ -103,23 +104,19 @@ const LegalCaseEditor = () => {
         fetchData();
     }, [id, form, navigate]);
 
-    // Xử lý tải xuống tài liệu hiện có
-    const handleDownloadDocument = async (documentId) => {
+    // Xử lý tải xuống tài liệu
+    const handleDownloadDocument = async () => {
         try {
-            message.loading({ content: 'Đang chuẩn bị tải xuống...', key: 'download' });
-            
-            const blob = await legalCaseService.downloadDocument(id, documentId);
+            const blob = await legalCaseService.downloadDocument(id);
 
-            // Tìm tên tài liệu từ existingDocuments
-            let fileName = `document-${documentId}`;
-            if (existingDocuments && Array.isArray(existingDocuments)) {
-                const document = existingDocuments.find(doc => doc.id === documentId);
-                if (document && document.original_name) {
-                    fileName = document.original_name;
-                }
+            // Tạo tên file từ tiêu đề vụ án
+            let fileName = `document-${id}.pdf`;
+            if (caseData && caseData.title) {
+                // Xử lý tên file hợp lệ từ tiêu đề
+                fileName = `${caseData.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
             }
 
-            // Tạo URL từ blob và tải xuống
+            // Tạo URL tạm thời và tải xuống
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -128,19 +125,10 @@ const LegalCaseEditor = () => {
             link.click();
             document.body.removeChild(link);
             
-            // Giải phóng URL
-            setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-            }, 100);
-
-            message.success({ content: 'Đã tải xuống tài liệu', key: 'download' });
+            message.success('Đã tải xuống tài liệu');
         } catch (error) {
             console.error('Lỗi khi tải xuống tài liệu:', error);
-            message.error({ 
-                content: 'Không thể tải xuống tài liệu. Vui lòng thử lại sau.', 
-                key: 'download',
-                duration: 3 
-            });
+            message.error('Không thể tải xuống tài liệu. Vui lòng thử lại sau.');
         }
     };
 
@@ -156,36 +144,35 @@ const LegalCaseEditor = () => {
         }
     };
 
-    // Xử lý khi người dùng thay đổi file upload
+    // Xử lý khi thay đổi file upload
     const handleFileChange = ({ fileList }) => {
-        // Chỉ lưu các file hợp lệ vào state
-        const validFiles = fileList.map(file => {
-            // Nếu file có originFileObj (tức là file mới upload)
-            if (file.originFileObj) {
-                // Kiểm tra định dạng
-                const isValidType = 
-                    file.type === 'application/pdf' ||
-                    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                    file.type === 'application/msword' ||
-                    file.type === 'image/jpeg' ||
-                    file.type === 'image/png';
-                
-                // Kiểm tra kích thước
-                const isLt10M = file.size / 1024 / 1024 < 10;
+        // Giới hạn chỉ 1 file
+        const newFileList = fileList.slice(-1);
+        setFileList(newFileList);
+
+        // Kiểm tra kiểu file
+        if (newFileList.length > 0) {
+            const file = newFileList[0].originFileObj;
+            const isValidType = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'].includes(file.type);
                 
                 if (!isValidType) {
-                    message.error(`${file.name} không phải là định dạng hỗ trợ!`);
-                    return null;
-                }
-                if (!isLt10M) {
-                    message.error(`${file.name} vượt quá kích thước tối đa 10MB!`);
-                    return null;
+                message.error('Chỉ chấp nhận file PDF, DOCX, DOC, JPG, PNG');
+                setFileList([]);
+                return;
+            }
+
+            // Kiểm tra kích thước file (tối đa 10MB)
+            const isLessThan10MB = file.size / 1024 / 1024 < 10;
+            if (!isLessThan10MB) {
+                message.error('File không được vượt quá 10MB');
+                setFileList([]);
+                return;
                 }
             }
-            return file;
-        }).filter(file => file !== null);
-        
-        setFileList(validFiles);
+
+        form.setFieldsValue({ 
+            file: newFileList.length > 0 ? newFileList[0].originFileObj : null 
+        });
     };
 
     // Xử lý tạo bản nháp AI
@@ -240,136 +227,46 @@ const LegalCaseEditor = () => {
         setEditableDraft(e.target.value);
     };
 
-    // Xử lý cập nhật vụ án
+    // Xử lý update vụ án
     const handleUpdateCase = async (values) => {
         try {
             setSubmitting(true);
 
-            // Tạo form data để gửi file
+            // Tạo FormData để xử lý upload file
             const formData = new FormData();
 
-            // Thêm các trường thông tin vào formData
+            // Thêm các trường cơ bản
             formData.append('title', values.title);
-            formData.append('description', values.description || '');
             formData.append('case_type', values.case_type);
+            if (values.description) formData.append('description', values.description);
 
-            // Nếu sử dụng AI, thêm nội dung AI đã chỉnh sửa
-            if (useAI && editableDraft) {
-                formData.append('ai_content', editableDraft);
-                formData.append('is_ai_generated', 'true');
+            // Thêm file nếu có
+            if (fileList.length > 0 && fileList[0].originFileObj) {
+                formData.append('file', fileList[0].originFileObj);
             }
-
-            // Thêm các file mới nếu có
-            if (fileList && fileList.length > 0) {
-                console.log(`Chuẩn bị tải lên ${fileList.length} tệp tin:`);
-                let uploadCount = 0;
-
-                for (let index = 0; index < fileList.length; index++) {
-                    const file = fileList[index];
-                    
-                    // Kiểm tra file có hợp lệ không
-                    const isValidType = 
-                        file.type === 'application/pdf' ||
-                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                        file.type === 'application/msword' ||
-                        file.type === 'image/jpeg' ||
-                        file.type === 'image/png';
-                    
-                    const isLt10M = file.size / 1024 / 1024 < 10;
-                    
-                    if (!isValidType) {
-                        console.warn(`Bỏ qua tệp không hợp lệ: ${file.name} - Loại: ${file.type}`);
-                        continue;
-                    }
-                    
-                    if (!isLt10M) {
-                        console.warn(`Bỏ qua tệp quá lớn: ${file.name} - Kích thước: ${file.size} bytes`);
-                        continue;
-                    }
-                    
-                    // Xử lý tải lên dựa trên loại tệp
-                    if (file.originFileObj) {
-                        console.log(`Tải lên tệp #${index + 1}: ${file.originFileObj.name}, kích thước: ${file.originFileObj.size} bytes`);
-                        formData.append('files', file.originFileObj);
-                        uploadCount++;
-                    } else if (file instanceof File) {
-                        console.log(`Tải lên tệp File #${index + 1}: ${file.name}, kích thước: ${file.size} bytes`);
-                        formData.append('files', file);
-                        uploadCount++;
-                    } else {
-                        console.log(`Tải lên tệp Object #${index + 1}: ${file.name || 'không có tên'}, kiểu: ${typeof file}`);
-                        
-                        // Trường hợp là đối tượng không phải File
-                        if (file.name && file.url) {
-                            // Đây có thể là đối tượng từ Antd Upload
-                            try {
-                                const response = await fetch(file.url);
-                                const blob = await response.blob();
-                                const fileObj = new File([blob], file.name, { type: file.type || 'application/octet-stream' });
-                                formData.append('files', fileObj);
-                                uploadCount++;
-                                console.log(`Đã chuyển đổi thành File từ URL: ${file.url}`);
-                            } catch (error) {
-                                console.error(`Không thể chuyển đổi thành File từ URL: ${file.url}`, error);
-                            }
-                        }
-                    }
-                }
-                
-                console.log(`Tổng cộng ${uploadCount} tệp tin đã được đính kèm vào FormData`);
-                
-                // Debug: Log tất cả các cặp key-value trong FormData
-                for (let pair of formData.entries()) {
-                    console.log(`FormData: ${pair[0]}, ${pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1]}`);
+            
+            // Thêm dữ liệu AI nếu sử dụng
+            if (useAI) {
+                formData.append('ai_draft', 'true');
+                formData.append('template_id', values.template_id);
+                formData.append('user_input', values.user_input);
+                if (editableDraft) {
+                    formData.append('ai_content', editableDraft);
                 }
             }
 
-            // For debugging - log keys in FormData
-            console.log("FormData chứa các trường sau:");
-            for (let key of formData.keys()) {
-                console.log(`- Trường: ${key}`);
-            }
-
-            // Kiểm tra dữ liệu trước khi gửi
-            if (!formData.has('title') || !formData.has('case_type')) {
-                message.error('Thiếu thông tin bắt buộc (tiêu đề hoặc loại vụ án)');
-                setSubmitting(false);
-                return;
-            }
-
-            // Gọi API cập nhật vụ án
-            console.log(`Gửi yêu cầu cập nhật vụ án ID: ${id}`);
+            // Gọi API update vụ án
             const response = await legalCaseService.updateLegalCase(id, formData);
 
-            if (response && response.success) {
+            if (response.success) {
                 message.success('Cập nhật vụ án thành công');
-                
-                // Làm mới dữ liệu vụ án để hiển thị tài liệu mới
-                console.log('Lấy lại thông tin vụ án để cập nhật UI');
-                const updatedCase = await legalCaseService.getLegalCaseById(id);
-                
-                if (updatedCase && updatedCase.success) {
-                    // Cập nhật danh sách tài liệu hiện có
-                    if (updatedCase.data.documents && Array.isArray(updatedCase.data.documents)) {
-                        console.log(`Nhận được ${updatedCase.data.documents.length} tài liệu từ API`);
-                        setExistingDocuments(updatedCase.data.documents);
-                    }
-                    
-                    // Cập nhật dữ liệu vụ án
-                    setCaseData(updatedCase.data);
-                    
-                    // Reset fileList sau khi tải lên thành công
-                    setFileList([]);
-                }
-                
                 navigate(`/legal-cases/${id}`);
             } else {
-                message.error(response?.message || 'Lỗi khi cập nhật vụ án');
-                console.error('Chi tiết lỗi:', response);
+                message.error(response.message || 'Có lỗi xảy ra khi cập nhật vụ án');
             }
         } catch (error) {
             console.error('Lỗi khi cập nhật vụ án:', error);
-            message.error('Lỗi khi cập nhật vụ án. Vui lòng thử lại sau.');
+            message.error('Có lỗi xảy ra khi cập nhật vụ án. Vui lòng thử lại sau.');
         } finally {
             setSubmitting(false);
         }
@@ -379,7 +276,10 @@ const LegalCaseEditor = () => {
     const handleSaveWithAI = () => {
         // Kiểm tra các trường bắt buộc
         form.validateFields().then(values => {
-            handleUpdateCase(values);
+            // Gộp giá trị từ cả hai form
+            const aiValues = aiForm.getFieldsValue(['template_id', 'user_input']);
+            const combinedValues = { ...values, ...aiValues };
+            handleUpdateCase(combinedValues);
         }).catch(errorInfo => {
             message.error('Vui lòng điền đầy đủ thông tin bắt buộc');
         });
@@ -388,10 +288,7 @@ const LegalCaseEditor = () => {
     // Cấu hình upload
     const uploadProps = {
         onRemove: file => {
-            const index = fileList.indexOf(file);
-            const newFileList = fileList.slice();
-            newFileList.splice(index, 1);
-            setFileList(newFileList);
+            setFileList([]);
         },
         beforeUpload: file => {
             // Kiểm tra loại file
@@ -413,13 +310,13 @@ const LegalCaseEditor = () => {
                 return Upload.LIST_IGNORE;
             }
 
-            // Thêm file vào danh sách
-            setFileList([...fileList, file]);
+            // Thay thế file hiện tại bằng file mới
+            setFileList([file]);
             return false; // Ngăn chặn tự động upload
         },
         fileList,
-        multiple: true,
-        maxCount: 5
+        multiple: false,
+        maxCount: 1
     };
 
     // Xác định cột dành cho form thông tin chính dựa vào việc sử dụng AI
@@ -539,18 +436,17 @@ const LegalCaseEditor = () => {
                                             <TextArea rows={6} placeholder="Nhập mô tả chi tiết về vụ án" />
                                         </Form.Item>
 
-                                        {existingDocuments && existingDocuments.length > 0 && (
+                                        {caseData && caseData.file_url && (
                                             <>
                                                 <Divider orientation="left">Tài liệu hiện có</Divider>
                                                 <div className={styles.documentSection}>
-                                                    {existingDocuments.map(doc => (
-                                                        <div key={doc.id} className={styles.documentItem}>
+                                                    <div className={styles.documentItem}>
                                                             <div className={styles.documentIcon}>
-                                                                {renderFileIcon(doc.mime_type)}
+                                                            {renderFileIcon(caseData.file_url.split('.').pop())}
                                                             </div>
                                                             <div className={styles.documentInfo}>
                                                                 <div className={styles.documentName}>
-                                                                    {doc.original_name}
+                                                                {`${caseData.title}.${caseData.file_url.split('.').pop()}`}
                                                                 </div>
                                                             </div>
                                                             <div className={styles.documentAction}>
@@ -558,21 +454,20 @@ const LegalCaseEditor = () => {
                                                                     type="primary"
                                                                     size="small"
                                                                     icon={<DownloadOutlined />}
-                                                                    onClick={() => handleDownloadDocument(doc.id)}
+                                                                onClick={() => handleDownloadDocument()}
                                                                     className={styles.downloadButton}
                                                                 >
                                                                     Tải xuống
                                                                 </Button>
                                                             </div>
                                                         </div>
-                                                    ))}
                                                 </div>
                                             </>
                                         )}
 
                                         <Form.Item
                                             label="Thêm tài liệu mới"
-                                            tooltip="Hỗ trợ tải lên tối đa 5 file (PDF, DOCX, JPG, PNG), mỗi file tối đa 10MB"
+                                            tooltip="Hỗ trợ tải lên 1 file (PDF, DOCX, JPG, PNG), kích thước tối đa 10MB"
                                         >
                                             <Upload {...uploadProps} className={styles.uploadArea}>
                                                 <Button icon={<UploadOutlined />} size="large" type="dashed" block>
@@ -635,7 +530,7 @@ const LegalCaseEditor = () => {
                                         }
                                     >
                                         <Form
-                                            form={form}
+                                            form={aiForm}
                                             layout={formLayout}
                                             className={styles.aiForm}
                                         >

@@ -16,6 +16,11 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
     
     // Kiểm tra dữ liệu đầu vào
     if (!case_type || !title) {
+      // Nếu có file đã upload, xóa file đó
+      if (req.file) {
+        await fs.unlink(req.file.path);
+      }
+      
       return res.status(400).json({
         success: false,
         message: 'Vui lòng nhập đầy đủ loại vụ án và tiêu đề'
@@ -27,24 +32,14 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
       case_type,
       title,
       description: description || '',
-      status: 'draft',
-      files: []
+      status: 'draft'
     };
     
     // Xử lý nếu có file upload
-    if (req.files && req.files.length > 0) {
-      // Mã hóa và lưu thông tin file
-      for (const file of req.files) {
-        const encryptionKey = crypto.randomBytes(32).toString('hex');
-        const fileInfo = {
-          original_name: file.originalname,
-          file_path: file.path,
-          mime_type: file.mimetype,
-          encryption_key: encryptionKey,
-          size: file.size
-        };
-        caseData.files.push(fileInfo);
-      }
+    if (req.file) {
+      // Tạo đường dẫn file để lưu vào DB
+      const fileUrl = `/uploads/legal-cases/${req.file.filename}`;
+      caseData.file_url = fileUrl;
     }
     
     // Xử lý nếu sử dụng AI để soạn thảo
@@ -53,6 +48,11 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
       const template = await legalCaseModel.getDocumentTemplateById(template_id);
       
       if (!template) {
+        // Nếu có file đã upload, xóa file đó
+        if (req.file) {
+          await fs.unlink(req.file.path);
+        }
+        
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy mẫu văn bản'
@@ -99,6 +99,16 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
     
   } catch (error) {
     console.error('Lỗi khi tạo vụ án:', error);
+    
+    // Nếu có file đã upload, xóa file đó khi gặp lỗi
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Lỗi khi xóa file tạm thời:', unlinkError);
+      }
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi tạo vụ án'
@@ -515,7 +525,6 @@ exports.paymentWebhook = asyncHandler(async (req, res) => {
 exports.downloadDocument = asyncHandler(async (req, res) => {
   try {
     const caseId = req.params.id;
-    const documentId = req.params.documentId;
     const userId = req.user.id;
     
     // Kiểm tra vụ án tồn tại và quyền truy cập
@@ -540,19 +549,20 @@ exports.downloadDocument = asyncHandler(async (req, res) => {
       });
     }
     
-    // Lấy thông tin tài liệu
-    const document = await legalCaseModel.getCaseDocumentById(caseId, documentId);
-    
-    if (!document) {
+    // Kiểm tra file_url có tồn tại không
+    if (!legalCase.file_url) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy tài liệu'
+        message: 'Không tìm thấy tài liệu đính kèm'
       });
     }
     
+    // Tạo đường dẫn đầy đủ đến file
+    const filePath = path.join(__dirname, '../../', legalCase.file_url);
+    
     // Kiểm tra file tồn tại
     try {
-      await fs.access(document.file_path);
+      await fs.access(filePath);
     } catch (error) {
       return res.status(404).json({
         success: false,
@@ -560,22 +570,52 @@ exports.downloadDocument = asyncHandler(async (req, res) => {
       });
     }
     
-    // Giải mã file nếu cần
-    // Code giải mã file ở đây (trong thực tế)
+    // Lấy tên file từ đường dẫn
+    const fileName = path.basename(legalCase.file_url);
     
-    // Gửi file
-    res.download(document.file_path, document.original_name, (err) => {
+    // Lấy extension của file
+    const fileExt = path.extname(fileName).toLowerCase();
+    
+    // Xác định MIME type dựa trên extension
+    let contentType = 'application/octet-stream';
+    
+    if (fileExt === '.pdf') {
+      contentType = 'application/pdf';
+    } else if (fileExt === '.docx') {
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else if (fileExt === '.doc') {
+      contentType = 'application/msword';
+    } else if (fileExt === '.jpg' || fileExt === '.jpeg') {
+      contentType = 'image/jpeg';
+    } else if (fileExt === '.png') {
+      contentType = 'image/png';
+    } else if (fileExt === '.txt') {
+      contentType = 'text/plain';
+    }
+    
+    // Tạo tên file thân thiện cho người dùng
+    const originalFileName = `${legalCase.title}${fileExt}`;
+    
+    // Thiết lập header
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalFileName)}"`);
+    
+    // Sử dụng res.download thay vì pipe stream
+    res.download(filePath, originalFileName, (err) => {
       if (err) {
-        console.error('Lỗi khi tải xuống tài liệu:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Lỗi khi tải xuống tài liệu'
-        });
+        console.error(`Lỗi khi tải xuống file: ${err.message}`);
+        // Nếu đã gửi header thì không thể gửi lỗi dạng JSON
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            message: 'Lỗi khi tải xuống file'
+          });
+        }
       }
     });
     
   } catch (error) {
-    console.error('Lỗi khi tải xuống tài liệu vụ án:', error);
+    console.error(`Lỗi khi tải xuống tài liệu vụ án:`, error);
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi tải xuống tài liệu vụ án'
@@ -594,6 +634,11 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     const legalCase = await legalCaseModel.getLegalCaseById(caseId);
     
     if (!legalCase) {
+      // Nếu có file đã upload, xóa file đó
+      if (req.file) {
+        await fs.unlink(req.file.path);
+      }
+      
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy vụ án'
@@ -601,6 +646,11 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     }
     
     if (legalCase.user_id !== userId) {
+      // Nếu có file đã upload, xóa file đó
+      if (req.file) {
+        await fs.unlink(req.file.path);
+      }
+      
       return res.status(403).json({
         success: false,
         message: 'Bạn không có quyền cập nhật vụ án này'
@@ -614,23 +664,23 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     if (case_type) updateData.case_type = case_type;
     
     // Xử lý nếu có file upload mới
-    if (req.files && req.files.length > 0) {
-      // Mã hóa và lưu thông tin file
-      const newFiles = [];
-      for (const file of req.files) {
-        const encryptionKey = crypto.randomBytes(32).toString('hex');
-        const fileInfo = {
-          original_name: file.originalname,
-          file_path: file.path,
-          mime_type: file.mimetype,
-          encryption_key: encryptionKey,
-          size: file.size
-        };
-        newFiles.push(fileInfo);
-      }
+    if (req.file) {
+      // Tạo đường dẫn file mới để lưu vào DB
+      const fileUrl = `/uploads/legal-cases/${req.file.filename}`;
+      updateData.file_url = fileUrl;
       
-      // Thêm file mới vào vụ án
-      await legalCaseModel.addCaseDocuments(caseId, newFiles);
+      // Xóa file cũ nếu tồn tại
+      if (legalCase.file_url) {
+        const oldFilePath = path.join(__dirname, '../../', legalCase.file_url);
+        try {
+          // Kiểm tra file tồn tại trước khi xóa
+          await fs.access(oldFilePath);
+          await fs.unlink(oldFilePath);
+        } catch (error) {
+          console.error('Không thể xóa file cũ:', error);
+          // Không ném lỗi, vẫn tiếp tục cập nhật
+        }
+      }
     }
     
     // Cập nhật vụ án
@@ -653,6 +703,16 @@ exports.updateLegalCase = asyncHandler(async (req, res) => {
     
   } catch (error) {
     console.error('Lỗi khi cập nhật vụ án:', error);
+    
+    // Nếu có file đã upload, xóa file đó khi gặp lỗi
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Lỗi khi xóa file tạm thời:', unlinkError);
+      }
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi cập nhật vụ án'
@@ -681,6 +741,19 @@ exports.deleteLegalCase = asyncHandler(async (req, res) => {
         success: false,
         message: 'Bạn không có quyền xóa vụ án này'
       });
+    }
+    
+    // Xóa file nếu tồn tại
+    if (legalCase.file_url) {
+      const filePath = path.join(__dirname, '../../', legalCase.file_url);
+      try {
+        // Kiểm tra file tồn tại trước khi xóa
+        await fs.access(filePath);
+        await fs.unlink(filePath);
+      } catch (error) {
+        console.error('Không thể xóa file:', error);
+        // Không ném lỗi, vẫn tiếp tục xóa vụ án
+      }
     }
     
     // Xóa vụ án (soft delete)

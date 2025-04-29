@@ -336,13 +336,12 @@ export const createPayment = async (caseId, paymentMethod) => {
 /**
  * Tải xuống tài liệu vụ án
  * @param {number} caseId - ID vụ án
- * @param {number} documentId - ID tài liệu
  * @returns {Promise<Blob>} File tài liệu
  */
-export const downloadDocument = async (caseId, documentId) => {
+export const downloadDocument = async (caseId) => {
   try {
     const response = await axios.get(
-      `${API_URL}/legal-cases/${caseId}/documents/${documentId}`,
+      `${API_URL}/legal-cases/${caseId}/download`,
       {
         ...getHeaders(),
         responseType: 'blob'

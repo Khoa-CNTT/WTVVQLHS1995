@@ -40,7 +40,7 @@ const upload = multer({
 });
 
 // Tạo vụ án mới (có thể kèm file hoặc tạo bằng AI)
-router.post('/', protect, upload.array('files', 5), legalCaseController.createLegalCase);
+router.post('/', protect, upload.single('file'), legalCaseController.createLegalCase);
 
 // Lấy danh sách vụ án của người dùng hiện tại
 router.get('/', protect, legalCaseController.getLegalCases);
@@ -52,7 +52,7 @@ router.get('/lawyer-cases', protect, authorize('lawyer', 'admin'), legalCaseCont
 router.get('/:id', protect, legalCaseController.getLegalCaseById);
 
 // Cập nhật thông tin vụ án
-router.put('/:id', protect, upload.array('files', 5), legalCaseController.updateLegalCase);
+router.put('/:id', protect, upload.single('file'), legalCaseController.updateLegalCase);
 
 // Xóa vụ án
 router.delete('/:id', protect, legalCaseController.deleteLegalCase);
@@ -73,7 +73,7 @@ router.post('/:id/payment', protect, legalCaseController.createPayment);
 router.post('/payment-webhook', legalCaseController.paymentWebhook);
 
 // Tải xuống tài liệu vụ án
-router.get('/:id/documents/:documentId', protect, legalCaseController.downloadDocument);
+router.get('/:id/download', protect, legalCaseController.downloadDocument);
 
 // Lấy loại vụ án
 router.get('/case-types', legalCaseController.getCaseTypes);

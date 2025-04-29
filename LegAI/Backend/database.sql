@@ -61,6 +61,7 @@ CREATE TABLE LegalCases (
     lawyer_id INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    file_url VARCHAR(255),
     case_type VARCHAR(100) NOT NULL,
     status VARCHAR(50) DEFAULT 'draft',
     ai_content TEXT,
@@ -313,17 +314,17 @@ CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_doc_id ON UserLegalDocAcces
 CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_granted_to ON UserLegalDocAccess(granted_to);
 
 -- Bảng tài liệu vụ án
-CREATE TABLE IF NOT EXISTS CaseDocuments (
-  id SERIAL PRIMARY KEY,
-  case_id INTEGER REFERENCES LegalCases(id) NOT NULL,
-  original_name VARCHAR(255) NOT NULL,
-  file_path VARCHAR(255) NOT NULL,
-  mime_type VARCHAR(100),
-  encryption_key VARCHAR(255),
-  size INTEGER,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP
-);
+-- CREATE TABLE IF NOT EXISTS CaseDocuments (
+--   id SERIAL PRIMARY KEY,
+--   case_id INTEGER REFERENCES LegalCases(id) NOT NULL,
+--   original_name VARCHAR(255) NOT NULL,
+--   file_path VARCHAR(255) NOT NULL,
+--   mime_type VARCHAR(100),
+--   encryption_key VARCHAR(255),
+--   size INTEGER,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   deleted_at TIMESTAMP
+-- );
 
 -- Thêm dữ liệu mẫu cho bảng phí
 INSERT INTO FeeReferences (case_type, description, base_fee, percentage_fee, calculation_method, min_fee, max_fee)

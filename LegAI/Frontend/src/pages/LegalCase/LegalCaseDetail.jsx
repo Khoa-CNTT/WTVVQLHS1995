@@ -115,17 +115,15 @@ const LegalCaseDetail = () => {
   };
 
   // Xử lý tải xuống tài liệu
-  const handleDownloadDocument = async (documentId) => {
+  const handleDownloadDocument = async () => {
     try {
-      const blob = await legalCaseService.downloadDocument(id, documentId);
+      const blob = await legalCaseService.downloadDocument(id);
 
-      // Tìm tên tài liệu từ caseData
-      let fileName = `document-${documentId}`;
-      if (caseData.documents && Array.isArray(caseData.documents)) {
-        const document = caseData.documents.find(doc => doc.id === documentId);
-        if (document && document.original_name) {
-          fileName = document.original_name;
-        }
+      // Tạo tên file từ tiêu đề vụ án
+      let fileName = `document-${id}.pdf`;
+      if (caseData && caseData.title) {
+        // Xử lý tên file hợp lệ từ tiêu đề
+        fileName = `${caseData.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       }
 
       // Tạo URL tạm thời và tải xuống
@@ -734,32 +732,32 @@ const LegalCaseDetail = () => {
                         )}
 
                         {/* Hiển thị tài liệu */}
-                        {caseData.documents && caseData.documents.length > 0 && (
+                        {caseData.file_url && (
                           <div className={styles.documentSection}>
                             <Divider orientation="left">
                               <span className={styles.dividerTitle}>Tài liệu</span>
                             </Divider>
-                            {caseData.documents.map(doc => (
-                              <div key={doc.id} className={styles.documentItem}>
-                                <div className={styles.documentIcon}>
-                                  {renderFileIcon(doc.mime_type)}
-                                </div>
-                                <div className={styles.documentInfo}>
-                                  <div className={styles.documentName}>{doc.original_name}</div>
-                                </div>
-                                <div className={styles.documentAction}>
-                                  <Button
-                                    type="primary"
-                                    icon={<DownloadOutlined />}
-                                    size="middle"
-                                    onClick={() => handleDownloadDocument(doc.id)}
-                                    className={styles.downloadButton}
-                                  >
-                                    Tải xuống
-                                  </Button>
+                            <div className={styles.documentItem}>
+                              <div className={styles.documentIcon}>
+                                {renderFileIcon(caseData.file_url.split('.').pop())}
+                              </div>
+                              <div className={styles.documentInfo}>
+                                <div className={styles.documentName}>
+                                  {`${caseData.title}.${caseData.file_url.split('.').pop()}`}
                                 </div>
                               </div>
-                            ))}
+                              <div className={styles.documentAction}>
+                                <Button
+                                  type="primary"
+                                  icon={<DownloadOutlined />}
+                                  size="middle"
+                                  onClick={() => handleDownloadDocument()}
+                                  className={styles.downloadButton}
+                                >
+                                  Tải xuống
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
