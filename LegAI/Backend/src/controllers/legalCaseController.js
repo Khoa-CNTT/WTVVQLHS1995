@@ -11,7 +11,7 @@ const ollamaService = require('../services/ollamaService');
 // Tạo vụ án pháp lý mới
 exports.createLegalCase = asyncHandler(async (req, res) => {
   try {
-    const { case_type, description, title, ai_draft, template_id, user_input } = req.body;
+    const { case_type, description, title, ai_draft, template_id, user_input, extracted_content } = req.body;
     const userId = req.user.id;
     
     // Kiểm tra dữ liệu đầu vào
@@ -40,6 +40,31 @@ exports.createLegalCase = asyncHandler(async (req, res) => {
       // Tạo đường dẫn file để lưu vào DB
       const fileUrl = `/uploads/legal-cases/${req.file.filename}`;
       caseData.file_url = fileUrl;
+      
+      // Nếu có nội dung trích xuất từ file được gửi lên từ frontend
+      if (extracted_content) {
+        caseData.ai_content = extracted_content;
+        caseData.is_ai_generated = false;
+      } else {
+        // Không có nội dung trích xuất, có thể thử đọc file text đơn giản
+        try {
+          const filePath = req.file.path;
+          const fileExtension = path.extname(filePath).toLowerCase();
+          
+          // Hiện tại chỉ hỗ trợ đọc file text đơn giản
+          if (fileExtension === '.txt') {
+            const fileContent = await fs.readFile(filePath, 'utf8');
+            caseData.ai_content = fileContent;
+            caseData.is_ai_generated = false;
+          } else {
+            // Đối với các loại file khác, chỉ lưu thông tin file
+            console.log('Không hỗ trợ trích xuất nội dung từ loại file:', fileExtension);
+          }
+        } catch (extractError) {
+          console.error('Lỗi khi trích xuất nội dung file:', extractError);
+          // Không lưu nội dung nếu có lỗi xảy ra
+        }
+      }
     }
     
     // Xử lý nếu sử dụng AI để soạn thảo

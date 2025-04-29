@@ -23,10 +23,21 @@ const getHeaders = () => {
  */
 export const createLegalCase = async (formData) => {
   try {
+    // In ra thông tin formData để debug
+    console.log('FormData được gửi đi:');
+    for (let [key, value] of formData.entries()) {
+      // Không in nội dung file vì quá dài
+      if (key === 'file') {
+        console.log(`${key}: [File object]`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    
     const response = await axios.post(`${API_URL}/legal-cases`, formData, {
       ...getHeaders(),
       'Content-Type': 'multipart/form-data',
-      timeout: 30000 // Tăng timeout lên 30 giây
+      timeout: 60000 // Tăng timeout lên 60 giây vì có thể có file lớn
     });
     return response.data;
   } catch (error) {

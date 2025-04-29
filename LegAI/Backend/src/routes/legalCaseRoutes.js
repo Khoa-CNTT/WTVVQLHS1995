@@ -18,15 +18,15 @@ const storage = multer.diskStorage({
   }
 });
 
-// Lọc file: chỉ chấp nhận PDF, DOCX, JPG, PNG
+// Lọc file: chỉ chấp nhận PDF, DOCX, TXT
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png'];
+  const allowedTypes = ['.pdf', '.docx', '.doc', '.txt'];
   const ext = path.extname(file.originalname).toLowerCase();
   
   if (allowedTypes.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file PDF, DOCX, JPG, JPEG, PNG'), false);
+    cb(new Error('Chỉ chấp nhận file PDF, DOCX, TXT'), false);
   }
 };
 
