@@ -11,6 +11,7 @@ import ContractManager from '../pages/Contracts/ContractManager';
 import LegalCaseList from '../pages/LegalCase/LegalCaseList';
 import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
 import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
+import LegalCaseEditor from '../pages/LegalCase/LegalCaseEditor';
 import authService from '../services/authService';
 
 // Kiểm tra đăng nhập
@@ -155,6 +156,14 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <LegalCaseDetail />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/legal-cases/:id/edit" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalCaseEditor />
             </PageTransition>
           </ProtectedRoute>
         } />
