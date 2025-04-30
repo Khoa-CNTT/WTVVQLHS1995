@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import styles from './LegalDocDetail.module.css';
@@ -30,6 +30,11 @@ const LegalDocDetail = () => {
   const [editableContent, setEditableContent] = useState('');
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [fileUrl, setFileUrl] = useState('');
+  const [isLoadingFullContent, setIsLoadingFullContent] = useState(false);
+  const [contentTruncated, setContentTruncated] = useState(false);
+  const [newFile, setNewFile] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Lấy thông tin tài liệu và kiểm tra quyền sở hữu
   useEffect(() => {
@@ -38,18 +43,15 @@ const LegalDocDetail = () => {
       
       try {
         setIsLoading(true);
-        console.log("Bắt đầu tải thông tin hồ sơ ID:", id);
         const response = await legalDocService.getLegalDocById(id);
         
         if (response.success) {
           const docData = response.data;
-          console.log("Dữ liệu hồ sơ nhận được:", docData);
           setDoc(docData);
           
           // Lưu URL file nếu có
           if (docData.file_url) {
             setFileUrl(docData.file_url);
-            console.log("Đã tìm thấy URL file:", docData.file_url);
           } else {
             console.log("Không tìm thấy URL file trong dữ liệu");
           }
@@ -68,35 +70,38 @@ const LegalDocDetail = () => {
           
           // Tải nội dung tài liệu
           try {
-            console.log("Thử tải nội dung tài liệu");
             
             // Kiểm tra xem docData đã có nội dung hay chưa
             if (docData.content) {
-              console.log("Sử dụng nội dung từ dữ liệu tài liệu");
               setContent(docData.content);
               setEditableContent(docData.content);
             } else if (docData.metadata && docData.metadata.extracted_text) {
-              console.log("Sử dụng extracted_text từ metadata");
               setContent(docData.metadata.extracted_text);
               setEditableContent(docData.metadata.extracted_text);
             } else {
               // Thử lấy nội dung file từ API nếu không có sẵn
-              console.log("Thử lấy nội dung từ API...");
               try {
                 const contentResponse = await legalDocService.getDocFileContent(id);
-                console.log("Kết quả lấy nội dung:", contentResponse);
                 
                 if (contentResponse.success && contentResponse.data && contentResponse.data.content) {
-                  console.log("Đã lấy được nội dung từ API");
-                  setContent(contentResponse.data.content);
-                  setEditableContent(contentResponse.data.content);
+                  // Đảm bảo xuống dòng đúng cách
+                  const formattedContent = contentResponse.data.content
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .replace(/\n{3,}/g, '\n\n'); // Giới hạn tối đa 2 dòng trống liên tiếp
+                  
+                  // Kiểm tra nếu nội dung bị cắt ngắn hoặc nội dung có thể không đầy đủ
+                  if (contentResponse.data.truncated || formattedContent.length > 500) {
+                    setContentTruncated(true);
+                  }
+                  
+                  setContent(formattedContent);
+                  setEditableContent(formattedContent);
                 } else {
-                  console.log("API không trả về nội dung hoặc trả về lỗi:", contentResponse.message || "Không rõ lỗi");
                   
                   // Nếu không có nội dung từ API và có file_url, thử tải nội dung từ URL file
                   if (docData.file_url) {
                     try {
-                      console.log("Thử tải nội dung từ URL file:", docData.file_url);
                       const fileResponse = await fetch(docData.file_url);
                       
                       if (fileResponse.ok) {
@@ -105,13 +110,32 @@ const LegalDocDetail = () => {
                         const contentType = fileResponse.headers.get('content-type');
                         const isTextContentType = contentType && contentType.includes('text');
                         
-                        console.log("Kiểu nội dung:", contentType, "Loại file:", docData.file_type);
                         
                         if (isTextFile || isTextContentType) {
                           const textContent = await fileResponse.text();
-                          console.log("Đã tải được nội dung văn bản từ URL");
-                          setContent(textContent);
-                          setEditableContent(textContent);
+                          
+                          // Kiểm tra nếu nội dung là HTML với DOCTYPE
+                          if (textContent.trim().toLowerCase().startsWith('<!doctype html>') || 
+                              textContent.trim().toLowerCase().startsWith('<html')) {
+                            console.error("Phát hiện nội dung HTML không hợp lệ từ URL file sau khi API lỗi");
+                            setContent('Định dạng file không được hỗ trợ để hiển thị trực tiếp. Vui lòng tải xuống để xem đầy đủ.');
+                            setContentTruncated(true);
+                            return;
+                          }
+                          
+                          // Đảm bảo xuống dòng đúng cách
+                          const formattedUrlContent = textContent
+                            .replace(/\r\n/g, '\n')
+                            .replace(/\r/g, '\n')
+                            .replace(/\n{3,}/g, '\n\n'); // Giới hạn tối đa 2 dòng trống liên tiếp
+                          
+                          // Luôn hiển thị nút tải đầy đủ nội dung cho nội dung từ URL
+                          if (formattedUrlContent.length > 500) {
+                            setContentTruncated(true);
+                          }
+                          
+                          setContent(formattedUrlContent);
+                          setEditableContent(formattedUrlContent);
                         } else {
                           console.log("File không phải dạng văn bản đơn giản, sử dụng URL để hiển thị");
                           if (docData.file_type === 'pdf' || contentType && contentType.includes('pdf')) {
@@ -123,7 +147,6 @@ const LegalDocDetail = () => {
                           }
                         }
                       } else {
-                        console.log("Không thể tải nội dung từ URL:", fileResponse.statusText);
                         setContent('Không thể tải nội dung từ URL file. Vui lòng tải xuống để xem nội dung.');
                       }
                     } catch (fetchError) {
@@ -131,7 +154,6 @@ const LegalDocDetail = () => {
                       setContent('Lỗi khi tải nội dung từ URL file. Vui lòng tải xuống để xem nội dung.');
                     }
                   } else {
-                    console.log("Không có URL file, không thể tải nội dung");
                     setContent('Không thể hiển thị nội dung tệp này trực tiếp trên trình duyệt. Vui lòng tải xuống để xem chi tiết.');
                   }
                 }
@@ -141,7 +163,6 @@ const LegalDocDetail = () => {
                 // Thử tải từ URL nếu có
                 if (docData.file_url) {
                   try {
-                    console.log("Thử tải nội dung từ URL sau khi API lỗi:", docData.file_url);
                     const fileResponse = await fetch(docData.file_url);
                     
                     if (fileResponse.ok) {
@@ -151,9 +172,13 @@ const LegalDocDetail = () => {
                       
                       if (isTextFile || isTextContentType) {
                         const textContent = await fileResponse.text();
-                        console.log("Đã tải được nội dung văn bản từ URL sau khi API lỗi");
-                        setContent(textContent);
-                        setEditableContent(textContent);
+                        // Đảm bảo xuống dòng đúng cách
+                        const formattedUrlContent = textContent
+                          .replace(/\r\n/g, '\n')
+                          .replace(/\r/g, '\n')
+                          .replace(/\n{3,}/g, '\n\n'); // Giới hạn tối đa 2 dòng trống liên tiếp
+                        setContent(formattedUrlContent);
+                        setEditableContent(formattedUrlContent);
                       } else {
                         if (docData.file_type === 'pdf' || contentType && contentType.includes('pdf')) {
                           setContent('Tài liệu PDF này sẽ được hiển thị trong khung xem.');
@@ -164,7 +189,6 @@ const LegalDocDetail = () => {
                         }
                       }
                     } else {
-                      console.log("Không thể tải nội dung từ URL sau khi API lỗi:", fileResponse.statusText);
                       setContent('Không thể tải nội dung từ URL file. Vui lòng tải xuống để xem nội dung.');
                     }
                   } catch (fetchError) {
@@ -172,7 +196,6 @@ const LegalDocDetail = () => {
                     setContent('Lỗi khi tải nội dung từ URL file. Vui lòng tải xuống để xem nội dung.');
                   }
                 } else {
-                  console.log("Không có URL file và API lỗi, không thể tải nội dung");
                   setContent('Không thể tải nội dung tài liệu. Vui lòng tải xuống để xem chi tiết.');
                 }
               }
@@ -209,30 +232,28 @@ const LegalDocDetail = () => {
 
     fetchDocument();
     fetchCategories();
+    // Mặc định hiển thị nút tải đầy đủ nội dung
+    setContentTruncated(true);
   }, [id, navigate]);
 
   // Thêm useEffect mới để xử lý tự động phát hiện URL file
   useEffect(() => {
     const detectFileUrl = async () => {
       if (doc && !fileUrl) {
-        console.log("Thử phát hiện URL file...");
         
         // Kiểm tra xem có file_url trong đối tượng doc không
         if (doc.file_url) {
-          console.log("Đã tìm thấy URL file trong doc:", doc.file_url);
           setFileUrl(doc.file_url);
           return;
         }
         
         // Kiểm tra xem có URL trong các trường khác không
         if (doc.url) {
-          console.log("Tìm thấy URL trong trường url:", doc.url);
           setFileUrl(doc.url);
           return;
         }
         
         if (doc.download_url) {
-          console.log("Tìm thấy URL trong trường download_url:", doc.download_url);
           setFileUrl(doc.download_url);
           return;
         }
@@ -242,13 +263,11 @@ const LegalDocDetail = () => {
           // Thử tạo URL dựa trên ID và loại tệp
           if (doc.id && doc.file_type) {
             const possibleUrl = `${window.location.origin}/files/${doc.id}.${doc.file_type}`;
-            console.log("Thử kiểm tra URL có thể có:", possibleUrl);
             
             // Kiểm tra xem URL có tồn tại không
             try {
               const response = await fetch(possibleUrl, { method: 'HEAD' });
               if (response.ok) {
-                console.log("URL được tạo tồn tại:", possibleUrl);
                 setFileUrl(possibleUrl);
                 return;
               }
@@ -263,7 +282,6 @@ const LegalDocDetail = () => {
             if (typeof value === 'string' && 
                 (value.startsWith('http://') || value.startsWith('https://')) &&
                 (value.endsWith(`.${doc.file_type}`) || value.includes('/files/') || value.includes('/uploads/'))) {
-              console.log(`Tìm thấy URL trong trường ${key}:`, value);
               setFileUrl(value);
               return;
             }
@@ -304,6 +322,59 @@ const LegalDocDetail = () => {
     setIsEditing(false);
   };
 
+  // Xử lý thay đổi file
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    // Kiểm tra kích thước file (tối đa 10MB)
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      toast.error('Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 10MB');
+      return;
+    }
+
+    setNewFile(selectedFile);
+  };
+
+  // Xử lý mở cửa sổ chọn file
+  const handleOpenFileSelector = () => {
+    fileInputRef.current.click();
+  };
+
+  // Xử lý hủy chọn file
+  const handleCancelFileSelect = () => {
+    setNewFile(null);
+  };
+
+  // Xử lý thay thế file
+  const handleReplaceFile = async () => {
+    if (!newFile) {
+      toast.error('Vui lòng chọn file để thay thế');
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      const response = await legalDocService.replaceDocFile(id, newFile);
+      
+      if (response.success) {
+        // Cập nhật thông tin tài liệu từ đối tượng mới được tạo
+        const newDocId = response.data.id;
+        toast.success('Đã thay thế file thành công');
+        
+        // Chuyển hướng đến trang chi tiết của tài liệu mới
+        navigate(`/legal-docs/${newDocId}`);
+      } else {
+        toast.error(response.message || 'Không thể thay thế file');
+      }
+    } catch (error) {
+      console.error('Lỗi khi thay thế file:', error);
+      toast.error('Có lỗi xảy ra khi thay thế file');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   // Lưu thay đổi
   const handleSaveChanges = async (e) => {
     e.preventDefault();
@@ -313,6 +384,29 @@ const LegalDocDetail = () => {
       return;
     }
     
+    // Nếu có file mới, thực hiện thay thế file (sẽ tự động cập nhật thông tin)
+    if (newFile) {
+      try {
+        setIsUpdating(true);
+        const response = await legalDocService.replaceDocFile(id, newFile);
+        
+        if (response.success) {
+          const newDocId = response.data.id;
+          toast.success('Đã cập nhật hồ sơ và thay thế file thành công');
+          navigate(`/legal-docs/${newDocId}`);
+        } else {
+          toast.error(response.message || 'Không thể thay thế file');
+        }
+      } catch (error) {
+        console.error('Lỗi khi thay thế file:', error);
+        toast.error('Có lỗi xảy ra khi thay thế file');
+      } finally {
+        setIsUpdating(false);
+      }
+      return;
+    }
+    
+    // Nếu không có file mới, chỉ cập nhật thông tin
     try {
       setIsUpdating(true);
       
@@ -514,6 +608,76 @@ const LegalDocDetail = () => {
   // Kiểm tra xem tài liệu đã được phân tích chưa
   const isAnalyzed = doc && doc.metadata && doc.metadata.analyzed;
 
+  // Tải nội dung đầy đủ khi phát hiện bị cắt bớt
+  const loadFullContent = async () => {
+    try {
+      setIsLoadingFullContent(true);
+      setContentTruncated(true); // Luôn đặt là true để hiện nút
+      
+      // Gọi API với tham số chỉ định không giới hạn kích thước và ưu tiên tải từ file gốc
+      const response = await legalDocService.getDocFileContent(id, { 
+        maxSize: 0,
+        fullContent: true 
+      });
+      
+      // Xử lý trường hợp API trả về HTML thay vì nội dung văn bản thực
+      if (response.data && response.data.isHtmlError) {
+        console.error("Phát hiện nội dung HTML không hợp lệ");
+        toast.error('Định dạng nội dung không được hỗ trợ để hiển thị trực tiếp.');
+        
+        // Tự động tải xuống tài liệu để người dùng xem
+        try {
+          const downloadResponse = await legalDocService.downloadLegalDoc(id);
+          if (downloadResponse.success) {
+            toast.info('Đã tải xuống tài liệu. Hãy mở file để xem toàn bộ nội dung.');
+          }
+        } catch (downloadError) {
+          console.error('Lỗi khi tải xuống tài liệu:', downloadError);
+        }
+        
+        return;
+      }
+      
+      if (response.success && response.data && response.data.content) {
+        // Đảm bảo xuống dòng đúng cách
+        const formattedContent = response.data.content
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n')
+          .replace(/\n{3,}/g, '\n\n'); // Giới hạn tối đa 2 dòng trống liên tiếp
+        
+        setContent(formattedContent);
+        setEditableContent(formattedContent);
+        setContentTruncated(false);
+        toast.success('Đã tải đầy đủ nội dung tài liệu');
+      } else {
+        toast.error('Không thể tải đầy đủ nội dung tài liệu');
+        
+        // Tải trực tiếp bằng cách tải xuống file và đọc
+        try {
+          const downloadResponse = await legalDocService.downloadLegalDoc(id);
+          if (downloadResponse.success) {
+            toast.info('Đã tải xuống tài liệu. Hãy mở file để xem toàn bộ nội dung.');
+          }
+        } catch (downloadError) {
+          console.error('Lỗi khi tải xuống tài liệu:', downloadError);
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải đầy đủ nội dung:', error);
+      toast.error('Có lỗi xảy ra khi tải đầy đủ nội dung');
+      
+      // Nếu có lỗi, thử tải xuống file
+      try {
+        await legalDocService.downloadLegalDoc(id);
+        toast.info('Đã tải xuống tài liệu. Hãy mở file để xem toàn bộ nội dung.');
+      } catch (downloadError) {
+        console.error('Lỗi khi tải xuống tài liệu:', downloadError);
+      }
+    } finally {
+      setIsLoadingFullContent(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
@@ -676,6 +840,42 @@ const LegalDocDetail = () => {
                         placeholder="Nhập thẻ, cách nhau bằng dấu phẩy"
                       />
                     </div>
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label>Thay thế file:</label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif"
+                    />
+                    
+                    {!newFile ? (
+                      <div className={styles.fileUploadPlaceholder} onClick={handleOpenFileSelector}>
+                        <i className="fas fa-file-upload"></i>
+                        <span>Chọn file để thay thế</span>
+                        <small>File hiện tại: {doc.file_type?.toUpperCase()} ({formatFileSize(doc.file_size)})</small>
+                      </div>
+                    ) : (
+                      <div className={styles.newFilePreview}>
+                        <div className={styles.fileIcon}>
+                          <i className={`fas ${getFileIcon(newFile.name.split('.').pop().toLowerCase())}`}></i>
+                        </div>
+                        <div className={styles.fileInfo}>
+                          <p className={styles.fileName}>{newFile.name}</p>
+                          <p className={styles.fileSize}>{formatFileSize(newFile.size)}</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          className={styles.removeFileButton}
+                          onClick={handleCancelFileSelect}
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   <div className={styles.formActions}>
@@ -925,8 +1125,36 @@ const LegalDocDetail = () => {
                   </div>
                 ) : content ? (
                   <>
-                    <pre className={styles.documentText}>{content}</pre>
-                    <div className={styles.downloadButtonContainer}>
+                    <div className={styles.documentText}>
+                      {content.split('\n').map((line, index) => (
+                        <div key={index} style={{ paddingLeft: '10px', textIndent: line.startsWith(' ') ? '0' : '0.5em' }}>
+                          {line || <span>&nbsp;</span>}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {contentTruncated && (
+                      <div className={styles.loadMoreContainer}>
+                        <button 
+                          className={styles.loadMoreButton}
+                          onClick={loadFullContent}
+                          disabled={isLoadingFullContent}
+                        >
+                          {isLoadingFullContent ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin"></i> Đang tải đầy đủ nội dung...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-file-alt"></i> Tải đầy đủ nội dung
+                            </>
+                          )}
+                        </button>
+                        <small>Nội dung hiện tại bị cắt ngắn. Nhấn nút trên để tải toàn bộ nội dung.</small>
+                      </div>
+                    )}
+                    
+                    <div className={styles.downloadButtonContainer} style={{ marginTop: '20px' }}>
                       <button 
                         className={styles.downloadInlineButton}
                         onClick={handleDownload}

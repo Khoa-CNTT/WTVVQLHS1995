@@ -390,16 +390,99 @@ export const getUserLegalDocsById = async (userId, page = 1, limit = 10, options
 };
 
 // Lấy nội dung file từ URL
-export const getDocFileContent = async (docId) => {
+export const getDocFileContent = async (docId, options = {}) => {
   try {
-    // Thử sử dụng endpoint file content
-    try {
-      const response = await axiosInstance.get(`/legal-docs/${docId}/content`, getHeaders());
-      return response.data;
-    } catch (contentError) {
-      console.log("Endpoint /content không tồn tại, thử sử dụng phương pháp khác");
+    const { maxSize = 0, fullContent = false } = options;
+    
+    // Nếu yêu cầu tải nội dung đầy đủ, ưu tiên lấy trực tiếp từ file
+    if (fullContent) {
+      console.log("Đang tải toàn bộ nội dung trực tiếp từ file");
+      const docResponse = await getLegalDocById(docId);
       
-      // Nếu endpoint content không tồn tại, thử tải file và đọc nội dung
+      if (docResponse.success && docResponse.data.file_url) {
+        try {
+          console.log("Có URL file, bắt đầu tải từ:", docResponse.data.file_url);
+          const fileResponse = await fetch(docResponse.data.file_url);
+          
+          if (fileResponse.ok) {
+            const contentType = fileResponse.headers.get('content-type');
+            const isTextFile = ['txt', 'html', 'css', 'js', 'json', 'xml'].includes(
+              docResponse.data.file_type?.toLowerCase()
+            );
+            const isTextContentType = contentType && contentType.includes('text');
+            
+            if (isTextFile || isTextContentType) {
+              const text = await fileResponse.text();
+              
+              // Kiểm tra nếu nội dung là HTML với DOCTYPE
+              if (text.trim().toLowerCase().startsWith('<!doctype html>') || 
+                  text.trim().toLowerCase().startsWith('<html')) {
+                console.error("Nhận được HTML thay vì nội dung văn bản thực");
+                return {
+                  success: false,
+                  message: 'Không thể hiển thị nội dung trực tiếp. Vui lòng tải xuống để xem.',
+                  data: {
+                    content: "Định dạng file không được hỗ trợ để hiển thị trực tiếp. Vui lòng tải xuống để xem đầy đủ.",
+                    truncated: true,
+                    isHtmlError: true
+                  }
+                };
+              }
+              
+              console.log("Đã tải thành công nội dung từ file gốc");
+              return {
+                success: true,
+                data: {
+                  content: text,
+                  truncated: false
+                }
+              };
+            }
+          }
+        } catch (fetchError) {
+          console.error("Lỗi khi tải trực tiếp từ file:", fetchError);
+        }
+      }
+    }
+    
+    // Thử dùng API content
+    console.log("Thử dùng API /content để lấy nội dung");
+    const queryParams = new URLSearchParams();
+    queryParams.append('max_size', maxSize);
+    if (fullContent) {
+      queryParams.append('full_content', 'true');
+    }
+    
+    try {
+      const response = await axiosInstance.get(
+        `/legal-docs/${docId}/content?${queryParams.toString()}`, 
+        getHeaders()
+      );
+      console.log("Đã nhận phản hồi từ API /content");
+      
+      // Kiểm tra nếu response chứa HTML
+      if (response.data && response.data.data && response.data.data.content) {
+        const content = response.data.data.content;
+        if (content.trim().toLowerCase().startsWith('<!doctype html>') || 
+            content.trim().toLowerCase().startsWith('<html')) {
+          console.error("API trả về HTML thay vì nội dung văn bản thực");
+          return {
+            success: false,
+            message: 'Không thể hiển thị nội dung trực tiếp. Vui lòng tải xuống để xem.',
+            data: {
+              content: "Định dạng file không được hỗ trợ để hiển thị trực tiếp. Vui lòng tải xuống để xem đầy đủ.",
+              truncated: true,
+              isHtmlError: true
+            }
+          };
+        }
+      }
+      
+      return response.data;
+    } catch (apiError) {
+      console.log("API /content lỗi, thử phương pháp khác:", apiError);
+      
+      // Thử lấy file URL và đọc trực tiếp
       const docResponse = await getLegalDocById(docId);
       if (docResponse.success && docResponse.data.file_url) {
         try {
@@ -409,6 +492,22 @@ export const getDocFileContent = async (docId) => {
             if (contentType && contentType.includes('text') || 
                 ['txt', 'html', 'css', 'js', 'json', 'xml'].includes(docResponse.data.file_type?.toLowerCase())) {
               const text = await fileResponse.text();
+              
+              // Kiểm tra nếu nội dung là HTML với DOCTYPE
+              if (text.trim().toLowerCase().startsWith('<!doctype html>') || 
+                  text.trim().toLowerCase().startsWith('<html')) {
+                console.error("Nhận được HTML thay vì nội dung văn bản thực");
+                return {
+                  success: false,
+                  message: 'Không thể hiển thị nội dung trực tiếp. Vui lòng tải xuống để xem.',
+                  data: {
+                    content: "Định dạng file không được hỗ trợ để hiển thị trực tiếp. Vui lòng tải xuống để xem đầy đủ.",
+                    truncated: true,
+                    isHtmlError: true
+                  }
+                };
+              }
+              
               return {
                 success: true,
                 data: {
@@ -427,7 +526,6 @@ export const getDocFileContent = async (docId) => {
         }
       }
       
-      // Nếu không thể lấy nội dung, trả về thông báo lỗi
       return {
         success: false,
         message: 'Không thể tải nội dung file. Vui lòng tải xuống để xem.'
@@ -480,6 +578,59 @@ export const convertDocxToPdf = async (docId) => {
     }
   } catch (error) {
     console.error('Lỗi khi chuyển đổi tài liệu:', error);
+    throw error;
+  }
+};
+
+// Thay thế file trong hồ sơ pháp lý
+export const replaceDocFile = async (docId, fileData) => {
+  try {
+    const config = {
+      ...getHeaders(),
+      headers: {
+        ...getHeaders().headers,
+        'Content-Type': 'multipart/form-data'
+      }
+    };
+    
+    // Tạo FormData với file và các thông tin cần thiết
+    const formData = new FormData();
+    formData.append('file', fileData);
+    
+    // Sử dụng API update hiện có, vì API replace-file chưa được triển khai
+    // Bước 1: Lấy thông tin hiện tại của document
+    const docResponse = await getLegalDocById(docId);
+    if (!docResponse.success) {
+      throw new Error('Không thể lấy thông tin tài liệu');
+    }
+    
+    // Bước 2: Upload file mới với thông tin hiện tại của tài liệu
+    const docInfo = docResponse.data;
+    formData.append('title', docInfo.title || '');
+    formData.append('description', docInfo.description || '');
+    formData.append('category', docInfo.category || '');
+    
+    if (docInfo.tags) {
+      if (Array.isArray(docInfo.tags)) {
+        formData.append('tags', JSON.stringify(docInfo.tags));
+      } else if (typeof docInfo.tags === 'string') {
+        formData.append('tags', JSON.stringify(docInfo.tags.split(',').map(tag => tag.trim())));
+      }
+    }
+    
+    // Bước 3: Xóa tài liệu cũ
+    await deleteLegalDoc(docId);
+    
+    // Bước 4: Upload file mới
+    const response = await uploadLegalDoc(formData);
+    
+    return response;
+  } catch (error) {
+    console.error('Lỗi khi thay thế file hồ sơ pháp lý:', error);
+    if (error.response) {
+      console.error('API response:', error.response.status);
+      console.error('Error response:', error.response.data);
+    }
     throw error;
   }
 }; 

@@ -108,6 +108,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  width: 100%;
 }
 
 .docInfo {
@@ -266,34 +267,54 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
+  padding: 2rem;
   margin-bottom: 2rem;
+  width: 100%;
+  min-height: 500px;
 }
 
 .contentViewer {
   background-color: #f9f9f9;
   border-radius: 8px;
-  padding: 1rem;
-  overflow: hidden;
+  padding: 2rem;
+  overflow: visible;
+  width: 100%;
+  min-height: 500px;
 }
 
 .textContent {
-  background-color: white;
-  border-radius: 4px;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  max-height: 600px;
-  overflow-y: auto;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 2.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  max-height: none;
+  overflow-y: visible;
+  width: 100%;
+  margin: 0;
+  border: 1px solid #e6e6e6;
 }
 
 .documentText {
-  font-family: 'Courier New', monospace;
+  font-family: 'Segoe UI', 'Roboto', 'Open Sans', sans-serif;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 1.15rem;
+  line-height: 1.9;
   margin: 0;
-  padding: 0;
+  padding: 0 1rem;
+  width: 100%;
+  overflow: visible;
+  display: block;
+  text-align: left;
+  color: #333;
+  max-height: none;
+  letter-spacing: 0.01em;
+}
+
+.documentText > div {
+  padding: 5px 0;
+  min-height: 1.9em;
+  margin-bottom: 0.4em;
 }
 
 .imagePreview {
@@ -400,7 +421,13 @@
   }
   
   .documentText {
-    font-size: 0.8rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    padding: 0 0.5rem;
+  }
+  
+  .documentText > div {
+    padding: 3px 0;
   }
 }
 
@@ -842,4 +869,154 @@
 .noContent p {
   color: #4b5563;
   margin-bottom: 1.5rem;
+}
+
+.loadMoreContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.loadMoreContainer small {
+  color: #777;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.loadMoreButton {
+  background-color: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.loadMoreButton:hover:not(:disabled) {
+  background-color: #0d3d68;
+  transform: translateY(-2px);
+}
+
+.loadMoreButton:disabled {
+  background-color: #7ca6c9;
+  cursor: not-allowed;
+}
+
+.fileUploadPlaceholder {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fileUploadPlaceholder:hover {
+  border-color: #0f4c81;
+  background-color: #f0f4f9;
+}
+
+.fileUploadPlaceholder i {
+  font-size: 1.5rem;
+  color: #0f4c81;
+}
+
+.fileUploadPlaceholder span {
+  font-size: 1rem;
+  color: #333;
+}
+
+.fileUploadPlaceholder small {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.newFilePreview {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+.newFilePreview .fileIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background-color: #e6f0f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.newFilePreview .fileIcon i {
+  font-size: 1.2rem;
+  color: #0f4c81;
+}
+
+.newFilePreview .fileInfo {
+  flex: 1;
+  overflow: hidden;
+}
+
+.newFilePreview .fileName {
+  margin: 0 0 0.3rem 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.newFilePreview .fileSize {
+  margin: 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.removeFileButton {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 1rem;
+  transition: color 0.3s ease;
+}
+
+.removeFileButton:hover {
+  color: #e74c3c;
+}
+
+@media (max-width: 768px) {
+  .fileUploadPlaceholder {
+    padding: 1rem;
+  }
+  
+  .newFilePreview {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .newFilePreview .fileIcon {
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .removeFileButton {
+    margin: 0.5rem 0 0 0;
+  }
 } 
