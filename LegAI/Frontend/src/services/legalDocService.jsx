@@ -112,6 +112,14 @@ export const getLegalDocById = async (docId) => {
                 console.log("Tạo URL dựa trên ID:", docData.file_url);
             }
             
+            // Đảm bảo URL có thể truy cập từ bên ngoài
+            if (docData.file_url && docData.file_url.includes('/uploads/legal-docs/')) {
+                // Tạo URL download API thay vì URL trực tiếp đến file
+                const baseURL = axiosInstance.defaults.baseURL || 'http://localhost:8000/api';
+                docData.download_url = `${baseURL}/legal-docs/${docData.id}/download`;
+                console.log("Tạo URL download API:", docData.download_url);
+            }
+            
             // Cập nhật response
             response.data.data = docData;
         }
@@ -438,6 +446,40 @@ export const updateDocContent = async (docId, content) => {
     return response.data;
   } catch (error) {
     console.error('Lỗi khi cập nhật nội dung file:', error);
+    throw error;
+  }
+};
+
+// Chuyển đổi tài liệu DOCX sang PDF
+export const convertDocxToPdf = async (docId) => {
+  try {
+    // Thử gọi API từ backend nếu có
+    try {
+      const response = await axiosInstance.post(`/legal-docs/${docId}/convert-to-pdf`, {}, getHeaders());
+      return response.data;
+    } catch (error) {
+      // Lấy URL hiện tại của tài liệu 
+      const docInfo = await getLegalDocById(docId);
+      const fileUrl = docInfo.data?.file_url || '';
+      
+      if (fileUrl) {
+        // Tạo URL Google Docs thay vì Office Online
+        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}`;
+        
+        return {
+          success: true,
+          message: 'Đã sử dụng Google Docs thay thế',
+          data: {
+            pdfUrl: googleDocsUrl,
+            useGoogleViewer: true
+          }
+        };
+      }
+      
+      throw error;
+    }
+  } catch (error) {
+    console.error('Lỗi khi chuyển đổi tài liệu:', error);
     throw error;
   }
 }; 

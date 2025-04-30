@@ -8,6 +8,7 @@ import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import ContractManager from '../pages/Contracts/ContractManager';
+import ContractDetail from '../pages/Contracts/ContractDetail';
 import LegalCaseList from '../pages/LegalCase/LegalCaseList';
 import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
 import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
@@ -87,6 +88,15 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <ContractManager />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route chi tiết hợp đồng */}
+        <Route path="/contracts/:id" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <ContractDetail />
             </PageTransition>
           </ProtectedRoute>
         } />

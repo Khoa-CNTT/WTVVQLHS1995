@@ -321,7 +321,6 @@ const DocShareModal = ({ doc, onClose, onSuccess, visible = true }) => {
               <Select>
                 <Option value="view">Chỉ xem</Option>
                 <Option value="edit">Chỉnh sửa</Option>
-                <Option value="full">Toàn quyền</Option>
               </Select>
             </Form.Item>
           </div>

@@ -218,9 +218,39 @@ const downloadContractFile = async (contractId) => {
       console.log('Đã dọn dẹp sau khi tải xuống');
     }, 200);
     
-    return { success: true, message: 'Tải xuống thành công', filename };
+    return { success: true, message: 'Tải xuống thành công', filename, downloadUrl: url };
   } catch (error) {
     console.error(`Lỗi khi tải xuống file hợp đồng ID ${contractId}:`, error);
+    
+    // Nếu API tải xuống không tồn tại, thử lấy thông tin hợp đồng để có file_url
+    if (error.response && error.response.status === 404) {
+      try {
+        const contractResponse = await getContractById(contractId);
+        if (contractResponse.success && contractResponse.data && contractResponse.data.file_url) {
+          let fileUrl = contractResponse.data.file_url;
+          
+          // Đảm bảo URL trỏ đến backend
+          if (fileUrl.startsWith('/uploads/')) {
+            fileUrl = `http://localhost:8000${fileUrl}`;
+          }
+          
+          // Nếu URL chứa localhost:3000, chuyển thành localhost:8000
+          if (fileUrl.includes('localhost:3000')) {
+            fileUrl = fileUrl.replace('localhost:3000', 'localhost:8000');
+          }
+          
+          console.log("API download không tồn tại, sử dụng file_url trực tiếp:", fileUrl);
+          return { 
+            success: true, 
+            message: 'Đã chuyển hướng sang URL trực tiếp', 
+            downloadUrl: fileUrl,
+            filename: contractResponse.data.title || `contract_${contractId}`
+          };
+        }
+      } catch (contractError) {
+        console.error("Không thể lấy thông tin hợp đồng:", contractError);
+      }
+    }
     
     if (error.response) {
       console.error('Status:', error.response.status);
@@ -245,11 +275,42 @@ const downloadContractFile = async (contractId) => {
   }
 };
 
+// Lấy nội dung file hợp đồng
+const getContractFileContent = async (contractId) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/contracts/${contractId}/content`, 
+      getHeaders()
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Lỗi khi lấy nội dung file hợp đồng ID ${contractId}:`, error);
+    throw error;
+  }
+};
+
+// Cập nhật nội dung hợp đồng
+const updateContractContent = async (contractId, content) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/contracts/${contractId}/content`, 
+      { content },
+      getHeaders()
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Lỗi khi cập nhật nội dung hợp đồng ID ${contractId}:`, error);
+    throw error;
+  }
+};
+
 export { 
   getContracts, 
   getContractById, 
   createContract, 
   updateContract, 
   deleteContract, 
-  downloadContractFile 
+  downloadContractFile,
+  getContractFileContent,
+  updateContractContent
 }; 
