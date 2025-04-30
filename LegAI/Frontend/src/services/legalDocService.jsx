@@ -93,6 +93,29 @@ export const getSharedLegalDocs = async (page = 1, limit = 10, options = {}) => 
 export const getLegalDocById = async (docId) => {
     try {
         const response = await axiosInstance.get(`/legal-docs/${docId}`, getHeaders());
+        
+        // Nếu response thành công nhưng không có file_url, thử thêm nó từ các trường khác
+        if (response.data && response.data.success && response.data.data) {
+            const docData = response.data.data;
+            
+            // Xác định URL file từ các trường có thể có
+            if (!docData.file_url && docData.url) {
+                docData.file_url = docData.url;
+                console.log("Sử dụng URL từ trường url:", docData.url);
+            }
+            
+            // Nếu vẫn không có, tạo URL dựa trên ID nếu có thể
+            if (!docData.file_url && docData.id && docData.file_type) {
+                // Tạo URL dựa trên cấu trúc thông thường của API backend
+                const baseURL = axiosInstance.defaults.baseURL || 'http://localhost:8000/api';
+                docData.file_url = `${baseURL}/legal-docs/${docData.id}/download`;
+                console.log("Tạo URL dựa trên ID:", docData.file_url);
+            }
+            
+            // Cập nhật response
+            response.data.data = docData;
+        }
+        
         return response.data;
     } catch (error) {
         console.error('Lỗi khi lấy thông tin hồ sơ pháp lý:', error);
@@ -356,4 +379,65 @@ export const getUserLegalDocsById = async (userId, page = 1, limit = 10, options
             total: 0
         }
     };
+};
+
+// Lấy nội dung file từ URL
+export const getDocFileContent = async (docId) => {
+  try {
+    // Thử sử dụng endpoint file content
+    try {
+      const response = await axiosInstance.get(`/legal-docs/${docId}/content`, getHeaders());
+      return response.data;
+    } catch (contentError) {
+      console.log("Endpoint /content không tồn tại, thử sử dụng phương pháp khác");
+      
+      // Nếu endpoint content không tồn tại, thử tải file và đọc nội dung
+      const docResponse = await getLegalDocById(docId);
+      if (docResponse.success && docResponse.data.file_url) {
+        try {
+          const fileResponse = await fetch(docResponse.data.file_url);
+          if (fileResponse.ok) {
+            const contentType = fileResponse.headers.get('content-type');
+            if (contentType && contentType.includes('text') || 
+                ['txt', 'html', 'css', 'js', 'json', 'xml'].includes(docResponse.data.file_type?.toLowerCase())) {
+              const text = await fileResponse.text();
+              return {
+                success: true,
+                data: {
+                  content: text
+                }
+              };
+            } else {
+              return {
+                success: false,
+                message: 'Không phải file văn bản, không thể hiển thị nội dung trực tiếp.'
+              };
+            }
+          }
+        } catch (fetchError) {
+          console.error("Lỗi khi tải file:", fetchError);
+        }
+      }
+      
+      // Nếu không thể lấy nội dung, trả về thông báo lỗi
+      return {
+        success: false,
+        message: 'Không thể tải nội dung file. Vui lòng tải xuống để xem.'
+      };
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy nội dung file:', error);
+    throw error;
+  }
+};
+
+// Cập nhật nội dung file
+export const updateDocContent = async (docId, content) => {
+  try {
+    const response = await axiosInstance.put(`/legal-docs/${docId}/content`, { content }, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi cập nhật nội dung file:', error);
+    throw error;
+  }
 }; 

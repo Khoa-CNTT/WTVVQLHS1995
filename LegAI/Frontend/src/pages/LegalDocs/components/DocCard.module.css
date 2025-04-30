@@ -8,6 +8,7 @@
   height: 270px;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 }
 
 .card:hover {

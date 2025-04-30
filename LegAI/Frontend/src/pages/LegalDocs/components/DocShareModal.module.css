@@ -250,8 +250,10 @@
 }
 
 .shareButton {
-  position: absolute;
-  transform: translateY(270%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
   background-color: #4264d0;
   color: white;

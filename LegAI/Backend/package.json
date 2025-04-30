@@ -24,6 +24,7 @@
     "html-pdf": "^3.0.1",
     "jsonwebtoken": "^9.0.2",
     "legai-backend": "file:",
+    "libreoffice-convert": "^1.6.1",
     "mammoth": "^1.9.0",
     "multer": "1.4.5-lts.2",
     "node-cron": "^3.0.3",

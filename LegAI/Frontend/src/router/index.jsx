@@ -13,6 +13,7 @@ import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
 import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
 import LegalCaseEditor from '../pages/LegalCase/LegalCaseEditor';
 import authService from '../services/authService';
+import LegalDocDetail from '../pages/LegalDocs/LegalDocDetail';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
@@ -130,7 +131,7 @@ const AppRouter = () => {
         <Route path="/legal-docs/:id" element={
           <ProtectedRoute>
             <PageTransition custom="fade">
-              <LegalDocsPage />
+              <LegalDocDetail />
             </PageTransition>
           </ProtectedRoute>
         } />

@@ -1,18 +1,23 @@
-Dependencies
+# Dependencies
 node_modules/
 
-Build output
+# Build output
 dist/
 build/
 
-Logs
+# Logs
 .log
 npm-debug.log
 
-IDE files
+# Tệp lock của package manager (nếu dùng yarn hoặc pnpm, có thể bỏ package-lock.json)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# IDE files
 .vscode/
 .idea/
 
-OS generated files
+# OS generated files
 .DS_Store
 Thumbs.db
