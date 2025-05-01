@@ -341,20 +341,12 @@ exports.createAIDraft = asyncHandler(async (req, res) => {
   }
 });
 
-// Gán vụ án cho luật sư
+// Gán luật sư cho vụ án
 exports.assignLawyer = asyncHandler(async (req, res) => {
   try {
     const caseId = req.params.id;
     const { lawyer_id } = req.body;
     const userId = req.user.id;
-    
-    // Kiểm tra dữ liệu đầu vào
-    if (!lawyer_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng chọn luật sư'
-      });
-    }
     
     // Kiểm tra vụ án tồn tại và thuộc về người dùng
     const legalCase = await legalCaseModel.getLegalCaseById(caseId);
@@ -369,45 +361,48 @@ exports.assignLawyer = asyncHandler(async (req, res) => {
     if (legalCase.user_id !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền truy cập vụ án này'
+        message: 'Bạn không có quyền gán luật sư cho vụ án này'
       });
     }
     
-    // Cập nhật vụ án với luật sư mới
+    // Kiểm tra luật sư tồn tại
+    const lawyer = await legalCaseModel.getUserById(lawyer_id);
+    
+    if (!lawyer || lawyer.role.toLowerCase() !== 'lawyer') {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy luật sư'
+      });
+    }
+    
+    // Gán luật sư cho vụ án
     const updatedCase = await legalCaseModel.assignLawyer(caseId, lawyer_id);
     
-    // Thêm dữ liệu vào LegalCases trước, sau đó xử lý Appointments riêng
-    let appointmentResult = null;
+    // Cập nhật trạng thái vụ án thành "đang chờ xử lý" sau khi gán luật sư
+    await legalCaseModel.updateCaseStatus(caseId, 'pending');
     
+    // Tạo cuộc hẹn mặc định
     try {
-      // Tạo thời gian mặc định cho lịch hẹn (hiện tại + 1 ngày)
-      const now = new Date();
-      const startTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Ngày mai
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);  // Kéo dài 1 giờ
-      
-      // Tạo lịch hẹn tư vấn với đầy đủ thông tin thời gian
       const appointmentData = {
-        customer_id: userId,
-        lawyer_id: lawyer_id,
+        user_id: userId,
+        lawyer_id,
         case_id: caseId,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'pending',
-        notes: `Tư vấn cho vụ án: ${legalCase.title}`,
-        purpose: 'Tư vấn pháp lý',
-        appointment_type: 'case_consultation'
+        title: `Tư vấn về vụ án: ${legalCase.title}`,
+        description: 'Cuộc hẹn tư vấn ban đầu',
+        appointment_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày sau
+        duration_minutes: 30,
+        status: 'pending'
       };
       
-      // Thử tạo lịch hẹn, nhưng không để lỗi ở đây ảnh hưởng đến việc gán luật sư
-      appointmentResult = await legalCaseModel.createAppointment(appointmentData);
+      await legalCaseModel.createAppointment(appointmentData);
     } catch (appointmentError) {
-      console.error('Lỗi khi tạo lịch hẹn tư vấn:', appointmentError);
-      // Không ném lỗi, chỉ ghi log
+      console.error('Lỗi khi tạo cuộc hẹn:', appointmentError);
+      // Không trả về lỗi ngay, vì việc chính là gán luật sư đã thành công
     }
     
     // Ghi log
     await auditLogModel.addAuditLog({
-      userId: userId,
+      userId,
       action: 'ASSIGN_LAWYER',
       tableName: 'LegalCases',
       recordId: caseId,
@@ -416,11 +411,8 @@ exports.assignLawyer = asyncHandler(async (req, res) => {
     
     return res.status(200).json({
       success: true,
-      data: {
-        case: updatedCase,
-        appointment: appointmentResult
-      },
-      message: 'Đã gán luật sư thành công'
+      data: updatedCase,
+      message: 'Gán luật sư thành công'
     });
     
   } catch (error) {
@@ -436,13 +428,10 @@ exports.assignLawyer = asyncHandler(async (req, res) => {
 exports.calculateFee = asyncHandler(async (req, res) => {
   try {
     const caseId = req.params.id;
-    const { parameters } = req.body;
+    const { parameters, lawyer_id } = req.body;
     const userId = req.user.id;
-    const userRole = req.user.role ? req.user.role.toLowerCase() : '';
     
-    console.log(`[BACKEND] Yêu cầu tính phí từ người dùng ID ${userId}, role: ${userRole}`);
-    
-    // Kiểm tra vụ án tồn tại
+    // Kiểm tra quyền (chỉ luật sư được gán cho vụ án mới được tính phí)
     const legalCase = await legalCaseModel.getLegalCaseById(caseId);
     
     if (!legalCase) {
@@ -452,45 +441,39 @@ exports.calculateFee = asyncHandler(async (req, res) => {
       });
     }
     
-    console.log(`[BACKEND] Thông tin vụ án:`, {
-      case_id: caseId,
-      lawyer_id: legalCase.lawyer_id,
-      user_id: legalCase.user_id,
-      requester_id: userId
-    });
-    
-    // Kiểm tra quyền: Chỉ chủ sở hữu hoặc luật sư được gán mới có quyền
-    const isOwner = legalCase.user_id === userId;
-    const isAssignedLawyer = legalCase.lawyer_id === userId;
-    const isLawyer = userRole === 'lawyer' || userRole === 'luật sư';
-    
-    // Chỉ luật sư được gán có quyền tính phí
-    if (!(isAssignedLawyer && isLawyer)) {
+    // Kiểm tra xem người dùng có phải là luật sư được gán cho vụ án không
+    if (legalCase.lawyer_id !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Chỉ luật sư được gán cho vụ án này mới có quyền tính phí'
+        message: 'Bạn không có quyền tính phí cho vụ án này'
       });
     }
     
-    // Tính phí dựa trên loại vụ án và các tham số
+    // Tính phí dựa trên loại vụ án và tham số
     const feeDetails = await legalCaseModel.calculateFee(legalCase.case_type, parameters);
     
     // Cập nhật thông tin phí vào vụ án
-    await legalCaseModel.updateFeeInfo(caseId, feeDetails);
+    const updatedCase = await legalCaseModel.updateFeeInfo(caseId, feeDetails);
+    
+    // Cập nhật trạng thái vụ án thành "đang xử lý" sau khi tính phí
+    await legalCaseModel.updateCaseStatus(caseId, 'in_progress');
     
     // Ghi log
     await auditLogModel.addAuditLog({
-      userId: userId,
+      userId,
       action: 'CALCULATE_FEE',
       tableName: 'LegalCases',
       recordId: caseId,
-      details: `Tính phí cho vụ án ID ${caseId}, số tiền ${feeDetails.total_fee}`
+      details: `Tính phí vụ án ID ${caseId}, số tiền ${feeDetails.total_fee}`
     });
     
     return res.status(200).json({
       success: true,
-      data: feeDetails,
-      message: 'Tính phí thành công'
+      data: {
+        case: updatedCase,
+        fee_details: feeDetails
+      },
+      message: 'Tính phí vụ án thành công'
     });
     
   } catch (error) {
@@ -601,7 +584,7 @@ exports.paymentWebhook = asyncHandler(async (req, res) => {
       payment_info
     );
     
-    // Nếu thanh toán thành công, cập nhật trạng thái vụ án
+    // Nếu thanh toán thành công, cập nhật trạng thái vụ án thành 'paid'
     if (status === 'completed') {
       await legalCaseModel.updateCaseStatus(transaction.case_id, 'paid');
       
@@ -1150,6 +1133,61 @@ exports.extractFileContent = asyncHandler(async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi trích xuất nội dung file: ' + error.message
+    });
+  }
+});
+
+/**
+ * @desc    Lấy tài khoản ngân hàng mặc định của luật sư
+ * @route   GET /api/legal-cases/lawyers/:id/bank-account
+ * @access  Private
+ */
+exports.getLawyerBankAccount = asyncHandler(async (req, res) => {
+  try {
+    const lawyerId = req.params.id;
+    
+    // Lấy tài khoản ngân hàng mặc định của luật sư
+    const query = `
+      SELECT * FROM BankAccounts
+      WHERE user_id = $1 AND status = 'active' AND is_default = true
+      LIMIT 1
+    `;
+    
+    const result = await pool.query(query, [lawyerId]);
+    
+    if (result.rows.length === 0) {
+      // Nếu không có tài khoản mặc định, lấy tài khoản đầu tiên
+      const fallbackQuery = `
+        SELECT * FROM BankAccounts
+        WHERE user_id = $1 AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      
+      const fallbackResult = await pool.query(fallbackQuery, [lawyerId]);
+      
+      if (fallbackResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy tài khoản ngân hàng'
+        });
+      }
+      
+      return res.status(200).json({
+        success: true,
+        data: fallbackResult.rows[0]
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy tài khoản ngân hàng của luật sư:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy tài khoản ngân hàng của luật sư'
     });
   }
 }); 

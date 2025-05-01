@@ -114,4 +114,10 @@ router.post('/reset-sequence', authenticateToken, (req, res, next) => {
 // Tìm kiếm người dùng theo email
 router.get('/find-by-email', authenticateToken, userController.findUserByEmail);
 
+// Routes quản lý tài khoản ngân hàng
+router.get('/bank-accounts', authenticateToken, userController.getUserBankAccounts);
+router.post('/bank-accounts', authenticateToken, userController.addBankAccount);
+router.put('/bank-accounts/:id', authenticateToken, userController.updateBankAccount);
+router.delete('/bank-accounts/:id', authenticateToken, userController.deleteBankAccount);
+
 module.exports = router;

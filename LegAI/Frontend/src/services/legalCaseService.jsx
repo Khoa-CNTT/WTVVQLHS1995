@@ -337,6 +337,11 @@ export const createPayment = async (caseId, paymentMethod) => {
       { payment_method: paymentMethod },
       getHeaders()
     );
+    
+    if (response.data && response.data.success) {
+      console.log('Thanh toán thành công, vụ án sẽ được chuyển sang trạng thái Đã thanh toán');
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tạo giao dịch thanh toán:', error);
@@ -558,6 +563,25 @@ export const updateCaseStatus = async (caseId, status, notes = '') => {
   }
 };
 
+/**
+ * Lấy tài khoản ngân hàng mặc định của luật sư xử lý vụ án
+ * @param {number} lawyerId ID của luật sư
+ * @returns {Promise<Object>} Thông tin tài khoản ngân hàng mặc định
+ */
+export const getLawyerBankAccount = async (lawyerId) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/lawyers/${lawyerId}/bank-account`,
+      getHeaders()
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin tài khoản ngân hàng:', error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
 export default {
   createLegalCase,
   getLegalCases,
@@ -572,5 +596,6 @@ export default {
   updateLegalCase,
   deleteLegalCase,
   getLawyerCases,
-  updateCaseStatus
+  updateCaseStatus,
+  getLawyerBankAccount
 }; 

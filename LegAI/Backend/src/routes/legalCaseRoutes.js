@@ -115,4 +115,7 @@ router.post(
   legalCaseController.extractFileContent
 );
 
+// Route lấy tài khoản ngân hàng mặc định của luật sư theo lawyer_id
+router.get('/lawyers/:id/bank-account', protect, legalCaseController.getLawyerBankAccount);
+
 module.exports = router; 

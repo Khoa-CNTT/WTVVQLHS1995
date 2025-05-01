@@ -29,6 +29,7 @@ import { toast } from 'react-toastify';
 import UpdateNotification from '../../components/Dashboard/UpdateNotification';
 import UserLegalDocsManager from './UserLegalDocs/UserLegalDocsManager';
 import NotificationMenuPortal from './components/NotificationMenuPortal';
+import ChatManager from '../LawyerDashboard/components/ChatManager';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -289,7 +290,6 @@ function Dashboard() {
 
   const renderUserProfile = () => (
     <div className="animate__animated animate__fadeIn">
-      <Title level={3}>Quản lý tài khoản người dùng</Title>
       <UsersManagerPage />
     </div>
   );
@@ -331,7 +331,7 @@ function Dashboard() {
         </div>
       ),
       'tư-vấn-ai': <Title level={3}>Tư Vấn AI</Title>,
-      'tin-nhắn': <Title level={3}>Tin Nhắn</Title>,
+      'tin-nhắn': <ChatManager />,
       'giao-dịch': <Title level={3}>Giao Dịch</Title>
     };
     return sections[activeMenu] || <Card>Chọn một mục từ menu</Card>;

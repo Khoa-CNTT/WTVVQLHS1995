@@ -182,6 +182,40 @@ const LawyerCaseManager = () => {
     }
   };
 
+  /**
+   * Đánh dấu vụ án đã hoàn thành
+   * @param {number} caseId - ID của vụ án cần đánh dấu hoàn thành
+   */
+  const handleMarkCaseCompleted = async (caseId) => {
+    try {
+      Modal.confirm({
+        title: 'Đánh dấu vụ án đã hoàn thành?',
+        content: 'Khi đánh dấu hoàn thành, vụ án sẽ được chuyển sang trạng thái đã kết thúc. Bạn có chắc chắn muốn tiếp tục?',
+        okText: 'Xác nhận',
+        okType: 'primary',
+        cancelText: 'Hủy',
+        async onOk() {
+          try {
+            const response = await legalCaseService.updateLegalCaseStatus(caseId, 'closed');
+            
+            if (response && response.success) {
+              message.success('Đã đánh dấu vụ án hoàn thành');
+              await fetchCases(); // Làm mới danh sách vụ án
+            } else {
+              message.error(response.message || 'Không thể cập nhật trạng thái vụ án');
+            }
+          } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái vụ án:', error);
+            message.error('Không thể cập nhật trạng thái vụ án. Vui lòng thử lại sau.');
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Lỗi khi xử lý đánh dấu vụ án hoàn thành:', error);
+      message.error('Không thể xử lý yêu cầu. Vui lòng thử lại sau.');
+    }
+  };
+
   // Định nghĩa cột cho bảng
   const columns = [
     {
@@ -237,15 +271,31 @@ const LawyerCaseManager = () => {
       title: 'Hành động',
       key: 'action',
       render: (_, record) => (
-        <Space size="middle">
+        <Space size="small">
           <Tooltip title="Xem chi tiết">
             <Button 
               type="primary" 
               shape="circle" 
               icon={<EyeOutlined />} 
-              onClick={() => viewCaseDetail(record.id)} 
+              size="small"
+              onClick={() => viewCaseDetail(record.id)}
             />
           </Tooltip>
+          
+          {/* Thêm nút đánh dấu hoàn thành */}
+          {record.status !== 'closed' && (
+            <Tooltip title="Đánh dấu hoàn thành">
+              <Button 
+                type="primary" 
+                shape="circle" 
+                icon={<CheckCircleOutlined />} 
+                size="small"
+                onClick={() => handleMarkCaseCompleted(record.id)}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              />
+            </Tooltip>
+          )}
+          
           <Tooltip title="Cập nhật trạng thái">
             <Button 
               type="default" 

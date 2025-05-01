@@ -104,8 +104,14 @@ const LegalCaseCreator = () => {
     // Xử lý khi người dùng chọn sử dụng AI
     const handleAICheckboxChange = (e) => {
         setUseAI(e.target.checked);
-        setAiDraft('');
-        setEditableDraft('');
+        
+        // Khi bật chế độ AI, đặt lại các giá trị AI
+        if (e.target.checked) {
+            // Không đặt lại aiDraft và editableDraft khi chuyển từ upload sang AI
+            // Điều này cho phép giữ lại nội dung file để tham khảo
+            // setAiDraft('');
+            // setEditableDraft('');
+        }
         
         // Đổi phương thức nhập liệu
         handleInputMethodChange(e.target.checked ? 'ai' : 'upload');
@@ -271,17 +277,44 @@ const LegalCaseCreator = () => {
         
         if (method === 'ai') {
             setUseAI(true);
-            setShowFileEditor(false);
+            // Nếu đã có nội dung từ file, không xóa showFileEditor 
+            // để người dùng có thể chuyển đổi qua lại giữa hai chế độ
+            // setShowFileEditor(false);
+            
+            // Kiểm tra xem nội dung file có thể được sử dụng cho AI
+            if (fileContent && !aiDraft && !editableDraft) {
+                console.log('Đã có nội dung file, có thể dùng làm tham khảo cho AI');
+                // Hiển thị nút "Tạo bản nháp AI" ngay cả khi đã có nội dung file
+                setAiDraft('');  // Đặt lại để hiển thị nút tạo bản nháp
+            }
         } else {
             setUseAI(false);
             // Hiển thị editor nếu đã có file được chọn
             setShowFileEditor(fileList.length > 0);
+            
+            // Nếu chuyển từ AI sang upload và đã có nội dung AI
+            if (aiDraft && !fileContent) {
+                console.log('Chuyển từ AI sang upload với nội dung AI đã có');
+                // Có thể đặt nội dung AI vào fileContent nếu cần
+                // setFileContent(aiDraft);
+            }
         }
     };
     
-    // Xử lý khi người dùng chọn tab
+    // Xử lý khi người dùng thay đổi tab
     const handleTabChange = (key) => {
         setActiveTab(key);
+        
+        // Khi chuyển tab, lưu lại nội dung hiện tại để có thể khôi phục
+        if (key === 'ai' && fileContent) {
+            // Khi chuyển từ upload sang AI, có thể sử dụng nội dung file làm dữ liệu cho AI
+            console.log('Chuyển từ upload sang AI, giữ lại nội dung file');
+            // Không set aiDraft và editableDraft ở đây để tránh hiện "Tạo bản nháp" khi đã có nội dung
+        } else if (key === 'upload' && aiDraft) {
+            // Khi chuyển từ AI sang upload, giữ lại nội dung AI đã tạo
+            console.log('Chuyển từ AI sang upload, giữ lại nội dung AI');
+        }
+        
         handleInputMethodChange(key);
     };
     
@@ -333,6 +366,12 @@ const LegalCaseCreator = () => {
                 title: mainFormValues.title
             };
             
+            // Nếu có nội dung file, thêm vào request để AI có thể tham khảo
+            if (fileContent && fileContent.trim() !== '') {
+                requestData.reference_content = fileContent;
+                console.log('Đã thêm nội dung file tham khảo cho AI');
+            }
+            
             const response = await legalCaseService.createAIDraft(requestData);
 
             if (response.success) {
@@ -357,6 +396,10 @@ const LegalCaseCreator = () => {
                     setAiDraft(content);
                     setEditableDraft(content);
                     message.success('Đã tạo bản nháp thành công. Bạn có thể chỉnh sửa nội dung bên dưới.');
+                    
+                    // Đánh dấu rõ ràng là đang sử dụng AI
+                    setUseAI(true);
+                    setInputMethod('ai');
                 }
             } else {
                 message.error(response.message || 'Lỗi khi tạo bản nháp');
@@ -381,8 +424,11 @@ const LegalCaseCreator = () => {
             
             // Hiển thị log để kiểm tra các giá trị
             console.log('[TẠO VỤ ÁN] Bắt đầu tạo vụ án với các giá trị:');
+            console.log('- inputMethod:', inputMethod);
+            console.log('- useAI:', useAI);
             console.log('- fileContent:', fileContent ? fileContent.substring(0, 100) + '...' : 'trống');
             console.log('- editableDraft:', editableDraft ? editableDraft.substring(0, 100) + '...' : 'trống');
+            console.log('- aiDraft:', aiDraft ? aiDraft.substring(0, 100) + '...' : 'trống');
             console.log('- fileContentRef:', fileContentRef.current ? fileContentRef.current.substring(0, 100) + '...' : 'trống');
             
             // Tạo FormData mới để gửi lên server
@@ -395,26 +441,36 @@ const LegalCaseCreator = () => {
 
             // 2. Xử lý nội dung dựa trên phương thức (AI hoặc File Upload)
             // a. Nếu sử dụng AI
-            if (useAI) {
+            if (useAI || inputMethod === 'ai') {
+                // Đánh dấu rõ ràng rằng đang sử dụng AI
+                formData.append('ai_draft', 'true');
+                formData.append('is_ai_generated', 'true');
+                
                 // Lấy giá trị từ form AI
                 const aiFormValues = aiForm.getFieldsValue(['template_id', 'user_input']);
-                formData.append('ai_draft', 'true');
                 formData.append('template_id', aiFormValues.template_id || '');
                 formData.append('user_input', aiFormValues.user_input || '');
                 
+                // Ưu tiên sử dụng nội dung từ aiDraft hoặc editableDraft
+                let aiContent = '';
+                if (editableDraft && editableDraft.trim() !== '') {
+                    aiContent = editableDraft;
+                } else if (aiDraft && aiDraft.trim() !== '') {
+                    aiContent = aiDraft;
+                }
+                
                 // Đảm bảo có nội dung AI
-                if (!editableDraft || editableDraft.trim() === '') {
+                if (!aiContent || aiContent.trim() === '') {
                     message.error('Nội dung AI không được tìm thấy. Vui lòng tạo nội dung AI trước khi tiếp tục.');
                     setSubmitting(false);
                     return;
                 }
                 
                 // Thêm nội dung AI vào cả hai trường để đảm bảo tương thích
-                formData.append('ai_content', editableDraft);
-                formData.append('extracted_content', editableDraft);
-                formData.append('is_ai_generated', 'true');
+                formData.append('ai_content', aiContent);
+                formData.append('extracted_content', aiContent);
                 
-                console.log('[TẠO VỤ ÁN] Sử dụng nội dung AI:', editableDraft.substring(0, 100) + '...');
+                console.log('[TẠO VỤ ÁN] Sử dụng nội dung AI:', aiContent.substring(0, 100) + '...');
             } 
             // b. Nếu sử dụng File Upload
             else {
@@ -450,16 +506,18 @@ const LegalCaseCreator = () => {
                 console.log('[TẠO VỤ ÁN] Đã thêm nội dung vào formData:', contentToUse.substring(0, 100) + '...');
             }
 
-            // 3. Xử lý file đính kèm
-            const safeFileList = Array.isArray(fileList) ? fileList : [];
-            if (safeFileList.length > 0) {
-                const file = safeFileList[0];
-                if (file.originFileObj) {
-                    formData.append('file', file.originFileObj);
-                    console.log('[TẠO VỤ ÁN] Đã thêm file:', file.originFileObj.name);
-                } else if (file instanceof File) {
-                    formData.append('file', file);
-                    console.log('[TẠO VỤ ÁN] Đã thêm file:', file.name);
+            // 3. Xử lý file đính kèm - chỉ đính kèm file khi ở chế độ upload
+            if (!useAI && inputMethod === 'upload') {
+                const safeFileList = Array.isArray(fileList) ? fileList : [];
+                if (safeFileList.length > 0) {
+                    const file = safeFileList[0];
+                    if (file.originFileObj) {
+                        formData.append('file', file.originFileObj);
+                        console.log('[TẠO VỤ ÁN] Đã thêm file:', file.originFileObj.name);
+                    } else if (file instanceof File) {
+                        formData.append('file', file);
+                        console.log('[TẠO VỤ ÁN] Đã thêm file:', file.name);
+                    }
                 }
             }
 
@@ -867,7 +925,7 @@ const LegalCaseCreator = () => {
                                             </Row>
 
                                             <Form.Item>
-                                                {!editableDraft && (
+                                                {(useAI && (!editableDraft || !aiDraft)) && (
                                                     <Button
                                                         type="primary"
                                                         onClick={handleCreateAIDraft}

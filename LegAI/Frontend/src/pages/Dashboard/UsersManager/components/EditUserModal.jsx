@@ -169,9 +169,9 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
             >
               <Select>
-                <Option value="Admin">Admin</Option>
-                <Option value="User">User</Option>
-                <Option value="Lawyer">Luật sư</Option>
+                <Option value="admin">Admin</Option>
+                <Option value="user">User</Option>
+                <Option value="lawyer">Luật sư</Option>
               </Select>
             </Form.Item>
           </Col>

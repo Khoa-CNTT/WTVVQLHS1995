@@ -15,8 +15,10 @@ import chatService from '../../services/chatService';
 import AppointmentsManager from './components/AppointmentsManager';
 import AvailabilityManager from './components/AvailabilityManager';
 import ChatManager from './components/ChatManager';
-import LawyerCaseManager from './LawyerCaseManager';
+import { default as LawyerCaseManager } from './LawyerCaseManager.jsx';
+import TransactionsManager from './components/TransactionsManager';
 import ContactForm from '../Contact/ContactForm';
+import PaymentInfoSetup from './components/PaymentInfoSetup';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -116,8 +118,6 @@ const LawyerDashboard = () => {
     { key: 'cases', label: 'Vụ Án', icon: <SafetyOutlined />, count: caseCount },
     { key: 'appointments', label: 'Lịch Hẹn', icon: <CalendarOutlined />, count: appointmentCount },
     { key: 'availability', label: 'Quản Lý Lịch Trống', icon: <ScheduleOutlined />, count: 0 },
-    { key: 'documents', label: 'Tài Liệu', icon: <FileTextOutlined />, count: documentCount },
-    { key: 'contracts', label: 'Hợp Đồng', icon: <FileProtectOutlined />, count: 0 },
     { key: 'clients', label: 'Khách Hàng', icon: <TeamOutlined />, count: 0 },
     { key: 'contact', label: 'Liên Hệ', icon: <PhoneOutlined />, count: 0 },
     { key: 'transactions', label: 'Giao Dịch', icon: <DollarOutlined />, count: 0 },
@@ -289,21 +289,42 @@ const LawyerDashboard = () => {
     </div>
   );
 
+  const renderTransactions = () => (
+    <div className="animate__animated animate__fadeIn">
+      {currentUser.payment_setup_complete ? (
+        <TransactionsManager />
+      ) : (
+        <PaymentInfoSetup onComplete={() => {
+          // Refresh user data sau khi hoàn thành thiết lập
+          userService.refreshUserData().then(userData => {
+            setCurrentUser(userData);
+          });
+        }} />
+      )}
+    </div>
+  );
+
   const renderContent = () => {
-    const sections = {
-      overview: renderOverview(),
-      messages: renderMessages(),
-      cases: renderCases(),
-      appointments: renderAppointments(),
-      availability: renderAvailability(),
-      documents: renderDocuments(),
-      contact: renderContact(),
-      contracts: <Title level={3}>Hợp Đồng</Title>,
-      clients: <Title level={3}>Khách Hàng</Title>,
-      transactions: <Title level={3}>Giao Dịch</Title>,
-      specialties: <Title level={3}>Chuyên Môn</Title>,
-    };
-    return sections[activeMenu] || renderOverview();
+    switch (activeMenu) {
+      case 'overview':
+        return renderOverview();
+      case 'messages':
+        return renderMessages();
+      case 'cases':
+        return renderCases();
+      case 'appointments':
+        return renderAppointments();
+      case 'availability':
+        return renderAvailability();
+      case 'documents':
+        return renderDocuments();
+      case 'contact':
+        return renderContact();
+      case 'transactions':
+        return renderTransactions();
+      default:
+        return renderOverview();
+    }
   };
 
   const getCurrentDate = () =>

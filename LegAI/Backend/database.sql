@@ -144,20 +144,38 @@ CREATE TABLE ChatMessages (
     FOREIGN KEY (sender_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
--- Bảng Transactions
-CREATE TABLE Transactions (
+-- Tạo bảng Transactions để lưu thông tin giao dịch thanh toán
+CREATE TABLE IF NOT EXISTS Transactions (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    lawyer_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    service_type VARCHAR(50) NOT NULL,
-    payment_method VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES Users(id),
+    lawyer_id INTEGER REFERENCES Users(id),
     case_id INTEGER REFERENCES LegalCases(id),
-    payment_info JSONB,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
+    amount DECIMAL(15, 2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    description TEXT,
+    fee_details JSONB,
+    payment_provider VARCHAR(100),
+    transaction_code VARCHAR(100),
+    payment_details JSONB,
+    confirmation_notes TEXT,
+    confirmation_date TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Tạo bảng BankAccounts để lưu thông tin tài khoản ngân hàng
+CREATE TABLE IF NOT EXISTS BankAccounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES Users(id),
+    bank_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    account_holder VARCHAR(100) NOT NULL,
+    branch VARCHAR(100),
+    is_default BOOLEAN DEFAULT false,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Migration: Tạo bảng AuditLogs để lưu các hoạt động và thông báo

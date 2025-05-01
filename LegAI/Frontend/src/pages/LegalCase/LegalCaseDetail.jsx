@@ -9,6 +9,7 @@ import moment from 'moment';
 import Navbar from '../../components/layout/Nav/Navbar';
 import authService from '../../services/authService';
 import appointmentService from '../../services/appointmentService';
+import transactionService from '../../services/transactionService';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -102,18 +103,35 @@ const LegalCaseDetail = () => {
     try {
       const response = await userService.getLawyerById(lawyerId);
       
-      if (response && response.status === 'success' && response.data) {
+      if (response && response.data) {
         console.log('Thông tin luật sư từ API:', response.data);
         setLawyerDetails(response.data);
         
         // Cập nhật lại caseData.lawyer với thông tin chi tiết
-        // nhưng giữ lại thông tin hiện có nếu không nhận được từ API
         setCaseData(prevData => {
           const updatedLawyer = {
             ...(prevData.lawyer || {}),
             specialization: response.data.specialization || prevData.lawyer?.specialization,
-            experience_years: response.data.experience_years || prevData.lawyer?.experience_years,
-            rating: response.data.rating || prevData.lawyer?.rating
+            experience_years: response.data.experience_years || response.data.experienceYears || prevData.lawyer?.experience_years || prevData.lawyer?.experienceYears || 0,
+            rating: response.data.rating || prevData.lawyer?.rating || 0
+          };
+          
+          return {
+            ...prevData,
+            lawyer: updatedLawyer
+          };
+        });
+      } else if (response) {
+        console.log('Thông tin luật sư từ API:', response);
+        setLawyerDetails(response);
+        
+        // Cập nhật lại caseData.lawyer với thông tin chi tiết
+        setCaseData(prevData => {
+          const updatedLawyer = {
+            ...(prevData.lawyer || {}),
+            specialization: response.specialization || prevData.lawyer?.specialization,
+            experience_years: response.experience_years || response.experienceYears || prevData.lawyer?.experience_years || prevData.lawyer?.experienceYears || 0,
+            rating: response.rating || prevData.lawyer?.rating || 0
           };
           
           return {
@@ -417,25 +435,58 @@ const LegalCaseDetail = () => {
   };
 
   // Xử lý thanh toán
-  const handleCreatePayment = async (paymentMethod) => {
+  const handlePayment = async () => {
     try {
-      setProcessingPayment(true);
+      if (!caseData || !caseData.id) {
+        message.error('Không thể thanh toán vì thiếu thông tin vụ án');
+        return;
+      }
 
-      const response = await legalCaseService.createPayment(id, paymentMethod);
-
-      if (response.success) {
-        message.success('Đang chuyển hướng đến trang thanh toán...');
-
-        // Chuyển hướng đến URL thanh toán
-        window.location.href = response.data.payment_url;
+      const lawyer = caseData.lawyer || {};
+      const amount = caseData.fee_amount || lawyer.hourly_rate || 500000;
+      
+      // Đảm bảo có lawyer_id
+      if (!lawyer.id) {
+        message.error('Không thể thanh toán vì thiếu thông tin luật sư');
+        return;
+      }
+      
+      // Tạo giao dịch mới
+      const transactionData = {
+        case_id: caseData.id,
+        lawyer_id: lawyer.id,
+        amount: amount,
+        payment_method: 'bank_transfer', // Đặt giá trị mặc định cho payment_method
+        description: `Thanh toán cho vụ án: ${caseData.title || 'Không có tiêu đề'}`
+      };
+      
+      // Chuyển fee_details thành JSON string nếu nó là object
+      if (caseData.fee_details) {
+        try {
+          if (typeof caseData.fee_details === 'object') {
+            transactionData.fee_details = JSON.stringify(caseData.fee_details);
+          } else {
+            transactionData.fee_details = caseData.fee_details;
+          }
+        } catch (error) {
+          console.error('Lỗi khi xử lý fee_details:', error);
+        }
+      }
+      
+      console.log('Đang tạo giao dịch với dữ liệu:', transactionData);
+      
+      const response = await transactionService.createTransaction(transactionData);
+      
+      if (response && response.success) {
+        // Chuyển đến trang thanh toán với ID giao dịch
+        navigate(`/payment?transaction_id=${response.data.id}`);
       } else {
         message.error(response.message || 'Không thể tạo giao dịch thanh toán');
       }
     } catch (error) {
-      console.error('Lỗi khi tạo giao dịch thanh toán:', error);
-      message.error('Không thể tạo giao dịch thanh toán. Vui lòng thử lại sau.');
-    } finally {
-      setProcessingPayment(false);
+      console.error('Lỗi khi xử lý thanh toán:', error);
+      console.error('Chi tiết lỗi:', error.response ? error.response.data : error.message);
+      message.error('Không thể xử lý thanh toán. Vui lòng thử lại sau.');
     }
   };
 
@@ -584,7 +635,9 @@ const LegalCaseDetail = () => {
       case 'draft':
         return <Tag color="blue">Nháp</Tag>;
       case 'pending':
-        return <Tag color="orange">Đang xử lý</Tag>;
+        return <Tag color="orange">Đang chờ xử lý</Tag>;
+      case 'in_progress':
+        return <Tag color="processing">Đang xử lý</Tag>;
       case 'paid':
         return <Tag color="green">Đã thanh toán</Tag>;
       case 'completed':
@@ -792,7 +845,7 @@ const LegalCaseDetail = () => {
                                 />
                                 <div className={styles.lawyerInfo}>
                                   <Title level={4}>{caseData.lawyer.full_name || 'Luật sư'}</Title>
-                                  <Text type="secondary">{caseData.lawyer.email || 'Không có thông tin email'}</Text>
+                                  <Text type="secondary">{caseData.lawyer.email || 'Không có thông tin email'}</Text><br></br>
                                   <Text type="secondary">Điện thoại: {caseData.lawyer.phone || 'Không có thông tin'}</Text>
                                 </div>
                               </div>
@@ -900,7 +953,11 @@ const LegalCaseDetail = () => {
                                 {(() => {
                                   try {
                                     if (caseData.fee_details) {
-                                      const feeDetails = JSON.parse(caseData.fee_details);
+                                      // Kiểm tra xem fee_details đã là object hay chưa
+                                      const feeDetails = typeof caseData.fee_details === 'string'
+                                        ? JSON.parse(caseData.fee_details)
+                                        : caseData.fee_details;
+                                      
                                       return formatCurrency(feeDetails.base_fee || 0);
                                     }
                                     return formatCurrency(0);
@@ -918,7 +975,11 @@ const LegalCaseDetail = () => {
                                 {(() => {
                                   try {
                                     if (caseData.fee_details) {
-                                      const feeDetails = JSON.parse(caseData.fee_details);
+                                      // Kiểm tra xem fee_details đã là object hay chưa
+                                      const feeDetails = typeof caseData.fee_details === 'string'
+                                        ? JSON.parse(caseData.fee_details)
+                                        : caseData.fee_details;
+                                      
                                       return formatCurrency(feeDetails.additional_fee || 0);
                                     }
                                     return formatCurrency(0);
@@ -940,13 +1001,13 @@ const LegalCaseDetail = () => {
                                 <Button
                                   type="primary"
                                   icon={<DollarOutlined />}
-                                  onClick={() => handleCreatePayment('credit_card')}
+                                  onClick={handlePayment}
                                   loading={processingPayment}
                                   disabled={!caseData.lawyer}
                                   size="large"
                                   className={styles.primaryButton}
                                 >
-                                  Thanh toán ngay
+                                  Thanh toán
                                 </Button>
                                 {!caseData.lawyer && (
                                   <div className={styles.paymentWarning}>

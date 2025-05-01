@@ -95,7 +95,7 @@ const findLawyers = async (criteria = {}) => {
 
 // Tạo user mới
 const createUser = async (userData) => {
-  const { username, email, password, fullName, phone, role = 'User' } = userData;
+  const { username, email, password, fullName, phone, role = 'user' } = userData;
   
   try {
     // Hash mật khẩu
