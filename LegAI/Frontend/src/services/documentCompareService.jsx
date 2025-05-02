@@ -463,55 +463,61 @@ const getSimilarDocuments = async (documentTitle, currentDocument = null, limit 
  */
 const getSimilarDocumentsFromDatabase = async (documentId, limit = 20) => {
   try {
-    // Trước tiên lấy thông tin văn bản hiện tại
-    const currentDocResponse = await legalService.getLegalDocumentById(documentId);
-    
-    if (!currentDocResponse || currentDocResponse.status !== 'success') {
-      throw new Error('Không thể lấy thông tin văn bản hiện tại');
-    }
-    
-    const currentDoc = currentDocResponse.data;
-    
-    // Gọi API để lấy danh sách văn bản tương tự
-    const response = await axios.get(
-      `${API_URL}/legal/documents/${documentId}/similar?limit=${limit}`, 
-      getHeaders()
-    );
-    
-    if (response.data && response.data.status === 'success') {
-      // Tìm kiếm theo tên/số hiệu và ngày ban hành
-      let filteredDocs = [];
+    const headers = getHeaders();
+    console.log(`Đang tìm kiếm văn bản tương tự cho ID: ${documentId}`);
+
+    try {
+      // Thử gọi API từ backend - nếu API này chưa được triển khai sẽ nhảy vào catch
+      const response = await axios.get(`${API_URL}/legal/documents/${documentId}/similar?limit=${limit}`, headers);
       
-      const docs = response.data.data;
+      if (response.data && response.data.status === 'success') {
+        return response.data;
+      }
+      throw new Error('API không trả về kết quả hợp lệ');
+    } catch (apiError) {
+      console.log('API văn bản tương tự chưa sẵn sàng, sử dụng phương pháp client-side fallback');
+
+      // Nếu API chưa sẵn sàng, thực hiện tìm kiếm thủ công phía client
+      // Bước 1: Lấy thông tin văn bản hiện tại
+      const currentDocResponse = await legalService.getLegalDocumentById(documentId);
+      if (!currentDocResponse || currentDocResponse.status !== 'success') {
+        throw new Error('Không thể lấy thông tin văn bản hiện tại');
+      }
       
-      // Hàm kiểm tra độ tương đồng của tiêu đề
+      const currentDocument = currentDocResponse.data;
+      
+      // Bước 2: Lấy tất cả văn bản có cùng loại
+      const allDocsResponse = await legalService.getLegalDocuments({
+        document_type: currentDocument.document_type,
+        limit: 100 // Tăng lên để có nhiều văn bản hơn để so sánh
+      });
+      
+      if (!allDocsResponse || allDocsResponse.status !== 'success') {
+        throw new Error('Không thể lấy danh sách văn bản');
+      }
+      
+      // Bước 3: Lọc ra các văn bản khác với văn bản hiện tại
+      let similarDocuments = allDocsResponse.data.filter(doc => 
+        doc.id !== parseInt(documentId) && 
+        doc.id.toString() !== documentId &&
+        // Thêm điều kiện để văn bản phải cũ hơn văn bản hiện tại
+        new Date(doc.issued_date) <= new Date(currentDocument.issued_date)
+      );
+      
+      // Bước 4: Tính toán điểm tương đồng tiêu đề cho mỗi văn bản
       const calculateTitleSimilarity = (title1, title2) => {
         if (!title1 || !title2) return 0;
         
         // Chuẩn hóa tiêu đề
         const normalize = (title) => {
           return title.toLowerCase()
-            .replace(/[.,(){}[\]\/\-:;]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+                    .replace(/[.,(){}[\]\/\-:;]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
         };
         
         const normalizedTitle1 = normalize(title1);
         const normalizedTitle2 = normalize(title2);
-        
-        // Tìm số/kí hiệu văn bản (nếu có)
-        const extractNumberCode = (title) => {
-          const matches = title.match(/\d+\/\d+\/[A-Za-z0-9-]+/g);
-          return matches ? matches[0] : null;
-        };
-        
-        const code1 = extractNumberCode(title1);
-        const code2 = extractNumberCode(title2);
-        
-        // Nếu có số hiệu và khác nhau hoàn toàn thì không phải phiên bản trước
-        if (code1 && code2 && code1 !== code2) {
-          return 0;
-        }
         
         // Tách thành các từ
         const words1 = normalizedTitle1.split(' ');
@@ -519,90 +525,84 @@ const getSimilarDocumentsFromDatabase = async (documentId, limit = 20) => {
         
         // Đếm số từ trùng
         let matchingWords = 0;
+        
         words1.forEach(w1 => {
           if (words2.includes(w1)) {
             matchingWords++;
           }
         });
         
-        // Tính tỷ lệ % số từ trùng
-        return Math.round((matchingWords / Math.max(words1.length, words2.length)) * 100);
+        // Tính tỷ lệ % số từ trùng trên tổng số từ
+        const totalWords = Math.max(words1.length, words2.length);
+        return totalWords > 0 ? (matchingWords / totalWords) * 100 : 0;
       };
       
-      // Tìm phiên bản cũ của cùng một văn bản
-      docs.forEach(doc => {
-        // Kiểm tra cùng loại văn bản
-        if (doc.document_type !== currentDoc.document_type) {
-          return; // Không phải cùng loại, bỏ qua
+      // Trích xuất số hiệu từ tiêu đề (nếu có) cho việc so sánh
+      const extractNumberCode = (title) => {
+        // Tìm các mã số, số hiệu trong tiêu đề
+        const matches = title.match(/\d+\/\d+|[0-9]+[A-Za-z]+[0-9]+|\b\d{2,}\/\d{4}\b|\b\d{4}\/\d{2,}\b/g);
+        return matches ? matches : [];
+      };
+      
+      // Tính điểm tương đồng cho mỗi văn bản
+      similarDocuments.forEach(doc => {
+        // Tính điểm tương đồng tiêu đề
+        const titleSimilarity = calculateTitleSimilarity(currentDocument.title, doc.title);
+        
+        // Kiểm tra số hiệu (nếu có)
+        const currentNumberCodes = extractNumberCode(currentDocument.title);
+        const docNumberCodes = extractNumberCode(doc.title);
+        
+        // Nếu cả hai văn bản có số hiệu và có ít nhất một số hiệu trùng nhau, tăng điểm tương đồng
+        let codeMatch = 0;
+        if (currentNumberCodes.length > 0 && docNumberCodes.length > 0) {
+          for (const code1 of currentNumberCodes) {
+            for (const code2 of docNumberCodes) {
+              if (code1 === code2) {
+                codeMatch = 1;
+                break;
+              }
+            }
+            if (codeMatch) break;
+          }
         }
         
-        // Kiểm tra ngày ban hành
-        const docDate = new Date(doc.issued_date || 0);
-        const currentDate = new Date(currentDoc.issued_date || 0);
+        // Tính điểm tương đồng tổng hợp
+        // Giảm ngưỡng tìm kiếm từ 85 xuống 25 để có nhiều kết quả hơn
+        const similarityScore = titleSimilarity * 0.8 + codeMatch * 20;
         
-        // Nếu không phải văn bản cũ hơn, bỏ qua
-        if (docDate >= currentDate) {
-          return;
-        }
-        
-        // Kiểm tra độ tương đồng tiêu đề
-        const titleSimilarity = calculateTitleSimilarity(currentDoc.title, doc.title);
-        
-        // Chỉ lấy văn bản có tiêu đề tương đồng >= 70%
-        if (titleSimilarity >= 70) {
-          // Thêm thông tin độ tương đồng để hiển thị
-          filteredDocs.push({
-            ...doc,
-            similarity_score: titleSimilarity,
-            similarity_type: 'older_version'
-          });
-        }
+        // Đánh giá độ tương đồng
+        doc.similarity_score = similarityScore;
+        doc.has_code_match = codeMatch > 0;
       });
       
-      // Sắp xếp theo ngày ban hành từ mới đến cũ
-      filteredDocs.sort((a, b) => {
-        const dateA = new Date(a.issued_date || 0);
-        const dateB = new Date(b.issued_date || 0);
-        return dateB - dateA;
-      });
+      // Bước 5: Sắp xếp theo điểm tương đồng và chọn top n kết quả
+      similarDocuments = similarDocuments
+        .filter(doc => doc.similarity_score >= 25) // Giảm ngưỡng từ 60 xuống 25
+        .sort((a, b) => {
+          // Ưu tiên sắp xếp theo thời gian, gần nhất lên đầu
+          if (Math.abs(a.similarity_score - b.similarity_score) < 10) {
+            return new Date(b.issued_date) - new Date(a.issued_date);
+          }
+          // Nếu độ tương đồng chênh lệch nhiều, sắp xếp theo độ tương đồng
+          return b.similarity_score - a.similarity_score;
+        })
+        .slice(0, limit);
       
-      // Nếu không có văn bản nào thỏa điều kiện
-      if (filteredDocs.length === 0) {
-        return {
-          status: 'success',
-          data: [],
-          message: 'Không tìm thấy phiên bản trước của văn bản này'
-        };
-      }
+      console.log(`Tìm thấy ${similarDocuments.length} văn bản tương tự`);
       
       return {
         status: 'success',
-        data: filteredDocs
+        data: similarDocuments,
+        needFallback: false
       };
     }
-    
-    return {
-      status: 'error',
-      message: 'Không thể tìm thấy văn bản tương tự',
-      data: []
-    };
   } catch (error) {
-    console.error('Lỗi khi lấy văn bản tương tự từ database:', error);
-    
-    // Nếu API route chưa được triển khai, sử dụng phương pháp cũ
-    if (error.response && error.response.status === 404) {
-      console.log('API getSimilarDocumentsFromDatabase chưa sẵn sàng, sử dụng phương pháp thay thế');
-      return {
-        status: 'error',
-        message: 'API chưa sẵn sàng',
-        needFallback: true
-      };
-    }
-    
+    console.error('Lỗi khi tìm kiếm văn bản tương tự:', error);
     return {
       status: 'error',
-      message: 'Lỗi khi tìm kiếm văn bản tương tự',
-      data: []
+      message: 'Không thể tìm kiếm văn bản tương tự',
+      needFallback: true
     };
   }
 };

@@ -346,8 +346,11 @@ const DocumentCompare = () => {
                 <div className={styles.docTitle}>{doc.title}</div>
                 <div className={styles.docInfo}>
                   <Tag color="blue">{doc.document_type}</Tag>
-                  {doc.similarity_score >= 90 && (
+                  {doc.similarity_score >= 75 && (
                     <Tag color="green">Phiên bản trước</Tag>
+                  )}
+                  {doc.has_code_match && (
+                    <Tag color="orange">Mã hiệu trùng khớp</Tag>
                   )}
                   <span className={styles.docDate}>Ngày ban hành: {formatDate(doc.issued_date)}</span>
                 </div>
