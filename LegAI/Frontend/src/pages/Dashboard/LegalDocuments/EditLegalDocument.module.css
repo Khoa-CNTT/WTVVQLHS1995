@@ -1,0 +1,314 @@
+.container {
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 60px);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  transition: all 0.3s;
+  border: 1px solid #e2e8f0;
+  font-weight: 500;
+}
+
+.backButton:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.saveButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+  border: none;
+  padding: 0 1.5rem;
+  height: 40px;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.saveButton:hover {
+  background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(13, 110, 253, 0.2);
+}
+
+.form {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: slideUp 0.4s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.formRow {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.formItem {
+  flex: 1;
+  min-width: 200px;
+}
+
+.formItem :global(.ant-input),
+.formItem :global(.ant-select-selector),
+.formItem :global(.ant-picker) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.formItem :global(.ant-input:hover),
+.formItem :global(.ant-select-selector:hover),
+.formItem :global(.ant-picker:hover) {
+  border-color: #93c5fd;
+}
+
+.formItem :global(.ant-input:focus),
+.formItem :global(.ant-select-selector:focus),
+.formItem :global(.ant-picker-focused) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.editorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.editorTitle {
+  display: flex;
+  flex-direction: column;
+}
+
+.editorContainer {
+    width: 100%;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.editorContainer:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.editor {
+  min-height: 350px;
+  font-size: 16px;
+}
+
+/* Tùy chỉnh CSS cho Quill được tải từ CDN */
+.editor .ql-toolbar.ql-snow {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  padding: 10px;
+}
+
+.editor .ql-container.ql-snow {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  font-family: 'Roboto', sans-serif;
+}
+
+.editor .ql-editor {
+  min-height: 350px;
+  font-size: 16px;
+  line-height: 1.6;
+  padding: 16px;
+}
+
+.htmlPreview {
+  margin-top: 2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.htmlPreview:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.previewHeader button {
+  color: #2563eb;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.previewHeader button:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.preview {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background-color: white;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  height: auto;
+  min-height: 150px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  outline: none;
+  font-size: 16px;
+  line-height: 1.6;
+  transition: all 0.3s;
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+.preview:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.preview p {
+  margin-bottom: 1rem;
+}
+
+.preview ul, .preview ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.preview a {
+  color: #2563eb;
+  text-decoration: none;
+  border-bottom: 1px dotted #2563eb;
+  transition: all 0.2s ease;
+}
+
+.preview a:hover {
+  color: #1d4ed8;
+  border-bottom: 1px solid #1d4ed8;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 1rem;
+}
+
+.loadingContainer p {
+  margin-top: 1rem;
+  color: #64748b;
+  font-size: 16px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .formRow {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .saveButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .editorHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .form {
+    padding: 1rem;
+  }
+  
+  .preview {
+    padding: 1rem;
+  }
+} 

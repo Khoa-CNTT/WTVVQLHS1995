@@ -324,7 +324,7 @@ const DocumentCompare = () => {
         
         <Select
           placeholder="Chọn phiên bản để so sánh"
-          style={{ width: '100%', marginBottom: 16 }}
+          style={{ width: '100%', marginBottom: 16,cursor:'pointer' }}
           onChange={(value) => setSelectedDocumentId(value)}
           value={selectedDocumentId}
           className={styles.documentSelect}
@@ -333,13 +333,14 @@ const DocumentCompare = () => {
           showSearch
           optionFilterProp="children"
           dropdownMatchSelectWidth={false}
-          dropdownStyle={{ width: 'auto', minWidth: '100%' }}
+          dropdownStyle={{ width: 'auto', minWidth: '100%',cursor:'pointer' }}
         >
           {previousDocuments.map((doc) => (
             <Option 
               key={doc.id} 
               value={doc.id}
               title={doc.title}
+              style={{ cursor: 'pointer' }}
             >
               <div className={styles.selectOption}>
                 <div className={styles.docTitle}>{doc.title}</div>

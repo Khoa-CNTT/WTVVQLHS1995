@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Table, Card, Button, Input, Select, Space, Pagination, Modal, Form, Spin, Typography, Alert, DatePicker, Upload, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined, UploadOutlined, ExclamationCircleOutlined, CalendarOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import styles from './LegalDocumentsManager.module.css';
 import axiosInstance from '../../../config/axios';
 import { API_URL } from '../../../config/constants';
@@ -13,6 +14,7 @@ const { TextArea } = Input;
 const { confirm } = Modal;
 
 const LegalDocumentsManager = () => {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -89,34 +91,17 @@ const LegalDocumentsManager = () => {
   };
 
   const openAddModal = () => {
-    form.resetFields();
-    setFormData({
-      title: '',
-      document_type: '',
-      version: '',
-      content: '',
-      summary: '',
-      issued_date: '',
-      language: 'Tiếng Việt',
-      keywords: []
-    });
-    setModalMode('add');
-    setIsModalOpen(true);
+    navigate('/dashboard/legal-documents/new');
   };
 
   const openEditModal = (document) => {
-    setSelectedDocument(document);
-    const formattedDocument = {
-      ...document,
-      issued_date: document.issued_date ? moment(document.issued_date) : null,
-      keywords: document.keywords && typeof document.keywords === 'string' 
-        ? document.keywords.split(',').map(k => k.trim()) 
-        : Array.isArray(document.keywords) ? document.keywords : []
-    };
-    setFormData(formattedDocument);
-    form.setFieldsValue(formattedDocument);
-    setModalMode('edit');
-    setIsModalOpen(true);
+    if (document && document.id) {
+      localStorage.setItem('editingDocument', JSON.stringify(document));
+      
+      navigate(`/dashboard/legal-documents/edit/${document.id}`);
+    } else {
+      toast.error('Không tìm thấy thông tin văn bản để chỉnh sửa');
+    }
   };
 
   const openDeleteModal = (document) => {

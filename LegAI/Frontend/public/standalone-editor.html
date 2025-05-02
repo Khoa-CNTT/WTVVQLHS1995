@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình soạn thảo văn bản pháp luật</title>
+    <!-- Quill CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.snow.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+            background-color: #fff;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .primary-button {
+            background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 6px rgba(13, 110, 253, 0.1);
+        }
+        
+        .primary-button:hover {
+            background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+            box-shadow: 0 6px 8px rgba(13, 110, 253, 0.2);
+        }
+        
+        .editor-container {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .editor-container:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        #editor {
+            min-height: 600px;
+            font-size: 16px;
+        }
+        
+        /* Fallback Editor */
+        #fallback-editor {
+            width: 100%;
+            min-height: 600px;
+            padding: 16px;
+            font-size: 16px;
+            line-height: 1.6;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            resize: vertical;
+        }
+        
+        /* Quill Custom Styles */
+        .ql-toolbar.ql-snow {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            padding: 10px;
+        }
+        
+        .ql-container.ql-snow {
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        .ql-editor {
+            min-height: 600px;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 16px;
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: slideInDown 0.3s ease-in-out;
+        }
+        
+        .success {
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: slideInDown 0.3s ease-in-out;
+        }
+        
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .document-info {
+            margin-bottom:.20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+        }
+        
+        .document-info h2 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #0369a1;
+        }
+        
+        .document-info p {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .button-group {
+                width: 100%;
+            }
+            
+            button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Trình soạn thảo văn bản pháp luật</h1>
+            <div class="button-group">
+                <button id="btnBack">Quay lại</button>
+                <button id="btnApply" class="primary-button">Lưu thay đổi</button>
+            </div>
+        </div>
+        
+        <div id="messages"></div>
+        
+        <div id="documentInfo" class="document-info" style="display: none;"></div>
+        
+        <div class="editor-container">
+            <div id="editor-loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Đang tải dữ liệu...</p>
+            </div>
+            <div id="editor" style="display: none;"></div>
+            <textarea id="fallback-editor" style="display: none;" placeholder="Nhập nội dung văn bản ở đây..."></textarea>
+        </div>
+    </div>
+    
+    <!-- Quill JS -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.min.js"></script>
+    
+    <script>
+        // Hàm trợ giúp
+        function showMessage(message, type = 'error') {
+            const messagesElement = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = type;
+            messageElement.textContent = message;
+            
+            messagesElement.innerHTML = '';
+            messagesElement.appendChild(messageElement);
+            
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => {
+                messageElement.style.opacity = '0';
+                messageElement.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    messagesElement.removeChild(messageElement);
+                }, 500);
+            }, 5000);
+        }
+        
+        // Lấy ID từ URL
+        function getDocumentIdFromUrl() {
+            const url = new URL(window.location.href);
+            return url.searchParams.get('id');
+        }
+        
+        // Khởi tạo trình soạn thảo Quill
+        let quill = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const editorElement = document.getElementById('editor');
+            const backButton = document.getElementById('btnBack');
+            const applyButton = document.getElementById('btnApply');
+            const editorLoadingElement = document.getElementById('editor-loading');
+            
+            // Xử lý sự kiện nút Quay lại
+            backButton.addEventListener('click', () => {
+                // Quay lại trang trước đó
+                window.close();
+            });
+            
+            try {
+                // Lấy dữ liệu từ localStorage
+                const documentId = getDocumentIdFromUrl();
+                const savedDocument = localStorage.getItem('editingDocument');
+                let documentData = null;
+                
+                if (savedDocument) {
+                    try {
+                        documentData = JSON.parse(savedDocument);
+                        
+                        // Kiểm tra xem ID có khớp không
+                        if (documentId && documentData.id && documentData.id.toString() !== documentId.toString()) {
+                            showMessage(`ID không khớp: ${documentData.id} vs ${documentId}`);
+                            documentData = null;
+                        }
+                    } catch (parseError) {
+                        console.error('Lỗi khi phân tích dữ liệu từ localStorage:', parseError);
+                        showMessage('Không thể đọc dữ liệu đã lưu: ' + parseError.message);
+                    }
+                }
+                
+                // Hiển thị nội dung
+                if (documentData && documentData.content) {
+                    // Khởi tạo Quill với nhiều tùy chọn định dạng hơn
+                    const toolbarOptions = [
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        ['link', 'image'],
+                        ['blockquote', 'code-block'],
+                        ['clean']
+                    ];
+                    
+                    quill = new Quill('#editor', {
+                        theme: 'snow',
+                        modules: {
+                            toolbar: toolbarOptions
+                        },
+                        placeholder: 'Nhập nội dung văn bản ở đây...'
+                    });
+                    
+                    // Hiển thị nội dung trong Quill
+                    quill.clipboard.dangerouslyPasteHTML(documentData.content);
+                    
+                    // Hiển thị trình soạn thảo
+                    editorElement.style.display = 'block';
+                    editorLoadingElement.style.display = 'none';
+                    
+                    // Thêm tiêu đề tài liệu nếu có
+                    if (documentData.title) {
+                        document.title = `Soạn thảo: ${documentData.title}`;
+                    }
+                    
+                    // Xử lý sự kiện nút Áp dụng thay đổi
+                    applyButton.addEventListener('click', () => {
+                        try {
+                            // Cập nhật dữ liệu trong localStorage
+                            const updatedDocument = JSON.parse(localStorage.getItem('editingDocument')) || {};
+                            updatedDocument.content = quill.root.innerHTML;
+                            localStorage.setItem('editingDocument', JSON.stringify(updatedDocument));
+                            
+                            showMessage('Đã lưu thay đổi thành công!', 'success');
+                        } catch (saveError) {
+                            console.error('Lỗi khi lưu thay đổi:', saveError);
+                            showMessage('Không thể lưu thay đổi: ' + saveError.message);
+                        }
+                    });
+                } else {
+                    editorLoadingElement.style.display = 'none';
+                    showMessage('Không có dữ liệu văn bản để soạn thảo. Vui lòng quay lại và thử lại.');
+                }
+            } catch (error) {
+                console.error('Lỗi khi khởi tạo trình soạn thảo:', error);
+                editorLoadingElement.style.display = 'none';
+                showMessage('Không thể khởi tạo trình soạn thảo: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

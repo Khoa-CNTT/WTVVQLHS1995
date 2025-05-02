@@ -17,6 +17,8 @@ import Payment from '../pages/Payment/Payment';
 import PaymentGuide from '../pages/Payment/PaymentGuide';
 import authService from '../services/authService';
 import LegalDocDetail from '../pages/LegalDocs/LegalDocDetail';
+import EditLegalDocument from '../pages/Dashboard/LegalDocuments/EditLegalDocument';
+import CreateLegalDocument from '../pages/Dashboard/LegalDocuments/CreateLegalDocument';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
@@ -194,6 +196,24 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <PaymentGuide />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Route chỉnh sửa văn bản pháp luật */}
+        <Route path="/dashboard/legal-documents/edit/:id" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <EditLegalDocument />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route thêm mới văn bản pháp luật */}
+        <Route path="/dashboard/legal-documents/new" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <CreateLegalDocument />
             </PageTransition>
           </ProtectedRoute>
         } />

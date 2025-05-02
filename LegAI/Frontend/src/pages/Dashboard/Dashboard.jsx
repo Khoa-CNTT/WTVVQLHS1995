@@ -124,9 +124,29 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Thêm useEffect để xử lý tab trong query params
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    
+    if (tabParam) {
+      // Nếu có tham số tab trong URL, cập nhật activeMenu
+      setActiveMenu(tabParam);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    // Xử lý đường dẫn chỉnh sửa văn bản pháp luật
+    if (location.pathname.includes('/dashboard/legal-documents/edit/')) {
+      // Chuyển hướng đến trang chỉnh sửa văn bản pháp luật
+      const id = location.pathname.split('/').pop();
+      window.location.href = `/dashboard/legal-documents/edit/${id}`;
+    }
+
     // Kiểm tra nếu đang ở route chi tiết hồ sơ
     if (location.pathname.includes('/dashboard/legal-docs/')) {
       setActiveMenu('hồ-sơ-người-dùng');
+    } else if (location.pathname.includes('/dashboard/tài-liệu-pháp-lý')) {
+      setActiveMenu('tài-liệu-pháp-lý');
     }
   }, [location.pathname]);
 
@@ -453,7 +473,11 @@ function Dashboard() {
           mode="inline"
           selectedKeys={[activeMenu]}
           items={menuItems}
-          onClick={e => setActiveMenu(e.key)}
+          onClick={e => {
+            setActiveMenu(e.key);
+            // Thêm tab vào URL để xử lý refresh trang
+            navigate(`/dashboard?tab=${e.key}`, { replace: true });
+          }}
           style={{ background: 'transparent', borderRight: 0 }}
         />
         <div 

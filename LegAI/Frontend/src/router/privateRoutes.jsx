@@ -5,6 +5,7 @@ import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Profile/Profile';
 import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import ContractManager from '../pages/Contracts/ContractManager';
+import EditLegalDocument from '../pages/Dashboard/LegalDocuments/EditLegalDocument';
 import authService from '../services/authService';
 
 // Sử dụng hàm isAuthenticated từ authService
@@ -41,10 +42,36 @@ const PrivateRoutes = () => {
             <Dashboard />
           </PageTransition>
         } />
+        <Route path="/dashboard/legal-documents/edit/:id" element={
+          <PageTransition custom="fade">
+            <EditLegalDocument />
+          </PageTransition>
+        } />
+        <Route path="/dashboard/legal-documents/new" element={
+          <PageTransition custom="fade">
+            <EditLegalDocument />
+          </PageTransition>
+        } />
+        <Route path="/dashboard/legal-documents/edit" element={
+          <Navigate to="/dashboard/legal-documents/new" replace />
+        } />
         <Route path="/contracts" element={
           <PageTransition custom="fade">
             <ContractManager />
           </PageTransition>
+        } />
+        <Route path="/dashboard" element={
+          <PageTransition custom="fade">
+            <Dashboard />
+          </PageTransition>
+        } />
+        <Route path="/dashboard/*" element={
+          <PageTransition custom="fade">
+            <Dashboard />
+          </PageTransition>
+        } />
+        <Route path="*" element={
+          <Navigate to="/dashboard" replace />
         } />
       </Routes>
     </AnimatePresence>
