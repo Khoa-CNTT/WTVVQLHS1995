@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Table, Card, Typography, Tag, Button, Space, Row, 
   Col, Statistic, DatePicker, Select, Modal, Form, 
-  Input, notification, Tooltip, Badge, Tabs
+  Input, notification, Tooltip, Badge, Tabs, Alert, Divider, Checkbox, Empty
 } from 'antd';
 import { 
   CheckCircleOutlined, CloseCircleOutlined, 
@@ -13,6 +13,7 @@ import transactionService from '../../../services/transactionService';
 import legalCaseService from '../../../services/legalCaseService';
 import moment from 'moment';
 import styles from './TransactionsManager.module.css';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -50,12 +51,63 @@ const TransactionsManager = () => {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
   const [activeTab, setActiveTab] = useState('transactions');
+  const [processingConfirm, setProcessingConfirm] = useState(false);
+  const [hasPendingTransactions, setHasPendingTransactions] = useState(false);
+  const [hasBankAccounts, setHasBankAccounts] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchFinancialStats();
-    fetchTransactions();
-    fetchBankAccounts();
-  }, [pagination.current, pagination.pageSize, filters]);
+    console.log('TransactionsManager đã được tải, đang lấy dữ liệu giao dịch...');
+    
+    // Gọi API để lấy dữ liệu ban đầu
+    Promise.all([
+      fetchFinancialStats(),
+      fetchBankAccounts()
+    ]).then(([statsResult, bankAccountsResult]) => {
+      // Xác định tab nào cần hiển thị ban đầu
+      // Nếu không có tài khoản ngân hàng, ưu tiên hiển thị tab tài khoản
+      if (bankAccountsResult && bankAccountsResult.length === 0) {
+        setActiveTab('bank-accounts');
+        notification.info({
+          message: 'Thiết lập tài khoản ngân hàng',
+          description: 'Bạn cần thiết lập tài khoản ngân hàng trước để nhận thanh toán từ khách hàng.',
+          duration: 5
+        });
+      }
+      // Ngược lại, nếu có giao dịch chờ xác nhận thì hiển thị tab giao dịch
+      else if (statsResult && statsResult.stats && statsResult.stats.pending_transactions > 0) {
+        setActiveTab('transactions');
+        setFilters(prev => ({ ...prev, status: 'pending' }));
+        notification.info({
+          message: 'Giao dịch chờ xác nhận',
+          description: `Bạn có ${statsResult.stats.pending_transactions} giao dịch đang chờ xác nhận thanh toán.`,
+          duration: 5
+        });
+      }
+      
+      // Đặt lại bộ lọc về mặc định và tải lại dữ liệu giao dịch
+      fetchTransactions();
+      
+      // Thiết lập interval để tự động làm mới dữ liệu sau mỗi 15 giây
+      const refreshInterval = setInterval(() => {
+        console.log('Tự động làm mới dữ liệu giao dịch...');
+        fetchTransactions();
+        fetchFinancialStats();
+      }, 15000);
+      
+      // Xóa interval khi component unmount
+      return () => clearInterval(refreshInterval);
+    });
+  }, []);
+
+  // Thêm useEffect để cập nhật khi pagination hoặc filters thay đổi
+  useEffect(() => {
+    // Chỉ gọi khi component đã mount và có dữ liệu
+    if (activeTab === 'transactions') {
+      console.log('Cập nhật danh sách giao dịch do thay đổi bộ lọc/phân trang');
+      fetchTransactions();
+    }
+  }, [pagination.current, pagination.pageSize, filters, activeTab]);
 
   const fetchFinancialStats = async () => {
     try {
@@ -71,6 +123,19 @@ const TransactionsManager = () => {
       if (response && response.success) {
         setStats(response.data.stats || {});
         setRecentTransactions(response.data.recentTransactions || []);
+        
+        // Kiểm tra xem có giao dịch đang chờ xác nhận không
+        const pendingCount = response.data.stats?.pending_transactions || 0;
+        setHasPendingTransactions(pendingCount > 0);
+        
+        // Tự động chuyển đến tab transactions nếu có giao dịch đang chờ
+        if (pendingCount > 0 && activeTab === 'overview') {
+          notification.info({
+            message: 'Giao dịch chờ xác nhận',
+            description: `Bạn có ${pendingCount} giao dịch đang chờ xác nhận thanh toán.`,
+            duration: 3
+          });
+        }
       }
     } catch (error) {
       console.error('Lỗi khi lấy thống kê tài chính:', error);
@@ -95,9 +160,13 @@ const TransactionsManager = () => {
         params.endDate = filters.dateRange[1].format('YYYY-MM-DD');
       }
       
+      console.log('Đang gọi API lấy giao dịch với tham số:', params);
+      
       const response = await transactionService.getLawyerTransactions(params);
       
       if (response && response.success) {
+        console.log('Kết quả API giao dịch luật sư:', response.data);
+        
         // Lọc kết quả nếu có tìm kiếm
         let filteredTransactions = response.data.transactions || [];
         
@@ -115,12 +184,36 @@ const TransactionsManager = () => {
           ...pagination,
           total: response.data.total || filteredTransactions.length
         });
+        
+        // Hiển thị thông báo nếu không có giao dịch và đang tìm kiếm giao dịch chờ xác nhận
+        if (filteredTransactions.length === 0 && filters.status === 'pending') {
+          notification.info({
+            message: 'Không có giao dịch chờ xác nhận',
+            description: 'Hiện tại không có giao dịch nào đang chờ xác nhận. Hệ thống sẽ tự động cập nhật khi có giao dịch mới.',
+            duration: 5
+          });
+        }
       } else {
+        console.error('Lỗi API giao dịch luật sư:', response);
         setTransactions([]);
+        
+        if (response && response.message) {
+          notification.warning({
+            message: 'Không thể tải giao dịch',
+            description: response.message,
+            duration: 5
+          });
+        }
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách giao dịch:', error);
       setTransactions([]);
+      
+      notification.error({
+        message: 'Lỗi kết nối',
+        description: 'Không thể kết nối đến máy chủ để lấy danh sách giao dịch. Vui lòng thử làm mới trang.',
+        duration: 5
+      });
     } finally {
       setLoading(false);
     }
@@ -132,13 +225,36 @@ const TransactionsManager = () => {
       const response = await transactionService.getLawyerBankAccounts();
       
       if (response && response.success) {
-        setBankAccounts(response.data || []);
+        const accounts = response.data || [];
+        setBankAccounts(accounts);
+        
+        // Cập nhật state hasBankAccounts
+        const hasAccounts = accounts.length > 0;
+        setHasBankAccounts(hasAccounts);
+        
+        // Nếu không có tài khoản ngân hàng và đang ở tab giao dịch, hiển thị thông báo
+        if (!hasAccounts && activeTab === 'transactions') {
+          notification.info({
+            message: 'Thiết lập tài khoản ngân hàng',
+            description: 'Bạn chưa thiết lập tài khoản ngân hàng. Vui lòng thiết lập để khách hàng có thể chuyển khoản.',
+            duration: 5,
+            btn: <Button type="primary" size="small" onClick={() => setActiveTab('bank-accounts')}>
+              Thiết lập ngay
+            </Button>
+          });
+        }
+        
+        return accounts;
       } else {
         setBankAccounts([]);
+        setHasBankAccounts(false);
+        return [];
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách tài khoản ngân hàng:', error);
       setBankAccounts([]);
+      setHasBankAccounts(false);
+      return [];
     } finally {
       setLoadingBankAccounts(false);
     }
@@ -248,16 +364,58 @@ const TransactionsManager = () => {
     if (!confirmModal.transaction) return;
     
     try {
+      setProcessingConfirm(true);  // Thêm trạng thái loading
+      
+      console.log('Bắt đầu xác nhận thanh toán cho giao dịch:', confirmModal.transaction.id);
+      console.log('Dữ liệu xác nhận:', values);
+      
+      // Đảm bảo thông tin case_id có sẵn
+      const caseId = confirmModal.transaction.case_id;
+      if (!caseId) {
+        notification.error({
+          message: 'Thiếu thông tin vụ án',
+          description: 'Không tìm thấy ID vụ án liên quan đến giao dịch này'
+        });
+        setProcessingConfirm(false);
+        return;
+      }
+      
+      // Thêm case_id vào dữ liệu xác nhận để backend có thể cập nhật trạng thái vụ án
+      const confirmData = {
+        ...values,
+        case_id: caseId,
+        update_case_status: true
+      };
+      
+      // Gọi API xác nhận thanh toán với timeout dài hơn (20 giây)
       const response = await transactionService.confirmPaymentByLawyer(
         confirmModal.transaction.id,
-        values
+        confirmData,
+        { timeout: 20000 }
       );
       
       if (response && response.success) {
         notification.success({
           message: 'Xác nhận thanh toán thành công',
-          description: 'Giao dịch đã được xác nhận thành công.'
+          description: 'Giao dịch đã được xác nhận thành công. Trạng thái vụ án đã được cập nhật thành đã thanh toán.'
         });
+        
+        // Cập nhật thêm trạng thái vụ án
+        try {
+          if (caseId && values.updateCaseStatus) {
+            // Gọi API cập nhật trạng thái vụ án
+            await legalCaseService.updateCaseStatus(
+              caseId, 
+              'paid',  // Trạng thái chính
+              `Thanh toán đã được xác nhận vào ${new Date().toLocaleString()}`  // Ghi chú
+            );
+            
+            console.log('Đã cập nhật trạng thái vụ án thành công');
+          }
+        } catch (caseUpdateError) {
+          console.error('Lỗi khi cập nhật trạng thái vụ án:', caseUpdateError);
+          // Không hiển thị lỗi cho người dùng vì đã xác nhận thanh toán thành công
+        }
         
         // Đóng modal và làm mới dữ liệu
         setConfirmModal({
@@ -269,18 +427,42 @@ const TransactionsManager = () => {
         // Làm mới dữ liệu
         fetchFinancialStats();
         fetchTransactions();
+        
+        // Cập nhật case_id vào URL nếu có thông tin vụ án
+        if (confirmModal.transaction && confirmModal.transaction.case_id) {
+          // Chờ 1 giây để hiển thị thông báo thành công trước khi chuyển trang
+          setTimeout(() => {
+            navigate(`/legal-cases/${confirmModal.transaction.case_id}`);
+          }, 1000);
+        }
       } else {
         notification.error({
           message: 'Xác nhận thanh toán thất bại',
-          description: response.message || 'Không thể xác nhận thanh toán.'
+          description: response?.message || 'Không thể xác nhận thanh toán. Vui lòng thử lại sau.'
         });
       }
     } catch (error) {
       console.error('Lỗi khi xác nhận thanh toán:', error);
+      
+      let errorMessage = 'Có lỗi xảy ra khi xác nhận thanh toán.';
+      
+      // Xử lý các trường hợp lỗi cụ thể
+      if (error.response && error.response.status === 404) {
+        errorMessage = 'Không tìm thấy giao dịch hoặc vụ án tương ứng.';
+      } else if (error.response && error.response.status === 403) {
+        errorMessage = 'Bạn không có quyền xác nhận thanh toán cho giao dịch này.';
+      } else if (error.response && error.response.status === 400) {
+        errorMessage = error.response.data?.message || 'Dữ liệu không hợp lệ.';
+      } else if (error.request && !error.response) {
+        errorMessage = 'Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối mạng.';
+      }
+      
       notification.error({
         message: 'Xác nhận thanh toán thất bại',
-        description: 'Có lỗi xảy ra khi xác nhận thanh toán.'
+        description: errorMessage
       });
+    } finally {
+      setProcessingConfirm(false);  // Kết thúc trạng thái loading
     }
   };
 
@@ -341,7 +523,7 @@ const TransactionsManager = () => {
   const renderStatus = (status) => {
     switch (status) {
       case 'pending':
-        return <Tag color="orange">Đang chờ</Tag>;
+        return <Tag color="orange">Đang chờ xác nhận</Tag>;
       case 'processing':
         return <Tag color="blue">Đang xử lý</Tag>;
       case 'completed':
@@ -411,7 +593,7 @@ const TransactionsManager = () => {
           </Tooltip>
           
           {record.status === 'pending' && (
-            <Tooltip title="Xác nhận thanh toán">
+            <Tooltip title="Xác nhận đã nhận thanh toán">
               <Button 
                 type="primary" 
                 shape="circle" 
@@ -419,6 +601,7 @@ const TransactionsManager = () => {
                 size="small"
                 onClick={() => handleConfirmPayment(record)}
                 className={styles.confirmButton}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               />
             </Tooltip>
           )}
@@ -427,18 +610,49 @@ const TransactionsManager = () => {
     }
   ];
 
+  // Xử lý khi tab thay đổi
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    
+    // Nếu chuyển sang tab 'transactions', tải lại dữ liệu giao dịch
+    if (key === 'transactions') {
+      fetchTransactions();
+    }
+    
+    // Nếu chuyển sang tab 'bank-accounts', tải lại dữ liệu tài khoản ngân hàng
+    if (key === 'bank-accounts') {
+      fetchBankAccounts();
+    }
+  };
+
   return (
     <div className={styles.transactionsManager}>
       <div className={styles.header}>
         <Title level={4}>Quản lý thanh toán</Title>
         <Space>
+          {hasPendingTransactions && (
+            <Badge count={stats.pending_transactions || 0} offset={[-5, 5]}>
+              <Button 
+                type="primary" 
+                onClick={() => {
+                  setActiveTab('transactions');
+                  setFilters({...filters, status: 'pending'});
+                  setPagination({...pagination, current: 1});
+                  fetchTransactions();
+                }}
+                style={{ marginRight: 8 }}
+              >
+                Xác nhận thanh toán
+              </Button>
+            </Badge>
+          )}
           <Button type="primary" onClick={handleRefresh}>
             Làm mới
           </Button>
         </Space>
       </div>
       
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
+      <Tabs activeKey={activeTab} onChange={handleTabChange}>
         <TabPane tab="Tổng quan" key="overview">
           <div className={styles.overview}>
             <Row gutter={[16, 16]}>
@@ -559,6 +773,44 @@ const TransactionsManager = () => {
             </Row>
           </div>
           
+          {!loading && transactions.length === 0 && (
+            <div style={{ textAlign: 'center', margin: '30px 0' }}>
+              <Empty 
+                description={
+                  <span>
+                    Không tìm thấy giao dịch nào
+                    <br />
+                    <Button 
+                      type="link" 
+                      onClick={handleRefresh}
+                      style={{ padding: 0 }}
+                    >
+                      Bấm vào đây để tải lại
+                    </Button>
+                  </span>
+                } 
+              />
+              <div style={{ marginTop: 16 }}>
+                <Alert
+                  message="Không thấy giao dịch chờ xác nhận?"
+                  description={
+                    <div>
+                      <p>Có thể do một trong các nguyên nhân sau:</p>
+                      <ol style={{ textAlign: 'left', paddingLeft: 20 }}>
+                        <li>Người dùng chưa thực hiện thanh toán</li>
+                        <li>Giao dịch đang được xử lý</li>
+                        <li>Có vấn đề kỹ thuật trong quá trình đồng bộ dữ liệu</li>
+                      </ol>
+                      <p>Hệ thống tự động làm mới dữ liệu sau mỗi 15 giây. Nếu người dùng đã thông báo đã thanh toán nhưng không thấy giao dịch, vui lòng liên hệ nhóm kỹ thuật.</p>
+                    </div>
+                  }
+                  type="info"
+                  showIcon
+                />
+              </div>
+            </div>
+          )}
+          
           <Table
             dataSource={transactions}
             columns={columns}
@@ -580,13 +832,37 @@ const TransactionsManager = () => {
           <div className={styles.bankAccountsSection}>
             <Row gutter={[16, 16]}>
               <Col xs={24}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openAddBankAccountModal}
-                >
-                  Thêm tài khoản ngân hàng
-                </Button>
+                {bankAccounts.length > 0 ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <Text>
+                      Bạn đã thiết lập {bankAccounts.length} tài khoản ngân hàng để nhận thanh toán.
+                    </Text>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openAddBankAccountModal}
+                    >
+                      Thêm tài khoản ngân hàng
+                    </Button>
+                  </div>
+                ) : (
+                  <Alert
+                    message="Thiết lập tài khoản ngân hàng"
+                    description="Bạn cần thiết lập ít nhất một tài khoản ngân hàng để khách hàng có thể chuyển khoản phí pháp lý."
+                    type="info"
+                    showIcon
+                    action={
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={openAddBankAccountModal}
+                      >
+                        Thêm tài khoản ngân hàng
+                      </Button>
+                    }
+                    style={{ marginBottom: 16 }}
+                  />
+                )}
               </Col>
               
               {loadingBankAccounts ? (
@@ -647,10 +923,11 @@ const TransactionsManager = () => {
       
       {/* Modal xác nhận thanh toán */}
       <Modal
-        title="Xác nhận thanh toán"
-        visible={confirmModal.visible}
+        title="Xác nhận đã nhận thanh toán"
+        open={confirmModal.visible}
         onCancel={() => setConfirmModal({ visible: false, transaction: null })}
         footer={null}
+        width={600}
       >
         {confirmModal.transaction && (
           <Form
@@ -658,9 +935,14 @@ const TransactionsManager = () => {
             layout="vertical"
             onFinish={submitConfirmPayment}
           >
-            <Paragraph>
-              <Text>Bạn đang xác nhận đã nhận được thanh toán cho giao dịch:</Text>
-            </Paragraph>
+            <Alert
+              message="Xác nhận đã nhận được thanh toán"
+              description="Bằng cách xác nhận, bạn xác nhận đã kiểm tra và nhận được khoản thanh toán trong tài khoản ngân hàng của mình. Trạng thái vụ án sẽ được cập nhật tương ứng."
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            
             <Paragraph>
               <Text strong>Vụ án:</Text> {confirmModal.transaction.case_title}
             </Paragraph>
@@ -670,6 +952,17 @@ const TransactionsManager = () => {
             <Paragraph>
               <Text strong>Số tiền:</Text> {formatCurrency(confirmModal.transaction.amount)}
             </Paragraph>
+            <Paragraph>
+              <Text strong>Phương thức thanh toán:</Text> {formatPaymentMethod(confirmModal.transaction.payment_method || 'bank_transfer')}
+            </Paragraph>
+            
+            {confirmModal.transaction.notes && (
+              <Paragraph>
+                <Text strong>Ghi chú của khách hàng:</Text> {confirmModal.transaction.notes}
+              </Paragraph>
+            )}
+            
+            <Divider />
             
             <Form.Item
               name="notes"
@@ -690,14 +983,19 @@ const TransactionsManager = () => {
                 <Button
                   type="default"
                   onClick={() => setConfirmModal({ visible: false, transaction: null })}
+                  disabled={processingConfirm}
                 >
                   Hủy
                 </Button>
                 <Button
                   type="primary"
                   htmlType="submit"
+                  icon={<CheckCircleOutlined />}
+                  style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                  loading={processingConfirm}
+                  disabled={processingConfirm}
                 >
-                  Xác nhận thanh toán
+                  Xác nhận đã nhận thanh toán
                 </Button>
               </Space>
             </Form.Item>

@@ -113,14 +113,14 @@ exports.getLawyerFinancialStats = asyncHandler(async (req, res) => {
 
 /**
  * @desc      Xác nhận thanh toán bởi luật sư
- * @route     POST /api/transactions/:id/confirm
+ * @route     PATCH /api/transactions/:id/confirm
  * @access    Private (Lawyer)
  */
 exports.confirmPayment = asyncHandler(async (req, res) => {
   try {
     const transactionId = req.params.id;
     const lawyerId = req.user.id;
-    const { notes, updateCaseStatus } = req.body;
+    const { notes, update_case_status, case_id, update_status } = req.body;
     
     // Kiểm tra quyền
     if (req.user.role.toLowerCase() !== 'lawyer') {
@@ -130,11 +130,49 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
       });
     }
     
-    const transaction = await transactionModel.confirmPaymentByLawyer(
-      transactionId,
-      lawyerId,
-      { notes, updateCaseStatus }
-    );
+    // Kiểm tra giao dịch
+    const transactionQuery = `SELECT * FROM Transactions WHERE id = $1`;
+    const transactionResult = await pool.query(transactionQuery, [transactionId]);
+    
+    if (transactionResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy giao dịch'
+      });
+    }
+    
+    const transaction = transactionResult.rows[0];
+    const transactionCaseId = transaction.case_id;
+    
+    // Cập nhật trạng thái giao dịch thành completed
+    const updateQuery = `
+      UPDATE Transactions
+      SET 
+        status = 'completed', 
+        updated_at = NOW(),
+        confirmation_date = NOW(),
+        confirmation_notes = $1
+      WHERE id = $2
+      RETURNING *
+    `;
+    
+    const updateResult = await pool.query(updateQuery, [notes || '', transactionId]);
+    const updatedTransaction = updateResult.rows[0];
+    
+    // Cập nhật trạng thái vụ án sang paid nếu có
+    if ((update_case_status || update_status) && transactionCaseId) {
+      try {
+        await pool.query(`
+          UPDATE LegalCases
+          SET status = 'paid', updated_at = NOW()
+          WHERE id = $1
+        `, [transactionCaseId]);
+        
+        console.log(`Đã cập nhật trạng thái vụ án ID ${transactionCaseId} thành 'paid'`);
+      } catch (caseUpdateError) {
+        console.error('Lỗi khi cập nhật trạng thái vụ án:', caseUpdateError);
+      }
+    }
     
     // Ghi log
     await auditLogModel.addAuditLog({
@@ -145,22 +183,9 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
       details: `Luật sư xác nhận thanh toán cho giao dịch ID ${transactionId}`
     });
     
-    // Gửi email thông báo cho khách hàng
-    if (transaction.user_email) {
-      try {
-        await emailService.sendEmail({
-          to: transaction.user_email,
-          subject: 'Thanh toán đã được xác nhận',
-          text: `Luật sư đã xác nhận thanh toán cho vụ án của bạn. Mã giao dịch: ${transactionId}.`
-        });
-      } catch (emailError) {
-        console.error('Lỗi khi gửi email thông báo xác nhận thanh toán:', emailError);
-      }
-    }
-    
     return res.status(200).json({
       success: true,
-      data: transaction,
+      data: updatedTransaction,
       message: 'Xác nhận thanh toán thành công'
     });
   } catch (error) {
@@ -191,21 +216,57 @@ exports.createTransaction = asyncHandler(async (req, res) => {
     
     const user_id = req.user.id;
     
-    if (!case_id || !payment_method || !amount) {
+    console.log('Nhận yêu cầu tạo giao dịch thanh toán:', {
+      case_id,
+      payment_method,
+      amount,
+      user_id,
+      fee_details: fee_details ? 'có' : 'không có',
+      description: description || '(không có)'
+    });
+
+    // Kiểm tra đầy đủ thông tin
+    if (!case_id) {
+      console.error('Thiếu thông tin case_id');
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp đầy đủ thông tin giao dịch'
+        message: 'Vui lòng cung cấp ID vụ án'
+      });
+    }
+    
+    if (!payment_method) {
+      console.error('Thiếu thông tin payment_method');
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp phương thức thanh toán'
       });
     }
     
     // Kiểm tra vụ án tồn tại
+    console.log('Kiểm tra vụ án tồn tại với ID:', case_id);
     const legalCase = await legalCaseModel.getLegalCaseById(case_id);
     
     if (!legalCase) {
+      console.error('Không tìm thấy vụ án với ID:', case_id);
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy vụ án'
       });
+    }
+    
+    // Lấy số tiền từ vụ án nếu không được cung cấp
+    let transaction_amount = amount;
+    if (!transaction_amount || transaction_amount <= 0) {
+      if (legalCase.fee_amount && legalCase.fee_amount > 0) {
+        transaction_amount = legalCase.fee_amount;
+        console.log(`Không có thông tin số tiền, sử dụng fee_amount từ vụ án: ${transaction_amount}`);
+      } else {
+        console.error('Không có thông tin số tiền và vụ án không có fee_amount');
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp số tiền thanh toán hoặc tính phí cho vụ án trước'
+        });
+      }
     }
     
     // Xử lý fee_details
@@ -242,7 +303,7 @@ exports.createTransaction = asyncHandler(async (req, res) => {
       user_id,
       lawyer_id: lawyer_id || legalCase.lawyer_id,
       case_id,
-      amount,
+      amount: transaction_amount,
       payment_method,
       status: 'pending',
       description: description || `Thanh toán cho vụ án: ${legalCase.title}`,
@@ -250,7 +311,10 @@ exports.createTransaction = asyncHandler(async (req, res) => {
       payment_provider
     };
     
+    console.log('Dữ liệu giao dịch sẽ được lưu:', transactionData);
+    
     const transaction = await transactionModel.createTransaction(transactionData);
+    console.log('Đã tạo giao dịch thành công với ID:', transaction.id);
     
     // Ghi log
     await auditLogModel.addAuditLog({
@@ -258,11 +322,11 @@ exports.createTransaction = asyncHandler(async (req, res) => {
       action: 'CREATE_TRANSACTION',
       tableName: 'Transactions',
       recordId: transaction.id,
-      details: `Tạo giao dịch thanh toán cho vụ án ID ${case_id}, số tiền ${amount}`
+      details: `Tạo giao dịch thanh toán cho vụ án ID ${case_id}, số tiền ${transaction_amount}`
     });
     
     // Tạo URL thanh toán (mô phỏng)
-    const paymentUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment?transaction_id=${transaction.id}&amount=${amount}`;
+    const paymentUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment?transaction_id=${transaction.id}&amount=${transaction_amount}`;
     
     return res.status(201).json({
       success: true,

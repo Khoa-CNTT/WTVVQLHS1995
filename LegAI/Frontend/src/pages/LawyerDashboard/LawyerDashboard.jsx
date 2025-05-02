@@ -115,7 +115,7 @@ const LawyerDashboard = () => {
   const menuItems = [
     { key: 'overview', label: 'Tổng Quan', icon: <AuditOutlined />, count: 0 },
     { key: 'messages', label: 'Tin Nhắn', icon: <MessageOutlined />, count: pendingCount },
-    { key: 'cases', label: 'Vụ Án', icon: <SafetyOutlined />, count: caseCount },
+    { key: 'cases', label: 'Vụ Án', icon: <SafetyOutlined />, count: 0 },
     { key: 'appointments', label: 'Lịch Hẹn', icon: <CalendarOutlined />, count: appointmentCount },
     { key: 'availability', label: 'Quản Lý Lịch Trống', icon: <ScheduleOutlined />, count: 0 },
     { key: 'clients', label: 'Khách Hàng', icon: <TeamOutlined />, count: 0 },

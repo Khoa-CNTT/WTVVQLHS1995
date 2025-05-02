@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tabs, Descriptions, Tag, Spin, Space, message, Divider, List, Modal, Select, InputNumber, Avatar, Rate, Layout, Row, Col, Empty, Input } from 'antd';
+import { Card, Typography, Button, Tabs, Descriptions, Tag, Spin, Space, message, Divider, List, Modal, Select, InputNumber, Avatar, Rate, Layout, Row, Col, Empty, Input, Alert } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EditOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, FileImageOutlined, UserOutlined, DollarOutlined, SendOutlined, CheckCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import legalCaseService from '../../services/legalCaseService';
 import userService from '../../services/userService';
@@ -10,11 +10,23 @@ import Navbar from '../../components/layout/Nav/Navbar';
 import authService from '../../services/authService';
 import appointmentService from '../../services/appointmentService';
 import transactionService from '../../services/transactionService';
+import axios from 'axios';
+import { API_URL } from '../../config/constants';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { confirm } = Modal;
 const { Content } = Layout;
+
+// Hàm helper để lấy headers đã có token
+const getHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  };
+};
 
 const LegalCaseDetail = () => {
   const { id } = useParams();
@@ -35,6 +47,8 @@ const LegalCaseDetail = () => {
   const [notes, setNotes] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   // Lấy thông tin vụ án
   useEffect(() => {
@@ -67,14 +81,19 @@ const LegalCaseDetail = () => {
           const isOwner = caseWithDefaults.user_id === userData.id;
           
           console.log('Thông tin vai trò người dùng:', {
+            userId: userData.id,
             role: userRole,
+            lawyerId: caseWithDefaults.lawyer?.id,
             isAssigned,
             isLawyer,
             isAdmin: isAdminUser,
-            isOwner
+            isOwner,
+            case_id: caseWithDefaults.id,
+            payment_status: caseWithDefaults.payment_status,
+            case_status: caseWithDefaults.status
           });
           
-          setIsAssignedLawyer(isAssigned || isLawyer);
+          setIsAssignedLawyer(isAssigned || (isLawyer && isAssigned));
           setIsAdmin(isAdminUser);
           setIsOwner(isOwner);
           
@@ -331,101 +350,39 @@ const LegalCaseDetail = () => {
     console.log('BẮT ĐẦU TÍNH PHÍ');
     
     try {
-      // Kiểm tra xem người dùng đã đăng nhập chưa
-      const token = localStorage.getItem('token');
-      if (!token) {
-        message.error('Bạn cần đăng nhập để sử dụng tính năng này');
-        setTimeout(() => {
-          navigate('/login', { state: { from: `/legal-cases/${id}` } });
-        }, 1500);
-        return;
-      }
-
-      // Kiểm tra vai trò người dùng
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!userData || !userData.id) {
-        message.error('Không thể xác định quyền hạn của bạn');
-        return;
-      }
-
-      console.log('Thông tin người dùng:', userData);
-      console.log('Thông tin vụ án:', caseData);
-
-      // Kiểm tra xem người dùng có phải là luật sư được gán không
-      const isLawyerRole = userData.role && (userData.role.toLowerCase() === 'lawyer' || userData.role.toLowerCase() === 'luật sư');
+      // Kiểm tra xem người dùng đã nhập giá trị tranh chấp chưa
+      const disputeValueToUse = disputeValue || 0; // Dùng giá trị mặc định nếu không có
       
-      // Lấy ID luật sư từ cả hai nguồn có thể có
-      const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
+      // Hiển thị loading
+      setCalculatingFee(true);
+      message.loading('Đang tính phí...', 0);
       
-      console.log('Dữ liệu kiểm tra quyền tính phí:', {
-        caseData,
-        userRole: userData.role,
-        isLawyerRole,
-        userId: userData.id,
-        lawyerId: caseData.lawyer_id,
-        lawyerObjectId: caseData.lawyer?.id,
-        assignedLawyerId,
-        areIdsEqual: assignedLawyerId && String(userData.id) === String(assignedLawyerId)
-      });
+      // Tham số cho tính phí
+      const parameters = {
+        dispute_value: disputeValueToUse
+      };
       
-      // QUAN TRỌNG: Kiểm tra xem người dùng có phải là luật sư được gán không
-      const canCalculateFee = isLawyerRole && assignedLawyerId && String(userData.id) === String(assignedLawyerId);
+      console.log('Gửi yêu cầu tính phí với giá trị tranh chấp:', disputeValueToUse);
       
-      if (canCalculateFee) {
-        setCalculatingFee(true);
-
-        const parameters = {
-          dispute_value: disputeValue
-        };
-
-        // Gửi ID luật sư và case ID để xác thực
-        const response = await legalCaseService.calculateFee(id, parameters);
-
-        if (response.success) {
-          message.success('Đã tính phí thành công');
-
-          // Cập nhật lại thông tin vụ án
-          const updatedCase = await legalCaseService.getLegalCaseById(id);
-          if (updatedCase.success) {
-            setCaseData(updatedCase.data);
-          }
-        } else {
-          // Nếu lỗi liên quan đến quyền truy cập
-          if (response.permissionError) {
-            message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
-            return;
-          }
-          
-          if (response.message && (
-              response.message.includes('unauthorized') || 
-              response.message.includes('unauthenticated') || 
-              response.message.includes('token') ||
-              response.message.includes('đăng nhập')
-          )) {
-            message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-            setTimeout(() => {
-              navigate('/login', { state: { from: `/legal-cases/${id}` } });
-            }, 1500);
-          } else {
-            message.error(response.message || 'Không thể tính phí');
-          }
-        }
+      // Gọi API tính phí
+      const response = await legalCaseService.calculateFee(id, parameters);
+      
+      message.destroy(); // Xóa thông báo loading
+      
+      if (response && response.success) {
+        message.success('Đã tính phí thành công');
+        
+        // Cập nhật lại thông tin vụ án
+        await fetchCaseDetails();
       } else {
-        message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
+        message.error(response?.message || 'Không thể tính phí');
       }
     } catch (error) {
       console.error('Lỗi khi tính phí vụ án:', error);
+      message.destroy(); // Xóa thông báo loading
       
-      if (error.response) {
-        console.error('Chi tiết lỗi từ API:', error.response.status, error.response.data);
-      }
-      
-      // Kiểm tra lỗi xác thực
-      if (error.response && error.response.status === 401) {
-        message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        setTimeout(() => {
-          navigate('/login', { state: { from: `/legal-cases/${id}` } });
-        }, 1500);
+      if (error.response && error.response.status === 403) {
+        message.error('Chỉ luật sư được gán cho vụ án này mới có quyền tính phí');
       } else {
         message.error('Không thể tính phí vụ án. Vui lòng thử lại sau.');
       }
@@ -434,59 +391,138 @@ const LegalCaseDetail = () => {
     }
   };
 
-  // Xử lý thanh toán
-  const handlePayment = async () => {
+  // Thêm hàm refreshPaymentStatus
+  const refreshPaymentStatus = async () => {
     try {
-      if (!caseData || !caseData.id) {
-        message.error('Không thể thanh toán vì thiếu thông tin vụ án');
-        return;
+      message.loading('Đang kiểm tra trạng thái thanh toán...', 0);
+      
+      // Kiểm tra trạng thái thanh toán hiện tại
+      const response = await legalCaseService.checkPaymentStatus(id);
+      
+      message.destroy();
+      
+      if (response && response.success && response.data) {
+        // Cập nhật trạng thái trong state
+        setCaseData(prevData => ({
+          ...prevData,
+          payment_status: response.data.payment_status,
+          status: response.data.status,
+          has_transactions: response.data.has_transactions,
+          transactions: response.data.transactions || []
+        }));
+        console.log('Đã cập nhật trạng thái thanh toán:', response.data);
+        message.success('Đã cập nhật trạng thái thanh toán mới nhất');
+      } else {
+        console.error('Không nhận được dữ liệu thanh toán hợp lệ:', response);
+        message.error(response?.message || 'Không thể kiểm tra trạng thái thanh toán');
       }
+    } catch (error) {
+      console.error('Lỗi khi làm mới trạng thái thanh toán:', error);
+      message.destroy();
+      message.error('Không thể kiểm tra trạng thái thanh toán. Vui lòng thử lại sau.');
+    }
+  };
 
-      const lawyer = caseData.lawyer || {};
-      const amount = caseData.fee_amount || lawyer.hourly_rate || 500000;
+  // Thêm useEffect để tự động làm mới trạng thái thanh toán mỗi 10 giây
+  useEffect(() => {
+    // Nếu đã có dữ liệu vụ án, kiểm tra trạng thái thanh toán định kỳ
+    if (caseData && caseData.id) {
+      const intervalId = setInterval(() => {
+        // Chỉ tự động làm mới nếu đang ở trạng thái chờ xác nhận
+        if (caseData.payment_status === 'pending' || caseData.status === 'pending') {
+          refreshPaymentStatus();
+        }
+      }, 10000); // 10 giây
       
-      // Đảm bảo có lawyer_id
-      if (!lawyer.id) {
-        message.error('Không thể thanh toán vì thiếu thông tin luật sư');
-        return;
-      }
-      
-      // Tạo giao dịch mới
-      const transactionData = {
-        case_id: caseData.id,
-        lawyer_id: lawyer.id,
-        amount: amount,
-        payment_method: 'bank_transfer', // Đặt giá trị mặc định cho payment_method
-        description: `Thanh toán cho vụ án: ${caseData.title || 'Không có tiêu đề'}`
-      };
-      
-      // Chuyển fee_details thành JSON string nếu nó là object
-      if (caseData.fee_details) {
+      return () => clearInterval(intervalId);
+    }
+  }, [caseData?.id, caseData?.payment_status, caseData?.status]);
+
+  // Thêm useEffect kiểm tra tình trạng giao dịch
+  useEffect(() => {
+    const checkExistingTransactions = async () => {
+      if (caseData && caseData.id) {
         try {
-          if (typeof caseData.fee_details === 'object') {
-            transactionData.fee_details = JSON.stringify(caseData.fee_details);
-          } else {
-            transactionData.fee_details = caseData.fee_details;
+          console.log('Kiểm tra giao dịch cho vụ án ID:', caseData.id);
+          
+          // Gọi API lấy tất cả giao dịch liên quan đến vụ án này
+          const transactionsResponse = await axios.get(
+            `${API_URL}/transactions/case/${caseData.id}`,
+            getHeaders()
+          );
+          
+          if (transactionsResponse.data.success && 
+              transactionsResponse.data.data && 
+              transactionsResponse.data.data.length > 0) {
+            
+            console.log('Tìm thấy các giao dịch:', transactionsResponse.data.data);
+            
+            // Đã có giao dịch, cập nhật trạng thái vụ án trong state
+            setCaseData(prevData => ({
+              ...prevData,
+              has_transactions: true,
+              transactions: transactionsResponse.data.data,
+              // Nếu có giao dịch, đặt payment_status là pending nếu chưa có giá trị
+              payment_status: prevData.payment_status || 'pending'
+            }));
           }
         } catch (error) {
-          console.error('Lỗi khi xử lý fee_details:', error);
+          console.error('Lỗi khi kiểm tra giao dịch hiện có:', error);
         }
       }
+    };
+    
+    checkExistingTransactions();
+  }, [caseData?.id]);
+
+  // Cập nhật hàm handlePayment
+  const handlePayment = async () => {
+    try {
+      setLoadingPayment(true);
+      message.loading('Đang xử lý yêu cầu thanh toán...', 0);
       
-      console.log('Đang tạo giao dịch với dữ liệu:', transactionData);
-      
-      const response = await transactionService.createTransaction(transactionData);
-      
-      if (response && response.success) {
-        // Chuyển đến trang thanh toán với ID giao dịch
-        navigate(`/payment?transaction_id=${response.data.id}`);
+      // Kiểm tra xem vụ án đã có thông tin phí chưa
+      if (!caseData.fee_amount || caseData.fee_amount <= 0) {
+        // Nếu chưa có phí, thực hiện tính phí tự động
+        const feeResponse = await legalCaseService.calculateLegalFeeAutomatic(caseData);
+        
+        if (!feeResponse || !feeResponse.success) {
+          message.error('Không thể tính phí vụ án. Vui lòng thử lại sau.');
+          setLoadingPayment(false);
+          message.destroy();
+          return;
+        }
+        
+        console.log('Phí tự động được tính:', feeResponse.data);
       } else {
-        message.error(response.message || 'Không thể tạo giao dịch thanh toán');
+        console.log('Vụ án đã có thông tin phí:', caseData.fee_amount);
+      }
+      
+      // Tạo giao dịch thanh toán
+      const paymentResponse = await legalCaseService.createPayment(id, 'bank_transfer');
+      
+      if (paymentResponse && paymentResponse.success && paymentResponse.data && paymentResponse.data.transaction_id) {
+        message.success('Tạo giao dịch thanh toán thành công');
+        
+        // Làm mới dữ liệu vụ án để cập nhật trạng thái
+        const updatedCase = await legalCaseService.getLegalCaseById(id);
+        if (updatedCase && updatedCase.success) {
+          setCaseData(updatedCase.data);
+        }
+        
+        // Chuyển hướng đến trang thanh toán với ID giao dịch và số tiền
+        navigate(`/payment?transaction_id=${paymentResponse.data.transaction_id}&amount=${paymentResponse.data.amount}`);
+      } else {
+        // Xử lý trường hợp không nhận được ID giao dịch
+        console.error('Không nhận được ID giao dịch hợp lệ:', paymentResponse);
+        message.error(paymentResponse?.message || 'Không thể tạo giao dịch thanh toán. Vui lòng thử lại sau.');
       }
     } catch (error) {
       console.error('Lỗi khi xử lý thanh toán:', error);
-      console.error('Chi tiết lỗi:', error.response ? error.response.data : error.message);
-      message.error('Không thể xử lý thanh toán. Vui lòng thử lại sau.');
+      message.error('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại sau.');
+    } finally {
+      setLoadingPayment(false);
+      message.destroy();
     }
   };
 
@@ -635,13 +671,13 @@ const LegalCaseDetail = () => {
       case 'draft':
         return <Tag color="blue">Nháp</Tag>;
       case 'pending':
-        return <Tag color="orange">Đang chờ xử lý</Tag>;
+        return <Tag color="orange">Đang chờ thanh toán</Tag>;
       case 'in_progress':
         return <Tag color="processing">Đang xử lý</Tag>;
       case 'paid':
         return <Tag color="green">Đã thanh toán</Tag>;
       case 'completed':
-        return <Tag color="green">Hoàn thành</Tag>;
+        return <Tag color="success">Hoàn thành</Tag>;
       case 'cancelled':
         return <Tag color="red">Đã hủy</Tag>;
       default:
@@ -653,6 +689,281 @@ const LegalCaseDetail = () => {
   const formatCurrency = (amount) => {
     if (!amount) return '0 VNĐ';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  // Cập nhật hàm renderPaymentStatus
+  const renderPaymentStatus = () => {
+    if (!caseData) return null;
+    
+    // Xác định trạng thái thanh toán dựa trên dữ liệu từ caseData và transactions
+    // Kiểm tra cả hai trường payment_status và status để đảm bảo tính chính xác
+    const isPaid = caseData.payment_status === 'completed' || 
+                   caseData.status === 'paid' || 
+                   caseData.status === 'completed';
+                   
+    // Kiểm tra xem có giao dịch đang chờ xác nhận không
+    let hasPendingTransaction = false;
+    let pendingTransactionId = null;
+    if (caseData.transactions && caseData.transactions.length > 0) {
+      const pendingTransaction = caseData.transactions.find(transaction => transaction.status === 'pending');
+      if (pendingTransaction) {
+        hasPendingTransaction = true;
+        pendingTransactionId = pendingTransaction.id;
+      }
+    }
+                   
+    // Nếu có giao dịch hiện có hoặc payment_status là pending, và không phải đã thanh toán, coi là đang chờ
+    const isPending = !isPaid && (
+                     caseData.payment_status === 'pending' || 
+                     hasPendingTransaction ||
+                     (caseData.status === 'pending' && caseData.fee_amount && caseData.fee_amount > 0)
+                    );
+                     
+    const isUnpaid = !isPaid && !isPending;
+    
+    // Xác định vai trò người dùng
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = userData.role ? userData.role.toLowerCase() : '';
+    const isLawyerRole = userRole === 'lawyer' || userRole === 'luật sư';
+    
+    // Kiểm tra xem có phải luật sư được gán cho vụ án này không
+    const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
+    const isCurrentUserAssignedLawyer = 
+        assignedLawyerId && 
+        userData.id && 
+        String(assignedLawyerId) === String(userData.id);
+    
+    console.log('Chi tiết trạng thái thanh toán:', {
+      isPaid,
+      isPending,
+      isUnpaid,
+      hasPendingTransaction,
+      pendingTransactionId,
+      payment_status: caseData.payment_status,
+      case_status: caseData.status,
+      has_transactions: caseData.has_transactions,
+      transaction_count: caseData.transactions?.length,
+      transactions: caseData.transactions,
+      userRole,
+      isLawyerRole,
+      assignedLawyerId,
+      currentUserId: userData.id,
+      isCurrentUserAssignedLawyer,
+      isOwner,
+      fee_amount: caseData.fee_amount,
+      fee_details: caseData.fee_details
+    });
+    
+    // Kiểm tra xem nút xác nhận thanh toán có nên hiển thị không
+    const shouldShowConfirmButton = 
+      !isPaid && // Chưa thanh toán
+      isCurrentUserAssignedLawyer && // Là luật sư được gán cho vụ án
+      hasPendingTransaction && // Có giao dịch đang chờ xác nhận
+      pendingTransactionId; // Có ID giao dịch hợp lệ
+    
+    // ĐIỀU KIỆN MỚI: Hiển thị nút tính phí nếu cả fee_amount và fee_details đều là null
+    // và người dùng hiện tại là luật sư được gán cho vụ án
+    const shouldShowCalculateFeeButton = 
+      isCurrentUserAssignedLawyer && // Là luật sư được gán cho vụ án
+      (caseData.fee_amount === null || caseData.fee_amount === undefined) && // fee_amount là null hoặc undefined
+      (caseData.fee_details === null || caseData.fee_details === undefined); // fee_details là null hoặc undefined
+      
+    return (
+      <Card className={styles.paymentStatusCard} title="Trạng thái thanh toán">
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            {isPaid && (
+              <Alert
+                message="Đã thanh toán"
+                description="Phí pháp lý đã được thanh toán và xác nhận bởi luật sư."
+                type="success"
+                showIcon
+                icon={<CheckCircleOutlined />}
+              />
+            )}
+            
+            {/* Alert thông báo "Đang chờ xác nhận" - Chỉ hiển thị khi:
+                1. Trạng thái thanh toán là 'pending'
+                2. Không phải là đã thanh toán (isPaid = false)
+                3. Có giao dịch nhưng giao dịch chưa được xác nhận */}
+            {isPending && !isPaid && (
+              <Alert
+                message="Đang chờ luật sư xác nhận thanh toán"
+                description="Bạn đã ghi nhận thanh toán, đang chờ luật sư xác nhận đã nhận được khoản thanh toán vào tài khoản ngân hàng."
+                type="warning"
+                showIcon
+                action={
+                  !isLawyerRole && (
+                    <Button type="link" onClick={refreshPaymentStatus}>
+                      Kiểm tra trạng thái
+                    </Button>
+                  )
+                }
+              />
+            )}
+            
+            {/* NÚT TÍNH PHÍ MỚI: Hiển thị khi fee_amount và fee_details đều là null và là luật sư được gán */}
+            {shouldShowCalculateFeeButton && (
+              <>
+                <Card bordered={false} style={{ marginBottom: 16 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <span>Giá trị tranh chấp (VNĐ):</span>
+                    <InputNumber 
+                      style={{ width: '100%', marginTop: 8 }}
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                      min={0}
+                      placeholder="Nhập giá trị tranh chấp (VNĐ)"
+                      value={disputeValue} 
+                      onChange={value => setDisputeValue(value)}
+                    />
+                  </div>
+                  <Button
+                    type="primary"
+                    icon={<DollarOutlined />}
+                    onClick={handleCalculateFee}
+                    loading={calculatingFee}
+                    block
+                  >
+                    Tính phí vụ án
+                  </Button>
+                </Card>
+              </>
+            )}
+            
+            {isUnpaid && !isPending && !isLawyerRole && isOwner && caseData.fee_amount > 0 && !caseData.has_transactions && (
+              <Button
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={handlePayment}
+                loading={loadingPayment}
+                block
+              >
+                Thanh toán ngay
+              </Button>
+            )}
+          </Col>
+          
+          <Col span={24}>
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label="Phí pháp lý">
+                {formatCurrency(caseData.fee_amount || 0)}
+              </Descriptions.Item>
+              
+              {caseData.payment_date && (
+                <Descriptions.Item label="Ngày thanh toán">
+                  {new Date(caseData.payment_date).toLocaleDateString('vi-VN')}
+                </Descriptions.Item>
+              )}
+              
+              {caseData.payment_method && (
+                <Descriptions.Item label="Phương thức thanh toán">
+                  {caseData.payment_method === 'bank_transfer' ? 'Chuyển khoản ngân hàng' : caseData.payment_method}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </Col>
+          
+          <Col span={24}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {/* XÁC NHẬN THANH TOÁN: Chỉ hiển thị khi đáp ứng đủ điều kiện */}
+              {shouldShowConfirmButton && (
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => {
+                    // Mở modal xác nhận thanh toán
+                    Modal.confirm({
+                      title: 'Xác nhận thanh toán',
+                      content: 'Bạn có chắc chắn đã nhận được thanh toán cho vụ án này?',
+                      onOk: async () => {
+                        try {
+                          setConfirmingPayment(true);
+                          
+                          // Sử dụng ID giao dịch đang chờ xác nhận đã tìm thấy
+                          if (pendingTransactionId) {
+                            // Gọi API xác nhận thanh toán
+                            const confirmResult = await transactionService.confirmPaymentByLawyer(
+                              pendingTransactionId,
+                              {
+                                notes: "Xác nhận từ trang chi tiết vụ án",
+                                update_case_status: true,
+                                case_id: caseData.id
+                              }
+                            );
+                            
+                            if (confirmResult && confirmResult.success) {
+                              message.success('Đã xác nhận thanh toán thành công');
+                              
+                              // Làm mới trạng thái thanh toán của vụ án
+                              refreshPaymentStatus();
+                              
+                              // Làm mới dữ liệu vụ án
+                              await fetchCaseDetails();
+                            } else {
+                              message.error(confirmResult?.message || 'Không thể xác nhận thanh toán. Vui lòng thử lại.');
+                            }
+                          } else {
+                            message.error('Không tìm thấy giao dịch thanh toán cho vụ án này.');
+                          }
+                        } catch (error) {
+                          console.error('Lỗi khi xác nhận thanh toán:', error);
+                          message.error('Có lỗi xảy ra khi xác nhận thanh toán.');
+                        } finally {
+                          setConfirmingPayment(false);
+                        }
+                      }
+                    });
+                  }}
+                  style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                  block
+                >
+                  Xác nhận đã nhận thanh toán
+                </Button>
+              )}
+              
+              {isPending && (
+                <div>
+                  <Divider plain>Thông tin thanh toán</Divider>
+                  <p>Luật sư sẽ xem xét và xác nhận thanh toán của bạn trong thời gian sớm nhất. Sau khi được xác nhận, trạng thái vụ án sẽ được cập nhật tự động.</p>
+                </div>
+              )}
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
+
+  // Thêm hàm fetchCaseDetails để làm mới dữ liệu vụ án
+  const fetchCaseDetails = async () => {
+    try {
+      // Lấy lại thông tin vụ án từ API
+      const response = await legalCaseService.getLegalCaseById(id);
+      
+      if (response && response.success && response.data) {
+        console.log('Đã cập nhật dữ liệu vụ án:', response.data);
+        
+        // Cập nhật state với dữ liệu mới
+        setCaseData(response.data);
+        
+        // Nếu có luật sư, cập nhật thông tin luật sư
+        if (response.data.lawyer && response.data.lawyer.id) {
+          fetchLawyerDetails(response.data.lawyer.id);
+        }
+        
+        // Kiểm tra lại giao dịch
+        refreshPaymentStatus();
+        
+        return response.data;
+      } else {
+        console.error('Không thể lấy dữ liệu vụ án mới:', response);
+        return null;
+      }
+    } catch (error) {
+      console.error('Lỗi khi làm mới dữ liệu vụ án:', error);
+      return null;
+    }
   };
 
   if (loading) {
@@ -910,12 +1221,6 @@ const LegalCaseDetail = () => {
                                           <div className={styles.lawyerMeta}>
                                             {lawyer.specialization ? (Array.isArray(lawyer.specialization) ? lawyer.specialization.join(', ') : lawyer.specialization) : 'Luật sư đa lĩnh vực'}
                                           </div>
-                                          <div className={styles.lawyerRating}>
-                                            <Rate disabled defaultValue={parseFloat(lawyer.rating || 0) || 4} allowHalf />
-                                            <span className={styles.ratingCount}>
-                                              {parseFloat(lawyer.rating || 0) || 4}/5 ({lawyer.review_count || 0} đánh giá)
-                                            </span>
-                                          </div>
                                         </div>
                                         <div className={styles.lawyerAction}>
                                           <Button
@@ -943,169 +1248,7 @@ const LegalCaseDetail = () => {
                     label: 'Phí và thanh toán',
                     children: (
                       <div className={styles.tabContent}>
-                        {caseData.fee_amount ? (
-                          <div className={styles.paymentSection}>
-                            <Title level={4}>Thông tin phí dịch vụ</Title>
-
-                            <div className={styles.feeItem}>
-                              <span>Phí cơ bản:</span>
-                              <span>
-                                {(() => {
-                                  try {
-                                    if (caseData.fee_details) {
-                                      // Kiểm tra xem fee_details đã là object hay chưa
-                                      const feeDetails = typeof caseData.fee_details === 'string'
-                                        ? JSON.parse(caseData.fee_details)
-                                        : caseData.fee_details;
-                                      
-                                      return formatCurrency(feeDetails.base_fee || 0);
-                                    }
-                                    return formatCurrency(0);
-                                  } catch (error) {
-                                    console.error('Lỗi khi phân tích fee_details:', error);
-                                    return formatCurrency(0);
-                                  }
-                                })()}
-                              </span>
-                            </div>
-
-                            <div className={styles.feeItem}>
-                              <span>Phí bổ sung:</span>
-                              <span>
-                                {(() => {
-                                  try {
-                                    if (caseData.fee_details) {
-                                      // Kiểm tra xem fee_details đã là object hay chưa
-                                      const feeDetails = typeof caseData.fee_details === 'string'
-                                        ? JSON.parse(caseData.fee_details)
-                                        : caseData.fee_details;
-                                      
-                                      return formatCurrency(feeDetails.additional_fee || 0);
-                                    }
-                                    return formatCurrency(0);
-                                  } catch (error) {
-                                    console.error('Lỗi khi phân tích fee_details:', error);
-                                    return formatCurrency(0);
-                                  }
-                                })()}
-                              </span>
-                            </div>
-
-                            <div className={styles.feeTotal}>
-                              <span>Tổng phí:</span>
-                              <span>{formatCurrency(caseData.fee_amount || 0)}</span>
-                            </div>
-
-                            {caseData.status !== 'paid' && isOwner && (
-                              <div className={styles.paymentButton}>
-                                <Button
-                                  type="primary"
-                                  icon={<DollarOutlined />}
-                                  onClick={handlePayment}
-                                  loading={processingPayment}
-                                  disabled={!caseData.lawyer}
-                                  size="large"
-                                  className={styles.primaryButton}
-                                >
-                                  Thanh toán
-                                </Button>
-                                {!caseData.lawyer && (
-                                  <div className={styles.paymentWarning}>
-                                    Vui lòng chọn luật sư trước khi thanh toán
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {caseData.status === 'paid' && (
-                              <div className={styles.paidStatus}>
-                                <Tag color="green" icon={<CheckCircleOutlined />}>Đã thanh toán</Tag>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className={styles.calculateFeeSection}>
-                            <Title level={4}>Tính phí dịch vụ</Title>
-                            <Paragraph className={styles.sectionDescription}>
-                              {(() => {
-                                try {
-                                  // Kiểm tra quyền tính phí
-                                  const userData = JSON.parse(localStorage.getItem('user') || '{}');
-                                  
-                                  // Lấy thông tin luật sư được gán từ state
-                                  const isLawyerRole = userData.role && (userData.role.toLowerCase() === 'lawyer' || userData.role.toLowerCase() === 'luật sư');
-                                  
-                                  // Lấy ID luật sư từ cả hai nguồn có thể có
-                                  const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
-                                  
-                                  console.log('Dữ liệu kiểm tra quyền tính phí:', {
-                                    caseData,
-                                    userRole: userData.role,
-                                    isLawyerRole,
-                                    userId: userData.id,
-                                    lawyerId: caseData.lawyer_id,
-                                    lawyerObjectId: caseData.lawyer?.id,
-                                    assignedLawyerId,
-                                    areIdsEqual: assignedLawyerId && String(userData.id) === String(assignedLawyerId)
-                                  });
-                                  
-                                  // QUAN TRỌNG: Kiểm tra xem người dùng có phải là luật sư được gán không
-                                  const canCalculateFee = isLawyerRole && assignedLawyerId && String(userData.id) === String(assignedLawyerId);
-                                  
-                                  if (canCalculateFee) {
-                                    return (
-                                      <>
-                                        <p>Nhập giá trị tranh chấp (nếu có) để tính phí dịch vụ. Phí sẽ được tính dựa trên loại vụ án và các thông số bổ sung.</p>
-                                        <Space direction="vertical" style={{ width: '100%' }} size="large">
-                                          <div className={styles.disputeValueInput}>
-                                            <span className={styles.inputLabel}>Giá trị tranh chấp (VNĐ):</span>
-                                            <InputNumber
-                                              className={styles.amountInput}
-                                              min={0}
-                                              step={1000000}
-                                              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                              parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                                              value={disputeValue}
-                                              onChange={value => setDisputeValue(value)}
-                                              size="large"
-                                            />
-                                          </div>
-
-                                          <Button
-                                            type="primary"
-                                            onClick={handleCalculateFee}
-                                            loading={calculatingFee}
-                                            size="large"
-                                            className={styles.primaryButton}
-                                          >
-                                            Tính phí
-                                          </Button>
-                                        </Space>
-                                      </>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className={styles.waitingForFee}>
-                                        <p className={styles.waitingText}>
-                                          Vui lòng đợi luật sư được phân công tính toán phí dịch vụ. Bạn sẽ có thể thanh toán sau khi phí được tính.
-                                        </p>
-                                      </div>
-                                    );
-                                  }
-                                } catch (err) {
-                                  console.error('Lỗi khi hiển thị phần tính phí:', err);
-                                  return (
-                                    <div className={styles.waitingForFee}>
-                                      <p className={styles.waitingText}>
-                                        Đã xảy ra lỗi khi tải phần tính phí. Vui lòng tải lại trang.
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                              })()}
-                            </Paragraph>
-                          </div>
-                        )}
+                        {renderPaymentStatus()}
                       </div>
                     )
                   },

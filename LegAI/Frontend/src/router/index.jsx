@@ -13,6 +13,8 @@ import LegalCaseList from '../pages/LegalCase/LegalCaseList';
 import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
 import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
 import LegalCaseEditor from '../pages/LegalCase/LegalCaseEditor';
+import Payment from '../pages/Payment/Payment';
+import PaymentGuide from '../pages/Payment/PaymentGuide';
 import authService from '../services/authService';
 import LegalDocDetail from '../pages/LegalDocs/LegalDocDetail';
 
@@ -175,6 +177,23 @@ const AppRouter = () => {
           <ProtectedRoute>
             <PageTransition custom="fade">
               <LegalCaseEditor />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route thanh toán */}
+        <Route path="/payment" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <Payment />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/payment/guide" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <PaymentGuide />
             </PageTransition>
           </ProtectedRoute>
         } />

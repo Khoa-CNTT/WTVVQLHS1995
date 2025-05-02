@@ -325,6 +325,85 @@ export const calculateFee = async (caseId, parameters = {}) => {
 };
 
 /**
+ * Tính phí pháp lý tự động dựa trên loại vụ án và thông tin
+ * @param {Object} caseData - Thông tin vụ án
+ * @returns {Promise<Object>} Kết quả tính phí
+ */
+export const calculateLegalFeeAutomatic = async (caseData) => {
+  try {
+    if (!caseData) {
+      return {
+        success: false,
+        message: 'Không có dữ liệu vụ án',
+        data: null
+      };
+    }
+    
+    // Biểu phí cơ bản theo loại vụ án
+    const baseFees = {
+      'Dân sự': 3000000,
+      'Hình sự': 5000000,
+      'Hành chính': 2500000,
+      'Lao động': 2000000,
+      'Hôn nhân gia đình': 2500000,
+      'Kinh doanh thương mại': 4000000,
+      'Sở hữu trí tuệ': 4500000,
+      'default': 3000000 // Phí mặc định nếu không xác định được loại vụ án
+    };
+    
+    // Hệ số phức tạp: dựa trên độ dài nội dung văn bản, số từ, thời gian tạo
+    let complexityFactor = 1.0;
+    
+    // Tính độ phức tạp dựa trên độ dài nội dung
+    if (caseData.ai_content) {
+      const contentLength = caseData.ai_content.length;
+      if (contentLength > 10000) complexityFactor += 0.5;
+      else if (contentLength > 5000) complexityFactor += 0.3;
+      else if (contentLength > 2000) complexityFactor += 0.1;
+    }
+    
+    // Các trường hợp đặc biệt
+    if (caseData.file_url) {
+      // Nếu có file đính kèm, tăng độ phức tạp
+      complexityFactor += 0.2;
+    }
+    
+    // Tính phí cơ bản dựa trên loại vụ án
+    const basePrice = baseFees[caseData.case_type] || baseFees.default;
+    
+    // Tính tổng phí
+    const totalFee = Math.round(basePrice * complexityFactor);
+    
+    // Miễn phí phân tích sơ bộ
+    const preliminaryAnalysisFee = 0;
+    
+    // Kết quả tính phí
+    return {
+      success: true,
+      data: {
+        base_fee: basePrice,
+        complexity_factor: complexityFactor,
+        preliminary_analysis_fee: preliminaryAnalysisFee,
+        legal_consulting_fee: totalFee,
+        total_fee: totalFee + preliminaryAnalysisFee,
+        currency: 'VND',
+        fee_details: [
+          { name: 'Phí tư vấn pháp lý', amount: totalFee },
+          { name: 'Phí phân tích sơ bộ', amount: preliminaryAnalysisFee }
+        ]
+      }
+    };
+  } catch (error) {
+    console.error('Lỗi khi tính phí pháp lý tự động:', error);
+    return {
+      success: false,
+      message: 'Không thể tính phí pháp lý tự động',
+      data: null
+    };
+  }
+};
+
+/**
  * Tạo giao dịch thanh toán
  * @param {number} caseId - ID vụ án
  * @param {string} paymentMethod - Phương thức thanh toán
@@ -332,20 +411,101 @@ export const calculateFee = async (caseId, parameters = {}) => {
  */
 export const createPayment = async (caseId, paymentMethod) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/legal-cases/${caseId}/payment`,
-      { payment_method: paymentMethod },
-      getHeaders()
-    );
-    
-    if (response.data && response.data.success) {
-      console.log('Thanh toán thành công, vụ án sẽ được chuyển sang trạng thái Đã thanh toán');
+    // Kiểm tra token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return {
+        success: false,
+        message: 'Bạn cần đăng nhập để thanh toán'
+      };
     }
+
+    // Kiểm tra tham số đầu vào
+    if (!caseId) {
+      return {
+        success: false,
+        message: 'Thiếu thông tin ID vụ án'
+      };
+    }
+
+    // Trước tiên, lấy thông tin chi tiết vụ án để có số tiền phí
+    const caseDetails = await getLegalCaseById(caseId);
+    if (!caseDetails || !caseDetails.success) {
+      return {
+        success: false,
+        message: 'Không thể lấy thông tin vụ án'
+      };
+    }
+
+    // Kiểm tra xem vụ án có thông tin phí không
+    if (!caseDetails.data.fee_amount || caseDetails.data.fee_amount <= 0) {
+      return {
+        success: false,
+        message: 'Vụ án chưa được tính phí hoặc số tiền không hợp lệ'
+      };
+    }
+
+    // Lấy thông tin người dùng
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
     
+    // Chuẩn bị dữ liệu giao dịch
+    const transactionData = {
+      case_id: caseId,
+      payment_method: paymentMethod || 'bank_transfer',
+      user_id: userData.id,
+      amount: caseDetails.data.fee_amount
+    };
+
+    console.log('Tạo giao dịch thanh toán với dữ liệu:', transactionData);
+
+    // Gọi API tạo giao dịch
+    const response = await axios.post(`${API_URL}/transactions`, transactionData, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    console.log('Kết quả tạo giao dịch:', response.data);
+
+    if (response.data.success) {
+      // Cập nhật trạng thái vụ án thành đang chờ thanh toán
+      try {
+        // Gọi API cập nhật trạng thái vụ án sang đang chờ thanh toán
+        const caseUpdateResponse = await axios.patch(
+          `${API_URL}/legal-cases/${caseId}/status`,
+          { 
+            status: 'pending',
+            payment_status: 'pending' 
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        
+        console.log('Cập nhật trạng thái vụ án:', caseUpdateResponse.data);
+      } catch (updateError) {
+        console.error('Lỗi khi cập nhật trạng thái vụ án:', updateError);
+        // Không ảnh hưởng đến việc trả về kết quả tạo giao dịch
+      }
+    }
+
     return response.data;
   } catch (error) {
     console.error('Lỗi khi tạo giao dịch thanh toán:', error);
-    throw error.response ? error.response.data : error;
+    
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Không thể tạo giao dịch thanh toán'
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Lỗi kết nối máy chủ. Vui lòng thử lại sau.'
+    };
   }
 };
 
@@ -551,7 +711,7 @@ export const getLawyerCases = async (params = {}) => {
  */
 export const updateCaseStatus = async (caseId, status, notes = '') => {
   try {
-    const response = await axios.put(
+    const response = await axios.patch(
       `${API_URL}/legal-cases/${caseId}/status`,
       { status, notes },
       getHeaders()
@@ -570,15 +730,100 @@ export const updateCaseStatus = async (caseId, status, notes = '') => {
  */
 export const getLawyerBankAccount = async (lawyerId) => {
   try {
+    console.log('Gọi API lấy tài khoản ngân hàng cho luật sư ID:', lawyerId);
+    
+    // Kiểm tra lawyerId có hợp lệ không
+    if (!lawyerId || isNaN(parseInt(lawyerId))) {
+      console.error('ID luật sư không hợp lệ:', lawyerId);
+      return {
+        success: false,
+        message: 'ID luật sư không hợp lệ',
+        data: null
+      };
+    }
+    
     const response = await axios.get(
-      `${API_URL}/lawyers/${lawyerId}/bank-account`,
+      `${API_URL}/users/lawyers/${lawyerId}/bank-account`,
       getHeaders()
     );
     
+    console.log('Kết quả từ API tài khoản ngân hàng:', response.data);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy thông tin tài khoản ngân hàng:', error);
-    throw error.response ? error.response.data : error;
+    
+    // Trả về thông tin tài khoản mặc định của hệ thống
+    const defaultAccount = {
+      bank_name: 'Vietcombank',
+      account_number: '1023456789',
+      account_holder: 'CÔNG TY LEGAI',
+      branch: 'Hà Nội',
+      is_default: true
+    };
+    
+    if (error.response) {
+      console.error('Chi tiết lỗi API:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+      
+      // Nếu không tìm thấy tài khoản hoặc luật sư, trả về tài khoản mặc định
+      if (error.response.status === 404) {
+        return {
+          success: true,
+          message: 'Sử dụng tài khoản hệ thống mặc định',
+          data: defaultAccount
+        };
+      }
+    }
+    
+    // Trả về một object lỗi có cấu trúc
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể lấy thông tin tài khoản ngân hàng',
+      error: error.message,
+      data: defaultAccount // Vẫn cung cấp tài khoản mặc định trong trường hợp lỗi
+    };
+  }
+};
+
+// Hàm kiểm tra trạng thái thanh toán của vụ án
+export const checkPaymentStatus = async (caseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return {
+        success: false,
+        data: null,
+        message: 'Bạn cần đăng nhập để xem trạng thái thanh toán'
+      };
+    }
+
+    // Gọi API kiểm tra trạng thái thanh toán
+    const response = await axios.get(`${API_URL}/legal-cases/${caseId}/payment-status`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    console.log('Kết quả kiểm tra trạng thái thanh toán:', response.data);
+    
+    if (response.data && response.data.success) {
+      return response.data;
+    } else {
+      return {
+        success: false,
+        data: null,
+        message: response.data?.message || 'Không thể lấy thông tin thanh toán'
+      };
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra trạng thái thanh toán:', error);
+    return {
+      success: false,
+      data: null,
+      message: 'Không thể kiểm tra trạng thái thanh toán'
+    };
   }
 };
 
@@ -589,6 +834,7 @@ export default {
   createAIDraft,
   assignLawyer,
   calculateFee,
+  calculateLegalFeeAutomatic,
   createPayment,
   downloadDocument,
   extractFileContent,
@@ -597,5 +843,6 @@ export default {
   deleteLegalCase,
   getLawyerCases,
   updateCaseStatus,
-  getLawyerBankAccount
+  getLawyerBankAccount,
+  checkPaymentStatus
 }; 

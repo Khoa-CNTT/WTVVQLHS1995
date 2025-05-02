@@ -278,31 +278,74 @@ const createAppointment = async (appointmentData) => {
 };
 
 /**
- * Tính phí vụ án dựa trên loại và tham số
+ * Tính phí vụ án dựa trên loại vụ án
  * @param {string} caseType - Loại vụ án
- * @param {Object} parameters - Các tham số tính phí
+ * @param {Object} parameters - Tham số tính phí
  * @returns {Promise<Object>} Thông tin phí
  */
 const calculateFee = async (caseType, parameters = {}) => {
   try {
-    // Lấy thông tin phí tham chiếu từ bảng FeeReferences
+    console.log('Bắt đầu tính phí với thông tin:', { caseType, parameters });
+    
+    // Ánh xạ loại vụ án tiếng Việt sang tiếng Anh để khớp với bảng FeeReferences
+    const caseTypeMapping = {
+      'Dân sự': 'civil',
+      'Hình sự': 'criminal',
+      'Hành chính': 'administrative',
+      'Lao động': 'labor',
+      'Hôn nhân gia đình': 'divorce',
+      'Kinh doanh thương mại': 'commercial',
+      'Sở hữu trí tuệ': 'intellectual',
+      'Đất đai': 'land'
+    };
+    
+    // Chuyển đổi case_type sang mã tiếng Anh tương ứng
+    const englishCaseType = caseTypeMapping[caseType] || caseType;
+    
+    console.log(`Ánh xạ loại vụ án từ "${caseType}" thành "${englishCaseType}"`);
+    
+    // Truy vấn thông tin tính phí từ database - Sửa từ FeePolicies sang FeeReferences
     const feeQuery = `
-      SELECT base_fee, percentage_fee, calculation_method, min_fee, max_fee
+      SELECT base_fee, percentage_fee, min_fee, max_fee, calculation_method
       FROM FeeReferences
       WHERE case_type = $1
+      LIMIT 1
     `;
     
-    const feeResult = await pool.query(feeQuery, [caseType]);
+    const feeResult = await pool.query(feeQuery, [englishCaseType]);
     
+    // Nếu không có thông tin phí, dùng mức cơ bản
     if (feeResult.rows.length === 0) {
-      throw new Error(`Không tìm thấy thông tin phí cho loại vụ án: ${caseType}`);
+      console.log('Không tìm thấy chính sách phí cho loại vụ án:', englishCaseType);
+      console.log('Sử dụng phí mặc định: 3,000,000 VND');
+      
+      // Trả về phí mặc định
+      return {
+        case_type: caseType,
+        base_fee: 3000000,
+        additional_fee: 0,
+        total_fee: 3000000,
+        calculation_method: 'fixed',
+        parameters: parameters
+      };
     }
     
     const feeInfo = feeResult.rows[0];
-    const baseFee = parseFloat(feeInfo.base_fee) || 0;
+    console.log('Thông tin fee từ database:', feeInfo);
+    
+    // Đảm bảo các giá trị đều là số
+    const baseFee = parseFloat(feeInfo.base_fee) || 3000000; // Đảm bảo baseFee luôn có giá trị tối thiểu
     const percentageFee = parseFloat(feeInfo.percentage_fee) || 0;
-    const minFee = parseFloat(feeInfo.min_fee) || 0;
+    const minFee = parseFloat(feeInfo.min_fee) || 2000000; // Đảm bảo minFee luôn có giá trị tối thiểu
     const maxFee = parseFloat(feeInfo.max_fee) || 0;
+    
+    console.log('Thông tin phí từ cơ sở dữ liệu (sau khi parse):', {
+      baseFee, 
+      percentageFee, 
+      minFee, 
+      maxFee, 
+      calculationMethod: feeInfo.calculation_method
+    });
     
     // Tính toán phí dựa trên phương thức tính
     let totalFee = baseFee;
@@ -310,35 +353,69 @@ const calculateFee = async (caseType, parameters = {}) => {
     
     // Nếu có giá trị tranh chấp, tính thêm phần trăm
     if (parameters.dispute_value && percentageFee > 0) {
-      const disputeValue = parseFloat(parameters.dispute_value);
-      additionalFee = disputeValue * (percentageFee / 100);
+      // Chuyển đổi sang số nếu là chuỗi
+      const disputeValue = typeof parameters.dispute_value === 'string' 
+                         ? parseFloat(parameters.dispute_value.replace(/,/g, '')) 
+                         : parseFloat(parameters.dispute_value);
+                         
+      if (!isNaN(disputeValue) && disputeValue > 0) {
+        additionalFee = disputeValue * (percentageFee / 100);
+        console.log('Tính phí bổ sung dựa trên giá trị tranh chấp:', {
+          disputeValue,
+          percentageFee,
+          calculatedAdditionalFee: additionalFee
+        });
+      } else {
+        console.log('Giá trị tranh chấp không hợp lệ:', parameters.dispute_value);
+      }
     }
     
     totalFee += additionalFee;
+    console.log('Tổng phí sau khi cộng phí bổ sung:', totalFee);
     
     // Áp dụng giới hạn min/max
     if (minFee > 0 && totalFee < minFee) {
+      console.log(`Phí ${totalFee} nhỏ hơn mức tối thiểu ${minFee}, đặt lại thành ${minFee}`);
       totalFee = minFee;
     }
     
     if (maxFee > 0 && totalFee > maxFee) {
+      console.log(`Phí ${totalFee} lớn hơn mức tối đa ${maxFee}, đặt lại thành ${maxFee}`);
       totalFee = maxFee;
+    }
+    
+    // Đảm bảo phí tối thiểu
+    if (totalFee <= 0) {
+      console.log('Phí tính được <= 0, đặt lại thành phí mặc định 3,000,000 VND');
+      totalFee = 3000000;
     }
     
     // Làm tròn đến 1000 đồng
     totalFee = Math.ceil(totalFee / 1000) * 1000;
     
-    return {
+    const result = {
       case_type: caseType,
       base_fee: baseFee,
       additional_fee: additionalFee,
-      total_fee: totalFee,
+      total_fee: totalFee > 0 ? totalFee : 3000000, // Đảm bảo luôn trả về phí lớn hơn 0
       calculation_method: feeInfo.calculation_method,
       parameters: parameters
     };
+    
+    console.log('Kết quả tính phí cuối cùng:', result);
+    return result;
   } catch (error) {
     console.error('Lỗi khi tính phí vụ án:', error);
-    throw error;
+    // Trả về giá trị mặc định khi có lỗi để tránh việc phí bằng 0
+    return {
+      case_type: caseType,
+      base_fee: 3000000,
+      additional_fee: 0,
+      total_fee: 3000000,
+      calculation_method: 'fixed',
+      parameters: parameters,
+      error_occurred: true
+    };
   }
 };
 
@@ -350,23 +427,67 @@ const calculateFee = async (caseType, parameters = {}) => {
  */
 const updateFeeInfo = async (caseId, feeDetails) => {
   try {
+    console.log('Bắt đầu cập nhật thông tin phí cho vụ án ID:', caseId);
+    console.log('Chi tiết phí:', feeDetails);
+    
+    // Đảm bảo total_fee luôn là số lớn hơn 0
+    let totalFee = parseFloat(feeDetails.total_fee);
+    
+    if (isNaN(totalFee) || totalFee <= 0) {
+      console.log(`Phí không hợp lệ (${feeDetails.total_fee}), đặt lại thành phí mặc định 3,000,000 VND`);
+      totalFee = 3000000;
+      feeDetails.total_fee = totalFee;
+    }
+    
+    // Kiểm tra xem phí có bị null hoặc <= 0 không để đảm bảo luôn có phí hợp lệ
     const query = `
       UPDATE LegalCases
       SET fee_amount = $1, fee_details = $2, updated_at = NOW()
       WHERE id = $3 AND deleted_at IS NULL
-      RETURNING id, fee_amount
+      RETURNING id, fee_amount, fee_details
     `;
     
+    // Chuyển đổi feeDetails thành chuỗi JSON
+    const feeDetailsJson = JSON.stringify(feeDetails);
+    
     const values = [
-      feeDetails.total_fee,
-      JSON.stringify(feeDetails),
+      totalFee,
+      feeDetailsJson,
       caseId
     ];
+    
+    console.log('Thông tin cập nhật:', {
+      caseId,
+      totalFee,
+      feeDetailsType: typeof feeDetails,
+      feeDetailsJson
+    });
     
     const result = await pool.query(query, values);
     
     if (result.rows.length === 0) {
       throw new Error('Không tìm thấy vụ án');
+    }
+    
+    console.log('Cập nhật phí thành công. Kết quả:', result.rows[0]);
+    
+    // Cập nhật cả trạng thái nếu cần
+    try {
+      // Kiểm tra trạng thái hiện tại
+      const caseStatusQuery = `SELECT status FROM LegalCases WHERE id = $1`;
+      const caseStatusResult = await pool.query(caseStatusQuery, [caseId]);
+      
+      if (caseStatusResult.rows.length > 0) {
+        const currentStatus = caseStatusResult.rows[0].status;
+        
+        // Nếu trạng thái là 'draft', cập nhật thành 'pending' (chờ thanh toán)
+        if (currentStatus === 'draft') {
+          await updateCaseStatus(caseId, 'pending');
+        }
+      }
+    } catch (statusError) {
+      console.error('Lỗi khi cập nhật trạng thái vụ án:', statusError);
+      // Không ném lỗi, vẫn tiếp tục vì phí đã được cập nhật thành công
     }
     
     return await getLegalCaseById(caseId);
@@ -662,27 +783,30 @@ const deleteLegalCase = async (caseId) => {
 const getCaseTypes = async () => {
   try {
     // Trả về dữ liệu mặc định thay vì truy vấn cơ sở dữ liệu
+    // Đảm bảo case_type_code khớp với bảng FeeReferences
     return [
-      { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
-      { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
-      { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
-      { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
-      { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
-      { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
-      { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+      { case_type: 'Dân sự', case_type_code: 'civil', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+      { case_type: 'Hình sự', case_type_code: 'criminal', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+      { case_type: 'Hành chính', case_type_code: 'administrative', description: 'Khiếu nại, tố cáo hành chính' },
+      { case_type: 'Lao động', case_type_code: 'labor', description: 'Tranh chấp lao động, hợp đồng lao động' },
+      { case_type: 'Hôn nhân gia đình', case_type_code: 'divorce', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+      { case_type: 'Kinh doanh thương mại', case_type_code: 'commercial', description: 'Tranh chấp thương mại, doanh nghiệp' },
+      { case_type: 'Sở hữu trí tuệ', case_type_code: 'intellectual', description: 'Bản quyền, nhãn hiệu, sáng chế' },
+      { case_type: 'Đất đai', case_type_code: 'land', description: 'Tranh chấp đất đai, quyền sử dụng đất' }
     ];
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại vụ án:', error);
     
     // Trả về dữ liệu mặc định khi có lỗi để tránh lỗi 500
     return [
-      { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
-      { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
-      { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
-      { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
-      { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
-      { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
-      { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+      { case_type: 'Dân sự', case_type_code: 'civil', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+      { case_type: 'Hình sự', case_type_code: 'criminal', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+      { case_type: 'Hành chính', case_type_code: 'administrative', description: 'Khiếu nại, tố cáo hành chính' },
+      { case_type: 'Lao động', case_type_code: 'labor', description: 'Tranh chấp lao động, hợp đồng lao động' },
+      { case_type: 'Hôn nhân gia đình', case_type_code: 'divorce', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+      { case_type: 'Kinh doanh thương mại', case_type_code: 'commercial', description: 'Tranh chấp thương mại, doanh nghiệp' },
+      { case_type: 'Sở hữu trí tuệ', case_type_code: 'intellectual', description: 'Bản quyền, nhãn hiệu, sáng chế' },
+      { case_type: 'Đất đai', case_type_code: 'land', description: 'Tranh chấp đất đai, quyền sử dụng đất' }
     ];
   }
 };

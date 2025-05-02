@@ -120,4 +120,7 @@ router.post('/bank-accounts', authenticateToken, userController.addBankAccount);
 router.put('/bank-accounts/:id', authenticateToken, userController.updateBankAccount);
 router.delete('/bank-accounts/:id', authenticateToken, userController.deleteBankAccount);
 
+// Route lấy tài khoản ngân hàng mặc định của luật sư theo ID
+router.get('/lawyers/:id/bank-account', userController.getLawyerBankAccount);
+
 module.exports = router;

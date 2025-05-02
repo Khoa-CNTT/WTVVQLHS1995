@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Form, Input, Button, Card, Steps, message, 
-  Typography, Select, InputNumber, Row, Col, Divider, Spin, List, Tag
+  Typography, Select, InputNumber, Row, Col, Divider, Spin, List, Tag, Tooltip, Alert
 } from 'antd';
-import { BankOutlined, CheckCircleOutlined, DollarOutlined, EditOutlined } from '@ant-design/icons';
+import { BankOutlined, CheckCircleOutlined, DollarOutlined, EditOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import transactionService from '../../../services/transactionService';
 import userService from '../../../services/userService';
 
@@ -194,7 +194,10 @@ const PaymentInfoSetup = ({ onComplete }) => {
               dataSource={existingBankAccounts}
               renderItem={account => (
                 <List.Item actions={[
-                  account.is_default && <Tag color="green">Mặc định</Tag>
+                  account.is_default && <Tag color="green">Mặc định</Tag>,
+                  <Tooltip title="Tài khoản này được sử dụng để nhận thanh toán qua mã QR">
+                    <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                  </Tooltip>
                 ]}>
                   <List.Item.Meta
                     avatar={<BankOutlined style={{ fontSize: '24px', color: '#1890ff' }} />}
@@ -205,13 +208,30 @@ const PaymentInfoSetup = ({ onComplete }) => {
               )}
             />
             
+            <Alert
+              message="Thông tin quan trọng"
+              description="Tài khoản ngân hàng này sẽ được sử dụng để tạo mã QR thanh toán. Khách hàng sẽ quét mã này để thanh toán trực tiếp vào tài khoản của bạn."
+              type="info"
+              showIcon
+              style={{ marginTop: 16, marginBottom: 16 }}
+            />
+            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
-              <Button 
-                onClick={() => setCurrentStep(1)}
-                type="primary"
-              >
-                Tiếp tục thiết lập phí dịch vụ
-              </Button>
+              {!setupComplete && existingBankAccounts.length > 0 ? (
+                <Button 
+                  onClick={() => setCurrentStep(1)}
+                  type="primary"
+                >
+                  Tiếp tục thiết lập phí dịch vụ
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setCurrentStep(2)}
+                  type="primary"
+                >
+                  Xem thông tin thanh toán
+                </Button>
+              )}
               
               <Button 
                 onClick={handleAddNewBankAccount}
@@ -250,22 +270,18 @@ const PaymentInfoSetup = ({ onComplete }) => {
               <Option value="Vietcombank">Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)</Option>
               <Option value="VietinBank">Ngân hàng TMCP Công thương Việt Nam (VietinBank)</Option>
               <Option value="BIDV">Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)</Option>
-              <Option value="Agribank">Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam (Agribank)</Option>
+              <Option value="Agribank">Ngân hàng Nông nghiệp và Phát triển Nông thôn (Agribank)</Option>
               <Option value="Techcombank">Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)</Option>
               <Option value="ACB">Ngân hàng TMCP Á Châu (ACB)</Option>
-              <Option value="VPBank">Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)</Option>
               <Option value="MBBank">Ngân hàng TMCP Quân đội (MBBank)</Option>
-              <Option value="Sacombank">Ngân hàng TMCP Sài Gòn Thương Tín (Sacombank)</Option>
+              <Option value="VPBank">Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)</Option>
               <Option value="TPBank">Ngân hàng TMCP Tiên Phong (TPBank)</Option>
-              <Option value="HDBank">Ngân hàng TMCP Phát triển TP.HCM (HDBank)</Option>
+              <Option value="Sacombank">Ngân hàng TMCP Sài Gòn Thương Tín (Sacombank)</Option>
               <Option value="OCB">Ngân hàng TMCP Phương Đông (OCB)</Option>
+              <Option value="HDBank">Ngân hàng TMCP Phát triển TP. Hồ Chí Minh (HDBank)</Option>
+              <Option value="VIB">Ngân hàng TMCP Quốc tế Việt Nam (VIB)</Option>
               <Option value="SHB">Ngân hàng TMCP Sài Gòn - Hà Nội (SHB)</Option>
               <Option value="SeABank">Ngân hàng TMCP Đông Nam Á (SeABank)</Option>
-              <Option value="VIB">Ngân hàng TMCP Quốc tế Việt Nam (VIB)</Option>
-              <Option value="MSB">Ngân hàng TMCP Hàng Hải Việt Nam (MSB)</Option>
-              <Option value="Eximbank">Ngân hàng TMCP Xuất Nhập khẩu Việt Nam (Eximbank)</Option>
-              <Option value="LienVietPostBank">Ngân hàng TMCP Bưu điện Liên Việt (LienVietPostBank)</Option>
-              <Option value="Other">Ngân hàng khác</Option>
             </Select>
           </Form.Item>
           

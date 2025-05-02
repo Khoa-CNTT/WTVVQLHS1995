@@ -105,7 +105,10 @@ router.get('/:id/download', protect, legalCaseController.downloadDocument);
 router.get('/case-types', legalCaseController.getCaseTypes);
 
 // Cập nhật trạng thái vụ án
-router.put('/:id/status', protect, authorize('lawyer', 'admin'), legalCaseController.updateCaseStatus);
+router.patch('/:id/status', protect, authorize('lawyer', 'admin'), legalCaseController.updateCaseStatus);
+
+// Route để kiểm tra trạng thái thanh toán của vụ án
+router.get('/:id/payment-status', protect, legalCaseController.getPaymentStatus);
 
 // Route để trích xuất nội dung từ file
 router.post(
@@ -114,8 +117,5 @@ router.post(
   extractFileUpload.single('file'),
   legalCaseController.extractFileContent
 );
-
-// Route lấy tài khoản ngân hàng mặc định của luật sư theo lawyer_id
-router.get('/lawyers/:id/bank-account', protect, legalCaseController.getLawyerBankAccount);
 
 module.exports = router; 
