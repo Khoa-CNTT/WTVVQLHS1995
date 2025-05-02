@@ -1,0 +1,485 @@
+.container {
+  padding: 120px 30px 60px;
+  max-width: 100%;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  background-color: #f9f9f9;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header {
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  color: #1e293b;
+  background: linear-gradient(90deg, #1e293b, #4a6cf7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0;
+}
+
+.backButton {
+  font-size: 16px;
+  color: #4a6cf7;
+  margin-bottom: 10px;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.currentDocumentCard {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.documentHeader {
+  margin-bottom: 20px;
+}
+
+.documentIcon {
+  color: #4a6cf7;
+  margin-right: 10px;
+}
+
+.documentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 15px;
+  color: #555;
+}
+
+.sectionIcon {
+  color: #4a6cf7;
+  margin-right: 10px;
+}
+
+.loadingContainer, .comparingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  text-align: center;
+  color: #666;
+}
+
+.errorAlert {
+  margin-bottom: 30px;
+}
+
+.infoAlert {
+  margin-bottom: 20px;
+}
+
+.compareOptions {
+  margin: 25px 0;
+  max-width: 600px;
+}
+
+/* Style cho dropdown lựa chọn văn bản */
+.selectOption {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.docTitle {
+  font-weight: bold;
+  margin-bottom: 6px;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.docInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.docDate {
+  color: #666;
+  font-size: 13px;
+}
+
+/* Fix cho dropdown để tránh bị đè text */
+:global(.ant-select-dropdown) {
+  max-width: 90vw !important;
+  width: auto !important;
+}
+
+:global(.ant-select-item-option-content) {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.documentSelect :global(.ant-select-selection-item) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compareButton {
+  width: 100%;
+  height: 40px;
+  font-size: 16px;
+  background: linear-gradient(90deg, #4a6cf7, #6366f1);
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(74, 108, 247, 0.2);
+  transition: all 0.3s ease;
+}
+
+.compareButton:hover, .compareButton:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(74, 108, 247, 0.3);
+  background: linear-gradient(90deg, #3a5be6, #5254e0);
+}
+
+.comparisonResult {
+  margin-top: 40px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.comparisonHeader {
+  margin-bottom: 25px;
+  border-radius: 10px;
+  background: linear-gradient(120deg, #f8f9ff, #eef2ff);
+  border: 1px solid #e5e9ff;
+}
+
+.documentsInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.documentInfo {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparisonArrow {
+  flex: 0 0 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.arrowIcon {
+  font-size: 24px;
+  color: #4a6cf7;
+}
+
+.summarySection {
+  margin-bottom: 30px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #eaedf7;
+}
+
+.summaryContent {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.statisticsSection {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 30px;
+}
+
+.statTag {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.statCount {
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: 5px;
+}
+
+.changesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.additionsSection, .deletionsSection, .modificationsSection {
+  margin-bottom: 20px;
+}
+
+/* Styling for changed content */
+.additionContent, .deletionContent, .changedContent {
+  padding: 12px 16px;
+  border-radius: 8px;
+  position: relative;
+  overflow: visible;
+  line-height: 1.6;
+  font-size: 14px;
+  text-align: justify;
+  word-break: break-word;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.additionContent {
+  background-color: rgba(230, 255, 236, 0.7);
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.additionContent p, .additionContent div, .additionContent ul, .additionContent ol {
+  margin-bottom: 10px;
+}
+
+.additionContent strong, .additionContent b {
+  font-weight: bold;
+  color: #0a571c;
+  background-color: rgba(46, 204, 113, 0.2);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.additionContent:hover::before {
+  content: 'Nội dung được thêm mới';
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background-color: rgba(40, 167, 69, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.deletionContent {
+  background-color: rgba(255, 235, 238, 0.7);
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+}
+
+.deletionContent p, .deletionContent div, .deletionContent ul, .deletionContent ol {
+  margin-bottom: 10px;
+}
+
+.deletionContent strong, .deletionContent b {
+  font-weight: bold;
+  color: #8b0000;
+  background-color: rgba(231, 76, 60, 0.2);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.deletionContent:hover::before {
+  content: 'Nội dung đã bị xóa';
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background-color: rgba(220, 53, 69, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.changedContent {
+  background-color: #fff3e0;
+  border-left: 3px solid #ff9800;
+  color: #663c00;
+}
+
+.changedContent p, .changedContent div, .changedContent ul, .changedContent ol {
+  margin-bottom: 10px;
+}
+
+/* Cải thiện hiệu ứng highlight cho các thẻ con */
+.additionContent span, .deletionContent span, .changedContent span,
+.additionContent a, .deletionContent a, .changedContent a,
+.additionContent em, .deletionContent em, .changedContent em {
+  display: inline-block;
+  padding: 0 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.additionContent span:hover, .additionContent a:hover, .additionContent em:hover {
+  background-color: rgba(46, 204, 113, 0.2);
+}
+
+.deletionContent span:hover, .deletionContent a:hover, .deletionContent em:hover {
+  background-color: rgba(231, 76, 60, 0.2);
+}
+
+.additionContent code, .deletionContent code, .changedContent code {
+  font-family: 'Courier New', monospace;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 90%;
+}
+
+.additionContent code {
+  background-color: rgba(46, 204, 113, 0.15);
+}
+
+.deletionContent code {
+  background-color: rgba(231, 76, 60, 0.15);
+}
+
+/* CSS để hiển thị màu sắc rõ ràng hơn trong bảng */
+.changesTable :global(.ant-table-tbody > tr > td) {
+  padding: 12px;
+  vertical-align: top;
+}
+
+.changesTable :global(.ant-table-thead > tr > th) {
+  padding: 12px;
+  font-weight: 600;
+}
+
+.changesTable :global(.ant-table-tbody > tr:hover > td) {
+  background-color: rgba(240, 240, 250, 0.7);
+}
+
+/* Thêm đường viền và shadow để tách biệt rõ ràng các phần thay đổi */
+.additionsSection, .deletionsSection, .modificationsSection {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+}
+
+/* Custom styling for tabs */
+.resultTabs :global(.ant-tabs-nav::before) {
+  border-bottom: 2px solid #eaedf7;
+}
+
+.resultTabs :global(.ant-tabs-tab) {
+  font-size: 16px;
+  padding: 10px 20px;
+}
+
+.resultTabs :global(.ant-tabs-tab-active) {
+  font-weight: 600;
+}
+
+.resultTabs :global(.ant-tabs-ink-bar) {
+  background: linear-gradient(90deg, #4a6cf7, #6366f1);
+  height: 3px;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 100px 20px 40px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .pageTitle {
+    font-size: 1.5rem;
+  }
+  
+  .documentsInfo {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .comparisonArrow {
+    display: none;
+  }
+  
+  .documentInfo {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 90px 15px 30px;
+  }
+  
+  .pageTitle {
+    font-size: 1.3rem;
+  }
+  
+  .statTag {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+  
+  .resultTabs :global(.ant-tabs-tab) {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+/* Hover effects for links and buttons */
+a:hover, button:hover {
+  transition: all 0.3s ease;
+}
+
+.emptyContainer {
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px dashed #ccc;
+  margin: 20px 0;
+}
+
+.emptyContainer p {
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.warning-message {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+  font-size: 14px;
+}
+
+.warning-message strong {
+  font-weight: bold;
+  color: #856404;
+} 

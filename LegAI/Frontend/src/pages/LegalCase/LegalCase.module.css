@@ -1089,3 +1089,74 @@
   border-radius: 6px;
   border-left: 4px solid #3d5a80;
 }
+
+/* Styles cho modal AI */
+.aiModalContent {
+  padding: 15px 0;
+  width: 100%;
+}
+
+.aiPromptArea {
+  margin-bottom: 15px;
+}
+
+.aiPromptArea textarea {
+  font-size: 16px;
+  padding: 10px;
+}
+
+.aiResultArea {
+  margin-top: 15px;
+}
+
+.aiResultContent {
+  margin-top: 15px;
+}
+
+.aiResultContent textarea {
+  font-size: 16px;
+  padding: 10px;
+  line-height: 1.6;
+}
+
+/* Sửa kích thước modal dropdown */
+:global(.ant-select-dropdown) {
+  width: auto !important;
+  max-width: 90vw !important;
+  min-width: 200px !important;
+}
+
+:global(.ant-modal-wrap) :global(.ant-select-dropdown) {
+  min-width: 300px !important;
+}
+
+/* Sửa dropdown trong modal AI */
+:global(.ant-modal) :global(.ant-select) {
+  width: 100%;
+}
+
+:global(.ant-modal) :global(.ant-select-selector) {
+  height: auto !important;
+  min-height: 40px !important;
+  padding: 5px 10px !important;
+}
+
+:global(.ant-modal) :global(.ant-select-selection-item) {
+  line-height: 30px !important;
+  padding: 0 6px !important;
+  font-size: 16px !important;
+}
+
+:global(.ant-modal) :global(.ant-select-dropdown) {
+  min-width: 300px !important;
+  max-width: 90vw !important;
+  width: auto !important;
+}
+
+:global(.ant-modal) :global(.ant-select-item) {
+  padding: 10px 12px !important;
+  font-size: 16px !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.4 !important;
+}

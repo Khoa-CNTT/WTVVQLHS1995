@@ -20,6 +20,7 @@ import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import SearchResults from '../pages/Search/SearchResults';
 import DocumentDetail from '../pages/Documents/DocumentDetail';
+import DocumentCompare from '../pages/Documents/DocumentCompare';
 import Documents from '../pages/Documents/Documents';
 import authService from '../services/authService';
 import Templates from '../pages/Templates/Templates';
@@ -116,6 +117,11 @@ const PublicRoutes = () => {
           </PageTransition>
         } />
         <Route path="/test" element={<TestApiConnection />} />
+        <Route path="/legal/documents/:id/compare" element={
+          <PageTransition custom="fade">
+            <DocumentCompare />
+          </PageTransition>
+        } />
         <Route path="*" element={<Home />} />
       </Routes>
     </AnimatePresence>
