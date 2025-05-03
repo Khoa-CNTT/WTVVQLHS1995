@@ -13,13 +13,16 @@ router.use(protect);
 // Tạo giao dịch mới
 router.post('/', transactionController.createTransaction);
 
-// Lấy chi tiết giao dịch
-router.get('/:id', transactionController.getTransactionById);
+// Route để lấy tất cả giao dịch (chỉ dành cho admin)
+router.get('/all', authorize('admin'), transactionController.getAllTransactions);
 
 // Routes dành cho luật sư
 router.get('/lawyer', authorize('lawyer'), transactionController.getLawyerTransactions);
 router.get('/lawyer/stats', authorize('lawyer'), transactionController.getLawyerFinancialStats);
 router.patch('/:id/confirm', authorize('lawyer'), transactionController.confirmPayment);
+
+// Lấy chi tiết giao dịch
+router.get('/:id', transactionController.getTransactionById);
 
 // Cập nhật trạng thái giao dịch
 router.patch('/:id/status', protect, transactionController.updateTransactionStatus);

@@ -19,6 +19,8 @@ import authService from '../services/authService';
 import LegalDocDetail from '../pages/LegalDocs/LegalDocDetail';
 import EditLegalDocument from '../pages/Dashboard/LegalDocuments/EditLegalDocument';
 import CreateLegalDocument from '../pages/Dashboard/LegalDocuments/CreateLegalDocument';
+import TransactionManager from '../pages/Dashboard/Transaction/TransactionManager';
+import LegalCaseManager from '../pages/Dashboard/LegalCase/LegalCaseManager';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
@@ -214,6 +216,24 @@ const AppRouter = () => {
           <ProtectedRoute roles={['admin']}>
             <PageTransition custom="fade">
               <CreateLegalDocument />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route quản lý giao dịch */}
+        <Route path="/dashboard/transactions" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <TransactionManager />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route quản lý vụ án */}
+        <Route path="/dashboard/legal-cases" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <LegalCaseManager />
             </PageTransition>
           </ProtectedRoute>
         } />

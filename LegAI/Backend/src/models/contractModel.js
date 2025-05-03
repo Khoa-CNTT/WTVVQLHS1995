@@ -180,9 +180,99 @@ const getContracts = async (userId, page = 1, limit = 10) => {
 };
 
 /**
+ * Lấy tất cả hợp đồng (chỉ dành cho admin)
+ * @param {number} page - Số trang (mặc định là 1)
+ * @param {number} limit - Số bản ghi trên một trang (mặc định là 10)
+ * @param {string} searchTerm - Từ khóa tìm kiếm (mặc định là rỗng)
+ * @param {number} userId - ID của người dùng cần lọc (mặc định là null)
+ * @returns {Promise<Object>} - Danh sách hợp đồng và tổng số bản ghi
+ */
+const getAllContracts = async (page = 1, limit = 10, searchTerm = '', userId = null) => {
+  try {
+    const offset = (page - 1) * limit;
+    
+    // Kiểm tra xem bảng có trường deleted_at không
+    let hasDeletedAtField = false;
+    try {
+      const checkFieldQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'contracts' AND column_name = 'deleted_at'
+      `;
+      const fieldResult = await pool.query(checkFieldQuery);
+      hasDeletedAtField = fieldResult.rows.length > 0;
+    } catch (error) {
+      console.log('Không thể kiểm tra trường deleted_at:', error);
+    }
+
+    // Tạo các tham số cho truy vấn
+    let params = [];
+    let whereConditions = [];
+    
+    // Điều kiện xóa mềm nếu có
+    if (hasDeletedAtField) {
+      whereConditions.push('deleted_at IS NULL');
+    }
+
+    // Điều kiện tìm kiếm nếu có
+    if (searchTerm) {
+      params.push(`%${searchTerm}%`);
+      whereConditions.push(`(title ILIKE $${params.length} OR contract_type ILIKE $${params.length} OR partner ILIKE $${params.length})`);
+    }
+
+    // Lọc theo userId nếu có
+    if (userId) {
+      params.push(userId);
+      whereConditions.push(`user_id = $${params.length}`);
+    }
+
+    // Kết hợp các điều kiện
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Truy vấn lấy danh sách hợp đồng với thông tin người dùng
+    const query = `
+      SELECT 
+        c.id, c.title, c.contract_type, c.partner, c.start_date, c.end_date, 
+        c.signature, c.file_url, c.created_at, c.updated_at, c.user_id,
+        u.full_name as user_name, u.email as user_email
+      FROM Contracts c
+      JOIN Users u ON c.user_id = u.id
+      ${whereClause}
+      ORDER BY c.created_at DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    
+    params.push(limit, offset);
+    const result = await pool.query(query, params);
+    
+    // Đếm tổng số bản ghi
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM Contracts c
+      JOIN Users u ON c.user_id = u.id
+      ${whereClause}
+    `;
+    
+    const countResult = await pool.query(countQuery, params.slice(0, params.length - 2));
+    const total = parseInt(countResult.rows[0].total);
+    
+    return {
+      contracts: result.rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả hợp đồng:', error);
+    throw error;
+  }
+};
+
+/**
  * Lấy chi tiết hợp đồng theo ID
  * @param {number} contractId - ID của hợp đồng
- * @param {number} userId - ID của người dùng (để kiểm tra quyền truy cập)
+ * @param {number} userId - ID của người dùng (để kiểm tra quyền truy cập, null nếu là admin)
  * @returns {Promise<Object>} - Chi tiết hợp đồng
  */
 const getContractById = async (contractId, userId) => {
@@ -203,15 +293,35 @@ const getContractById = async (contractId, userId) => {
       // Tiếp tục với giả định rằng trường không tồn tại
     }
     
-    const query = `
-      SELECT 
-        id, title, contract_type, partner, start_date, end_date, 
-        signature, file_url, created_at, updated_at
-      FROM Contracts 
-      WHERE id = $1 AND user_id = $2 ${hasDeletedAtField ? 'AND deleted_at IS NULL' : ''}
-    `;
+    // Nếu userId là null (admin), lấy thông tin đầy đủ cả người dùng
+    let query;
+    let params;
     
-    const result = await pool.query(query, [contractId, userId]);
+    if (userId === null) {
+      // Truy vấn cho admin 
+      query = `
+        SELECT 
+          c.id, c.title, c.contract_type, c.partner, c.start_date, c.end_date, 
+          c.signature, c.file_url, c.created_at, c.updated_at, c.user_id,
+          u.full_name as user_name, u.email as user_email
+        FROM Contracts c
+        JOIN Users u ON c.user_id = u.id
+        WHERE c.id = $1 ${hasDeletedAtField ? 'AND c.deleted_at IS NULL' : ''}
+      `;
+      params = [contractId];
+    } else {
+      // Truy vấn cho người dùng thường
+      query = `
+        SELECT 
+          id, title, contract_type, partner, start_date, end_date, 
+          signature, file_url, created_at, updated_at
+        FROM Contracts 
+        WHERE id = $1 AND user_id = $2 ${hasDeletedAtField ? 'AND deleted_at IS NULL' : ''}
+      `;
+      params = [contractId, userId];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       throw new Error('Không tìm thấy hợp đồng');
@@ -494,7 +604,10 @@ const deleteContract = async (contractId, userId) => {
 };
 
 module.exports = {
+  ensureDeletedAtField,
+  ensurePartnerField,
   getContracts,
+  getAllContracts,
   getContractById,
   createContract,
   updateContract,

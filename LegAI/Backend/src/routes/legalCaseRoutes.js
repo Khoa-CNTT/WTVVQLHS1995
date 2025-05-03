@@ -74,6 +74,12 @@ router.get('/', protect, legalCaseController.getLegalCases);
 // Lấy danh sách vụ án của luật sư hiện tại
 router.get('/lawyer-cases', protect, authorize('lawyer', 'admin'), legalCaseController.getLawyerCases);
 
+// Route để lấy tất cả vụ án (chỉ dành cho admin)
+router.get('/all', protect, authorize('admin'), legalCaseController.getAllLegalCases);
+
+// Lấy loại vụ án
+router.get('/case-types', legalCaseController.getCaseTypes);
+
 // Lấy chi tiết vụ án theo ID
 router.get('/:id', protect, legalCaseController.getLegalCaseById);
 
@@ -100,9 +106,6 @@ router.post('/payment-webhook', legalCaseController.paymentWebhook);
 
 // Tải xuống tài liệu vụ án
 router.get('/:id/download', protect, legalCaseController.downloadDocument);
-
-// Lấy loại vụ án
-router.get('/case-types', legalCaseController.getCaseTypes);
 
 // Cập nhật trạng thái vụ án
 router.patch('/:id/status', protect, authorize('lawyer', 'admin'), legalCaseController.updateCaseStatus);

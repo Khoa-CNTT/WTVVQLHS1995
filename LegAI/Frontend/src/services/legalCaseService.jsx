@@ -95,11 +95,45 @@ export const getLegalCases = async (params = {}) => {
  */
 export const getLegalCaseById = async (caseId) => {
   try {
-    const response = await axios.get(`${API_URL}/legal-cases/${caseId}`, getHeaders());
+    // Kiểm tra caseId có hợp lệ không
+    if (!caseId || caseId === 'undefined' || caseId === 'null' || caseId === 'all') {
+      console.error('ID vụ án không hợp lệ:', caseId);
+      return {
+        success: false,
+        message: 'ID vụ án không hợp lệ',
+        data: null
+      };
+    }
+    
+    // Kiểm tra ID là số nguyên hợp lệ
+    const caseIdInt = parseInt(caseId, 10);
+    if (isNaN(caseIdInt)) {
+      console.error('ID vụ án không phải là số hợp lệ:', caseId);
+      return {
+        success: false,
+        message: 'ID vụ án không hợp lệ',
+        data: null
+      };
+    }
+    
+    const response = await axios.get(`${API_URL}/legal-cases/${caseIdInt}`, getHeaders());
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy chi tiết vụ án:', error);
-    throw error.response ? error.response.data : error;
+    
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Không thể lấy thông tin vụ án',
+        data: null
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+      data: null
+    };
   }
 };
 
@@ -827,6 +861,61 @@ export const checkPaymentStatus = async (caseId) => {
   }
 };
 
+/**
+ * Lấy tất cả vụ án (dành cho admin)
+ * @param {Object} params - Tham số tìm kiếm và phân trang
+ * @returns {Promise<Object>} Danh sách tất cả vụ án
+ */
+export const getAllLegalCases = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    // Thêm các tham số tìm kiếm vào URL
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.case_type) queryParams.append('case_type', params.case_type);
+    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+    if (params.sort_order) queryParams.append('sort_order', params.sort_order);
+    
+    const url = `${API_URL}/legal-cases/all?${queryParams.toString()}`;
+    const response = await axios.get(url, getHeaders());
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả vụ án:', error);
+    
+    // Nếu không có phản hồi từ server
+    if (!error.response) {
+      return {
+        success: false,
+        message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+        data: [],
+        total: 0
+      };
+    }
+    
+    // Nếu là lỗi xác thực hoặc quyền truy cập
+    if (error.response.status === 401 || error.response.status === 403) {
+      return {
+        success: false,
+        message: 'Bạn không có quyền truy cập vào chức năng này',
+        data: [],
+        total: 0
+      };
+    }
+    
+    // Lỗi khác từ server
+    return {
+      success: false,
+      message: error.response.data?.message || 'Không thể lấy danh sách vụ án. Vui lòng thử lại sau.',
+      data: [],
+      total: 0
+    };
+  }
+};
+
 export default {
   createLegalCase,
   getLegalCases,
@@ -844,5 +933,6 @@ export default {
   getLawyerCases,
   updateCaseStatus,
   getLawyerBankAccount,
-  checkPaymentStatus
+  checkPaymentStatus,
+  getAllLegalCases
 }; 

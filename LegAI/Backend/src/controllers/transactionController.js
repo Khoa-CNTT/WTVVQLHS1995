@@ -49,7 +49,24 @@ exports.getTransactionById = asyncHandler(async (req, res) => {
     const transactionId = req.params.id;
     const userId = req.user.id;
     
-    const transaction = await transactionModel.getTransactionById(transactionId);
+    // Kiểm tra ID giao dịch trước khi gọi model
+    if (!transactionId || transactionId === 'undefined' || transactionId === 'null' || transactionId === 'all') {
+      return res.status(400).json({
+        success: false,
+        message: `ID giao dịch không hợp lệ: ${transactionId}`
+      });
+    }
+    
+    // Kiểm tra ID là số nguyên hợp lệ
+    const transactionIdInt = parseInt(transactionId, 10);
+    if (isNaN(transactionIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: `ID giao dịch không phải là số hợp lệ: ${transactionId}`
+      });
+    }
+    
+    const transaction = await transactionModel.getTransactionById(transactionIdInt);
     
     if (!transaction) {
       return res.status(404).json({
@@ -78,7 +95,7 @@ exports.getTransactionById = asyncHandler(async (req, res) => {
     console.error('Lỗi khi lấy chi tiết giao dịch:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy chi tiết giao dịch'
+      message: error.message || 'Lỗi khi lấy chi tiết giao dịch'
     });
   }
 });
@@ -562,6 +579,103 @@ exports.updateTransactionStatus = asyncHandler(async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi cập nhật trạng thái giao dịch'
+    });
+  }
+});
+
+/**
+ * @desc      Lấy tất cả giao dịch (dành cho Admin)
+ * @route     GET /api/transactions/all
+ * @access    Private/Admin
+ */
+exports.getAllTransactions = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, startDate, endDate, search, sort_by, sort_order } = req.query;
+    
+    // Tạo query
+    let query = `
+      SELECT t.id, t.user_id, t.lawyer_id, t.case_id, t.amount, t.status, t.payment_method,
+        t.payment_details, t.transaction_code, t.confirmation_date, t.confirmation_notes,
+        t.created_at, t.updated_at,
+        u.username AS user_name, u.full_name AS customer_name,
+        l.username AS lawyer_username, l.full_name AS lawyer_name,
+        c.title AS case_title
+      FROM Transactions t
+      LEFT JOIN Users u ON t.user_id = u.id
+      LEFT JOIN Users l ON t.lawyer_id = l.id
+      LEFT JOIN LegalCases c ON t.case_id = c.id
+      WHERE 1=1
+    `;
+    
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM Transactions t
+      LEFT JOIN Users u ON t.user_id = u.id
+      LEFT JOIN Users l ON t.lawyer_id = l.id
+      LEFT JOIN LegalCases c ON t.case_id = c.id
+      WHERE 1=1
+    `;
+    
+    // Xây dựng điều kiện tìm kiếm
+    const conditions = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (status) {
+      conditions.push(`t.status = $${paramIndex++}`);
+      values.push(status);
+    }
+    
+    if (startDate) {
+      conditions.push(`t.created_at >= $${paramIndex++}`);
+      values.push(startDate);
+    }
+    
+    if (endDate) {
+      conditions.push(`t.created_at <= $${paramIndex++}`);
+      values.push(endDate);
+    }
+    
+    if (search) {
+      conditions.push(`(
+        u.full_name ILIKE $${paramIndex} OR
+        l.full_name ILIKE $${paramIndex} OR
+        c.title ILIKE $${paramIndex} OR
+        t.transaction_code ILIKE $${paramIndex}
+      )`);
+      values.push(`%${search}%`);
+      paramIndex++;
+    }
+    
+    // Thêm điều kiện vào query
+    if (conditions.length > 0) {
+      query += ` AND ${conditions.join(' AND ')}`;
+      countQuery += ` AND ${conditions.join(' AND ')}`;
+    }
+    
+    // Thêm sắp xếp
+    query += ` ORDER BY t.${sort_by || 'created_at'} ${sort_order || 'DESC'}`;
+    
+    // Thêm phân trang
+    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    values.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+    
+    // Thực hiện truy vấn
+    const result = await pool.query(query, values);
+    const countResult = await pool.query(countQuery, values.slice(0, values.length - 2));
+    
+    return res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      total: parseInt(countResult.rows[0].total),
+      data: result.rows
+    });
+    
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả giao dịch:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy tất cả giao dịch'
     });
   }
 }); 

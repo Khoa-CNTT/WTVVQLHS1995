@@ -16,7 +16,10 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   const [showAIPrompt, setShowAIPrompt] = useState(false);
   const messagesEndRef = useRef(null);
   const chatSessionKey = useMemo(() => {
-    return `ai-chat-history-${chatType === 'ai' ? 'ai' : currentChatId}`;
+    // Tạo key nhất quán cho localStorage
+    const key = `legai-chat-history-${chatType === 'ai' ? 'ai' : currentChatId}`;
+    console.log('Tạo chat session key:', key);
+    return key;
   }, [chatType, currentChatId]);
   const [isTyping, setIsTyping] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -31,22 +34,43 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   const [canScrollDown, setCanScrollDown] = useState(false);
   const inputRef = useRef(null);
 
+  // Thêm hàm cleanHtmlContent để loại bỏ HTML từ tin nhắn
+  const cleanHtmlContent = (content) => {
+    if (!content) return '';
+    
+    // Xóa các thẻ HTML và thay thế các ký tự đặc biệt
+    return content
+      .replace(/<[^>]*>/g, '') // Xóa tất cả thẻ HTML
+      .replace(/&nbsp;/g, ' ') // Thay thẻ &nbsp; bằng khoảng trắng
+      .replace(/&amp;/g, '&') // Thay &amp; bằng &
+      .replace(/&lt;/g, '<') // Thay &lt; bằng <
+      .replace(/&gt;/g, '>'); // Thay &gt; bằng >
+  };
+
   // Khôi phục lịch sử trò chuyện AI từ localStorage nếu có
   useEffect(() => {
     if (chatType === 'ai' && isOpen) {
       try {
         const savedData = localStorage.getItem(chatSessionKey);
+        console.log('Đang tìm lịch sử chat từ localStorage với key:', chatSessionKey);
         if (savedData) {
+          console.log('Đã tìm thấy dữ liệu, kích thước:', savedData.length);
           // Định dạng mới chỉ lưu messages
           try {
             const parsedData = JSON.parse(savedData);
-            if (Array.isArray(parsedData)) {
+            console.log('Phân tích thành công JSON, số tin nhắn:', parsedData.length);
+            if (Array.isArray(parsedData) && parsedData.length > 0) {
+              console.log('Đặt lịch sử chat từ localStorage');
               setMessages(parsedData);
+            } else {
+              console.log('Dữ liệu phân tích được nhưng mảng rỗng hoặc không phải mảng');
             }
           } catch (error) {
             console.error('Lỗi khi phân tích dữ liệu chat đã lưu:', error);
             localStorage.removeItem(chatSessionKey);
           }
+        } else {
+          console.log('Không tìm thấy dữ liệu chat trong localStorage');
         }
       } catch (error) {
         console.error('Lỗi khi truy cập bộ nhớ cục bộ:', error);
@@ -54,11 +78,106 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     }
   }, [chatType, isOpen, chatSessionKey]);
   
+  // Tải lịch sử chat từ database khi không có lịch sử cục bộ
+  const loadChatHistoryFromDatabase = async () => {
+    // Chỉ thực hiện khi đã đăng nhập
+    if (!authService.isAuthenticated()) {
+      console.log('Người dùng chưa đăng nhập, không thể tải lịch sử chat từ database');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log('Bắt đầu tải lịch sử chat từ database...');
+      
+      // Gọi API lấy lịch sử chat của người dùng
+      const response = await aiService.getMyAIChatHistory();
+      
+      console.log('Kết quả lấy lịch sử chat từ database:', {
+        success: response.success,
+        records: response.data?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('Tìm thấy', response.data.length, 'bản ghi lịch sử chat trong database');
+        
+        // Chỉ tải lịch sử từ server nếu không có lịch sử cục bộ
+        if (messages.length <= 1) { // Chỉ có tin nhắn chào mừng
+          console.log('Không có lịch sử cục bộ, tải từ database...');
+          
+          // Chuyển đổi lịch sử từ server sang định dạng hiển thị
+          const formattedHistory = response.data.slice(0, 20).map(chat => [
+            {
+              type: 'user',
+              text: chat.question,
+              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isCurrentUser: true
+            },
+            {
+              type: 'system',
+              text: chat.answer,
+              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }
+          ]).flat();
+          
+          // Thêm tin nhắn chào mừng ở đầu
+          const welcomeMessage = {
+            type: 'system',
+            text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Dưới đây là lịch sử chat của bạn:',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          
+          // Cập nhật giao diện với lịch sử chat từ server
+          const newMessages = [welcomeMessage, ...formattedHistory];
+          setMessages(newMessages);
+          console.log('Đã cập nhật UI với', newMessages.length, 'tin nhắn từ database');
+          
+          // Lưu vào localStorage
+          try {
+            localStorage.setItem(chatSessionKey, JSON.stringify(newMessages));
+            console.log('Đã lưu lịch sử chat từ database vào localStorage');
+            
+            // Kiểm tra dữ liệu đã lưu
+            const savedData = localStorage.getItem(chatSessionKey);
+            if (savedData) {
+              const parsedData = JSON.parse(savedData);
+              console.log('Xác nhận dữ liệu đã lưu vào localStorage:', parsedData.length, 'tin nhắn');
+            }
+          } catch (storageError) {
+            console.error('Lỗi khi lưu lịch sử chat vào localStorage:', storageError);
+          }
+        } else {
+          console.log('Đã có lịch sử cục bộ', messages.length, 'tin nhắn, không tải từ database');
+        }
+      } else {
+        if (!response.success) {
+          console.warn('Không thể tải lịch sử chat từ database:', response.message || 'Lỗi không xác định');
+        } else {
+          console.log('Không tìm thấy lịch sử chat trong database');
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải lịch sử chat từ server:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Lưu lịch sử trò chuyện AI vào localStorage
   useEffect(() => {
     if (chatType === 'ai' && messages.length > 0) {
       try {
+        console.log('Tự động lưu', messages.length, 'tin nhắn vào localStorage');
         localStorage.setItem(chatSessionKey, JSON.stringify(messages));
+        
+        // Kiểm tra xem đã lưu thành công chưa
+        const savedData = localStorage.getItem(chatSessionKey);
+        if (savedData) {
+          console.log('Tự động lưu thành công, kích thước:', savedData.length);
+        } else {
+          console.error('Tự động lưu thất bại: không tìm thấy dữ liệu sau khi lưu');
+        }
       } catch (error) {
         console.error('Lỗi khi lưu lịch sử chat:', error);
       }
@@ -87,14 +206,25 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   // Kiểm tra phiên chat hiện có và lấy tin nhắn
   useEffect(() => {
     const checkExistingChat = async () => {
-      // Kiểm tra xem đã có lịch sử chat AI được khôi phục chưa
-      if (chatType === 'ai' && messages.length > 0) {
-        return; // Nếu đã có, không cần khởi tạo lại
-      }
-      
-      if (isOpen && chatType === 'human') {
-        setLoading(true);
-        try {
+      try {
+        if (isOpen && chatType === 'ai') {
+          // Tin nhắn chào mừng cho AI nếu không có tin nhắn
+          if (messages.length === 0) {
+            const welcomeMessage = {
+              type: 'system',
+              text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Bạn cần hỗ trợ gì?',
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            setMessages([welcomeMessage]);
+            
+            // Hiển thị hướng dẫn sử dụng AI
+            setShowAIPrompt(true);
+          }
+          
+          // Không tải lịch sử chat từ database khi mở chat AI
+          // Chỉ hiển thị lịch sử từ localStorage
+        } else if (isOpen && chatType === 'human') {
+          setLoading(true);
           // Nếu đã có chatId được truyền vào, sử dụng nó
           if (chatId) {
             setCurrentChatId(chatId);
@@ -125,36 +255,27 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
               setMessages([welcomeMessage]);
             }
           }
-        } catch (error) {
-          console.error('Lỗi khi kiểm tra phiên chat hiện có:', error);
-          // Hiển thị tin nhắn chào mừng mặc định nếu có lỗi
-          const welcomeMessage = {
-            type: 'system',
-            text: 'Xin chào! Đội ngũ tư vấn của LegAI đang sẵn sàng hỗ trợ bạn.',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-          setMessages([welcomeMessage]);
-        } finally {
           setLoading(false);
         }
-      } else if (isOpen && chatType === 'ai' && messages.length === 0) {
-        // Tin nhắn chào mừng cho AI
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra phiên chat hiện có:', error);
+        // Hiển thị tin nhắn chào mừng mặc định nếu có lỗi
         const welcomeMessage = {
           type: 'system',
-          text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Bạn cần hỗ trợ gì?',
+          text: chatType === 'ai' 
+            ? 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Bạn cần hỗ trợ gì?' 
+            : 'Xin chào! Đội ngũ tư vấn của LegAI đang sẵn sàng hỗ trợ bạn.',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages([welcomeMessage]);
-        
-        // Hiển thị hướng dẫn sử dụng AI
-        setShowAIPrompt(true);
+        setLoading(false);
       }
     };
 
     if (isOpen) {
       checkExistingChat();
     }
-  }, [isOpen, chatType, messages.length]);
+  }, [isOpen, chatType]);
 
   // Thiết lập polling để cập nhật tin nhắn
   useEffect(() => {
@@ -354,37 +475,97 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
         // Scroll xuống để hiển thị hiệu ứng typing
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         
-        // Gọi API Gemini với lịch sử chat
-        const aiResponseText = await aiService.sendMessageToAI(currentInput);
+        // Gọi API Gemini với lịch sử chat và tự động lưu vào database nếu có token
+        console.log('Gửi tin nhắn đến AI:', currentInput);
         
-        // Hiển thị hiệu ứng typing trước khi hiển thị tin nhắn
-        await simulateTyping(aiResponseText);
+        // Thêm kiểm tra token để cảnh báo trước
+        const hasToken = localStorage.getItem('user') !== null;
+        if (!hasToken) {
+          console.warn('Không tìm thấy token đăng nhập - tin nhắn sẽ không được lưu vào database!');
+        }
         
-        // Hiển thị phản hồi từ AI sau khi hoàn tất hiệu ứng typing
-        const aiResponseMsg = {
-          type: 'system',
-          text: aiResponseText,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        setMessages(prev => [...prev, aiResponseMsg]);
-        
-        // Lưu lịch sử chat vào localStorage
         try {
-          const historyToSave = [...messages, userMessage, aiResponseMsg];
-          localStorage.setItem(chatSessionKey, JSON.stringify(historyToSave.slice(-50))); // Giới hạn 50 tin nhắn
-        } catch (storageError) {
-          console.error('Lỗi khi lưu lịch sử chat:', storageError);
+          const aiResponseData = await aiService.sendMessageToAI(currentInput);
+          console.log('Phản hồi từ API AI:', aiResponseData);
+          
+          // Xác định response text từ dữ liệu nhận được
+          let responseText = '';
+          let dbStatus = false;
+          
+          if (typeof aiResponseData === 'string') {
+            // Trường hợp API trả về chuỗi trực tiếp
+            responseText = aiResponseData;
+          } else if (aiResponseData && typeof aiResponseData === 'object') {
+            // Trường hợp API trả về object có chứa text
+            responseText = aiResponseData.text || '';
+            
+            // Kiểm tra trạng thái lưu database
+            dbStatus = aiResponseData.saved_to_db === true;
+            console.log('Trạng thái lưu vào DB:', dbStatus ? 'Thành công' : 'Thất bại');
+            
+            if (!dbStatus && aiResponseData.db_error) {
+              console.error('Lỗi khi lưu vào DB:', aiResponseData.db_error);
+            }
+          }
+          
+          if (!responseText) {
+            throw new Error('Không nhận được phản hồi hợp lệ từ AI');
+          }
+          
+          // Hiển thị hiệu ứng typing
+          const cleanedResponse = cleanHtmlContent(responseText);
+          await simulateTyping(cleanedResponse);
+          
+          // Hiển thị phản hồi từ AI
+          const aiResponseMsg = {
+            type: 'system',
+            text: responseText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            saved_to_db: dbStatus
+          };
+          
+          // Cập nhật messages state
+          setMessages(prev => [...prev, aiResponseMsg]);
+          
+          // Lưu lịch sử chat vào localStorage
+          try {
+            const historyToSave = [...messages, userMessage, aiResponseMsg];
+            
+            // Đảm bảo chỉ lưu 50 tin nhắn gần nhất
+            const trimmedHistory = historyToSave.slice(-50);
+            localStorage.setItem(chatSessionKey, JSON.stringify(trimmedHistory));
+            
+            // Kiểm tra xem đã lưu thành công chưa
+            const savedData = localStorage.getItem(chatSessionKey);
+            if (savedData) {
+              console.log('Đã lưu thành công lịch sử chat vào localStorage, kích thước:', savedData.length);
+            } else {
+              console.error('Lưu lịch sử chat thất bại: không tìm thấy dữ liệu sau khi lưu');
+            }
+          } catch (storageError) {
+            console.error('Lỗi khi lưu lịch sử chat:', storageError);
+          }
+        } catch (aiError) {
+          console.error('Lỗi khi nhận phản hồi từ AI:', aiError);
+          toast.error('Không thể nhận phản hồi từ AI. Vui lòng thử lại sau.');
+          
+          // Hiển thị thông báo lỗi cho người dùng
+          const errorMsg = {
+            type: 'system',
+            text: 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn lúc này. Vui lòng thử lại sau.',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isError: true
+          };
+          setMessages(prev => [...prev, errorMsg]);
         }
         
         setLoading(false);
       } else {
-        // Gửi tin nhắn đến server nếu là chat với người hỗ trợ
+        // Phần code xử lý chat người hỗ trợ giữ nguyên
         if (currentChatId) {
           await chatService.sendMessage(currentChatId, currentInput);
-          await fetchMessages(currentChatId, true); // Force loading khi người dùng gửi tin
+          await fetchMessages(currentChatId, true);
         } else {
-          // Nếu chưa có chatId, tạo phiên chat mới
           const response = await chatService.createChat();
           if (response.status === 'success') {
             const newChatId = response.data.id;
@@ -421,12 +602,8 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
         toast.error('Không thể kết thúc phiên chat. Vui lòng thử lại sau.');
       }
     } else if (chatType === 'ai') {
-      // Xóa lịch sử chat AI khi đóng chat
-      try {
-        localStorage.removeItem(chatSessionKey);
-      } catch (error) {
-        console.error('Lỗi khi xóa lịch sử chat:', error);
-      }
+      // Không xóa lịch sử chat AI khi đóng chat
+      // Giữ lịch sử trong localStorage để có thể xem lại sau
     }
 
     onClose();
@@ -494,7 +671,7 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
       // Thêm tin nhắn chào mừng mới
       const welcomeMessage = {
         type: 'system',
-        text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Tôi có thể giúp trả lời các câu hỏi cơ bản về pháp luật hoặc hướng dẫn bạn đến các dịch vụ tư vấn chuyên sâu. Bạn cần hỗ trợ gì?',
+        text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Tôi có thể giúp trả lời các câu hỏi cơ bản về pháp luật hoặc hướng dẫn bạn đến các dịch vụ tư vấn chuyên sâu.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
@@ -503,18 +680,15 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
       // Đóng menu slide
       toggleSlideMenu();
       
-      // Sử dụng hàm clearChatHistory từ aiService
-      if (chatType === 'ai') {
-        aiService.clearChatHistory();
-      }
+      // Xóa lịch sử chat cục bộ thông qua aiService
+      aiService.clearChatHistory();
       
-      toast.success('Đã xóa lịch sử trò chuyện');
+      toast.success('Đã xóa lịch sử trò chuyện trên thiết bị này.');
     } else if (chatType === 'human' && currentChatId) {
-      // Thực hiện xóa phía backend nếu cần
-      // Tạm thời chỉ xóa phía frontend
+      // Chỉ xóa hiển thị phía client mà không xóa trên server
       setMessages([]);
       toggleSlideMenu();
-      toast.success('Đã xóa lịch sử trò chuyện');
+      toast.success('Đã xóa lịch sử hiển thị trò chuyện. Lịch sử vẫn được lưu trên hệ thống.');
     }
   };
 
@@ -643,13 +817,21 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                         </div>
                       )}
                       <p className={styles.messageText}>
-                        {/* Xử lý hiển thị tin nhắn có thể chứa xuống dòng */}
-                        {message.text.split('\n').map((line, i) => (
-                          <span key={i}>
-                            {line}
-                            {i < message.text.split('\n').length - 1 && <br />}
-                          </span>
-                        ))}
+                        {/* Xử lý hiển thị tin nhắn có thể chứa xuống dòng và loại bỏ HTML */}
+                        {chatType === 'ai' && !message.isCurrentUser
+                          ? cleanHtmlContent(message.text).split('\n').map((line, i) => (
+                              <span key={i}>
+                                {line}
+                                {i < cleanHtmlContent(message.text).split('\n').length - 1 && <br />}
+                              </span>
+                            ))
+                          : message.text.split('\n').map((line, i) => (
+                              <span key={i}>
+                                {line}
+                                {i < message.text.split('\n').length - 1 && <br />}
+                              </span>
+                            ))
+                        }
                       </p>
                       <div className={styles.messageTime}>{message.time}</div>
                     </div>
@@ -681,7 +863,7 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                         </div>
                       )}
                       <p className={styles.messageText}>
-                        {typingText}
+                        {cleanHtmlContent(typingText)}
                         <span className={styles.blinkingCursor}>|</span>
                       </p>
                       <div className={styles.messageTime}>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>

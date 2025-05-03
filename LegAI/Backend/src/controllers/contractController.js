@@ -27,6 +27,31 @@ const getContracts = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Lấy tất cả hợp đồng (chỉ dành cho admin)
+// @route   GET /api/contracts/all
+// @access  Private/Admin
+const getAllContracts = asyncHandler(async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const searchTerm = req.query.search || '';
+    const userId = req.query.userId || null;
+    
+    const result = await contractModel.getAllContracts(page, limit, searchTerm, userId);
+    
+    res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả hợp đồng:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy tất cả hợp đồng'
+    });
+  }
+});
+
 // @desc    Lấy chi tiết hợp đồng theo ID
 // @route   GET /api/contracts/:id
 // @access  Private
@@ -35,7 +60,10 @@ const getContractById = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const contractId = req.params.id;
     
-    const contract = await contractModel.getContractById(contractId, userId);
+    // Kiểm tra nếu là admin thì không cần kiểm tra quyền
+    const isAdmin = req.user.role === 'admin';
+    
+    const contract = await contractModel.getContractById(contractId, isAdmin ? null : userId);
     
     res.status(200).json({
       success: true,
@@ -343,6 +371,7 @@ const downloadContract = asyncHandler(async (req, res) => {
 
 module.exports = {
   getContracts,
+  getAllContracts,
   getContractById,
   createContract,
   updateContract,

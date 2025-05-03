@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const {
   getContracts,
+  getAllContracts,
   getContractById,
   createContract,
   updateContract,
@@ -46,6 +47,9 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // Giới hạn 10MB
   }
 });
+
+// Lấy tất cả hợp đồng (chỉ dành cho admin)
+router.get('/all', protect, authorize('admin'), getAllContracts);
 
 // Lấy danh sách hợp đồng của người dùng hiện tại
 router.get('/', protect, getContracts);

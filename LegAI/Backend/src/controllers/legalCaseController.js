@@ -217,8 +217,25 @@ exports.getLegalCaseById = asyncHandler(async (req, res) => {
     const caseId = req.params.id;
     const userId = req.user.id;
     
+    // Kiểm tra ID vụ án trước khi gọi model
+    if (!caseId || caseId === 'undefined' || caseId === 'null' || caseId === 'all') {
+      return res.status(400).json({
+        success: false,
+        message: `ID vụ án không hợp lệ: ${caseId}`
+      });
+    }
+    
+    // Kiểm tra ID là số nguyên hợp lệ
+    const caseIdInt = parseInt(caseId, 10);
+    if (isNaN(caseIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: `ID vụ án không phải là số hợp lệ: ${caseId}`
+      });
+    }
+    
     // Kiểm tra quyền truy cập vụ án
-    const legalCase = await legalCaseModel.getLegalCaseById(caseId);
+    const legalCase = await legalCaseModel.getLegalCaseById(caseIdInt);
     
     if (!legalCase) {
       return res.status(404).json({
@@ -274,7 +291,7 @@ exports.getLegalCaseById = asyncHandler(async (req, res) => {
     console.error('Lỗi khi lấy thông tin chi tiết vụ án:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy thông tin chi tiết vụ án'
+      message: error.message || 'Lỗi khi lấy thông tin chi tiết vụ án'
     });
   }
 });
@@ -1650,6 +1667,94 @@ exports.calculateLegalFeeAutomatic = asyncHandler(async (req, res) => {
       success: false,
       message: 'Lỗi khi tính phí vụ án tự động: ' + (error.message || 'Lỗi không xác định'),
       error: error.stack
+    });
+  }
+});
+
+/**
+ * @desc      Lấy tất cả vụ án (dành cho Admin)
+ * @route     GET /api/legal-cases/all
+ * @access    Private/Admin
+ */
+exports.getAllLegalCases = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, search, case_type, sort_by, sort_order } = req.query;
+    
+    // Tạo query
+    let query = `
+      SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
+        c.lawyer_id, c.fee_amount, c.created_at, c.updated_at,
+        u.username AS user_name, u.full_name AS customer_name,
+        l.username AS lawyer_username, l.full_name AS lawyer_name
+      FROM LegalCases c
+      LEFT JOIN Users u ON c.user_id = u.id
+      LEFT JOIN Users l ON c.lawyer_id = l.id
+      WHERE c.deleted_at IS NULL
+    `;
+    
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM LegalCases c
+      LEFT JOIN Users u ON c.user_id = u.id
+      LEFT JOIN Users l ON c.lawyer_id = l.id
+      WHERE c.deleted_at IS NULL
+    `;
+    
+    // Xây dựng điều kiện tìm kiếm
+    const conditions = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (status) {
+      conditions.push(`c.status = $${paramIndex++}`);
+      values.push(status);
+    }
+    
+    if (case_type) {
+      conditions.push(`c.case_type = $${paramIndex++}`);
+      values.push(case_type);
+    }
+    
+    if (search) {
+      conditions.push(`(
+        c.title ILIKE $${paramIndex} OR
+        c.description ILIKE $${paramIndex} OR
+        u.full_name ILIKE $${paramIndex} OR
+        l.full_name ILIKE $${paramIndex}
+      )`);
+      values.push(`%${search}%`);
+      paramIndex++;
+    }
+    
+    // Thêm điều kiện vào query
+    if (conditions.length > 0) {
+      query += ` AND ${conditions.join(' AND ')}`;
+      countQuery += ` AND ${conditions.join(' AND ')}`;
+    }
+    
+    // Thêm sắp xếp
+    query += ` ORDER BY c.${sort_by || 'created_at'} ${sort_order || 'DESC'}`;
+    
+    // Thêm phân trang
+    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    values.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+    
+    // Thực hiện truy vấn
+    const result = await pool.query(query, values);
+    const countResult = await pool.query(countQuery, values.slice(0, values.length - 2));
+    
+    return res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      total: parseInt(countResult.rows[0].total),
+      data: result.rows
+    });
+    
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả vụ án:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy tất cả vụ án'
     });
   }
 }); 

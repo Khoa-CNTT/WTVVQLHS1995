@@ -15,7 +15,9 @@ import {
   DollarOutlined, 
   LogoutOutlined,
   BellOutlined,
-  UserOutlined
+  UserOutlined,
+  FileOutlined,
+  FolderOpenOutlined
 } from '@ant-design/icons';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
@@ -27,9 +29,13 @@ import UserMenuPortal from './components/UserMenuPortal';
 import scraperService from '../../services/scraperService';
 import { toast } from 'react-toastify';
 import UpdateNotification from '../../components/Dashboard/UpdateNotification';
-import UserLegalDocsManager from './UserLegalDocs/UserLegalDocsManager';
+import UserLegalDocsManager from './ContractManager/UserLegalDocsManager';
 import NotificationMenuPortal from './components/NotificationMenuPortal';
 import ChatManager from '../LawyerDashboard/components/ChatManager';
+import ContractManagerAdmin from './ContractManager/ContractManagerAdmin';
+import AIConsultationManager from './AIConsultation/AIConsultationManager';
+import TransactionManager from './Transaction/TransactionManager';
+import LegalCaseManager from './LegalCase/LegalCaseManager';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -220,10 +226,11 @@ function Dashboard() {
     { key: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: <FileTextOutlined />, title: 'Quản lý tài liệu pháp luật' },
     { key: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: <FolderOutlined />, title: 'Quản lý hồ sơ pháp lý' },
     { key: 'vụ-án', label: 'Mẫu văn bản', icon: <BankOutlined />, title: 'Mẫu văn bản pháp luật' },
-    { key: 'hợp-đồng', label: 'Hợp Đồng', icon: <FileProtectOutlined />, title: 'Quản lý hợp đồng' },
+    { key: 'hợp-đồng', label: 'Hợp Đồng', icon: <FileProtectOutlined />, title: 'Quản lý hợp đồng', hidden: !(currentUser && currentUser.role === 'admin') },
     { key: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: <RobotOutlined />, title: 'Hệ thống tư vấn AI' },
     { key: 'tin-nhắn', label: 'Tin Nhắn', icon: <MessageOutlined />, title: 'Hệ thống tin nhắn' },
-    { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' }
+    { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' },
+    { key: 'quản-lý-vụ-án', label: 'Quản lý vụ án', icon: <BankOutlined />, title: 'Quản lý vụ án pháp lý', hidden: !(currentUser && currentUser.role === 'admin') },
   ];
 
   const userMenuItems = [
@@ -267,8 +274,12 @@ function Dashboard() {
               valueStyle={{ color: '#cf1322' }}
             />
             <Divider />
-            <Button type="default" block disabled>
-              Xem chi tiết
+            <Button 
+              type="primary" 
+              onClick={() => navigate('/dashboard/legal-cases')}
+              block
+            >
+              Quản lý vụ án
             </Button>
           </Card>
         </Col>
@@ -289,18 +300,18 @@ function Dashboard() {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable>
             <Statistic 
-              title="Hợp đồng" 
+              title="Giao dịch" 
               value={statCounts.contracts} 
-              suffix="bản"
+              suffix="giao dịch"
               valueStyle={{ color: '#722ed1' }}
             />
             <Divider />
             <Button 
               type="primary" 
-              onClick={handleScrapeContracts}
+              onClick={() => navigate('/dashboard/transactions')}
               block
             >
-              Cập nhật dữ liệu
+              Quản lý giao dịch
             </Button>
           </Card>
         </Col>
@@ -336,25 +347,47 @@ function Dashboard() {
   );
 
   const renderContent = () => {
-    const sections = {
-      'tổng-quan': renderDashboardOverview(),
-      'người-dùng': renderUserProfile(),
-      'tài-liệu-pháp-lý': renderLegalDocuments(),
-      'vụ-án': renderDocumentTemplates(),
-      'hồ-sơ-người-dùng': renderUserLegalDocs(),
-      'hợp-đồng': (
-        <div className="animate__animated animate__fadeIn">
-          <Title level={3}>Quản Lý Hợp Đồng</Title>
-          <Card>
-            <Empty description="Tính năng đang được phát triển" />
-          </Card>
-        </div>
-      ),
-      'tư-vấn-ai': <Title level={3}>Tư Vấn AI</Title>,
-      'tin-nhắn': <ChatManager />,
-      'giao-dịch': <Title level={3}>Giao Dịch</Title>
-    };
-    return sections[activeMenu] || <Card>Chọn một mục từ menu</Card>;
+    // Kiểm tra URL trực tiếp
+    const pathname = window.location.pathname;
+    
+    // Xử lý các URL đặc biệt
+    if (pathname === '/dashboard/contracts') {
+      return <ContractManagerAdmin />;
+    } else if (pathname === '/dashboard/user-legal-docs') {
+      return <UserLegalDocsManager />;
+    } else if (pathname === '/dashboard/transactions') {
+      return <TransactionManager />;
+    } else if (pathname === '/dashboard/legal-cases') {
+      return <LegalCaseManager />;
+    }
+    
+    // Các trường hợp khác dựa vào activeMenu
+    switch (activeMenu) {
+      case 'tổng-quan':
+        return renderDashboardOverview();
+      case 'người-dùng':
+        return renderUserProfile();
+      case 'tài-liệu-pháp-lý':
+        return renderLegalDocuments();
+      case 'vụ-án':
+        return renderDocumentTemplates();
+      case 'hồ-sơ-người-dùng':
+        return renderUserLegalDocs();
+      case 'hợp-đồng':
+        return <ContractManagerAdmin />;
+      case 'tư-vấn-ai':
+        return <AIConsultationManager />;
+      case 'tin-nhắn':
+        return <ChatManager />;
+      case 'giao-dịch':
+        return <TransactionManager />;
+      case 'quản-lý-vụ-án':
+        return <LegalCaseManager />;
+      case 'users':
+        return <UsersManagerPage />;
+      default:
+        return renderDashboardOverview();
+    }
   };
 
   const getCurrentDate = () => new Date().toLocaleDateString('vi-VN', {

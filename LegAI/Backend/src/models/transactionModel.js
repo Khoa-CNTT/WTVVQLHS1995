@@ -45,6 +45,14 @@ const createTransaction = async (transactionData) => {
  */
 const getTransactionById = async (transactionId) => {
   try {
+    // Kiểm tra và chuyển đổi ID sang số nguyên
+    const transactionIdInt = parseInt(transactionId, 10);
+    
+    // Nếu không thể chuyển đổi thành số nguyên hợp lệ
+    if (isNaN(transactionIdInt)) {
+      throw new Error(`ID giao dịch không hợp lệ: ${transactionId}`);
+    }
+    
     const query = `
       SELECT t.*, 
         u.full_name as user_name, u.email as user_email,
@@ -57,7 +65,7 @@ const getTransactionById = async (transactionId) => {
       WHERE t.id = $1
     `;
     
-    const result = await pool.query(query, [transactionId]);
+    const result = await pool.query(query, [transactionIdInt]);
     return result.rows[0];
   } catch (error) {
     console.error('Lỗi khi lấy thông tin giao dịch:', error);

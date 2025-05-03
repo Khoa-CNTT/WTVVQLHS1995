@@ -1,0 +1,55 @@
+.container {
+  padding: 20px 0;
+}
+
+.searchCard {
+  margin-bottom: 20px;
+}
+
+.contractTable {
+  overflow-x: auto;
+}
+
+.contractDetail {
+  padding: 10px;
+}
+
+.detailItem {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailItem > span:first-child {
+  margin-bottom: 4px;
+}
+
+.filePreview {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  background-color: #fafafa;
+}
+
+.fileIcon {
+  font-size: 48px;
+  color: #1890ff;
+  margin-right: 16px;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px 0;
+  }
+  
+  .detailItem {
+    margin-bottom: 8px;
+  }
+} 

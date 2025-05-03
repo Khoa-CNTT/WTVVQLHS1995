@@ -245,8 +245,8 @@ export const getLegalDocCategories = async () => {
         const response = await axiosInstance.get('/legal-docs/categories', getHeaders());
         return response.data;
     } catch (error) {
-        console.error('Lỗi khi lấy danh sách danh mục:', error);
-        throw error;
+        console.error('Lỗi khi lấy danh sách danh mục hồ sơ pháp lý:', error);
+        throw new Error('Không thể lấy danh sách danh mục: ' + (error.message || 'Đã có lỗi xảy ra'));
     }
 };
 
@@ -357,36 +357,116 @@ export const analyzeLegalDoc = async (docId) => {
 
 // [ADMIN] Lấy danh sách hồ sơ pháp lý của tất cả người dùng
 export const getAllUserLegalDocs = async (page = 1, limit = 10, options = {}) => {
-    console.warn('API getAllUserLegalDocs đã bị vô hiệu hóa do lỗi phía máy chủ (500 Internal Server Error)');
-    
-    // Trả về một đối tượng phản hồi trống để tránh lỗi
-    return {
-        status: 'success',
-        data: [],
-        pagination: {
-            totalPages: 1,
-            page: 1,
-            limit: limit,
-            total: 0
+    try {
+        const { category, search, getCategories, docId } = options;
+        
+        // Sử dụng đúng đường dẫn API backend
+        let url = `/legal-docs/admin/all?page=${page}&limit=${limit}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (getCategories) url += `&getCategories=true`;
+        if (docId) url += `&docId=${docId}`;
+        
+        console.log('Gọi API với URL:', url);
+        const response = await axiosInstance.get(url, getHeaders());
+        
+        // Kiểm tra và chuyển đổi kết quả để tương thích với giao diện
+        if (response.data && response.data.status === 'success') {
+            // Format kết quả từ API backend
+            return {
+                status: 'success',
+                data: response.data.data || [],
+                categories: getCategories ? await getCategoriesFromBackend() : undefined,
+                pagination: response.data.pagination || {
+                    page: page,
+                    limit: limit,
+                    total: 0,
+                    totalPages: 1
+                },
+                total: response.data.pagination?.total || 0
+            };
         }
-    };
+        
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách hồ sơ pháp lý của tất cả người dùng:', error);
+        
+        // Lỗi kết nối hoặc lỗi máy chủ
+        if (error.response && error.response.status === 500) {
+            console.error('Lỗi máy chủ (500):', error.response.data);
+        }
+        
+        // Gửi thông báo để ứng dụng có thể xử lý và hiển thị
+        throw new Error(`Không thể kết nối đến máy chủ để lấy danh sách hồ sơ pháp lý. ${error.message}`);
+    }
+};
+
+// Hàm trợ giúp để lấy danh mục từ backend
+const getCategoriesFromBackend = async () => {
+    try {
+        const response = await axiosInstance.get('/legal-docs/categories', getHeaders());
+        if (response.data && response.data.success) {
+            return response.data.categories || [];
+        }
+        return ['Hồ sơ cá nhân', 'Hợp đồng', 'Đơn kiện', 'Biên bản', 'Khác'];
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách danh mục:', error);
+        return ['Hồ sơ cá nhân', 'Hợp đồng', 'Đơn kiện', 'Biên bản', 'Khác'];
+    }
 };
 
 // [ADMIN] Lấy danh sách hồ sơ pháp lý của một người dùng cụ thể
 export const getUserLegalDocsById = async (userId, page = 1, limit = 10, options = {}) => {
-    console.warn(`API getUserLegalDocsById đã bị vô hiệu hóa do lỗi phía máy chủ (500 Internal Server Error) khi truy cập hồ sơ của người dùng ID ${userId}`);
-    
-    // Trả về một đối tượng phản hồi trống để tránh lỗi
-    return {
-        status: 'success',
-        data: [],
-        pagination: {
-            totalPages: 1,
-            page: 1,
-            limit: limit,
-            total: 0
+    try {
+        const { category, search, sortBy, sortOrder } = options;
+        
+        // Sử dụng đúng đường dẫn API backend
+        let url = `/legal-docs/admin/users/${userId}?page=${page}&limit=${limit}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (sortBy) url += `&sortBy=${sortBy}`;
+        if (sortOrder) url += `&sortOrder=${sortOrder}`;
+        
+        console.log('Gọi API với URL:', url);
+        const response = await axiosInstance.get(url, getHeaders());
+        
+        // Kiểm tra và chuyển đổi kết quả để tương thích với giao diện
+        if (response.data && response.data.status === 'success') {
+            return {
+                status: 'success',
+                user: response.data.user || {
+                    username: 'unknown',
+                    full_name: 'Người dùng không xác định',
+                    email: 'unknown@example.com'
+                },
+                data: response.data.data || [],
+                pagination: response.data.pagination || {
+                    page: page,
+                    limit: limit,
+                    total: 0,
+                    totalPages: 1
+                },
+                total: response.data.pagination?.total || 0
+            };
         }
-    };
+        
+        return response.data;
+    } catch (error) {
+        console.error(`Lỗi khi lấy danh sách hồ sơ pháp lý của người dùng ID ${userId}:`, error);
+        
+        if (error.response) {
+            if (error.response.status === 403) {
+                throw new Error('Bạn không có quyền truy cập vào tài nguyên này.');
+            } else if (error.response.status === 404) {
+                throw new Error('Không tìm thấy người dùng với ID này.');
+            } else if (error.response.status === 500) {
+                throw new Error('Lỗi máy chủ khi truy cập dữ liệu người dùng.');
+            }
+        }
+        
+        // Gửi thông báo để ứng dụng có thể xử lý và hiển thị
+        throw new Error(`Không thể kết nối đến máy chủ để lấy hồ sơ pháp lý của người dùng. ${error.message}`);
+    }
 };
 
 // Lấy nội dung file từ URL

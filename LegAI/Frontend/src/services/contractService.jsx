@@ -45,6 +45,42 @@ const getContracts = async (page = 1, limit = 10) => {
   }
 };
 
+// Lấy tất cả hợp đồng (dành cho admin)
+const getAllContracts = async (page = 1, limit = 10, searchTerm = '', userId = null) => {
+  try {
+    let url = `${API_URL}/contracts/all?page=${page}&limit=${limit}`;
+    
+    if (searchTerm) {
+      url += `&search=${encodeURIComponent(searchTerm)}`;
+    }
+    
+    if (userId) {
+      url += `&userId=${userId}`;
+    }
+    
+    const response = await axios.get(url, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả hợp đồng:', error);
+    
+    // Xử lý lỗi chi tiết hơn
+    if (error.response) {
+      console.error('Lỗi server:', error.response.status, error.response.data);
+      
+      if (error.response.status === 403) {
+        throw new Error('Bạn không có quyền truy cập chức năng này');
+      } else if (error.response.status === 500) {
+        throw new Error('Lỗi máy chủ. Vui lòng liên hệ quản trị viên.');
+      }
+    } else if (error.request) {
+      console.error('Không nhận được phản hồi từ server');
+      throw new Error('Không nhận được phản hồi từ máy chủ. Vui lòng thử lại sau.');
+    }
+    
+    throw error;
+  }
+};
+
 // Lấy chi tiết hợp đồng theo ID
 const getContractById = async (contractId) => {
   try {
@@ -306,6 +342,7 @@ const updateContractContent = async (contractId, content) => {
 
 export { 
   getContracts, 
+  getAllContracts,
   getContractById, 
   createContract, 
   updateContract, 

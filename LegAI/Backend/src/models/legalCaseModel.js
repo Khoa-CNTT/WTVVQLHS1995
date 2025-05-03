@@ -156,10 +156,18 @@ const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
 /**
  * Lấy chi tiết vụ án theo ID
  * @param {number} caseId - ID vụ án
- * @returns {Promise<Object>} Thông tin chi tiết vụ án
+ * @returns {Promise<Object>} Chi tiết vụ án
  */
 const getLegalCaseById = async (caseId) => {
   try {
+    // Kiểm tra và chuyển đổi ID sang số nguyên
+    const caseIdInt = parseInt(caseId, 10);
+    
+    // Nếu không thể chuyển đổi thành số nguyên hợp lệ
+    if (isNaN(caseIdInt)) {
+      throw new Error(`ID vụ án không hợp lệ: ${caseId}`);
+    }
+    
     const query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
         c.lawyer_id, c.fee_amount, c.fee_details, c.ai_content, c.is_ai_generated, 
@@ -183,7 +191,7 @@ const getLegalCaseById = async (caseId) => {
       WHERE c.id = $1 AND c.deleted_at IS NULL
     `;
     
-    const result = await pool.query(query, [caseId]);
+    const result = await pool.query(query, [caseIdInt]);
     
     if (result.rows.length === 0) {
       throw new Error('Không tìm thấy vụ án');

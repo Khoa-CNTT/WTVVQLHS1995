@@ -161,7 +161,7 @@ export const getLawyerFinancialStats = async (params = {}) => {
 export const getTransactionById = async (transactionId) => {
   try {
     // Kiểm tra transactionId có hợp lệ không
-    if (!transactionId || transactionId === 'undefined' || transactionId === 'null') {
+    if (!transactionId || transactionId === 'undefined' || transactionId === 'null' || transactionId === 'all') {
       console.error('ID giao dịch không hợp lệ:', transactionId);
       return {
         success: false,
@@ -170,8 +170,19 @@ export const getTransactionById = async (transactionId) => {
       };
     }
     
+    // Kiểm tra ID là số nguyên hợp lệ
+    const transactionIdInt = parseInt(transactionId, 10);
+    if (isNaN(transactionIdInt)) {
+      console.error('ID giao dịch không phải là số hợp lệ:', transactionId);
+      return {
+        success: false,
+        message: 'ID giao dịch không hợp lệ',
+        data: null
+      };
+    }
+    
     const response = await axios.get(
-      `${API_URL}/transactions/${transactionId}`,
+      `${API_URL}/transactions/${transactionIdInt}`,
       getHeaders()
     );
     
@@ -711,6 +722,68 @@ export const generateWalletQRData = (walletType, amount, content) => {
   return `${walletType}|${amount || 0}|${content || ''}|${timestamp}`;
 };
 
+/**
+ * Lấy tất cả giao dịch (dành cho admin)
+ * @param {Object} params - Tham số lọc và phân trang
+ * @returns {Promise<Object>} Danh sách tất cả giao dịch
+ */
+export const getAllTransactions = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    // Kiểm tra token
+    const token = getToken();
+    if (!token) {
+      console.error('Không tìm thấy token xác thực');
+      return {
+        success: false,
+        message: 'Vui lòng đăng nhập lại để tiếp tục',
+        data: {
+          transactions: [],
+          total: 0
+        }
+      };
+    }
+    
+    const url = `${API_URL}/transactions/all?${queryParams.toString()}`;
+    const response = await axios.get(url, getHeaders());
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả giao dịch:', error);
+    
+    if (error.response) {
+      // Xử lý lỗi từ server
+      if (error.response.status === 401 || error.response.status === 403) {
+        return {
+          success: false,
+          message: 'Bạn không có quyền truy cập vào chức năng này',
+          data: {
+            transactions: [],
+            total: 0
+          }
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: 'Không thể lấy danh sách giao dịch. Vui lòng thử lại sau.',
+      data: {
+        transactions: [],
+        total: 0
+      }
+    };
+  }
+};
+
 export default {
   getLawyerTransactions,
   getLawyerFinancialStats,
@@ -722,5 +795,6 @@ export default {
   addBankAccount,
   updateTransactionStatus,
   generateBankQRData,
-  generateWalletQRData
+  generateWalletQRData,
+  getAllTransactions
 }; 
