@@ -498,20 +498,46 @@ const LegalCaseDetail = () => {
         console.log('Vụ án đã có thông tin phí:', caseData.fee_amount);
       }
       
-      // Tạo giao dịch thanh toán
-      const paymentResponse = await legalCaseService.createPayment(id, 'bank_transfer');
+      // Tạo giao dịch thanh toán với trạng thái 'draft' để không thay đổi trạng thái vụ án
+      const paymentResponse = await legalCaseService.createPayment(id, 'bank_transfer', 'draft');
       
       if (paymentResponse && paymentResponse.success && paymentResponse.data && paymentResponse.data.transaction_id) {
         message.success('Tạo giao dịch thanh toán thành công');
         
-        // Làm mới dữ liệu vụ án để cập nhật trạng thái
-        const updatedCase = await legalCaseService.getLegalCaseById(id);
-        if (updatedCase && updatedCase.success) {
-          setCaseData(updatedCase.data);
-        }
+        // Đóng thông báo loading
+        message.destroy();
         
-        // Chuyển hướng đến trang thanh toán với ID giao dịch và số tiền
-        navigate(`/payment?transaction_id=${paymentResponse.data.transaction_id}&amount=${paymentResponse.data.amount}`);
+        // Lưu ID giao dịch để sử dụng sau này
+        const transactionId = paymentResponse.data.transaction_id;
+        const amount = paymentResponse.data.amount;
+        
+        // Hiển thị modal xác nhận trước khi chuyển hướng
+        Modal.confirm({
+          title: 'Xác nhận thanh toán',
+          content: 'Bạn có muốn chuyển đến trang thanh toán ngay bây giờ không?',
+          okText: 'Đi đến trang thanh toán',
+          cancelText: 'Để sau',
+          onOk: async () => {
+            try {
+              // Khi người dùng nhấn xác nhận, cập nhật trạng thái giao dịch thành 'pending'
+              await transactionService.updateTransactionStatus(transactionId, 'pending');
+              
+              // Cập nhật trạng thái vụ án
+              await legalCaseService.updateCaseStatus(id, 'pending');
+              
+              // Sau đó mới chuyển hướng đến trang thanh toán
+              navigate(`/payment?transaction_id=${transactionId}&amount=${amount}`);
+            } catch (error) {
+              console.error('Lỗi khi cập nhật trạng thái giao dịch:', error);
+              message.error('Có lỗi xảy ra khi xử lý. Vui lòng thử lại sau.');
+            }
+          },
+          onCancel: async () => {
+            // Làm mới dữ liệu vụ án mà không thay đổi trạng thái
+            await fetchCaseDetails();
+            message.info('Bạn có thể thanh toán sau trong tab Phí và thanh toán.');
+          }
+        });
       } else {
         // Xử lý trường hợp không nhận được ID giao dịch
         console.error('Không nhận được ID giao dịch hợp lệ:', paymentResponse);
@@ -794,9 +820,16 @@ const LegalCaseDetail = () => {
                 showIcon
                 action={
                   !isLawyerRole && (
-                    <Button type="link" onClick={refreshPaymentStatus}>
-                      Kiểm tra trạng thái
-                    </Button>
+                    <Space>
+                      <Button type="link" onClick={refreshPaymentStatus}>
+                        Kiểm tra trạng thái
+                      </Button>
+                      {isOwner && (
+                        <Button type="primary" onClick={handlePayment} loading={loadingPayment}>
+                          Thanh toán lại
+                        </Button>
+                      )}
+                    </Space>
                   )
                 }
               />

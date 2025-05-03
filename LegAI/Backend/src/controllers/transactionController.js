@@ -16,6 +16,13 @@ exports.getLawyerTransactions = asyncHandler(async (req, res) => {
     const lawyerId = req.user.id;
     const { page, limit, status, startDate, endDate } = req.query;
     
+    if (!lawyerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID luật sư không hợp lệ'
+      });
+    }
+    
     const options = {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 10,
@@ -24,17 +31,48 @@ exports.getLawyerTransactions = asyncHandler(async (req, res) => {
       endDate
     };
     
-    const transactions = await transactionModel.getTransactionsByLawyer(lawyerId, options);
-    
-    return res.status(200).json({
-      success: true,
-      data: transactions
-    });
+    try {
+      const transactions = await transactionModel.getTransactionsByLawyer(lawyerId, options);
+      
+      // Đảm bảo cấu trúc dữ liệu trả về luôn đúng định dạng
+      const responseData = {
+        transactions: Array.isArray(transactions.transactions) ? transactions.transactions : [],
+        total: typeof transactions.total === 'number' ? transactions.total : 0,
+        page: options.page,
+        limit: options.limit,
+        totalPages: typeof transactions.totalPages === 'number' ? transactions.totalPages : 0
+      };
+      
+      return res.status(200).json({
+        success: true,
+        data: responseData
+      });
+    } catch (modelError) {
+      console.error('Lỗi từ transactionModel.getTransactionsByLawyer:', modelError);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy dữ liệu từ cơ sở dữ liệu',
+        data: {
+          transactions: [],
+          total: 0,
+          page: options.page,
+          limit: options.limit,
+          totalPages: 0
+        }
+      });
+    }
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách giao dịch:', error);
+    console.error('Lỗi tổng thể khi lấy danh sách giao dịch:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy danh sách giao dịch'
+      message: 'Lỗi khi lấy danh sách giao dịch',
+      data: {
+        transactions: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      }
     });
   }
 });

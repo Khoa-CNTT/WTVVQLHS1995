@@ -159,7 +159,9 @@ const getTransactionsByLawyer = async (lawyerId, options = {}) => {
     // Đếm tổng số giao dịch
     const countQuery = query.replace('t.*, u.full_name as user_name, u.email as user_email, c.title as case_title', 'COUNT(*) as total');
     const countResult = await pool.query(countQuery, values);
-    const total = parseInt(countResult.rows[0].total);
+    
+    // Xử lý trường hợp không có kết quả trả về
+    const total = countResult.rows && countResult.rows[0] ? parseInt(countResult.rows[0].total) : 0;
     
     // Thêm phân trang
     query += ` ORDER BY t.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;

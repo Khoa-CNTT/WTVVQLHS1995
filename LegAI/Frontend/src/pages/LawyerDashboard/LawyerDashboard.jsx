@@ -291,16 +291,7 @@ const LawyerDashboard = () => {
 
   const renderTransactions = () => (
     <div className="animate__animated animate__fadeIn">
-      {currentUser.payment_setup_complete ? (
-        <TransactionsManager />
-      ) : (
-        <PaymentInfoSetup onComplete={() => {
-          // Refresh user data sau khi hoàn thành thiết lập
-          userService.refreshUserData().then(userData => {
-            setCurrentUser(userData);
-          });
-        }} />
-      )}
+      <TransactionsManager />
     </div>
   );
 

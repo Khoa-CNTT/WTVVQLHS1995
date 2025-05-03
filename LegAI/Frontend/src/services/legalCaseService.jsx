@@ -441,9 +441,10 @@ export const calculateLegalFeeAutomatic = async (caseData) => {
  * Tạo giao dịch thanh toán
  * @param {number} caseId - ID vụ án
  * @param {string} paymentMethod - Phương thức thanh toán
+ * @param {string} initialStatus - Trạng thái ban đầu của giao dịch ('pending' hoặc 'draft')
  * @returns {Promise<Object>} Kết quả tạo giao dịch
  */
-export const createPayment = async (caseId, paymentMethod) => {
+export const createPayment = async (caseId, paymentMethod, initialStatus = 'pending') => {
   try {
     // Kiểm tra token
     const token = localStorage.getItem('token');
@@ -487,7 +488,8 @@ export const createPayment = async (caseId, paymentMethod) => {
       case_id: caseId,
       payment_method: paymentMethod || 'bank_transfer',
       user_id: userData.id,
-      amount: caseDetails.data.fee_amount
+      amount: caseDetails.data.fee_amount,
+      status: initialStatus
     };
 
     console.log('Tạo giao dịch thanh toán với dữ liệu:', transactionData);
@@ -501,29 +503,9 @@ export const createPayment = async (caseId, paymentMethod) => {
 
     console.log('Kết quả tạo giao dịch:', response.data);
 
-    if (response.data.success) {
-      // Cập nhật trạng thái vụ án thành đang chờ thanh toán
-      try {
-        // Gọi API cập nhật trạng thái vụ án sang đang chờ thanh toán
-        const caseUpdateResponse = await axios.patch(
-          `${API_URL}/legal-cases/${caseId}/status`,
-          { 
-            status: 'pending',
-            payment_status: 'pending' 
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-        
-        console.log('Cập nhật trạng thái vụ án:', caseUpdateResponse.data);
-      } catch (updateError) {
-        console.error('Lỗi khi cập nhật trạng thái vụ án:', updateError);
-        // Không ảnh hưởng đến việc trả về kết quả tạo giao dịch
-      }
-    }
+    // Chỉ cập nhật trạng thái vụ án khi không phải ở chế độ draft và người dùng xác nhận
+    // Đã di chuyển phần cập nhật trạng thái vụ án sang bước xác nhận thanh toán
+    // Do đó, không cần kiểm tra initialStatus ở đây nữa
 
     return response.data;
   } catch (error) {

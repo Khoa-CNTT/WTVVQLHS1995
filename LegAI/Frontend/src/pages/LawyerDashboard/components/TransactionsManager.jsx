@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Table, Card, Typography, Tag, Button, Space, Row, 
   Col, Statistic, DatePicker, Select, Modal, Form, 
-  Input, notification, Tooltip, Badge, Tabs, Alert, Divider, Checkbox, Empty
+  Input, notification, Tooltip, Badge, Tabs, Alert, Divider, Checkbox, Empty, Spin
 } from 'antd';
 import { 
   CheckCircleOutlined, CloseCircleOutlined, 
@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import transactionService from '../../../services/transactionService';
 import legalCaseService from '../../../services/legalCaseService';
+import PaymentInfoSetup from './PaymentInfoSetup';
 import moment from 'moment';
 import styles from './TransactionsManager.module.css';
 import { useNavigate } from 'react-router-dom';
@@ -625,6 +626,188 @@ const TransactionsManager = () => {
     }
   };
 
+  const renderBankAccountsTab = () => {
+    if (loadingBankAccounts) {
+      return (
+        <div className={styles.loadingState}>
+          <Spin tip="Đang tải dữ liệu tài khoản ngân hàng..." />
+        </div>
+      );
+    }
+
+    if (bankAccounts.length === 0) {
+      return (
+        <PaymentInfoSetup onComplete={() => {
+          fetchBankAccounts().then(() => {
+            notification.success({
+              message: 'Thiết lập thành công',
+              description: 'Tài khoản ngân hàng đã được thiết lập. Bạn có thể xác nhận thanh toán ngay bây giờ.',
+              duration: 5
+            });
+            setActiveTab('transactions');
+          });
+        }} />
+      );
+    }
+
+    return (
+      <div className={styles.bankAccountsSection}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text>
+                Bạn đã thiết lập {bankAccounts.length} tài khoản ngân hàng để nhận thanh toán.
+              </Text>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openAddBankAccountModal}
+              >
+                Thêm tài khoản ngân hàng
+              </Button>
+            </div>
+          </Col>
+          
+          {bankAccounts.map(account => (
+            <Col xs={24} sm={12} md={8} key={account.id}>
+              <Card className={styles.bankAccountCard}>
+                <div className={styles.bankAccountHeader}>
+                  <BankOutlined className={styles.bankIcon} />
+                  {account.is_default && (
+                    <Badge
+                      count="Mặc định"
+                      className={styles.defaultBadge}
+                      style={{ backgroundColor: '#108ee9' }}
+                    />
+                  )}
+                </div>
+                <Paragraph>
+                  <Text strong>Ngân hàng:</Text> {account.bank_name}
+                </Paragraph>
+                <Paragraph>
+                  <Text strong>Số tài khoản:</Text> {account.account_number}
+                </Paragraph>
+                <Paragraph>
+                  <Text strong>Chủ tài khoản:</Text> {account.account_holder}
+                </Paragraph>
+                {account.branch && (
+                  <Paragraph>
+                    <Text strong>Chi nhánh:</Text> {account.branch}
+                  </Paragraph>
+                )}
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
+    );
+  };
+
+  const renderTransactionsTab = () => {
+    // Nếu không có tài khoản ngân hàng, hiển thị giao diện thiết lập
+    if (!hasBankAccounts) {
+      return (
+        <PaymentInfoSetup onComplete={() => {
+          fetchBankAccounts().then(() => {
+            notification.success({
+              message: 'Thiết lập thành công',
+              description: 'Tài khoản ngân hàng đã được thiết lập. Bạn có thể xác nhận thanh toán ngay bây giờ.',
+              duration: 5
+            });
+            fetchTransactions();
+          });
+        }} />
+      );
+    }
+
+    return (
+      <>
+        <div className={styles.filterSection}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12} md={6}>
+              <Input.Search
+                placeholder="Tìm theo khách hàng, vụ án"
+                value={filters.searchText}
+                onChange={handleSearchChange}
+                onSearch={value => {
+                  setFilters({ ...filters, searchText: value });
+                  setPagination({ ...pagination, current: 1 });
+                }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select
+                placeholder="Trạng thái"
+                style={{ width: '100%' }}
+                value={filters.status}
+                onChange={handleStatusFilterChange}
+                allowClear
+              >
+                <Option value="pending">Đang chờ</Option>
+                <Option value="processing">Đang xử lý</Option>
+                <Option value="completed">Hoàn thành</Option>
+                <Option value="cancelled">Đã hủy</Option>
+              </Select>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <RangePicker
+                style={{ width: '100%' }}
+                value={filters.dateRange}
+                onChange={handleDateRangeChange}
+                format="DD/MM/YYYY"
+              />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Button
+                type="primary"
+                onClick={handleRefresh}
+                style={{ width: '100%' }}
+              >
+                Làm mới
+              </Button>
+            </Col>
+          </Row>
+        </div>
+        
+        {!loading && transactions.length === 0 && (
+          <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <Empty 
+              description={
+                <span>
+                  Không tìm thấy giao dịch nào
+                  <br />
+                  <Button 
+                    type="link" 
+                    onClick={handleRefresh}
+                    style={{ padding: 0 }}
+                  >
+                    Bấm vào đây để tải lại
+                  </Button>
+                </span>
+              } 
+            />
+          </div>
+        )}
+        
+        <Table
+          dataSource={transactions}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: total => `Tổng cộng ${total} giao dịch`
+          }}
+          onChange={handleTableChange}
+          bordered
+        />
+      </>
+    );
+  };
+
   return (
     <div className={styles.transactionsManager}>
       <div className={styles.header}>
@@ -726,198 +909,11 @@ const TransactionsManager = () => {
         </TabPane>
         
         <TabPane tab="Danh sách giao dịch" key="transactions">
-          <div className={styles.filterSection}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} md={6}>
-                <Input.Search
-                  placeholder="Tìm theo khách hàng, vụ án"
-                  value={filters.searchText}
-                  onChange={handleSearchChange}
-                  onSearch={value => {
-                    setFilters({ ...filters, searchText: value });
-                    setPagination({ ...pagination, current: 1 });
-                  }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Select
-                  placeholder="Trạng thái"
-                  style={{ width: '100%' }}
-                  value={filters.status}
-                  onChange={handleStatusFilterChange}
-                  allowClear
-                >
-                  <Option value="pending">Đang chờ</Option>
-                  <Option value="processing">Đang xử lý</Option>
-                  <Option value="completed">Hoàn thành</Option>
-                  <Option value="cancelled">Đã hủy</Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <RangePicker
-                  style={{ width: '100%' }}
-                  value={filters.dateRange}
-                  onChange={handleDateRangeChange}
-                  format="DD/MM/YYYY"
-                />
-              </Col>
-              <Col xs={24} sm={12} md={4}>
-                <Button
-                  type="primary"
-                  onClick={handleRefresh}
-                  style={{ width: '100%' }}
-                >
-                  Làm mới
-                </Button>
-              </Col>
-            </Row>
-          </div>
-          
-          {!loading && transactions.length === 0 && (
-            <div style={{ textAlign: 'center', margin: '30px 0' }}>
-              <Empty 
-                description={
-                  <span>
-                    Không tìm thấy giao dịch nào
-                    <br />
-                    <Button 
-                      type="link" 
-                      onClick={handleRefresh}
-                      style={{ padding: 0 }}
-                    >
-                      Bấm vào đây để tải lại
-                    </Button>
-                  </span>
-                } 
-              />
-              <div style={{ marginTop: 16 }}>
-                <Alert
-                  message="Không thấy giao dịch chờ xác nhận?"
-                  description={
-                    <div>
-                      <p>Có thể do một trong các nguyên nhân sau:</p>
-                      <ol style={{ textAlign: 'left', paddingLeft: 20 }}>
-                        <li>Người dùng chưa thực hiện thanh toán</li>
-                        <li>Giao dịch đang được xử lý</li>
-                        <li>Có vấn đề kỹ thuật trong quá trình đồng bộ dữ liệu</li>
-                      </ol>
-                      <p>Hệ thống tự động làm mới dữ liệu sau mỗi 15 giây. Nếu người dùng đã thông báo đã thanh toán nhưng không thấy giao dịch, vui lòng liên hệ nhóm kỹ thuật.</p>
-                    </div>
-                  }
-                  type="info"
-                  showIcon
-                />
-              </div>
-            </div>
-          )}
-          
-          <Table
-            dataSource={transactions}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showTotal: total => `Tổng cộng ${total} giao dịch`
-            }}
-            onChange={handleTableChange}
-            bordered
-          />
+          {renderTransactionsTab()}
         </TabPane>
         
         <TabPane tab="Tài khoản ngân hàng" key="bank-accounts">
-          <div className={styles.bankAccountsSection}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24}>
-                {bankAccounts.length > 0 ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <Text>
-                      Bạn đã thiết lập {bankAccounts.length} tài khoản ngân hàng để nhận thanh toán.
-                    </Text>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={openAddBankAccountModal}
-                    >
-                      Thêm tài khoản ngân hàng
-                    </Button>
-                  </div>
-                ) : (
-                  <Alert
-                    message="Thiết lập tài khoản ngân hàng"
-                    description="Bạn cần thiết lập ít nhất một tài khoản ngân hàng để khách hàng có thể chuyển khoản phí pháp lý."
-                    type="info"
-                    showIcon
-                    action={
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={openAddBankAccountModal}
-                      >
-                        Thêm tài khoản ngân hàng
-                      </Button>
-                    }
-                    style={{ marginBottom: 16 }}
-                  />
-                )}
-              </Col>
-              
-              {loadingBankAccounts ? (
-                <Col xs={24}>
-                  <div className={styles.loadingState}>Đang tải...</div>
-                </Col>
-              ) : bankAccounts.length > 0 ? (
-                bankAccounts.map(account => (
-                  <Col xs={24} sm={12} md={8} key={account.id}>
-                    <Card className={styles.bankAccountCard}>
-                      <div className={styles.bankAccountHeader}>
-                        <BankOutlined className={styles.bankIcon} />
-                        {account.is_default && (
-                          <Badge
-                            count="Mặc định"
-                            className={styles.defaultBadge}
-                            style={{ backgroundColor: '#108ee9' }}
-                          />
-                        )}
-                      </div>
-                      <Paragraph>
-                        <Text strong>Ngân hàng:</Text> {account.bank_name}
-                      </Paragraph>
-                      <Paragraph>
-                        <Text strong>Số tài khoản:</Text> {account.account_number}
-                      </Paragraph>
-                      <Paragraph>
-                        <Text strong>Chủ tài khoản:</Text> {account.account_holder}
-                      </Paragraph>
-                      {account.branch && (
-                        <Paragraph>
-                          <Text strong>Chi nhánh:</Text> {account.branch}
-                        </Paragraph>
-                      )}
-                    </Card>
-                  </Col>
-                ))
-              ) : (
-                <Col xs={24}>
-                  <Card className={styles.emptyBankAccountCard}>
-                    <div className={styles.emptyState}>
-                      <BankOutlined className={styles.emptyIcon} />
-                      <Text>Bạn chưa có tài khoản ngân hàng nào</Text>
-                      <Button
-                        type="primary"
-                        onClick={openAddBankAccountModal}
-                      >
-                        Thêm tài khoản ngân hàng
-                      </Button>
-                    </div>
-                  </Card>
-                </Col>
-              )}
-            </Row>
-          </div>
+          {renderBankAccountsTab()}
         </TabPane>
       </Tabs>
       

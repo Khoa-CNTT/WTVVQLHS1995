@@ -592,117 +592,137 @@ export const updateTransactionStatus = async (transactionId, status, updateData 
  * @param {Object} bankData Thông tin tài khoản ngân hàng
  * @param {number} amount Số tiền thanh toán
  * @param {string} content Nội dung chuyển khoản
- * @returns {string} Chuỗi dữ liệu cho mã QR
+ * @returns {string} URL mã QR hoặc chuỗi dữ liệu cho mã QR
  */
 export const generateBankQRData = (bankData, amount, content) => {
   if (!bankData || !bankData.bank_name || !bankData.account_number) {
     return '';
   }
 
-  // Cấu trúc mã VietQR: 
-  // Mã ngân hàng theo napas|Số tài khoản|Số tiền|Nội dung chuyển khoản
-  
-  // Mapping tên ngân hàng sang mã BIN ngân hàng theo chuẩn Napas
-  const bankBins = {
-    // Các ngân hàng lớn
-    'vietcombank': '970436',
-    'vietinbank': '970415',
-    'bidv': '970418',
-    'agribank': '970405',
-    'techcombank': '970407',
-    'mbbank': '970422',
-    'vpbank': '970432',
-    'acb': '970416',
-    'sacombank': '970403',
-    'tpbank': '970423',
-    'hdbank': '970437',
-    'ocb': '970448',
-    'scb': '970429',
-    'vib': '970441',
-    'msb': '970426',
-    'seabank': '970440',
-    'baovietbank': '970438',
-    'namabank': '970428',
-    'abbank': '970425',
-    'vietabank': '970427',
-    'eximbank': '970431',
-    'gpbank': '970408',
-    'kienlongbank': '970452',
-    'lienvietpostbank': '970449',
-    'ncb': '970419',
-    'oceanbank': '970414',
-    'pgbank': '970430',
-    'pvcombank': '970412',
-    'shinhanbank': '970424',
-    'vietbank': '970433',
-    'wooribank': '970457'
-  };
-  
-  // Chuẩn hóa tên ngân hàng để so khớp với danh sách mã BIN
-  // Xóa dấu, khoảng trắng, chuyển về chữ thường
-  const normalizeBankName = (name) => {
-    return name.toLowerCase()
+  try {
+    // Sử dụng sepay.vn API
+    const accountNumber = bankData.account_number;
+    const bankName = encodeURIComponent(bankData.bank_name);
+    const cleanedAmount = amount ? Math.round(Number(amount)).toString() : '0';
+    
+    // Chuẩn hóa nội dung chuyển khoản (tối đa 25 ký tự, không dấu)
+    const maxContentLength = 25;
+    let cleanedContent = content || '';
+    cleanedContent = cleanedContent
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
-      .replace(/\s+/g, '')              // Xóa khoảng trắng
-      .replace(/[^a-z0-9]/g, '');       // Chỉ giữ lại chữ cái và số
-  };
-  
-  // Tìm mã BIN từ tên ngân hàng được chuẩn hóa
-  const normalizedBankName = normalizeBankName(bankData.bank_name);
-  let bankBin = '';
-  
-  // Tìm ngân hàng từ tên được chuẩn hóa
-  for (const [bank, bin] of Object.entries(bankBins)) {
-    if (normalizedBankName.includes(bank)) {
-      bankBin = bin;
-      break;
+      .replace(/[^a-zA-Z0-9\s]/g, '')   // Chỉ giữ lại chữ cái, số và khoảng trắng
+      .substring(0, maxContentLength);   // Giới hạn độ dài
+    
+    // Mã hóa nội dung chuyển khoản
+    const encodedContent = encodeURIComponent(cleanedContent);
+    
+    // Tạo URL cho mã QR từ sepay.vn
+    const qrUrl = `https://qr.sepay.vn/img?acc=${accountNumber}&bank=${bankName}&amount=${cleanedAmount}&des=${encodedContent}`;
+    
+    console.log('Tạo mã QR cho tài khoản:', {
+      bankName: bankData.bank_name,
+      accountNumber: bankData.account_number,
+      accountHolder: bankData.account_holder,
+      amount: cleanedAmount,
+      content: cleanedContent,
+      qrUrl
+    });
+    
+    return qrUrl;
+  } catch (error) {
+    console.error('Lỗi khi tạo URL mã QR:', error);
+    
+    // Fallback: Sử dụng phương thức cũ nếu có lỗi
+    // Mapping tên ngân hàng sang mã BIN ngân hàng theo chuẩn Napas
+    const bankBins = {
+      // Các ngân hàng lớn
+      'vietcombank': '970436',
+      'vietinbank': '970415',
+      'bidv': '970418',
+      'agribank': '970405',
+      'techcombank': '970407',
+      'mbbank': '970422',
+      'vpbank': '970432',
+      'acb': '970416',
+      'sacombank': '970403',
+      'tpbank': '970423',
+      'hdbank': '970437',
+      'ocb': '970448',
+      'scb': '970429',
+      'vib': '970441',
+      'msb': '970426',
+      'seabank': '970440',
+      'baovietbank': '970438',
+      'namabank': '970428',
+      'abbank': '970425',
+      'vietabank': '970427',
+      'eximbank': '970431',
+      'gpbank': '970408',
+      'kienlongbank': '970452',
+      'lienvietpostbank': '970449',
+      'ncb': '970419',
+      'oceanbank': '970414',
+      'pgbank': '970430',
+      'pvcombank': '970412',
+      'shinhanbank': '970424',
+      'vietbank': '970433',
+      'wooribank': '970457'
+    };
+    
+    // Chuẩn hóa tên ngân hàng để so khớp với danh sách mã BIN
+    // Xóa dấu, khoảng trắng, chuyển về chữ thường
+    const normalizeBankName = (name) => {
+      return name.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
+        .replace(/\s+/g, '')              // Xóa khoảng trắng
+        .replace(/[^a-z0-9]/g, '');       // Chỉ giữ lại chữ cái và số
+    };
+    
+    // Tìm mã BIN từ tên ngân hàng được chuẩn hóa
+    const normalizedBankName = normalizeBankName(bankData.bank_name);
+    let bankBin = '';
+    
+    // Tìm ngân hàng từ tên được chuẩn hóa
+    for (const [bank, bin] of Object.entries(bankBins)) {
+      if (normalizedBankName.includes(bank)) {
+        bankBin = bin;
+        break;
+      }
     }
+    
+    // Nếu không tìm thấy, sử dụng VietQR chung
+    if (!bankBin) {
+      // Tìm kiếm theo từ khóa thông dụng
+      if (normalizedBankName.includes('vietcom')) bankBin = '970436';
+      else if (normalizedBankName.includes('vietin')) bankBin = '970415';
+      else if (normalizedBankName.includes('bidv')) bankBin = '970418';
+      else if (normalizedBankName.includes('agri')) bankBin = '970405';
+      else if (normalizedBankName.includes('techcom')) bankBin = '970407';
+      else if (normalizedBankName.includes('mb')) bankBin = '970422';
+      else if (normalizedBankName.includes('vp')) bankBin = '970432';
+      else if (normalizedBankName.includes('acb')) bankBin = '970416';
+      else if (normalizedBankName.includes('sacom')) bankBin = '970403';
+      else bankBin = '970436'; // Mặc định là Vietcombank nếu không nhận dạng được
+    }
+    
+    // Chuẩn hóa số tiền (số nguyên, không có dấu phẩy hay chấm)
+    const cleanedAmount = amount ? Math.round(Number(amount)).toString() : '0';
+    
+    // Chuẩn hóa nội dung chuyển khoản (tối đa 25 ký tự, không dấu)
+    const maxContentLength = 25;
+    let cleanedContent = content || '';
+    cleanedContent = cleanedContent
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
+      .replace(/[^a-zA-Z0-9\s]/g, '')   // Chỉ giữ lại chữ cái, số và khoảng trắng
+      .substring(0, maxContentLength);   // Giới hạn độ dài
+    
+    // Tạo chuỗi dữ liệu QR theo chuẩn VietQR
+    // Định dạng: bankBin|accountNumber|amount|content
+    return `${bankBin}|${bankData.account_number}|${cleanedAmount}|${cleanedContent}`;
   }
-  
-  // Nếu không tìm thấy, sử dụng VietQR chung
-  if (!bankBin) {
-    // Tìm kiếm theo từ khóa thông dụng
-    if (normalizedBankName.includes('vietcom')) bankBin = '970436';
-    else if (normalizedBankName.includes('vietin')) bankBin = '970415';
-    else if (normalizedBankName.includes('bidv')) bankBin = '970418';
-    else if (normalizedBankName.includes('agri')) bankBin = '970405';
-    else if (normalizedBankName.includes('techcom')) bankBin = '970407';
-    else if (normalizedBankName.includes('mb')) bankBin = '970422';
-    else if (normalizedBankName.includes('vp')) bankBin = '970432';
-    else if (normalizedBankName.includes('acb')) bankBin = '970416';
-    else if (normalizedBankName.includes('sacom')) bankBin = '970403';
-    else bankBin = '970436'; // Mặc định là Vietcombank nếu không nhận dạng được
-  }
-  
-  // Chuẩn hóa số tiền (số nguyên, không có dấu phẩy hay chấm)
-  const cleanedAmount = amount ? Math.round(Number(amount)).toString() : '0';
-  
-  // Chuẩn hóa nội dung chuyển khoản (tối đa 25 ký tự, không dấu)
-  const maxContentLength = 25;
-  let cleanedContent = content || '';
-  cleanedContent = cleanedContent
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
-    .replace(/[^a-zA-Z0-9\s]/g, '')   // Chỉ giữ lại chữ cái, số và khoảng trắng
-    .substring(0, maxContentLength);   // Giới hạn độ dài
-  
-  // Tạo chuỗi dữ liệu QR theo chuẩn VietQR
-  // Định dạng: bankBin|accountNumber|amount|content
-  const qrData = `${bankBin}|${bankData.account_number}|${cleanedAmount}|${cleanedContent}`;
-  
-  console.log('Tạo mã QR cho tài khoản:', {
-    bankName: bankData.bank_name,
-    accountNumber: bankData.account_number,
-    accountHolder: bankData.account_holder,
-    normalizedBankName,
-    bankBin,
-    amount: cleanedAmount,
-    content: cleanedContent,
-    qrData
-  });
-  
-  return qrData;
 };
 
 /**

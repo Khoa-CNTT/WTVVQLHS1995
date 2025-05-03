@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Form, Input, Button, Card, Typography, Steps,
-  message, Divider, Row, Col, Spin, Alert
+  message, Divider, Row, Col, Spin, Alert, Modal
 } from 'antd';
 import { 
   CheckCircleOutlined, BankOutlined, SafetyOutlined, DownloadOutlined
@@ -41,9 +41,10 @@ const PaymentForm = () => {
       fetchTransactionData(transactionId);
     } else if (amount) {
       // Tạo dữ liệu giao dịch tạm thời nếu không có transaction_id
+      // Sử dụng trạng thái 'draft' thay vì 'pending' để không tự động chuyển trạng thái
       setTransactionData({
         amount,
-        status: 'pending'
+        status: 'draft'
       });
       setLoading(false);
     } else {
@@ -156,6 +157,7 @@ const PaymentForm = () => {
       const response = await transactionService.getTransactionById(transactionId);
       
       if (response && response.success) {
+        // Lưu trạng thái giao dịch ban đầu mà không thay đổi
         setTransactionData(response.data);
         
         // Nếu giao dịch đã hoàn thành, chuyển đến bước hoàn tất
@@ -189,35 +191,85 @@ const PaymentForm = () => {
   
   // Xử lý tải xuống mã QR
   const handleDownloadQR = () => {
-    // Tạo một ảnh từ SVG và tải xuống
-    const svg = document.getElementById('bankQRCode');
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+    // Kiểm tra xem QR code là URL sepay.vn hay SVG
+    const qrData = transactionService.generateBankQRData(
+      defaultBankAccount,
+      transactionData?.amount || 0,
+      transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+    );
     
-    img.onload = () => {
-      canvas.width = 250;
-      canvas.height = 250;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 25, 25, 200, 200);
+    if (qrData.startsWith('http')) {
+      // Nếu là URL từ sepay.vn, tải ảnh trực tiếp
+      const qrImage = document.getElementById('bankQRCode');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
       
-      // Tạo link tải xuống
-      const a = document.createElement('a');
-      a.download = `LegAI-QR-${transactionData?.id || 'payment'}.png`;
-      a.href = canvas.toDataURL('image/png');
-      a.click();
+      // Đảm bảo ảnh đã load xong
+      if (qrImage.complete) {
+        canvas.width = 250;
+        canvas.height = 250;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(qrImage, 25, 25, 200, 200);
+        
+        // Tạo link tải xuống
+        const a = document.createElement('a');
+        a.download = `LegAI-QR-${transactionData?.id || 'payment'}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        
+        // Đánh dấu đã tải xuống
+        setQrDownloaded(true);
+      } else {
+        // Nếu ảnh chưa load xong, đợi load
+        qrImage.onload = () => {
+          canvas.width = 250;
+          canvas.height = 250;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(qrImage, 25, 25, 200, 200);
+          
+          // Tạo link tải xuống
+          const a = document.createElement('a');
+          a.download = `LegAI-QR-${transactionData?.id || 'payment'}.png`;
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+          
+          // Đánh dấu đã tải xuống
+          setQrDownloaded(true);
+        };
+      }
+    } else {
+      // Nếu là SVG, sử dụng phương thức cũ
+      const svg = document.getElementById('bankQRCode');
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
       
-      // Đánh dấu đã tải xuống
-      setQrDownloaded(true);
-    };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+      img.onload = () => {
+        canvas.width = 250;
+        canvas.height = 250;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 25, 25, 200, 200);
+        
+        // Tạo link tải xuống
+        const a = document.createElement('a');
+        a.download = `LegAI-QR-${transactionData?.id || 'payment'}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        
+        // Đánh dấu đã tải xuống
+        setQrDownloaded(true);
+      };
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+    }
   };
   
-  // Xử lý xác nhận đã thanh toán
+  // Xử lý xác nhận đã thanh toán - cần cập nhật để kiểm tra trạng thái hiện tại và xử lý đúng
   const handleConfirmPayment = async () => {
     try {
       setSubmitting(true);
@@ -226,34 +278,52 @@ const PaymentForm = () => {
         message.error('Thiếu thông tin giao dịch');
         return;
       }
-      
-      // Cập nhật trạng thái giao dịch
-      const response = await transactionService.updateTransactionStatus(
-        transactionData.id,
-        'pending',
-        {
-          payment_method: 'bank_transfer',
-          transaction_code: `LEGAI${Date.now()}`,
-          payment_details: { waiting_lawyer_confirmation: true }
+
+      // Hiển thị modal xác nhận trước khi thực hiện
+      Modal.confirm({
+        title: 'Xác nhận đã thanh toán',
+        content: 'Bạn xác nhận đã chuyển khoản thanh toán cho vụ án này? Thao tác này không thể hoàn tác.',
+        okText: 'Xác nhận',
+        cancelText: 'Hủy',
+        onOk: async () => {
+          try {
+            // Cập nhật trạng thái giao dịch - từ draft hoặc bất kỳ trạng thái nào sang pending
+            const response = await transactionService.updateTransactionStatus(
+              transactionData.id,
+              'pending',
+              {
+                payment_method: 'bank_transfer',
+                transaction_code: `LEGAI${Date.now()}`,
+                payment_details: { waiting_lawyer_confirmation: true }
+              }
+            );
+            
+            if (response && response.success) {
+              message.success('Đã ghi nhận giao dịch thành công! Đang đợi xác nhận từ luật sư.');
+              
+              // Chuyển về trang chi tiết vụ án
+              if (caseData && caseData.id) {
+                navigate(`/legal-cases/${caseData.id}`);
+              } else {
+                navigate('/');
+              }
+            } else {
+              message.error(response?.message || 'Không thể ghi nhận giao dịch. Vui lòng thử lại.');
+            }
+          } catch (error) {
+            console.error('Lỗi khi xác nhận thanh toán:', error);
+            message.error('Có lỗi xảy ra khi ghi nhận thanh toán. Vui lòng thử lại.');
+          } finally {
+            setSubmitting(false);
+          }
+        },
+        onCancel() {
+          setSubmitting(false);
         }
-      );
-      
-      if (response && response.success) {
-        message.success('Đã ghi nhận giao dịch thành công! Đang đợi xác nhận từ luật sư.');
-        
-        // Chuyển về trang chi tiết vụ án
-        if (caseData && caseData.id) {
-          navigate(`/legal-cases/${caseData.id}`);
-        } else {
-          navigate('/');
-        }
-      } else {
-        message.error(response?.message || 'Không thể ghi nhận giao dịch. Vui lòng thử lại.');
-      }
+      });
     } catch (error) {
       console.error('Lỗi khi ghi nhận giao dịch:', error);
       message.error('Có lỗi xảy ra khi ghi nhận giao dịch. Vui lòng thử lại.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -373,18 +443,38 @@ const PaymentForm = () => {
           
           <div className={styles.qrCodeContainer}>
             <Title level={5}>Quét mã QR để thanh toán</Title>
-            <QRCodeSVG 
-              id="bankQRCode"
-              value={transactionService.generateBankQRData(
-                defaultBankAccount,
-                transactionData?.amount || 0,
-                transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
-              )}
-              size={200}
-              level="H"
-              includeMargin={true}
-              className={styles.qrCode}
-            />
+            {transactionService.generateBankQRData(
+              defaultBankAccount,
+              transactionData?.amount || 0,
+              transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+            ).startsWith('http') ? (
+              // Nếu trả về URL (từ sepay.vn), hiển thị bằng thẻ img 
+              <img
+                id="bankQRCode"
+                src={transactionService.generateBankQRData(
+                  defaultBankAccount,
+                  transactionData?.amount || 0,
+                  transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+                )}
+                alt="Mã QR thanh toán"
+                style={{ width: 200, height: 200 }}
+                className={styles.qrCode}
+              />
+            ) : (
+              // Nếu trả về chuỗi dữ liệu QR thông thường, sử dụng QRCodeSVG như trước
+              <QRCodeSVG 
+                id="bankQRCode"
+                value={transactionService.generateBankQRData(
+                  defaultBankAccount,
+                  transactionData?.amount || 0,
+                  transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+                )}
+                size={200}
+                level="H"
+                includeMargin={true}
+                className={styles.qrCode}
+              />
+            )}
             <Button 
               type="default"
               icon={<DownloadOutlined />}
