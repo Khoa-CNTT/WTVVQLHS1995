@@ -225,12 +225,12 @@ function Dashboard() {
     { key: 'người-dùng', label: 'Tài Khoản', icon: <TeamOutlined />, title: 'Quản lý tài khoản người dùng' },
     { key: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: <FileTextOutlined />, title: 'Quản lý tài liệu pháp luật' },
     { key: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: <FolderOutlined />, title: 'Quản lý hồ sơ pháp lý' },
+    { key: 'quản-lý-vụ-án', label: 'Vụ án pháp lý', icon: <BankOutlined />, title: 'Quản lý vụ án pháp lý', hidden: !(currentUser && currentUser.role === 'admin') },
     { key: 'vụ-án', label: 'Mẫu văn bản', icon: <BankOutlined />, title: 'Mẫu văn bản pháp luật' },
     { key: 'hợp-đồng', label: 'Hợp Đồng', icon: <FileProtectOutlined />, title: 'Quản lý hợp đồng', hidden: !(currentUser && currentUser.role === 'admin') },
     { key: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: <RobotOutlined />, title: 'Hệ thống tư vấn AI' },
     { key: 'tin-nhắn', label: 'Tin Nhắn', icon: <MessageOutlined />, title: 'Hệ thống tin nhắn' },
     { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' },
-    { key: 'quản-lý-vụ-án', label: 'Quản lý vụ án', icon: <BankOutlined />, title: 'Quản lý vụ án pháp lý', hidden: !(currentUser && currentUser.role === 'admin') },
   ];
 
   const userMenuItems = [

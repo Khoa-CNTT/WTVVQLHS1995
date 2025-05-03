@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Space, Card, Typography, Row, Col, Tag, message, Tooltip, Modal, Select, Spin } from 'antd';
-import { SearchOutlined, EyeOutlined, DeleteOutlined, DownloadOutlined, FileOutlined, UserOutlined } from '@ant-design/icons';
+import { SearchOutlined, EyeOutlined, DeleteOutlined, DownloadOutlined, FileOutlined, UserOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { getAllUserLegalDocs, downloadLegalDoc, deleteLegalDoc, analyzeLegalDoc, getLegalDocCategories } from '../../../services/legalDocService';
+import AddEditLegalDoc from './AddEditLegalDoc';
 import styles from './UserLegalDocsManager.module.css';
 
 const { Title, Text } = Typography;
@@ -27,6 +28,8 @@ const UserLegalDocsManager = () => {
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showAiAnalysis, setShowAiAnalysis] = useState(false);
+  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [editDocId, setEditDocId] = useState(null);
 
   // Tải danh sách hồ sơ pháp lý khi component được mount
   useEffect(() => {
@@ -273,6 +276,28 @@ const UserLegalDocsManager = () => {
     );
   };
 
+  // Mở form thêm/sửa hồ sơ
+  const showAddEditForm = (docId = null) => {
+    setEditDocId(docId);
+    setAddEditVisible(true);
+    
+    // Đóng modal chi tiết nếu đang mở
+    if (detailVisible) {
+      setDetailVisible(false);
+    }
+  };
+
+  // Đóng form thêm/sửa hồ sơ
+  const handleCloseAddEdit = () => {
+    setAddEditVisible(false);
+    setEditDocId(null);
+  };
+
+  // Xử lý sau khi thêm/sửa thành công
+  const handleAddEditSuccess = () => {
+    fetchLegalDocs(); // Tải lại danh sách
+  };
+
   // Cột dữ liệu cho bảng
   const columns = [
     {
@@ -320,7 +345,7 @@ const UserLegalDocsManager = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: 120,
+      width: 150,
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Xem chi tiết">
@@ -328,6 +353,13 @@ const UserLegalDocsManager = () => {
               type="text" 
               icon={<EyeOutlined />} 
               onClick={() => showDocDetail(record.id)} 
+            />
+          </Tooltip>
+          <Tooltip title="Sửa">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showAddEditForm(record.id)} 
             />
           </Tooltip>
           <Tooltip title="Tải xuống">
@@ -361,7 +393,7 @@ const UserLegalDocsManager = () => {
             </Title>
           </Col>
           
-          <Col xs={24} md={20}>
+          <Col xs={24} md={16}>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
                 <Select
@@ -390,6 +422,16 @@ const UserLegalDocsManager = () => {
                 />
               </Col>
             </Row>
+          </Col>
+          
+          <Col xs={24} md={4} style={{ textAlign: 'right' }}>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => showAddEditForm()}
+            >
+              Thêm hồ sơ
+            </Button>
           </Col>
         </Row>
       </Card>
@@ -444,6 +486,13 @@ const UserLegalDocsManager = () => {
         visible={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={[
+          <Button 
+            key="edit" 
+            icon={<EditOutlined />} 
+            onClick={() => showAddEditForm(docDetail?.id)}
+          >
+            Sửa
+          </Button>,
           <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={() => docDetail && handleDownload(docDetail.id)}>
             Tải xuống
           </Button>,
@@ -541,6 +590,13 @@ const UserLegalDocsManager = () => {
           <div>Không có dữ liệu</div>
         )}
       </Modal>
+
+      <AddEditLegalDoc 
+        visible={addEditVisible}
+        onCancel={handleCloseAddEdit}
+        onSuccess={handleAddEditSuccess}
+        docId={editDocId}
+      />
     </div>
   );
 };

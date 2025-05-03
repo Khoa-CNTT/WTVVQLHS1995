@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Card, Typography, Row, Col, Tag, message, Tooltip, Modal, Spin } from 'antd';
-import { SearchOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, UserOutlined, FileOutlined } from '@ant-design/icons';
+import { SearchOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, UserOutlined, FileOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { getAllContracts, getContractById, deleteContract, downloadContractFile } from '../../../services/contractService';
+import AddEditContract from './AddEditContract';
 import styles from './ContractManagerAdmin.module.css';
 
 const { Title, Text } = Typography;
@@ -15,6 +16,8 @@ const ContractManagerAdmin = () => {
   const [detailVisible, setDetailVisible] = useState(false);
   const [contractDetail, setContractDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [addEditVisible, setAddEditVisible] = useState(false);
+  const [editContractId, setEditContractId] = useState(null);
 
   useEffect(() => {
     fetchContracts();
@@ -102,6 +105,28 @@ const ContractManagerAdmin = () => {
     });
   };
 
+  // Mở form thêm/sửa hợp đồng
+  const showAddEditForm = (contractId = null) => {
+    setEditContractId(contractId);
+    setAddEditVisible(true);
+    
+    // Đóng modal chi tiết nếu đang mở
+    if (detailVisible) {
+      setDetailVisible(false);
+    }
+  };
+
+  // Đóng form thêm/sửa hợp đồng
+  const handleCloseAddEdit = () => {
+    setAddEditVisible(false);
+    setEditContractId(null);
+  };
+
+  // Xử lý sau khi thêm/sửa thành công
+  const handleAddEditSuccess = () => {
+    fetchContracts(); // Tải lại danh sách
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -141,11 +166,14 @@ const ContractManagerAdmin = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: 120,
+      width: 150,
       render: (_, record) => (
         <div className="flex gap-2">
           <Tooltip title="Xem chi tiết">
             <Button type="text" icon={<EyeOutlined />} onClick={() => showContractDetail(record.id)} />
+          </Tooltip>
+          <Tooltip title="Sửa">
+            <Button type="text" icon={<EditOutlined />} onClick={() => showAddEditForm(record.id)} />
           </Tooltip>
           <Tooltip title="Tải xuống">
             <Button type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(record.id)} />
@@ -167,7 +195,7 @@ const ContractManagerAdmin = () => {
               <SearchOutlined className="mr-2" /> Tìm kiếm
             </Title>
           </Col>
-          <Col xs={24} md={18}>
+          <Col xs={24} md={12}>
             <Input
               placeholder="Tìm theo tiêu đề, loại, đối tác..."
               value={searchTerm}
@@ -175,6 +203,15 @@ const ContractManagerAdmin = () => {
               prefix={<SearchOutlined />}
               allowClear
             />
+          </Col>
+          <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => showAddEditForm()}
+            >
+              Thêm hợp đồng
+            </Button>
           </Col>
         </Row>
       </Card>
@@ -200,6 +237,13 @@ const ContractManagerAdmin = () => {
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={[
+          <Button 
+            key="edit" 
+            icon={<EditOutlined />} 
+            onClick={() => showAddEditForm(contractDetail?.id)}
+          >
+            Sửa
+          </Button>,
           <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={() => contractDetail && handleDownload(contractDetail.id)}>
             Tải xuống
           </Button>,
@@ -245,6 +289,14 @@ const ContractManagerAdmin = () => {
           <div>Không có dữ liệu</div>
         )}
       </Modal>
+
+      {/* Form thêm/sửa hợp đồng */}
+      <AddEditContract
+        visible={addEditVisible}
+        onCancel={handleCloseAddEdit}
+        onSuccess={handleAddEditSuccess}
+        contractId={editContractId}
+      />
     </div>
   );
 };
