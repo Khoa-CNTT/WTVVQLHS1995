@@ -196,7 +196,7 @@ const LawyerCaseManager = () => {
         cancelText: 'Hủy',
         async onOk() {
           try {
-            const response = await legalCaseService.updateLegalCaseStatus(caseId, 'closed');
+            const response = await legalCaseService.updateCaseStatus(caseId, 'completed');
             
             if (response && response.success) {
               message.success('Đã đánh dấu vụ án hoàn thành');
