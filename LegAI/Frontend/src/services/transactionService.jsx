@@ -745,17 +745,22 @@ export const getAllTransactions = async (params = {}) => {
       return {
         success: false,
         message: 'Vui lòng đăng nhập lại để tiếp tục',
-        data: {
-          transactions: [],
-          total: 0
-        }
+        data: [],
+        total: 0
       };
     }
     
     const url = `${API_URL}/transactions/all?${queryParams.toString()}`;
     const response = await axios.get(url, getHeaders());
     
-    return response.data;
+    // Chuyển đổi dữ liệu từ định dạng API về định dạng frontend cần
+    return {
+      success: response.data.success,
+      message: response.data.message,
+      data: response.data.data || [],
+      total: response.data.total || 0,
+      count: response.data.count || 0
+    };
   } catch (error) {
     console.error('Lỗi khi lấy tất cả giao dịch:', error);
     
@@ -765,10 +770,8 @@ export const getAllTransactions = async (params = {}) => {
         return {
           success: false,
           message: 'Bạn không có quyền truy cập vào chức năng này',
-          data: {
-            transactions: [],
-            total: 0
-          }
+          data: [],
+          total: 0
         };
       }
     }
@@ -776,10 +779,8 @@ export const getAllTransactions = async (params = {}) => {
     return {
       success: false,
       message: 'Không thể lấy danh sách giao dịch. Vui lòng thử lại sau.',
-      data: {
-        transactions: [],
-        total: 0
-      }
+      data: [],
+      total: 0
     };
   }
 };

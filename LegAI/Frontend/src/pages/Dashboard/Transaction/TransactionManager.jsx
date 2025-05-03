@@ -55,10 +55,10 @@ const TransactionManager = () => {
       });
 
       if (response.success) {
-        setTransactions(response.data.transactions || []);
+        setTransactions(response.data || []);
         setPagination(prev => ({
           ...prev,
-          total: response.data.total || 0
+          total: response.total || 0
         }));
       } else {
         setError(response.message || 'Không thể tải danh sách giao dịch');
