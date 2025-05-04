@@ -123,19 +123,34 @@ const AvailabilityManager = () => {
         return;
       }
       
+      console.log(`[AvailabilityManager] Đang lấy lịch trống cho luật sư ID: ${id}`);
       const response = await appointmentService.getLawyerAvailability(id);
+      console.log(`[AvailabilityManager] Kết quả từ API:`, response);
       
       if (response && response.status === 'success') {
-        if (Array.isArray(response.data)) {
-          setAvailabilities(response.data);
+        // Phần quan trọng: Kiểm tra xem data có phải là mảng và có dữ liệu không
+        const data = Array.isArray(response.data) ? response.data : [];
+        
+        if (data.length > 0) {
+          console.log(`[AvailabilityManager] Tìm thấy ${data.length} lịch trống`);
+          setAvailabilities(data);
         } else {
+          console.log(`[AvailabilityManager] Không tìm thấy lịch trống nào`);
+          
+          // So sánh với dữ liệu trong bảng PostgreSQL mà bạn gửi cho tôi
+          if (id === 9) {
+            console.log('[AvailabilityManager] Có 9 lịch trống trong database nhưng không được trả về trong API');
+            console.log('[AvailabilityManager] Cần kiểm tra lại endpoint API /appointments/lawyer/:id/availability');
+          }
+          
           setAvailabilities([]);
         }
       } else {
+        console.error(`[AvailabilityManager] API trả về trạng thái không phải success:`, response);
         setAvailabilities([]);
       }
     } catch (error) {
-      console.error('Lỗi khi lấy lịch trống:', error);
+      console.error('[AvailabilityManager] Lỗi khi lấy lịch trống:', error);
       handleApiError(error, 'Không thể lấy danh sách lịch trống');
       setAvailabilities([]);
     } finally {

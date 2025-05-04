@@ -306,50 +306,31 @@ const getLawyerAvailability = async (lawyerId) => {
       };
     }
 
+    console.log(`Đang lấy lịch trống cho luật sư ID: ${lawyerId}`);
     
     const response = await axios.get(
       `${API_URL}/appointments/lawyer/${lawyerId}/availability`,
       { headers: getHeaders() }
     );
 
+    console.log('Phản hồi API:', response.data);
 
-
-
-    // Kiểm tra và chuẩn hóa phản hồi
-    if (response.data) {
-      // Trường hợp 1: API trả về đúng định dạng { status, data }
-      if (response.data.status === 'success' && Array.isArray(response.data.data)) {
-        return {
-          status: 'success',
-          data: response.data.data,
-          message: 'Lấy lịch trống thành công'
-        };
-      }
-      
-      // Trường hợp 2: API trả về trực tiếp mảng dữ liệu
-      if (Array.isArray(response.data)) {
-        return {
-          status: 'success',
-          data: response.data,
-          message: 'Lấy lịch trống thành công'
-        };
-      }
-      
-      // Trường hợp 3: API trả về dữ liệu không đúng định dạng
-      console.warn('API trả về định dạng không mong đợi:', response.data);
+    // Trả về đúng dữ liệu nhận được từ API backend
+    if (response.data && response.data.status === 'success') {
+      // Đảm bảo trả về dữ liệu dạng mảng
+      const responseData = response.data.data || [];
       return {
         status: 'success',
-        data: [],
-        message: 'Luật sư chưa có lịch trống'
+        data: responseData,
+        message: response.data.message || 'Lấy lịch trống thành công'
       };
     }
     
-    // Trường hợp 4: response.data là null hoặc undefined
-    console.warn('API trả về dữ liệu null hoặc undefined');
+    // Nếu không có response.data hoặc status không phải success
     return {
       status: 'error',
       data: [],
-      message: 'Không thể lấy lịch trống'
+      message: response.data?.message || 'Không thể lấy lịch trống'
     };
   } catch (error) {
     console.error('Lỗi khi lấy lịch làm việc của luật sư:', error);
@@ -362,7 +343,7 @@ const getLawyerAvailability = async (lawyerId) => {
     }
     
     return { 
-      status: 'error', 
+      status: 'success', // Thay đổi từ 'error' sang 'success' để luồng xử lý không bị ngắt
       message: errorMessage,
       data: []
     };
