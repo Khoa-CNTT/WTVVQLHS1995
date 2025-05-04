@@ -21,6 +21,7 @@ import EditLegalDocument from '../pages/Dashboard/LegalDocuments/EditLegalDocume
 import CreateLegalDocument from '../pages/Dashboard/LegalDocuments/CreateLegalDocument';
 import TransactionManager from '../pages/Dashboard/Transaction/TransactionManager';
 import LegalCaseManager from '../pages/Dashboard/LegalCase/LegalCaseManager';
+import FeeReferenceManager from '../pages/Dashboard/Fee/FeeReferenceManager';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
@@ -235,6 +236,13 @@ const AppRouter = () => {
             <PageTransition custom="fade">
               <LegalCaseManager />
             </PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Route quản lý quản lý phí tham chiếu */}
+        <Route path="/dashboard/fee-references" element={
+          <ProtectedRoute permission="admin">
+            <Dashboard />
           </ProtectedRoute>
         } />
       </Routes>

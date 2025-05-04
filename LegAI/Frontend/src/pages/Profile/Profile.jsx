@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaKey, FaFileAlt, FaUserCircle, FaPen, FaUpload, FaCalendarAlt, FaHistory, FaBalanceScale } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaKey, FaFileAlt, FaUserCircle, FaPen, FaUpload, FaCalendarAlt, FaHistory, FaBalanceScale, FaGavel } from 'react-icons/fa';
 import styles from './Profile.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import authService from '../../services/authService';
@@ -10,6 +10,7 @@ import ChatManager from '../../components/layout/Chat/ChatManager';
 import AppointmentsPage from './Appointments/AppointmentsPage';
 import AppointmentsManager from '../../pages/LawyerDashboard/components/AppointmentsManager';
 import ContactForm from '../Contact/ContactForm';
+import RecentActivities from '../../components/RecentActivities/RecentActivities';
 
 function Profile() {
   const navigate = useNavigate();
@@ -364,62 +365,14 @@ function Profile() {
     } else if (activeTab === 'password') {
       return <ChangePasswordPage />;
     } else if (activeTab === 'activity') {
-      return (
-        <div className={styles.activityTab}>
-          <div className={styles.sectionHeader}>
-            <h2>Hoạt động gần đây</h2>
-          </div>
-
-          <div className={styles.statsCards}>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <FaFileAlt />
-              </div>
-              <div className={styles.statValue}>{userDetails.stats?.documents || 0}</div>
-              <div className={styles.statLabel}>Tài liệu</div>
-            </div>
-
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <FaBalanceScale />
-              </div>
-              <div className={styles.statValue}>{userDetails.stats?.cases || 0}</div>
-              <div className={styles.statLabel}>Vụ án</div>
-            </div>
-
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <FaCalendarAlt />
-              </div>
-              <div className={styles.statValue}>{userDetails.stats?.appointments || 0}</div>
-              <div className={styles.statLabel}>Cuộc hẹn</div>
-            </div>
-
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <FaUserCircle />
-              </div>
-              <div className={styles.statValue}>{userDetails.stats?.consultations || 0}</div>
-              <div className={styles.statLabel}>Tư vấn</div>
-            </div>
-          </div>
-
-          <div className={styles.activityLinks}>
-            <a href="#" className={styles.activityLink}>
-              <FaFileAlt /> Xem tài liệu của tôi
-            </a>
-            <a href="#" className={styles.activityLink}>
-              <FaBalanceScale /> Xem vụ án của tôi
-            </a>
-            <a href="#" className={styles.activityLink} onClick={(e) => { e.preventDefault(); setActiveTab('appointments'); }}>
-              <FaCalendarAlt /> Quản lý cuộc hẹn
-            </a>
-            <a href="#" className={styles.activityLink}>
-              <FaUserCircle /> Lịch sử tư vấn
-            </a>
-          </div>
-        </div>
-      );
+      return <RecentActivities />;
+    } else if (activeTab === 'cases') {
+      // Chuyển hướng đến trang danh sách vụ án
+      // Đây chỉ là giải pháp tạm thời, ta sẽ load trang mới
+      window.location.href = '/legal-cases';
+      return <div className={styles.loadingContainer}>Đang chuyển đến danh sách vụ án...</div>;
+    } else if (activeTab === 'contact') {
+      return renderContact();
     } else {
       return (
         <div className={styles.profileTab}>
@@ -683,6 +636,12 @@ function Profile() {
                 <FaCalendarAlt /> Quản lý lịch hẹn
               </button>
               <button
+                className={`${styles.menuItem} ${activeTab === 'cases' ? styles.active : ''}`}
+                onClick={() => setActiveTab('cases')}
+              >
+                <FaGavel /> Vụ án của tôi
+              </button>
+              <button
                 className={`${styles.menuItem} ${activeTab === 'password' ? styles.active : ''}`}
                 onClick={() => setActiveTab('password')}
               >
@@ -706,7 +665,7 @@ function Profile() {
           <div className={`${styles.mainContent} animate__animated animate__fadeIn`}>
             {error && <div className={styles.errorMessage}>{error}</div>}
             {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
-            {activeTab === 'contact' ? renderContact() : renderContent()}
+            {renderContent()}
           </div>
         </div>
       </div>

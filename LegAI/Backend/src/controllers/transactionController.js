@@ -716,4 +716,275 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
       message: 'Lỗi khi lấy tất cả giao dịch'
     });
   }
+});
+
+/**
+ * @desc      Lấy danh sách phí pháp lý
+ * @route     GET /api/transactions/fee-references
+ * @access    Private/Admin
+ */
+exports.getFeeReferences = asyncHandler(async (req, res) => {
+  try {
+    const query = `
+      SELECT * FROM FeeReferences
+      ORDER BY case_type ASC
+    `;
+    
+    const result = await pool.query(query);
+    
+    return res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phí pháp lý:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách phí pháp lý'
+    });
+  }
+});
+
+/**
+ * @desc      Tạo mới phí pháp lý
+ * @route     POST /api/transactions/fee-references
+ * @access    Private/Admin
+ */
+exports.createFeeReference = asyncHandler(async (req, res) => {
+  try {
+    const {
+      case_type,
+      description,
+      base_fee,
+      percentage_fee,
+      calculation_method,
+      min_fee,
+      max_fee
+    } = req.body;
+    
+    // Kiểm tra thông tin bắt buộc
+    if (!case_type || !description || base_fee === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp đầy đủ thông tin: loại vụ án, mô tả và phí cơ bản'
+      });
+    }
+    
+    // Kiểm tra xem case_type đã tồn tại chưa
+    const checkQuery = 'SELECT * FROM FeeReferences WHERE case_type = $1';
+    const checkResult = await pool.query(checkQuery, [case_type]);
+    
+    if (checkResult.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Loại vụ án này đã tồn tại trong bảng phí'
+      });
+    }
+    
+    const query = `
+      INSERT INTO FeeReferences (
+        case_type,
+        description,
+        base_fee,
+        percentage_fee,
+        calculation_method,
+        min_fee,
+        max_fee,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const values = [
+      case_type,
+      description,
+      base_fee,
+      percentage_fee || 0,
+      calculation_method || 'fixed',
+      min_fee || base_fee,
+      max_fee || null
+    ];
+    
+    const result = await pool.query(query, values);
+    
+    // Ghi log
+    await auditLogModel.addAuditLog({
+      userId: req.user.id,
+      action: 'CREATE_FEE_REFERENCE',
+      tableName: 'FeeReferences',
+      recordId: result.rows[0].id,
+      details: `Tạo mới phí pháp lý cho loại vụ án: ${case_type}`
+    });
+    
+    return res.status(201).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Lỗi khi tạo mới phí pháp lý:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo mới phí pháp lý'
+    });
+  }
+});
+
+/**
+ * @desc      Cập nhật phí pháp lý
+ * @route     PUT /api/transactions/fee-references/:id
+ * @access    Private/Admin
+ */
+exports.updateFeeReference = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      case_type,
+      description,
+      base_fee,
+      percentage_fee,
+      calculation_method,
+      min_fee,
+      max_fee
+    } = req.body;
+    
+    // Kiểm tra phí pháp lý tồn tại
+    const checkQuery = 'SELECT * FROM FeeReferences WHERE id = $1';
+    const checkResult = await pool.query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy phí pháp lý'
+      });
+    }
+    
+    // Nếu cập nhật case_type, kiểm tra case_type mới đã tồn tại chưa
+    if (case_type && case_type !== checkResult.rows[0].case_type) {
+      const duplicateCheck = 'SELECT * FROM FeeReferences WHERE case_type = $1 AND id != $2';
+      const duplicateResult = await pool.query(duplicateCheck, [case_type, id]);
+      
+      if (duplicateResult.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Loại vụ án này đã tồn tại trong bảng phí'
+        });
+      }
+    }
+    
+    // Chuẩn bị câu lệnh cập nhật
+    let updateQuery = 'UPDATE FeeReferences SET updated_at = NOW()';
+    const values = [];
+    let paramIndex = 1;
+    
+    if (case_type) {
+      updateQuery += `, case_type = $${paramIndex++}`;
+      values.push(case_type);
+    }
+    
+    if (description) {
+      updateQuery += `, description = $${paramIndex++}`;
+      values.push(description);
+    }
+    
+    if (base_fee !== undefined) {
+      updateQuery += `, base_fee = $${paramIndex++}`;
+      values.push(base_fee);
+    }
+    
+    if (percentage_fee !== undefined) {
+      updateQuery += `, percentage_fee = $${paramIndex++}`;
+      values.push(percentage_fee);
+    }
+    
+    if (calculation_method) {
+      updateQuery += `, calculation_method = $${paramIndex++}`;
+      values.push(calculation_method);
+    }
+    
+    if (min_fee !== undefined) {
+      updateQuery += `, min_fee = $${paramIndex++}`;
+      values.push(min_fee);
+    }
+    
+    if (max_fee !== undefined) {
+      updateQuery += `, max_fee = $${paramIndex++}`;
+      values.push(max_fee);
+    }
+    
+    updateQuery += ` WHERE id = $${paramIndex} RETURNING *`;
+    values.push(id);
+    
+    // Thực hiện cập nhật
+    const result = await pool.query(updateQuery, values);
+    
+    // Ghi log
+    await auditLogModel.addAuditLog({
+      userId: req.user.id,
+      action: 'UPDATE_FEE_REFERENCE',
+      tableName: 'FeeReferences',
+      recordId: id,
+      details: `Cập nhật phí pháp lý ID: ${id}`
+    });
+    
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật phí pháp lý:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật phí pháp lý'
+    });
+  }
+});
+
+/**
+ * @desc      Xóa phí pháp lý
+ * @route     DELETE /api/transactions/fee-references/:id
+ * @access    Private/Admin
+ */
+exports.deleteFeeReference = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Kiểm tra phí pháp lý tồn tại
+    const checkQuery = 'SELECT * FROM FeeReferences WHERE id = $1';
+    const checkResult = await pool.query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy phí pháp lý'
+      });
+    }
+    
+    // Xóa phí pháp lý
+    const deleteQuery = 'DELETE FROM FeeReferences WHERE id = $1 RETURNING *';
+    const result = await pool.query(deleteQuery, [id]);
+    
+    // Ghi log
+    await auditLogModel.addAuditLog({
+      userId: req.user.id,
+      action: 'DELETE_FEE_REFERENCE',
+      tableName: 'FeeReferences',
+      recordId: id,
+      details: `Xóa phí pháp lý cho loại vụ án: ${checkResult.rows[0].case_type}`
+    });
+    
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0],
+      message: 'Xóa phí pháp lý thành công'
+    });
+  } catch (error) {
+    console.error('Lỗi khi xóa phí pháp lý:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa phí pháp lý'
+    });
+  }
 }); 

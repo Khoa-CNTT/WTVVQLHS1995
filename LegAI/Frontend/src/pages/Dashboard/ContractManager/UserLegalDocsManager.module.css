@@ -8,6 +8,20 @@
 
 .docsTable {
   margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.docsTable :global(.ant-table-container) {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.docsTable :global(.ant-table) {
+  min-width: 700px;
+}
+
+.docsTable :global(.ant-table-tbody > tr > td) {
+  word-break: break-word;
 }
 
 .detailItem {

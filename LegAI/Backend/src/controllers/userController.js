@@ -364,16 +364,29 @@ const getUserStats = async (req, res) => {
             });
         }
         
-        // Mặc định trả về các thống kê cơ bản
-        // Trong thực tế, bạn sẽ truy vấn cơ sở dữ liệu để lấy số liệu thực
+        // Lấy dữ liệu thống kê thực tế từ database
         const stats = {
-            documents: 0,  // Số lượng tài liệu
-            cases: 0,      // Số lượng vụ án
-            appointments: 0, // Số cuộc hẹn
-            consultations: 0 // Số lần tư vấn
+            documents: 0,
+            cases: 0,
+            appointments: 0,
+            contracts: 0
         };
         
-        // TODO: Truy vấn thống kê thực tế từ cơ sở dữ liệu
+        // Đếm số lượng tài liệu pháp lý
+        const documentsResult = await pool.query('SELECT COUNT(*) as count FROM LegalDocuments');
+        stats.documents = parseInt(documentsResult.rows[0].count || 0);
+        
+        // Đếm số lượng vụ án
+        const casesResult = await pool.query('SELECT COUNT(*) as count FROM LegalCases');
+        stats.cases = parseInt(casesResult.rows[0].count || 0);
+        
+        // Đếm số lượng lịch hẹn
+        const appointmentsResult = await pool.query('SELECT COUNT(*) as count FROM Appointments');
+        stats.appointments = parseInt(appointmentsResult.rows[0].count || 0);
+        
+        // Đếm số lượng hợp đồng
+        const contractsResult = await pool.query('SELECT COUNT(*) as count FROM Contracts');
+        stats.contracts = parseInt(contractsResult.rows[0].count || 0);
         
         res.json({
             status: 'success',

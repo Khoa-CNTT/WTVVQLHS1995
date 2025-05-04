@@ -304,27 +304,31 @@ const UserLegalDocsManager = () => {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 50,
+      width: 40,
     },
     {
       title: 'Tiêu đề',
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
+      width: '35%',
       render: (text, record) => (
-        <a href="#" onClick={(e) => { e.preventDefault(); showDocDetail(record.id); }}>
-          {text}
-        </a>
+        <Tooltip title={text}>
+          <a href="#" onClick={(e) => { e.preventDefault(); showDocDetail(record.id); }}>
+            {text}
+          </a>
+        </Tooltip>
       ),
     },
     {
       title: 'Người dùng',
       dataIndex: 'owner_name',
       key: 'owner_name',
-      width: 150,
+      width: '15%',
+      ellipsis: true,
       render: (text, record) => (
         <Tooltip title={record.username || record.user_email}>
-          <span><UserOutlined style={{ marginRight: 8 }} />{text || 'Người dùng không xác định'}</span>
+          <span><UserOutlined style={{ marginRight: 5 }} />{text || 'Không xác định'}</span>
         </Tooltip>
       ),
     },
@@ -332,23 +336,30 @@ const UserLegalDocsManager = () => {
       title: 'Danh mục',
       dataIndex: 'category',
       key: 'category',
-      width: 120,
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      width: '15%',
+      ellipsis: true,
+      render: (text) => (
+        <Tooltip title={text}>
+          <Tag color="blue">{text}</Tag>
+        </Tooltip>
+      ),
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: 100,
+      width: '15%',
+      responsive: ['md'],
       render: (text) => formatDate(text),
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 150,
+      width: '15%',
+      align: 'center',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="Xem">
             <Button 
               type="text" 
               icon={<EyeOutlined />} 
@@ -362,11 +373,12 @@ const UserLegalDocsManager = () => {
               onClick={() => showAddEditForm(record.id)} 
             />
           </Tooltip>
-          <Tooltip title="Tải xuống">
+          <Tooltip title="Tải">
             <Button 
               type="text" 
               icon={<DownloadOutlined />} 
               onClick={() => handleDownload(record.id)} 
+              responsive={['md']}
             />
           </Tooltip>
           <Tooltip title="Xóa">
@@ -440,7 +452,7 @@ const UserLegalDocsManager = () => {
         title={<Title level={4} style={{ margin: 0, fontSize: '18px' }}>Danh sách hồ sơ pháp lý</Title>} 
         className={styles.docsTable}
         size="small"
-        bodyStyle={{ padding: '12px' }}
+        bodyStyle={{ padding: '12px', overflowX: 'auto' }}
       >
         {error ? (
           <div className={styles.errorBox}>
@@ -464,11 +476,14 @@ const UserLegalDocsManager = () => {
               showSizeChanger: true,
               size: 'small',
               showTotal: (total) => `Tổng cộng ${total} hồ sơ`,
+              pageSize: 10,
             }}
             loading={loading}
             onChange={handleTableChange}
             scroll={{ x: 'max-content' }}
             size="small"
+            bordered={false}
+            style={{ minWidth: '100%' }}
             locale={{
               emptyText: (
                 <div style={{ padding: '20px 0' }}>
@@ -501,6 +516,9 @@ const UserLegalDocsManager = () => {
           </Button>
         ]}
         width={700}
+        centered
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        style={{ top: 20 }}
       >
         {detailLoading ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -510,7 +528,7 @@ const UserLegalDocsManager = () => {
           <div className={styles.docDetail}>
             <Row gutter={[16, 16]}>
               <Col span={24}>
-                <Card size="small">
+                <Card size="small" bodyStyle={{ padding: '12px' }}>
                   <Row gutter={[16, 16]}>
                     <Col xs={24} md={12}>
                       <div className={styles.detailItem}>
@@ -546,8 +564,8 @@ const UserLegalDocsManager = () => {
               
               {docDetail.description && (
                 <Col span={24}>
-                  <Card title="Mô tả" size="small">
-                    <p>{docDetail.description}</p>
+                  <Card title="Mô tả" size="small" bodyStyle={{ padding: '12px' }}>
+                    <p style={{ margin: 0 }}>{docDetail.description}</p>
                   </Card>
                 </Col>
               )}

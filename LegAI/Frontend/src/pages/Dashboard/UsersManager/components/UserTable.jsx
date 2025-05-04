@@ -83,7 +83,7 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
               size="small" 
               icon={<DeleteOutlined />} 
               onClick={() => onDeleteUser(record)}
-              disabled={record.role === 'Admin' && record.id === 1}
+              disabled={record.role.toLowerCase() === 'admin' && record.id === 1}
             />
           </Tooltip>
         </Space>

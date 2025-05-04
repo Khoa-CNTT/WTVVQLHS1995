@@ -805,6 +805,66 @@ export const getAllTransactions = async (params = {}) => {
   }
 };
 
+/**
+ * Lấy danh sách phí pháp lý
+ * @returns {Promise<Object>} Kết quả API chứa danh sách phí pháp lý
+ */
+export const getFeeReferences = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/transactions/fee-references`, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phí pháp lý:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tạo mới phí pháp lý
+ * @param {Object} feeData Thông tin phí pháp lý
+ * @returns {Promise<Object>} Kết quả API chứa thông tin phí pháp lý đã tạo
+ */
+export const createFeeReference = async (feeData) => {
+  try {
+    const response = await axios.post(`${API_URL}/transactions/fee-references`, feeData, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi tạo phí pháp lý mới:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cập nhật phí pháp lý
+ * @param {number} id ID của phí pháp lý
+ * @param {Object} feeData Thông tin phí pháp lý cần cập nhật
+ * @returns {Promise<Object>} Kết quả API chứa thông tin phí pháp lý đã cập nhật
+ */
+export const updateFeeReference = async (id, feeData) => {
+  try {
+    const response = await axios.put(`${API_URL}/transactions/fee-references/${id}`, feeData, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi cập nhật phí pháp lý:', error);
+    throw error;
+  }
+};
+
+/**
+ * Xóa phí pháp lý
+ * @param {number} id ID của phí pháp lý
+ * @returns {Promise<Object>} Kết quả API
+ */
+export const deleteFeeReference = async (id) => {
+  try {
+    const response = await axios.delete(`${API_URL}/transactions/fee-references/${id}`, getHeaders());
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi xóa phí pháp lý:', error);
+    throw error;
+  }
+};
+
 export default {
   getLawyerTransactions,
   getLawyerFinancialStats,
@@ -817,5 +877,9 @@ export default {
   updateTransactionStatus,
   generateBankQRData,
   generateWalletQRData,
-  getAllTransactions
+  getAllTransactions,
+  getFeeReferences,
+  createFeeReference,
+  updateFeeReference,
+  deleteFeeReference
 }; 

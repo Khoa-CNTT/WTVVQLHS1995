@@ -17,11 +17,17 @@ import {
   BellOutlined,
   UserOutlined,
   FileOutlined,
-  FolderOpenOutlined
+  FolderOpenOutlined,
+  DashboardOutlined,
+  FileWordOutlined,
+  ContainerOutlined,
+  MoneyCollectOutlined,
+  SolutionOutlined
 } from '@ant-design/icons';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
 import authService from '../../services/authService';
+import userService from '../../services/userService';
 import 'animate.css';
 import LegalDocumentsManager from './LegalDocuments/LegalDocumentsManager';
 import DocumentTemplatesManager from './DocumentTemplates/DocumentTemplatesManager';
@@ -36,6 +42,7 @@ import ContractManagerAdmin from './ContractManager/ContractManagerAdmin';
 import AIConsultationManager from './AIConsultation/AIConsultationManager';
 import TransactionManager from './Transaction/TransactionManager';
 import LegalCaseManager from './LegalCase/LegalCaseManager';
+import FeeReferenceManager from './Fee/FeeReferenceManager';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -73,25 +80,51 @@ function Dashboard() {
     }
     setCurrentUser(user);
 
-    const targetCounts = { documents: 15, cases: 5, appointments: 3, contracts: 2 };
-    const duration = 1500;
-    const frameDuration = 1000 / 60;
-    const totalFrames = Math.round(duration / frameDuration);
-
-    let frame = 0;
-    const timer = setInterval(() => {
-      frame++;
-      const progress = frame / totalFrames;
-      setStatCounts(Object.fromEntries(
-        Object.keys(targetCounts).map(key => [key, Math.floor(progress * targetCounts[key])])
-      ));
-      if (frame === totalFrames) {
-        setStatCounts(targetCounts);
-        clearInterval(timer);
+    // Lấy dữ liệu thống kê thực từ API thay vì dữ liệu cứng
+    const fetchDashboardStats = async () => {
+      try {
+        // Gọi API để lấy thống kê
+        const response = await userService.getUserStats(user.id);
+        
+        if (response && response.status === 'success' && response.data) {
+          // Thiết lập animation để hiển thị số liệu
+          animateStatistics(response.data);
+        } else {
+          // Fallback nếu không lấy được dữ liệu từ API
+          const fallbackCounts = { documents: 0, cases: 0, appointments: 0, contracts: 0 };
+          animateStatistics(fallbackCounts);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy thống kê dashboard:', error);
+        // Fallback nếu API lỗi
+        const fallbackCounts = { documents: 0, cases: 0, appointments: 0, contracts: 0 };
+        animateStatistics(fallbackCounts);
       }
-    }, frameDuration);
+    };
+    
+    // Hàm animation hiển thị số liệu
+    const animateStatistics = (targetCounts) => {
+      const duration = 1500;
+      const frameDuration = 1000 / 60;
+      const totalFrames = Math.round(duration / frameDuration);
 
-    return () => clearInterval(timer);
+      let frame = 0;
+      const timer = setInterval(() => {
+        frame++;
+        const progress = frame / totalFrames;
+        setStatCounts(Object.fromEntries(
+          Object.keys(targetCounts).map(key => [key, Math.floor(progress * targetCounts[key])])
+        ));
+        if (frame === totalFrames) {
+          setStatCounts(targetCounts);
+          clearInterval(timer);
+        }
+      }, frameDuration);
+    };
+    
+    fetchDashboardStats();
+    
+    return () => {};
   }, [navigate]);
 
   useEffect(() => {
@@ -231,6 +264,7 @@ function Dashboard() {
     { key: 'tư-vấn-ai', label: 'Tư Vấn AI', icon: <RobotOutlined />, title: 'Hệ thống tư vấn AI' },
     { key: 'tin-nhắn', label: 'Tin Nhắn', icon: <MessageOutlined />, title: 'Hệ thống tin nhắn' },
     { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' },
+    { key: 'phí-pháp-lý', label: 'Phí pháp lý', icon: <DollarOutlined />, title: 'Quản lý phí pháp lý' },
   ];
 
   const userMenuItems = [
@@ -359,6 +393,8 @@ function Dashboard() {
       return <TransactionManager />;
     } else if (pathname === '/dashboard/legal-cases') {
       return <LegalCaseManager />;
+    } else if (pathname === '/dashboard/fee-references') {
+      return <FeeReferenceManager />;
     }
     
     // Các trường hợp khác dựa vào activeMenu
@@ -385,6 +421,8 @@ function Dashboard() {
         return <LegalCaseManager />;
       case 'users':
         return <UsersManagerPage />;
+      case 'phí-pháp-lý':
+        return <FeeReferenceManager />;
       default:
         return renderDashboardOverview();
     }

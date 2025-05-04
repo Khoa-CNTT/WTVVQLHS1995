@@ -17,7 +17,7 @@ const EditUserModal = ({ user, onSave, onClose }) => {
     phone: user.phone || '',
     address: user.address || '',
     bio: user.bio || '',
-    role: user.role || 'user',
+    role: user.role.toLowerCase() || 'user',
     is_verified: user.is_verified || false,
     is_locked: user.is_locked || false,
     failed_attempts: user.failed_attempts || 0,
@@ -169,8 +169,8 @@ const EditUserModal = ({ user, onSave, onClose }) => {
               rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
             >
               <Select>
-                <Option value="admin">Admin</Option>
-                <Option value="user">User</Option>
+                <Option value="admin">Quản trị viên</Option>
+                <Option value="user">Người dùng</Option>
                 <Option value="lawyer">Luật sư</Option>
               </Select>
             </Form.Item>

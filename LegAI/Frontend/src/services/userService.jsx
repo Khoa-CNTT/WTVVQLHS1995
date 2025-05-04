@@ -186,16 +186,19 @@ const getLawyerDetails = async (userId) => {
 // Lấy thống kê hoạt động của người dùng
 const getUserStats = async (userId) => {
   try {
-    const response = await userAxios.get(`/auth/users/${userId}/stats`);
-    return response.data.data;
+    const response = await userAxios.get(`/users/${userId}/stats`);
+    return response.data;
   } catch (error) {
     console.error('Lỗi lấy thống kê người dùng:', error);
     // Trả về dữ liệu trống nếu có lỗi
     return {
-      documents: 0,
-      cases: 0,
-      appointments: 0,
-      consultations: 0
+      status: 'error',
+      data: {
+        documents: 0,
+        cases: 0,
+        appointments: 0,
+        contracts: 0
+      }
     };
   }
 };

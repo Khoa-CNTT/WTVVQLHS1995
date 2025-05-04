@@ -19,13 +19,6 @@ router.get('/all', authorize('admin'), transactionController.getAllTransactions)
 // Routes dành cho luật sư
 router.get('/lawyer', authorize('lawyer'), transactionController.getLawyerTransactions);
 router.get('/lawyer/stats', authorize('lawyer'), transactionController.getLawyerFinancialStats);
-router.patch('/:id/confirm', authorize('lawyer'), transactionController.confirmPayment);
-
-// Lấy chi tiết giao dịch
-router.get('/:id', transactionController.getTransactionById);
-
-// Cập nhật trạng thái giao dịch
-router.patch('/:id/status', protect, transactionController.updateTransactionStatus);
 
 // Thêm route để lấy danh sách giao dịch theo case_id
 router.get('/case/:caseId', protect, async (req, res) => {
@@ -87,5 +80,30 @@ router.get('/case/:caseId', protect, async (req, res) => {
     });
   }
 });
+
+// ---- Routes quản lý phí pháp lý (FeeReferences) ----
+
+// Lấy danh sách phí pháp lý - KHÔNG CẦN XÁC THỰC
+router.get('/fee-references', transactionController.getFeeReferences);
+
+// Tạo mới phí pháp lý (chỉ admin)
+router.post('/fee-references', protect, authorize('admin'), transactionController.createFeeReference);
+
+// Cập nhật phí pháp lý (chỉ admin)
+router.put('/fee-references/:id', protect, authorize('admin'), transactionController.updateFeeReference);
+
+// Xóa phí pháp lý (chỉ admin)
+router.delete('/fee-references/:id', protect, authorize('admin'), transactionController.deleteFeeReference);
+
+// Các routes cho giao dịch cụ thể - ĐẶT PHÍA SAU các routes khác để tránh xung đột
+
+// Xác nhận thanh toán (chỉ luật sư)
+router.patch('/:id/confirm', authorize('lawyer'), transactionController.confirmPayment);
+
+// Lấy chi tiết giao dịch
+router.get('/:id', transactionController.getTransactionById);
+
+// Cập nhật trạng thái giao dịch
+router.patch('/:id/status', protect, transactionController.updateTransactionStatus);
 
 module.exports = router; 

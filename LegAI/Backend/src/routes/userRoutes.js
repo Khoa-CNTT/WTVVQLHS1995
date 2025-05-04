@@ -82,7 +82,7 @@ router.post('/change-password', authenticateToken, userController.changePassword
 router.get('/check-constraints', userController.checkDatabaseConstraints);
 
 // Route lấy thống kê người dùng
-router.get('/users/:userId/stats', authenticateToken, userController.getUserStats);
+router.get('/:userId/stats', userController.getUserStats);
 
 // Route đăng ký làm luật sư - Upload nhiều file với các fieldname khác nhau
 router.post('/register-lawyer', upload.fields([
