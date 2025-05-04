@@ -31,13 +31,13 @@ const Navbar = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    
+
     // Đảm bảo đóng menus khi chuyển trang
     setIsMenuOpen(false);
     setIsSearchOpen(false);
     setIsSideMenuOpen(false);
     setShowUserDropdown(false);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
@@ -68,31 +68,31 @@ const Navbar = () => {
 
   const toggleChat = (e, chatType) => {
     e.preventDefault();
-    
+
     // Nếu không chỉ định loại chat, thì mở menu buttons
     if (!chatType) {
       // Gửi event hiển thị các nút chat
-      const event = new CustomEvent('toggleChat', { 
-        detail: { 
+      const event = new CustomEvent('toggleChat', {
+        detail: {
           action: 'open',
           chatType: 'buttons' // Hiển thị các nút chat
-        } 
+        }
       });
       window.dispatchEvent(event);
       return;
     }
-    
+
     // Nếu có chỉ định loại chat (ai hoặc human), mở cửa sổ chat tương ứng
     const newChatOpenState = !isChatOpen;
     setIsChatOpen(newChatOpenState);
-    
+
     // Thông báo cho ChatManager thông qua một event với loại chat
-    const event = new CustomEvent('toggleChat', { 
-      detail: { 
+    const event = new CustomEvent('toggleChat', {
+      detail: {
         isOpen: newChatOpenState,
         action: newChatOpenState ? 'open' : 'close',
         chatType: chatType  // 'ai' hoặc 'human'
-      } 
+      }
     });
     window.dispatchEvent(event);
   };
@@ -116,7 +116,7 @@ const Navbar = () => {
     // Xác định trang Dashboard dựa vào vai trò người dùng
     if (currentUser) {
       const role = currentUser.role?.toLowerCase() || '';
-      
+
       if (role === 'admin') {
         navigate('/dashboard');
       } else if (role === 'lawyer') {
@@ -148,7 +148,7 @@ const Navbar = () => {
     setIsSearchOpen(false);
     setSearchTerm('');
   };
-  
+
   // Xử lý sự kiện nhấn phím trong ô tìm kiếm
   const handleSearchKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -173,146 +173,147 @@ const Navbar = () => {
       ${isHomePage ? styles.homeNavbar : ''}
     `}>
       <div className={styles.navbarContainer}>
-      <Link to="/" className={styles.logo}>
-        <img 
-          src="/logo.png" 
-          alt="Logo" 
-          className={styles.logoImg} 
-        />
-        <span className={styles.logoText}>LegAI</span>
-      </Link>
-      
-      <div className={isMenuOpen ? styles.navLinksOpen : styles.navLinks}>
-        <ul className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
-          <li>
-            <NavLink to="/">Trang chủ</NavLink>
-          </li>
-          <li>
-            <NavLink to="/legal-docs">Hồ sơ pháp lý</NavLink>
-          </li>
+        <Link to="/" className={styles.logo}>
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className={styles.logoImg}
+          />
+          <span className={styles.logoText}>LegAI</span>
+        </Link>
+
+        <div className={isMenuOpen ? styles.navLinksOpen : styles.navLinks}>
+          <ul className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
+            <li>
+              <NavLink to="/">Trang chủ</NavLink>
+            </li>
+            <li>
+              <NavLink to="/legal-docs">Hồ sơ pháp lý</NavLink>
+            </li>           
+            <li>
+              <NavLink to="/legal-cases">Vụ án pháp lý</NavLink>
+            </li>
             <li>
               <NavLink to="/contracts">Hợp đồng</NavLink>
             </li>
+
             <li>
-              <NavLink to="/legal-cases">Xử lý vụ án</NavLink>
+              <NavLink to="/services">Dịch vụ</NavLink>
             </li>
-          <li>
-            <NavLink to="/services">Dịch vụ</NavLink>
-          </li>
-          <li>
-            <NavLink to="/lawyers">Luật sư</NavLink>
-          </li>
-          <li>
-            <NavLink to="/documents">Văn bản pháp luật</NavLink>
-          </li>
-          <li>
-            <NavLink to="/templates">Mẫu đơn</NavLink>
-          </li>
-          <li>
-            <NavLink to="/news">Tin tức</NavLink>
-          </li>
-          <li>
-            <NavLink to="/contact">Liên hệ</NavLink>
-          </li>
-        </ul>
-      </div>
-      
-      <div className={styles.navIcons}>
-        <div className={`${styles.searchWrapper} ${isSearchOpen ? styles.searchActive : ''}`}>
-          <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
-            <i className="fas fa-search"></i>
-            <span className={styles.iconLabel}>Tìm kiếm</span>
-          </button>
-          <div className={styles.searchDropdown}>
-            <form onSubmit={handleSearch} className={styles.searchForm}>
-              <input 
-                type="text" 
-                placeholder="Tìm kiếm văn bản pháp luật, mẫu đơn..." 
-                className={styles.searchInput}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-              />
-              <button 
-                type="submit"
-                className={styles.searchBtn} 
-                aria-label="Tìm kiếm"
-              >
-                <i className="fas fa-search"></i>
-              </button>
-            </form>
-          </div>
+            <li>
+              <NavLink to="/lawyers">Luật sư</NavLink>
+            </li>
+            <li>
+              <NavLink to="/documents">Văn bản pháp luật</NavLink>
+            </li>
+            <li>
+              <NavLink to="/templates">Mẫu đơn</NavLink>
+            </li>
+            <li>
+              <NavLink to="/news">Tin tức</NavLink>
+            </li>
+            <li>
+              <NavLink to="/contact">Liên hệ</NavLink>
+            </li>
+          </ul>
         </div>
-        
-        
-        <div className={styles.rightControls}>
-          {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
-            <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>
-              <i className="fas fa-tachometer-alt"></i>
-              <span className={styles.iconLabel}>
-                {currentUser.role?.toLowerCase() === 'admin' ? 'Admin' : 'Luật Sư'}
-              </span>
+
+        <div className={styles.navIcons}>
+          <div className={`${styles.searchWrapper} ${isSearchOpen ? styles.searchActive : ''}`}>
+            <button onClick={toggleSearch} className={styles.icon} aria-label="Tìm kiếm">
+              <i className="fas fa-search"></i>
+              <span className={styles.iconLabel}>Tìm kiếm</span>
+            </button>
+            <div className={styles.searchDropdown}>
+              <form onSubmit={handleSearch} className={styles.searchForm}>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm văn bản pháp luật, mẫu đơn..."
+                  className={styles.searchInput}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                />
+                <button
+                  type="submit"
+                  className={styles.searchBtn}
+                  aria-label="Tìm kiếm"
+                >
+                  <i className="fas fa-search"></i>
+                </button>
+              </form>
             </div>
-          )}
-          
-          {currentUser ? (
-            <div className={styles.userMenuContainer}>
-              <div 
-                className={styles.userAvatar} 
-                onClick={toggleUserDropdown}
-              >
-                <span className={styles.userInitial}>{getUserInitials()}</span>
+          </div>
+
+
+          <div className={styles.rightControls}>
+            {currentUser && (currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'lawyer') && (
+              <div className={styles.icon} onClick={navigateToDashboard} title={currentUser.role?.toLowerCase() === 'admin' ? 'Bảng điều khiển Admin' : 'Bảng điều khiển Luật Sư'}>
+                <i className="fas fa-tachometer-alt"></i>
+                <span className={styles.iconLabel}>
+                  {currentUser.role?.toLowerCase() === 'admin' ? 'Admin' : 'Luật Sư'}
+                </span>
               </div>
-              
-              {showUserDropdown && (
-                <div className={styles.userDropdown}>
-                  <div className={styles.userInfo}>
-                    <div className={styles.userName}>{currentUser.fullName || currentUser.username}</div>
-                    <div className={styles.userEmail}>{currentUser.email}</div>
-                  </div>
-                  <div className={styles.userMenuDivider}></div>
-                  <div className={styles.userMenuItem} onClick={() => navigate('/profile')}>
-                    <i className="fas fa-user"></i> Hồ sơ
-                  </div>
-                  {currentUser.role?.toLowerCase() === 'admin' && (
-                    <div className={styles.userMenuItem} onClick={() => navigate('/dashboard')}>
-                      <i className="fas fa-tachometer-alt"></i> Quản trị
-                    </div>
-                  )}
-                  {currentUser.role?.toLowerCase() === 'lawyer' && (
-                    <div className={styles.userMenuItem} onClick={() => navigate('/lawyer-dashboard')}>
-                      <i className="fas fa-gavel"></i> Bảng điều khiển
-                    </div>
-                  )}
-                  <div className={styles.userMenuItem} onClick={handleLogout}>
-                    <i className="fas fa-sign-out-alt"></i> Đăng xuất
-                  </div>
+            )}
+
+            {currentUser ? (
+              <div className={styles.userMenuContainer}>
+                <div
+                  className={styles.userAvatar}
+                  onClick={toggleUserDropdown}
+                >
+                  <span className={styles.userInitial}>{getUserInitials()}</span>
                 </div>
-              )}
-            </div>
-          ) : (
-            <Link to="/login" className={`${styles.icon} ${styles.loginIcon}`}>
-              <i className="fas fa-user"></i>
-              <span className={styles.iconLabel}>Đăng nhập</span>
-            </Link>
-          )}
-          
+
+                {showUserDropdown && (
+                  <div className={styles.userDropdown}>
+                    <div className={styles.userInfo}>
+                      <div className={styles.userName}>{currentUser.fullName || currentUser.username}</div>
+                      <div className={styles.userEmail}>{currentUser.email}</div>
+                    </div>
+                    <div className={styles.userMenuDivider}></div>
+                    <div className={styles.userMenuItem} onClick={() => navigate('/profile')}>
+                      <i className="fas fa-user"></i> Hồ sơ
+                    </div>
+                    {currentUser.role?.toLowerCase() === 'admin' && (
+                      <div className={styles.userMenuItem} onClick={() => navigate('/dashboard')}>
+                        <i className="fas fa-tachometer-alt"></i> Quản trị
+                      </div>
+                    )}
+                    {currentUser.role?.toLowerCase() === 'lawyer' && (
+                      <div className={styles.userMenuItem} onClick={() => navigate('/lawyer-dashboard')}>
+                        <i className="fas fa-gavel"></i> Bảng điều khiển
+                      </div>
+                    )}
+                    <div className={styles.userMenuItem} onClick={handleLogout}>
+                      <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/login" className={`${styles.icon} ${styles.loginIcon}`}>
+                <i className="fas fa-user"></i>
+                <span className={styles.iconLabel}>Đăng nhập</span>
+              </Link>
+            )}
+
             <button onClick={toggleSideMenu} className={styles.menuButton} aria-label="Menu">
-            <div className={`${styles.hamburger} ${isSideMenuOpen ? styles.active : ''}`}>
-              <span className={styles.bar}></span>
-              <span className={styles.bar}></span>
-              <span className={styles.bar}></span>
-            </div>
-          </button>
+              <div className={`${styles.hamburger} ${isSideMenuOpen ? styles.active : ''}`}>
+                <span className={styles.bar}></span>
+                <span className={styles.bar}></span>
+                <span className={styles.bar}></span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Sử dụng component SideMenu */}
-      <SideMenu 
-        isOpen={isSideMenuOpen} 
-        onClose={toggleSideMenu} 
-        currentUser={currentUser} 
+      <SideMenu
+        isOpen={isSideMenuOpen}
+        onClose={toggleSideMenu}
+        currentUser={currentUser}
         onLogout={handleLogout}
       />
     </nav>

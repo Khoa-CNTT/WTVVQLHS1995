@@ -435,20 +435,28 @@ const LegalCaseEditor = () => {
         <Layout className={styles.legalCaseLayout}>
             <Navbar />
             <Content className={styles.legalCaseContent}>
-                <div className={styles.pageContainer}>
-                    <div className={styles.pageHeader}>
+                <div className={styles.pageContainer} style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 24px' }}>
+                    <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
                         <Button
                             type="link"
                             icon={<ArrowLeftOutlined />}
                             onClick={handleCancel}
                             className={styles.backButton}
+                            style={{ fontSize: '16px', color: '#3d5a80' }}
                         >
                             Quay lại
                         </Button>
-                        <Title level={2}>Chỉnh sửa vụ án</Title>
+                        <Title level={2} style={{ margin: '0 0 0 12px' }}>Chỉnh sửa vụ án</Title>
                     </div>
 
-                    <Card className={styles.createCaseCard}>
+                    <Card 
+                        className={styles.createCaseCard}
+                        style={{ 
+                            borderRadius: '12px',
+                            boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)',
+                            marginBottom: '24px'
+                        }}
+                    >
                         <Form
                             form={form}
                             layout={formLayout}
@@ -460,20 +468,36 @@ const LegalCaseEditor = () => {
                                 <Col span={24}>
                                     <Form.Item
                                         name="title"
-                                        label="Tiêu đề vụ án"
+                                        label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Tiêu đề vụ án</span>}
                                         rules={[{ required: true, message: 'Vui lòng nhập tiêu đề vụ án' }]}
                                     >
-                                        <Input placeholder="Nhập tiêu đề vụ án" maxLength={255} />
+                                        <Input 
+                                            placeholder="Nhập tiêu đề vụ án" 
+                                            maxLength={255} 
+                                            style={{ 
+                                                borderRadius: '6px', 
+                                                height: '45px', 
+                                                fontSize: '15px' 
+                                            }}
+                                        />
                                     </Form.Item>
                                 </Col>
                                 
                                 <Col span={12}>
                                     <Form.Item
                                         name="case_type"
-                                        label="Loại vụ án"
+                                        label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Loại vụ án</span>}
                                         rules={[{ required: true, message: 'Vui lòng chọn loại vụ án' }]}
                                     >
-                                        <Select placeholder="Chọn loại vụ án">
+                                        <Select 
+                                            placeholder="Chọn loại vụ án"
+                                            style={{ 
+                                                width: '100%',
+                                                borderRadius: '6px'
+                                            }}
+                                            dropdownStyle={{ borderRadius: '6px' }}
+                                            size="large"
+                                        >
                                             {caseTypes.map(type => (
                                                 <Option key={type.case_type} value={type.case_type}>
                                                     {type.case_type}
@@ -486,30 +510,54 @@ const LegalCaseEditor = () => {
                                 <Col span={24}>
                                     <Form.Item
                                         name="description"
-                                        label="Mô tả vụ án"
+                                        label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Mô tả vụ án</span>}
                                     >
                                         <TextArea
                                             placeholder="Nhập mô tả chi tiết về vụ án"
                                             autoSize={{ minRows: 3, maxRows: 5 }}
+                                            style={{ 
+                                                borderRadius: '6px', 
+                                                fontSize: '15px', 
+                                                padding: '12px'
+                                            }}
                                         />
                                     </Form.Item>
                                 </Col>
                                 
                                 <Col span={24}>
-                                    <Divider>Nội dung vụ án</Divider>
+                                    <Divider orientation="left">
+                                        <span style={{ fontSize: '18px', fontWeight: '600', color: '#3d5a80' }}>
+                                            Nội dung vụ án
+                                        </span>
+                                    </Divider>
                                     
                                     <Tabs
                                         activeKey={activeTab}
                                         onChange={handleTabChange}
                                         className={styles.caseTabs}
+                                        type="card"
+                                        size="large"
+                                        style={{ marginBottom: '20px' }}
                                     >
-                                        <TabPane tab="Nội dung văn bản" key="content">
-                                            <div className={styles.editorArea}>
-                                                <div className={styles.editorToolbar}>
+                                        <TabPane 
+                                            tab={
+                                                <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center' }}>
+                                                    <FileTextOutlined style={{ marginRight: '8px' }} /> Nội dung văn bản
+                                                </span>
+                                            } 
+                                            key="content"
+                                        >
+                                            <div className={styles.editorArea} style={{ backgroundColor: '#f9fafc', padding: '20px', borderRadius: '8px' }}>
+                                                <div className={styles.editorToolbar} style={{ marginBottom: '15px', display: 'flex', justifyContent: 'flex-end' }}>
                                                     <Button 
                                                         type="primary" 
                                                         icon={<RobotOutlined />}
                                                         onClick={handleOpenAIModal}
+                                                        style={{
+                                                            borderRadius: '6px',
+                                                            height: '40px',
+                                                            fontWeight: '500'
+                                                        }}
                                                     >
                                                         Trợ giúp AI
                                                     </Button>
@@ -518,38 +566,78 @@ const LegalCaseEditor = () => {
                                                     value={editableDraft}
                                                     onChange={handleFileContentChange}
                                                     placeholder="Nhập nội dung văn bản vụ án..."
-                                                    autoSize={{ minRows: 15, maxRows: 30 }}
+                                                    autoSize={{ minRows: 20, maxRows: 30 }}
                                                     className={styles.contentEditor}
+                                                    style={{ 
+                                                        borderRadius: '8px', 
+                                                        fontSize: '16px', 
+                                                        padding: '16px',
+                                                        lineHeight: '1.8',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                                        border: '1px solid #d9e1ec',
+                                                        minHeight: '500px'
+                                                    }}
                                                 />
                                             </div>
                                         </TabPane>
                                         
-                                        <TabPane tab="Tải lên tài liệu" key="upload">
-                                            <div className={styles.uploadArea}>
+                                        <TabPane 
+                                            tab={
+                                                <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center' }}>
+                                                    <UploadOutlined style={{ marginRight: '8px' }} /> Tải lên tài liệu
+                                                </span>
+                                            } 
+                                            key="upload"
+                                        >
+                                            <div className={styles.uploadArea} style={{ padding: '20px', backgroundColor: '#f9fafc', borderRadius: '8px' }}>
                                                 <Upload
                                                     name="file"
                                                     fileList={fileList}
                                                     onChange={handleFileChange}
                                                     beforeUpload={() => false}
                                                     maxCount={1}
+                                                    style={{ 
+                                                        width: '100%',
+                                                        padding: '30px',
+                                                        border: '2px dashed #d9e1ec',
+                                                        borderRadius: '8px',
+                                                        backgroundColor: '#f5f7fa',
+                                                        textAlign: 'center'
+                                                    }}
                                                 >
-                                                    <Button icon={<UploadOutlined />}>Chọn file</Button>
+                                                    <Button 
+                                                        icon={<UploadOutlined />}
+                                                        style={{ 
+                                                            height: '45px',
+                                                            borderRadius: '6px',
+                                                            fontWeight: '500'
+                                                        }}
+                                                    >
+                                                        Chọn file
+                                                    </Button>
                                                 </Upload>
                                                 
-                                                <div className={styles.fileTypeNote}>
+                                                <div className={styles.fileTypeNote} style={{ marginTop: '15px', textAlign: 'center' }}>
                                                     <Text type="secondary">Hỗ trợ các định dạng: .pdf, .docx, .doc, .txt</Text>
                                                 </div>
                                                 
                                                 {fileProcessing && (
-                                                    <div className={styles.processingNote}>
+                                                    <div className={styles.processingNote} style={{ marginTop: '15px', textAlign: 'center' }}>
                                                         <Spin size="small" />
                                                         <Text style={{ marginLeft: 8 }}>Đang xử lý file...</Text>
                                                     </div>
                                                 )}
                                                 
                                                 {showFileEditor && fileType && (
-                                                    <div className={styles.filePreview}>
-                                                        <div className={styles.fileInfo}>
+                                                    <div className={styles.filePreview} style={{ marginTop: '25px' }}>
+                                                        <div className={styles.fileInfo} style={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'center',
+                                                            padding: '10px 15px',
+                                                            backgroundColor: '#e6f7ff',
+                                                            borderRadius: '6px',
+                                                            marginBottom: '15px'
+                                                        }}>
                                                             {getFileIcon()}
                                                             <Text strong style={{ marginLeft: 8 }}>
                                                                 {selectedFile ? selectedFile.name : (fileList[0]?.name || 'Tài liệu')}
@@ -569,9 +657,18 @@ const LegalCaseEditor = () => {
                                                                 value={editableDraft}
                                                                 onChange={handleFileContentChange}
                                                                 placeholder="Nội dung tài liệu..."
-                                                                autoSize={{ minRows: 15, maxRows: 30 }}
+                                                                autoSize={{ minRows: 20, maxRows: 30 }}
                                                                 className={styles.contentEditor}
-                                                                style={{ backgroundColor: '#f5f5f5',width: '100%',minWidth: '700px' }}
+                                                                style={{ 
+                                                                    borderRadius: '8px', 
+                                                                    fontSize: '16px', 
+                                                                    padding: '16px',
+                                                                    lineHeight: '1.8',
+                                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                                                    border: '1px solid #d9e1ec',
+                                                                    width: '100%',
+                                                                    minHeight: '500px'
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
@@ -583,9 +680,17 @@ const LegalCaseEditor = () => {
                                 
                                 <Col span={24} style={{ marginTop: 20 }}>
                                     <Divider />
-                                    <div className={styles.formActions}>
+                                    <div className={styles.formActions} style={{ textAlign: 'center' }}>
                                         <Space size="middle">
-                                            <Button onClick={handleCancel}>
+                                            <Button 
+                                                onClick={handleCancel}
+                                                style={{ 
+                                                    height: '45px',
+                                                    minWidth: '100px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '15px'
+                                                }}
+                                            >
                                                 Hủy
                                             </Button>
                                             <Button 
@@ -593,6 +698,13 @@ const LegalCaseEditor = () => {
                                                 htmlType="submit" 
                                                 loading={submitting}
                                                 icon={<SaveOutlined />}
+                                                style={{ 
+                                                    height: '45px',
+                                                    minWidth: '150px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '15px',
+                                                    fontWeight: '500'
+                                                }}
                                             >
                                                 Lưu thay đổi
                                             </Button>
@@ -608,14 +720,14 @@ const LegalCaseEditor = () => {
                 <Modal
                     title={
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <RobotOutlined style={{ fontSize: '20px', marginRight: '10px' }} /> 
+                            <RobotOutlined style={{ fontSize: '20px', marginRight: '10px', color: '#3d5a80' }} /> 
                             <span>Trợ giúp AI chỉnh sửa nội dung</span>
                         </div>
                     }
                     open={showAIModal}
                     onCancel={handleCloseAIModal}
                     footer={[
-                        <Button key="cancel" onClick={handleCloseAIModal}>
+                        <Button key="cancel" onClick={handleCloseAIModal} style={{ borderRadius: '6px' }}>
                             Hủy
                         </Button>,
                         <Button 
@@ -624,6 +736,7 @@ const LegalCaseEditor = () => {
                             onClick={handleAIEdit}
                             loading={aiProcessing}
                             disabled={!aiPrompt.trim()}
+                            style={{ borderRadius: '6px' }}
                         >
                             <SendOutlined /> Gửi yêu cầu
                         </Button>,
@@ -632,22 +745,35 @@ const LegalCaseEditor = () => {
                             type="primary" 
                             onClick={handleApplyAIResult}
                             disabled={!aiResult}
-                            style={{ display: aiResult ? 'inline-block' : 'none' }}
+                            style={{ 
+                                display: aiResult ? 'inline-block' : 'none',
+                                borderRadius: '6px',
+                                backgroundColor: '#52c41a',
+                                borderColor: '#52c41a'
+                            }}
                         >
                             Áp dụng
                         </Button>
                     ]}
                     width={800}
+                    style={{ borderRadius: '12px' }}
+                    bodyStyle={{ padding: '20px' }}
                 >
                     <div className={styles.aiModalContent}>
                         <div className={styles.aiPromptArea}>
-                            <Text strong>Nhập yêu cầu cho AI:</Text>
+                            <Text strong style={{ fontSize: '16px' }}>Nhập yêu cầu cho AI:</Text>
                             <TextArea
                                 value={aiPrompt}
                                 onChange={(e) => setAIPrompt(e.target.value)}
                                 placeholder="Ví dụ: Tóm tắt nội dung tài liệu này, Thêm phần phân tích pháp lý, Sửa lỗi chính tả, Hãy viết rõ phần trách nhiệm của các bên, v.v."
                                 autoSize={{ minRows: 3, maxRows: 6 }}
-                                style={{ marginTop: '10px', marginBottom: '15px' }}
+                                style={{ 
+                                    marginTop: '10px', 
+                                    marginBottom: '15px',
+                                    borderRadius: '8px',
+                                    fontSize: '15px',
+                                    padding: '12px'
+                                }}
                             />
                             <Text type="secondary">
                                 Hãy mô tả chi tiết những gì bạn muốn AI thay đổi trong nội dung hiện tại.
@@ -662,12 +788,22 @@ const LegalCaseEditor = () => {
                         
                         {aiResult && (
                             <div className={styles.aiResultArea}>
-                                <Divider>Kết quả từ AI</Divider>
+                                <Divider orientation="left">
+                                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#3d5a80' }}>
+                                        Kết quả từ AI
+                                    </span>
+                                </Divider>
                                 <div className={styles.aiResultContent}>
                                     <TextArea
                                         value={aiResult}
                                         readOnly
                                         autoSize={{ minRows: 10, maxRows: 20 }}
+                                        style={{ 
+                                            borderRadius: '8px',
+                                            fontSize: '15px',
+                                            padding: '12px',
+                                            backgroundColor: '#f9fafc'
+                                        }}
                                     />
                                 </div>
                             </div>

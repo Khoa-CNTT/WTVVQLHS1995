@@ -16,6 +16,8 @@ import authService from '../../services/authService';
 import legalService from '../../services/legalService';
 import { FaHeadset, FaFileContract, FaArchive, FaRobot, FaSearch, FaChevronLeft, FaChevronRight, FaBook, FaGavel, FaUniversity, FaRegFileAlt, FaRegFilePdf, FaCalendarAlt, FaBriefcase, FaBuilding, FaHome, FaBalanceScale } from 'react-icons/fa';
 import { GiHandcuffs } from 'react-icons/gi';
+import moment from 'moment';
+import 'moment/locale/vi';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -127,6 +129,13 @@ const Home = () => {
     }
   };
 
+  // Định dạng ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Không có ngày';
+    moment.locale('vi');
+    return moment(dateString).format('DD/MM/YYYY');
+  };
+
   // Xử lý tìm kiếm
   const handleSearch = (e) => {
     e.preventDefault();
@@ -135,15 +144,9 @@ const Home = () => {
     }
   };
 
-  // Định dạng ngày tháng
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Không có ngày';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(date);
+  // Xử lý chuyển hướng đến trang chi tiết văn bản
+  const handleDocumentClick = (documentId) => {
+    navigate(`/legal/documents/${documentId}`);
   };
 
   // Dữ liệu cho các lĩnh vực pháp lý
@@ -396,19 +399,31 @@ const Home = () => {
                   <div 
                     key={index} 
                     className={`${styles.recentDocCard} ${styles.fadeInRight}`}
-                    onClick={() => navigate(`legal/documents/${doc.id}`)}
+                    onClick={() => handleDocumentClick(doc.id)}
                   >
-                    <div className={styles.recentDocMeta}>
-                      <span className={styles.recentDocType}>{doc.document_type}</span>
-                      <span className={styles.recentDocDate}>
-                        <FaCalendarAlt />
-                        {formatDate(doc.issued_date)}
-                      </span>
+                    <div className={styles.recentDocImage}>
+                      <img 
+                        src="https://images.unsplash.com/photo-1505663912202-ac22d4cb3707?q=80&w=2070&auto=format&fit=crop" 
+                        alt={doc.title} 
+                      />
+                      <div className={styles.recentDocOverlay}></div>
+                      <div className={styles.recentDocType}>{doc.document_type}</div>
                     </div>
-                    <h3 className={styles.recentDocTitle}>{doc.title}</h3>
-                    <p className={styles.recentDocSummary}>
-                      {doc.summary ? (doc.summary.length > 120 ? doc.summary.substring(0, 120) + '...' : doc.summary) : 'Không có tóm tắt'}
-                    </p>
+                    <div className={styles.recentDocContent}>
+                      <h3 className={styles.recentDocTitle}>{doc.title}</h3>
+                      <div className={styles.recentDocInfo}>
+                        <span><i className="fa-solid fa-bookmark"></i> {doc.document_type}</span>
+                        <span><i className="fa-solid fa-calendar"></i> {formatDate(doc.issued_date)}</span>
+                      </div>
+                      <p className={styles.recentDocSummary}>
+                        {doc.summary ? (doc.summary.length > 120 ? doc.summary.substring(0, 120) + '...' : doc.summary) : 'Không có tóm tắt'}
+                      </p>
+                      <div className={styles.recentDocFooter}>
+                        <button className={styles.viewDetailButton}>
+                          Xem chi tiết <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               ) : (

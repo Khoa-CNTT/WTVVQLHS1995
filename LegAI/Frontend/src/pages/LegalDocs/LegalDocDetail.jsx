@@ -7,6 +7,7 @@ import * as legalDocAIService from '../../services/legalDocAIService';
 import Spinner from '../../components/Common/Spinner';
 import DocShareModal from './components/DocShareModal';
 import DocAnalysisModal from './components/DocAnalysisModal';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 
 const LegalDocDetail = () => {
   const { id } = useParams();
@@ -17,6 +18,8 @@ const LegalDocDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
   const [editForm, setEditForm] = useState({
     title: '',
@@ -453,13 +456,13 @@ const LegalDocDetail = () => {
   };
 
   // Xử lý xóa
-  const handleDelete = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hồ sơ này không?')) {
-      return;
-    }
-    
+  const handleShowDeleteConfirm = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     try {
-      setIsLoading(true);
+      setIsDeleting(true);
       const response = await legalDocService.deleteLegalDoc(id);
       
       if (response.success) {
@@ -472,7 +475,7 @@ const LegalDocDetail = () => {
       console.error('Lỗi khi xóa hồ sơ:', error);
       toast.error('Có lỗi xảy ra khi xóa hồ sơ');
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -756,7 +759,7 @@ const LegalDocDetail = () => {
               
               <button
                 className={`${styles.actionButton} ${styles.deleteButton}`}
-                onClick={handleDelete}
+                onClick={handleShowDeleteConfirm}
                 title="Xóa"
               >
                 <i className="fas fa-trash-alt"></i>
@@ -1196,6 +1199,16 @@ const LegalDocDetail = () => {
           doc={doc}
           onClose={() => setShowAnalysisModal(false)}
           onComplete={handleAnalysisComplete}
+        />
+      )}
+      
+      {/* Modal xác nhận xóa */}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          doc={doc}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteConfirm}
+          isDeleting={isDeleting}
         />
       )}
     </div>

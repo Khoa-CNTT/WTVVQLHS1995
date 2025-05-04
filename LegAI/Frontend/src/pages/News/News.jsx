@@ -4,6 +4,9 @@ import styles from './News.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import PageTransition from '../../components/layout/TransitionPage/PageTransition';
 import ChatManager from '../../components/layout/Chat/ChatManager';
+import legalService from '../../services/legalService';
+import moment from 'moment';
+import 'moment/locale/vi';
 
 const News = () => {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -11,184 +14,121 @@ const News = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [featuredDocuments, setFeaturedDocuments] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 6;
 
-  // Danh mục tin tức
+  // Danh mục tin tức - sử dụng các loại văn bản pháp luật
   const categories = [
     { id: 'all', name: 'Tất cả' },
-    { id: 'legal-updates', name: 'Cập nhật pháp luật' },
-    { id: 'case-studies', name: 'Án lệ' },
-    { id: 'business-law', name: 'Pháp luật doanh nghiệp' },
-    { id: 'civil-law', name: 'Pháp luật dân sự' },
-    { id: 'criminal-law', name: 'Pháp luật hình sự' }
+    { id: 'luật', name: 'Luật' },
+    { id: 'nghị định', name: 'Nghị định' },
+    { id: 'thông tư', name: 'Thông tư' },
+    { id: 'quyết định', name: 'Quyết định' },
+    { id: 'nghị quyết', name: 'Nghị quyết' }
   ];
 
-  // Dữ liệu mẫu tin tức
-  const newsData = [
-    {
-      id: 1,
-      title: 'Luật Đất đai 2024: Những thay đổi quan trọng',
-      category: 'legal-updates',
-      date: '28/05/2024',
-      author: 'Luật sư Nguyễn Văn Minh',
-      summary: 'Luật Đất đai 2024 có hiệu lực từ 01/08/2024 với nhiều điểm mới đáng chú ý về quyền sử dụng đất và các quy định về bồi thường giải phóng mặt bằng.',
-      image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop',
-      views: 1250,
-      featured: true
-    },
-    {
-      id: 2,
-      title: 'Án lệ số 56/2024/AL: Hướng dẫn xử lý tranh chấp hợp đồng chuyển nhượng quyền sử dụng đất',
-      category: 'case-studies',
-      date: '15/05/2024',
-      author: 'Luật sư Trần Thị Hương',
-      summary: 'Hội đồng Thẩm phán TAND Tối cao đã ban hành án lệ mới về giải quyết tranh chấp hợp đồng chuyển nhượng quyền sử dụng đất khi không đủ điều kiện công chứng.',
-      image: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=2070&auto=format&fit=crop',
-      views: 845,
-      featured: false
-    },
-    {
-      id: 3,
-      title: 'Những điểm mới trong Bộ luật Lao động sửa đổi 2024',
-      category: 'legal-updates',
-      date: '10/05/2024',
-      author: 'Luật sư Lê Thanh Tùng',
-      summary: 'Bộ luật Lao động sửa đổi 2024 bổ sung nhiều quy định mới về thời giờ làm việc, nghỉ ngơi và chế độ bảo hiểm xã hội, có lợi hơn cho người lao động.',
-      image: 'https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?q=80&w=2047&auto=format&fit=crop',
-      views: 980,
-      featured: true
-    },
-    {
-      id: 4,
-      title: 'Hướng dẫn chi tiết thủ tục đăng ký thành lập doanh nghiệp trực tuyến',
-      category: 'business-law',
-      date: '05/05/2024',
-      author: 'Luật sư Phạm Minh Hiếu',
-      summary: 'Bài viết hướng dẫn chi tiết các bước đăng ký thành lập doanh nghiệp qua Cổng thông tin quốc gia về đăng ký doanh nghiệp, giúp tiết kiệm thời gian và chi phí.',
-      image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=2071&auto=format&fit=crop',
-      views: 1120,
-      featured: false
-    },
-    {
-      id: 5,
-      title: 'Tòa án tuyên án vụ tranh chấp tài sản thừa kế lớn nhất năm 2024',
-      category: 'civil-law',
-      date: '28/04/2024',
-      author: 'Luật sư Nguyễn Thị Mai',
-      summary: 'TAND TP.HCM vừa tuyên án vụ tranh chấp tài sản thừa kế trị giá hơn 1.000 tỷ đồng, thiết lập tiền lệ mới trong việc giải quyết các tranh chấp thừa kế phức tạp.',
-      image: 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?q=80&w=1974&auto=format&fit=crop',
-      views: 1650,
-      featured: true
-    },
-    {
-      id: 6,
-      title: 'Quy định mới về bảo vệ dữ liệu cá nhân trong lĩnh vực tài chính-ngân hàng',
-      category: 'legal-updates',
-      date: '20/04/2024',
-      author: 'Luật sư Trần Văn Hoàng',
-      summary: 'Ngân hàng Nhà nước ban hành thông tư mới về bảo vệ dữ liệu cá nhân trong lĩnh vực tài chính-ngân hàng, tăng cường bảo mật thông tin khách hàng.',
-      image: 'https://images.unsplash.com/photo-1434626881859-194d67b2b86f?q=80&w=2074&auto=format&fit=crop',
-      views: 765,
-      featured: false
-    },
-    {
-      id: 7,
-      title: 'Hướng dẫn xử lý vụ án hình sự liên quan đến tội phạm mạng',
-      category: 'criminal-law',
-      date: '15/04/2024',
-      author: 'Luật sư Nguyễn Đức Thành',
-      summary: 'Viện Kiểm sát nhân dân tối cao ban hành hướng dẫn mới về xử lý các vụ án hình sự liên quan đến tội phạm mạng, tăng cường công tác đấu tranh với loại tội phạm ngày càng phức tạp này.',
-      image: 'https://images.unsplash.com/photo-1633265486501-0cf524a07213?q=80&w=2070&auto=format&fit=crop',
-      views: 890,
-      featured: false
-    },
-    {
-      id: 8,
-      title: 'Án lệ mới về giải quyết tranh chấp hợp đồng vay tài sản',
-      category: 'case-studies',
-      date: '10/04/2024',
-      author: 'Luật sư Phạm Thị Lan',
-      summary: 'Án lệ số 55/2024/AL của TAND Tối cao hướng dẫn cách xác định thời hiệu khởi kiện trong các tranh chấp hợp đồng vay tài sản không có thời hạn trả.',
-      image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=1912&auto=format&fit=crop',
-      views: 720,
-      featured: false
-    },
-    {
-      id: 9,
-      title: 'Quy định mới về bảo vệ quyền lợi người tiêu dùng trong thương mại điện tử',
-      category: 'legal-updates',
-      date: '05/04/2024',
-      author: 'Luật sư Lê Thanh Tùng',
-      summary: 'Bộ Công Thương vừa ban hành thông tư quy định chi tiết về trách nhiệm của các sàn thương mại điện tử trong việc bảo vệ quyền lợi người tiêu dùng.',
-      image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=2070&auto=format&fit=crop',
-      views: 855,
-      featured: false
-    },
-    {
-      id: 10,
-      title: 'Luật Thuế thu nhập doanh nghiệp sửa đổi: Cơ hội cho doanh nghiệp nhỏ và vừa',
-      category: 'business-law',
-      date: '01/04/2024',
-      author: 'Luật sư Phạm Minh Hiếu',
-      summary: 'Luật Thuế thu nhập doanh nghiệp sửa đổi có hiệu lực từ 01/07/2024 với nhiều ưu đãi và miễn giảm thuế cho doanh nghiệp nhỏ và vừa, khuyến khích đầu tư vào công nghệ cao.',
-      image: 'https://images.unsplash.com/photo-1543286386-713bdd548da4?q=80&w=2070&auto=format&fit=crop',
-      views: 930,
-      featured: true
-    },
-    {
-      id: 11,
-      title: 'Giải quyết tranh chấp hợp đồng mua bán nhà hình thành trong tương lai',
-      category: 'civil-law',
-      date: '28/03/2024',
-      author: 'Luật sư Nguyễn Thị Mai',
-      summary: 'Bài viết phân tích các vướng mắc pháp lý và cách giải quyết tranh chấp phát sinh từ hợp đồng mua bán nhà hình thành trong tương lai, bảo vệ quyền lợi người mua nhà.',
-      image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop',
-      views: 810,
-      featured: false
-    },
-    {
-      id: 12,
-      title: 'Xử lý nghiêm các hành vi vi phạm trong lĩnh vực an toàn thực phẩm',
-      category: 'criminal-law',
-      date: '20/03/2024',
-      author: 'Luật sư Nguyễn Đức Thành',
-      summary: 'Cơ quan chức năng tăng cường xử lý hình sự các hành vi vi phạm nghiêm trọng trong lĩnh vực an toàn thực phẩm, bảo vệ sức khỏe người tiêu dùng.',
-      image: 'https://images.unsplash.com/photo-1563739017251-8421d07b0839?q=80&w=1074&auto=format&fit=crop',
-      views: 695,
-      featured: false
-    }
-  ];
-
-  // Hiệu ứng
+  // Lấy dữ liệu văn bản pháp luật từ API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    const fetchLegalDocuments = async () => {
+      setIsLoading(true);
+      try {
+        // Lấy tất cả văn bản pháp luật có thể
+        const response = await legalService.getLegalDocuments({
+          page: 1,
+          limit: 500, // Tăng limit lên rất cao để lấy tất cả văn bản
+        });
+
+        if (response && response.data) {
+          // Lưu toàn bộ dữ liệu
+          setDocuments(response.data);
+          setTotalItems(response.pagination?.total || response.data.length);
+          
+          // Lấy 3 văn bản mới nhất làm featured
+          const featured = [...response.data]
+            .sort((a, b) => new Date(b.issued_date || 0) - new Date(a.issued_date || 0))
+            .slice(0, 3);
+          
+          setFeaturedDocuments(featured);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy dữ liệu văn bản pháp luật:', error);
+        setIsLoading(false);
+        
+        // Thử lấy dữ liệu ở nhiều trang nếu API giới hạn số lượng trên một trang
+        try {
+          const allDocuments = [];
+          let currentPage = 1;
+          let hasMoreData = true;
+          const pageSize = 100;
+          
+          while (hasMoreData && currentPage <= 5) { // Lấy tối đa 5 trang (500 văn bản)
+            const pageResponse = await legalService.getLegalDocuments({
+              page: currentPage,
+              limit: pageSize,
+            });
+            
+            if (pageResponse && pageResponse.data && pageResponse.data.length > 0) {
+              allDocuments.push(...pageResponse.data);
+              
+              // Kiểm tra xem còn dữ liệu không
+              hasMoreData = pageResponse.data.length >= pageSize;
+              currentPage++;
+            } else {
+              hasMoreData = false;
+            }
+          }
+          
+          if (allDocuments.length > 0) {
+            setDocuments(allDocuments);
+            setTotalItems(allDocuments.length);
+            
+            // Lấy 3 văn bản mới nhất làm featured
+            const featured = [...allDocuments]
+              .sort((a, b) => new Date(b.issued_date || 0) - new Date(a.issued_date || 0))
+              .slice(0, 3);
+              
+            setFeaturedDocuments(featured);
+          }
+          
+          setIsLoading(false);
+        } catch (fallbackError) {
+          console.error('Lỗi khi lấy dữ liệu từ nhiều trang:', fallbackError);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchLegalDocuments();
   }, []);
 
-  // Lọc bài viết theo danh mục và từ khóa tìm kiếm
+  // Lọc văn bản theo danh mục và từ khóa tìm kiếm
   useEffect(() => {
-    let filtered = [...newsData];
+    let filtered = [...documents];
     
-    // Lọc theo danh mục
+    // Lọc theo danh mục (loại văn bản) - không phân biệt hoa thường
     if (activeCategory !== 'all') {
-      filtered = filtered.filter(item => item.category === activeCategory);
+      const categoryLower = activeCategory.toLowerCase();
+      filtered = filtered.filter(doc => 
+        doc.document_type && doc.document_type.toLowerCase().includes(categoryLower)
+      );
     }
     
     // Lọc theo từ khóa tìm kiếm
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(term) || 
-        item.summary.toLowerCase().includes(term) ||
-        item.author.toLowerCase().includes(term)
+      filtered = filtered.filter(doc => 
+        (doc.title ? doc.title.toLowerCase().includes(term) : false) || 
+        (doc.summary ? doc.summary.toLowerCase().includes(term) : false) ||
+        (doc.document_type ? doc.document_type.toLowerCase().includes(term) : false)
       );
     }
     
     setVisibleNews(filtered);
     setCurrentPage(1); // Reset về trang 1 khi thay đổi bộ lọc
-  }, [activeCategory, searchTerm]);
+  }, [activeCategory, searchTerm, documents]);
 
   // Xử lý phân trang
   const totalPages = Math.ceil(visibleNews.length / itemsPerPage);
@@ -209,6 +149,18 @@ const News = () => {
     // Đã được xử lý bằng useEffect khi searchTerm thay đổi
   };
 
+  // Định dạng ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Không có ngày';
+    moment.locale('vi');
+    return moment(dateString).format('DD/MM/YYYY');
+  };
+
+  // Xử lý chuyển hướng đến trang chi tiết văn bản
+  const handleDocumentClick = (documentId) => {
+    window.location.href = `/legal/documents/${documentId}`;
+  };
+
   // Hiệu ứng
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -227,35 +179,40 @@ const News = () => {
     }
   };
 
-  // Component hiển thị bài viết nổi bật
+  // Component hiển thị văn bản nổi bật
   const FeaturedNews = () => {
-    const featuredItems = newsData.filter(item => item.featured).slice(0, 3);
+    if (featuredDocuments.length === 0) {
+      return <div className={styles.loadingContainer}>Không có văn bản nổi bật</div>;
+    }
     
+    // Hiển thị 3 văn bản mới nhất làm featured
     return (
       <div className={styles.featuredSection}>
-        {featuredItems.map((item, index) => (
+        {featuredDocuments.map((doc, index) => (
           <div 
-            key={item.id} 
+            key={doc.id} 
             className={`${styles.featuredItem} ${index === 0 ? styles.mainFeature : ''}`}
-            onClick={() => window.location.href = `/news/${item.id}`}
+            onClick={() => handleDocumentClick(doc.id)}
           >
             <div className={styles.featuredImage}>
-              <img src={item.image} alt={item.title} />
+              <img 
+                src="https://images.unsplash.com/photo-1505663912202-ac22d4cb3707?q=80&w=2070&auto=format&fit=crop" 
+                alt={doc.title} 
+              />
               <div className={styles.featuredOverlay}></div>
               <div className={styles.featuredCategory}>
-                {categories.find(cat => cat.id === item.category)?.name}
+                {doc.document_type || 'Văn bản pháp luật'}
               </div>
             </div>
             <div className={styles.featuredContent}>
-              <h3>{item.title}</h3>
+              <h3>{doc.title}</h3>
               <div className={styles.newsInfo}>
-                <span><i className="fa-solid fa-user"></i> {item.author}</span>
-                <span><i className="fa-solid fa-calendar"></i> {item.date}</span>
-                <span><i className="fa-solid fa-eye"></i> {item.views}</span>
+                <span><i className="fa-solid fa-bookmark"></i> {doc.document_type}</span>
+                <span><i className="fa-solid fa-calendar"></i> {formatDate(doc.issued_date)}</span>
               </div>
-              <p>{item.summary}</p>
+              <p>{doc.summary || 'Văn bản pháp luật mới được ban hành, bao gồm những quy định quan trọng ảnh hưởng đến nhiều lĩnh vực của đời sống xã hội và hoạt động kinh doanh.'}</p>
               <button className={styles.readMoreButton}>
-                Đọc tiếp <i className="fa-solid fa-arrow-right"></i>
+                Xem chi tiết <i className="fa-solid fa-arrow-right"></i>
               </button>
             </div>
           </div>
@@ -327,19 +284,26 @@ const News = () => {
           <div className={styles.newsHero}>
             <div className={styles.heroOverlay}></div>
             <div className={styles.heroContent}>
-              <h1>Tin Tức Pháp Luật</h1>
-              <p>Cập nhật thông tin pháp luật mới nhất và những phân tích chuyên sâu</p>
+              <h1>Văn Bản Pháp Luật Mới</h1>
+              <p>Cập nhật thông tin pháp luật mới nhất và những văn bản quan trọng</p>
             </div>
           </div>
 
           <div className={styles.newsContent}>
-            {/* Các bài viết nổi bật */}
+            {/* Các văn bản nổi bật */}
             <div className={styles.sectionHeader}>
-              <h2>Bài Viết Nổi Bật</h2>
+              <h2>Văn Bản Mới Ban Hành</h2>
               <div className={styles.titleBar}></div>
             </div>
             
-            <FeaturedNews />
+            {isLoading ? (
+              <div className={styles.loadingContainer}>
+                <div className={styles.spinner}></div>
+                <p>Đang tải văn bản...</p>
+              </div>
+            ) : (
+              <FeaturedNews />
+            )}
 
             {/* Bộ lọc và tìm kiếm */}
             <div className={styles.filterSection}>
@@ -358,7 +322,7 @@ const News = () => {
               <form className={styles.searchForm} onSubmit={handleSearch}>
                 <input 
                   type="text"
-                  placeholder="Tìm kiếm bài viết..."
+                  placeholder="Tìm kiếm văn bản..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -368,16 +332,16 @@ const News = () => {
               </form>
             </div>
 
-            {/* Danh sách bài viết */}
+            {/* Danh sách văn bản */}
             <div className={styles.sectionHeader}>
-              <h2>Tin Tức Mới Nhất</h2>
+              <h2>Văn Bản Pháp Luật</h2>
               <div className={styles.titleBar}></div>
             </div>
             
             {isLoading ? (
               <div className={styles.loadingContainer}>
                 <div className={styles.spinner}></div>
-                <p>Đang tải bài viết...</p>
+                <p>Đang tải văn bản pháp luật...</p>
               </div>
             ) : currentItems.length > 0 ? (
               <motion.div 
@@ -386,30 +350,32 @@ const News = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {currentItems.map((item) => (
+                {currentItems.map((doc) => (
                   <motion.div 
-                    key={item.id} 
+                    key={doc.id} 
                     className={styles.newsCard}
                     variants={itemVariants}
-                    onClick={() => window.location.href = `/news/${item.id}`}
+                    onClick={() => handleDocumentClick(doc.id)}
                   >
                     <div className={styles.newsImage}>
-                      <img src={item.image} alt={item.title} />
+                      <img 
+                        src="https://images.unsplash.com/photo-1505663912202-ac22d4cb3707?q=80&w=2070&auto=format&fit=crop" 
+                        alt={doc.title} 
+                      />
                       <div className={styles.newsCategory}>
-                        {categories.find(cat => cat.id === item.category)?.name}
+                        {doc.document_type || 'Văn bản pháp luật'}
                       </div>
                     </div>
                     <div className={styles.newsCardContent}>
-                      <h3>{item.title}</h3>
+                      <h3>{doc.title}</h3>
                       <div className={styles.newsInfo}>
-                        <span><i className="fa-solid fa-user"></i> {item.author}</span>
-                        <span><i className="fa-solid fa-calendar"></i> {item.date}</span>
+                        <span><i className="fa-solid fa-bookmark"></i> {doc.document_type}</span>
+                        <span><i className="fa-solid fa-calendar"></i> {formatDate(doc.issued_date)}</span>
                       </div>
-                      <p>{item.summary}</p>
+                      <p>{doc.summary || 'Văn bản pháp luật quan trọng có tác động đến nhiều lĩnh vực.'}</p>
                       <div className={styles.newsCardFooter}>
-                        <span><i className="fa-solid fa-eye"></i> {item.views}</span>
                         <button className={styles.readMoreButton}>
-                          Đọc tiếp <i className="fa-solid fa-arrow-right"></i>
+                          Xem chi tiết <i className="fa-solid fa-arrow-right"></i>
                         </button>
                       </div>
                     </div>
@@ -419,13 +385,13 @@ const News = () => {
             ) : (
               <div className={styles.noResults}>
                 <i className="fa-solid fa-search"></i>
-                <h3>Không tìm thấy bài viết nào</h3>
-                <p>Không có bài viết nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
+                <h3>Không tìm thấy văn bản nào</h3>
+                <p>Không có văn bản nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
                 <button onClick={() => {
                   setActiveCategory('all');
                   setSearchTerm('');
                 }}>
-                  Xem tất cả bài viết
+                  Xem tất cả văn bản
                 </button>
               </div>
             )}
@@ -437,7 +403,7 @@ const News = () => {
           {/* CTA Section */}
           <div className={styles.ctaSection}>
             <div className={styles.ctaContent}>
-              <h2>Đăng ký nhận tin tức pháp luật mới nhất</h2>
+              <h2>Đăng ký nhận cập nhật văn bản pháp luật mới</h2>
               <p>Cập nhật các thông tin pháp luật mới nhất và những phân tích chuyên sâu từ đội ngũ luật sư của chúng tôi</p>
               <form className={styles.subscribeForm}>
                 <input type="email" placeholder="Địa chỉ email của bạn" required />

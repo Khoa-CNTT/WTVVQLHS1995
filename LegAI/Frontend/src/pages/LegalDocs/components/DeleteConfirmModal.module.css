@@ -1,0 +1,235 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  animation: slideIn 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.modalBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.warningIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #fee2e2;
+  margin-bottom: 20px;
+}
+
+.warningIcon i {
+  font-size: 1.8rem;
+  color: #dc2626;
+}
+
+.documentInfo {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  width: 100%;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.documentIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.documentIcon i {
+  font-size: 1.5rem;
+}
+
+.documentDetails {
+  flex: 1;
+  overflow: hidden;
+}
+
+.documentDetails h3 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.documentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.documentMeta span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.documentMeta i {
+  color: #9ca3af;
+}
+
+.warningText {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0 0 12px 0;
+  color: #1f2937;
+}
+
+.description {
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.modalFooter {
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelButton {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.deleteButton {
+  padding: 8px 16px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.deleteButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .modal {
+    width: 95%;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.125rem;
+  }
+  
+  .warningText {
+    font-size: 1rem;
+  }
+  
+  .documentInfo {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .documentIcon {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .documentMeta {
+    justify-content: center;
+  }
+} 

@@ -1577,13 +1577,13 @@
 .recentDocCard {
   background-color: #fff;
   border-radius: 12px;
-  padding: 1.5rem;
   box-shadow: 0 6px 16px rgba(0, 51, 102, 0.08);
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  min-height: 220px;
+  overflow: hidden;
+  height: 100%;
 }
 
 .recentDocCard:hover {
@@ -1591,47 +1591,134 @@
   box-shadow: 0 12px 30px rgba(0, 51, 102, 0.15);
 }
 
-.recentDocMeta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+.recentDocImage {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.recentDocImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.recentDocCard:hover .recentDocImage img {
+  transform: scale(1.05);
+}
+
+.recentDocOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
+  z-index: 1;
 }
 
 .recentDocType {
-  background-color: rgba(0, 51, 102, 0.1);
-  color: #003366;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: rgba(0, 51, 102, 0.8);
+  color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.9rem;
   border-radius: 20px;
+  z-index: 2;
 }
 
-.recentDocDate {
-  color: #666;
-  font-size: 0.85rem;
+.recentDocContent {
+  padding: 1.5rem;
   display: flex;
-  align-items: center;
-}
-
-.recentDocDate svg {
-  margin-right: 0.5rem;
-  font-size: 0.9rem;
+  flex-direction: column;
+  flex: 1;
 }
 
 .recentDocTitle {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: #003366;
   margin-bottom: 0.8rem;
   line-height: 1.4;
 }
 
+.recentDocInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.recentDocInfo span {
+  display: flex;
+  align-items: center;
+}
+
+.recentDocInfo i {
+  margin-right: 0.4rem;
+  color: #003366;
+}
+
 .recentDocSummary {
   color: #666;
   font-size: 0.9rem;
   line-height: 1.5;
+  margin-bottom: 1rem;
   flex: 1;
+}
+
+.recentDocFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.recentDocFooter span {
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.recentDocFooter i {
+  margin-right: 0.4rem;
+  color: #003366;
+}
+
+.viewDetailButton {
+  background-color: transparent;
+  color: #003366;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.viewDetailButton:hover {
+  color: #ffcc00;
+}
+
+.viewDetailButton i {
+  transition: transform 0.2s ease;
+}
+
+.viewDetailButton:hover i {
+  transform: translateX(3px);
 }
 
 .noDocsMessage {
@@ -1641,6 +1728,19 @@
   background-color: rgba(0, 51, 102, 0.05);
   border-radius: 12px;
   color: #666;
+}
+
+/* Responsive styles for recentDocsGrid */
+@media (max-width: 992px) {
+  .recentDocsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .recentDocsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+  }
 }
 
 /* Get Started Section - Giữ lại và sửa */

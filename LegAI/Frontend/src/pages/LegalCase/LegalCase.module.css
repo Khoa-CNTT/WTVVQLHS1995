@@ -50,6 +50,31 @@
   color: #293241;
 }
 
+.creatorForm :global(.ant-input),
+.creatorForm :global(.ant-select-selector),
+.creatorForm :global(.ant-input-number),
+.creatorForm :global(.ant-picker) {
+  border-radius: 6px;
+  border-color: #d9e1ec;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.creatorForm :global(.ant-input:hover),
+.creatorForm :global(.ant-select-selector:hover),
+.creatorForm :global(.ant-input-number:hover),
+.creatorForm :global(.ant-picker:hover) {
+  border-color: #3d5a80;
+}
+
+.creatorForm :global(.ant-input:focus),
+.creatorForm :global(.ant-select-selector:focus),
+.creatorForm :global(.ant-input-number:focus),
+.creatorForm :global(.ant-picker:focus) {
+  border-color: #3d5a80;
+  box-shadow: 0 0 0 2px rgba(61, 90, 128, 0.2);
+}
+
 .formActions {
   margin-top: 32px;
   text-align: center;
@@ -58,11 +83,16 @@
 }
 
 .submitButton {
-  min-width: 150px;
-  height: 48px;
   background-color: #3d5a80;
   border-color: #3d5a80;
+  height: 45px;
+  min-width: 150px;
   font-weight: 500;
+  border-radius: 6px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submitButton:hover {
@@ -189,24 +219,11 @@
 }
 
 .uploadArea {
-  padding: 32px;
-  border: 2px dashed #d9d9d9;
+  padding: 30px;
+  background-color: #f9fafc;
   border-radius: 8px;
-  background-color: #fafafa;
-  text-align: center;
-  transition: all 0.3s;
-  cursor: pointer;
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.uploadArea:hover {
-  border-color: #3d5a80;
-  background-color: #f5f7fa;
+  border: 1px solid #e6e9f0;
+  margin-bottom: 24px;
 }
 
 .uploadHint {
@@ -1092,12 +1109,11 @@
 
 /* Styles cho modal AI */
 .aiModalContent {
-  padding: 15px 0;
-  width: 100%;
+  padding: 20px;
 }
 
 .aiPromptArea {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .aiPromptArea textarea {
@@ -1106,17 +1122,15 @@
 }
 
 .aiResultArea {
-  margin-top: 15px;
-}
-
-.aiResultContent {
-  margin-top: 15px;
+  margin-top: 20px;
 }
 
 .aiResultContent textarea {
-  font-size: 16px;
-  padding: 10px;
-  line-height: 1.6;
+  border-radius: 8px;
+  font-size: 15px;
+  padding: 12px;
+  background-color: #f9fafc;
+  min-height: 200px;
 }
 
 /* Sửa kích thước modal dropdown */
@@ -1159,4 +1173,140 @@
   white-space: normal !important;
   word-break: break-word !important;
   line-height: 1.4 !important;
+}
+
+/* Style cho TextArea nội dung */
+.contentEditor {
+  width: 100%;
+  min-height: 500px !important;
+  font-size: 16px !important;
+  line-height: 1.8 !important;
+  padding: 16px !important;
+  border: 1px solid #d9e1ec !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  transition: all 0.3s !important;
+}
+
+.contentEditor:hover,
+.contentEditor:focus {
+  border-color: #3d5a80 !important;
+  box-shadow: 0 0 0 2px rgba(61, 90, 128, 0.2) !important;
+}
+
+/* Style cho khu vực editor */
+.editorArea {
+  background-color: #f9fafc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e6e9f0;
+  margin-bottom: 24px;
+}
+
+.editorToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+/* Style cho khu vực upload */
+.uploadArea {
+  padding: 30px;
+  background-color: #f9fafc;
+  border-radius: 8px;
+  border: 1px solid #e6e9f0;
+  margin-bottom: 24px;
+}
+
+.uploadTabs :global(.ant-tabs-nav::before) {
+  border-bottom: 1px solid #e6e9f0;
+}
+
+.uploadTabs :global(.ant-tabs-tab) {
+  font-size: 16px;
+  padding: 8px 16px;
+}
+
+.uploadTabs :global(.ant-tabs-tab.ant-tabs-tab-active) {
+  font-weight: 600;
+}
+
+.uploadTabs :global(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #3d5a80;
+}
+
+.uploadTabs :global(.ant-tabs-ink-bar) {
+  background-color: #3d5a80;
+}
+
+/* Style cho khu vực tabs chung */
+.caseTabs :global(.ant-tabs-nav::before) {
+  border-bottom: 1px solid #e6e9f0;
+}
+
+.caseTabs :global(.ant-tabs-tab) {
+  font-size: 16px;
+  padding: 12px 16px;
+  margin: 0 8px 0 0;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.3s;
+}
+
+.caseTabs :global(.ant-tabs-tab.ant-tabs-tab-active) {
+  background-color: #f9fafc;
+  font-weight: 600;
+  border-color: #e6e9f0;
+  border-bottom-color: #f9fafc;
+}
+
+.caseTabs :global(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #3d5a80;
+}
+
+.caseTabs :global(.ant-tabs-ink-bar) {
+  background-color: #3d5a80;
+}
+
+/* Style cho Card */
+.createCaseCard {
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.createCaseCard :global(.ant-card-head) {
+  border-bottom: 1px solid #e6e9f0;
+  padding: 16px 24px;
+}
+
+.createCaseCard :global(.ant-card-head-title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #293241;
+}
+
+.createCaseCard :global(.ant-card-body) {
+  padding: 24px;
+}
+
+/* Style cho mobile */
+@media (max-width: 768px) {
+  .editorArea,
+  .uploadArea {
+    padding: 15px;
+  }
+  
+  .contentEditor {
+    min-height: 300px !important;
+  }
+  
+  .caseTabs :global(.ant-tabs-tab) {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .submitButton {
+    width: 100%;
+  }
 }

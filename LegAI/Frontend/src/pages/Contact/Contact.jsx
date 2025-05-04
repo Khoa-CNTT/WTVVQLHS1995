@@ -35,21 +35,21 @@ function Contact() {
     {
       name: 'Trụ sở chính - TP. Hồ Chí Minh',
       address: '268 Lý Thường Kiệt, Phường 14, Quận 10, TP. Hồ Chí Minh',
-      phone: '(+84) 28 3864 7256',
+      phone: '(+84) 12 34 56 789',
       email: 'hcm@legai.vn',
       hours: 'Thứ 2 - Thứ 6: 8:00 - 17:30, Thứ 7: 8:00 - 12:00'
     },
     {
       name: 'Văn phòng Hà Nội',
       address: '96 Định Công, Phường Định Công, Quận Hoàng Mai, Hà Nội',
-      phone: '(+84) 24 3212 3445',
+      phone: '(+84) 12 34 56 789',
       email: 'hanoi@legai.vn',
       hours: 'Thứ 2 - Thứ 6: 8:00 - 17:30, Thứ 7: 8:00 - 12:00'
     },
     {
       name: 'Văn phòng Đà Nẵng',
       address: '123 Nguyễn Văn Linh, Phường Nam Dương, Quận Hải Châu, Đà Nẵng',
-      phone: '(+84) 236 3653 789',
+      phone: '(+84) 12 34 56 789',
       email: 'danang@legai.vn',
       hours: 'Thứ 2 - Thứ 6: 8:00 - 17:30'
     }
@@ -118,8 +118,8 @@ function Contact() {
                         </div>
                         <Title level={3}>Điện thoại</Title>
                         <Space direction="vertical" size={2}>
-                          <Text>(+84) 28 3864 7256</Text>
-                          <Text>(+84) 909 123 456</Text>
+                          <Text>(+84) 12 34 56 789</Text>
+                          <Text>(+84) 12 34 56 789</Text>
                         </Space>
                       </Space>
                     </Card>
@@ -145,8 +145,8 @@ function Contact() {
                         </div>
                         <Title level={3}>Email</Title>
                         <Space direction="vertical" size={2}>
-                          <Text>info@legai.vn</Text>
-                          <Text>support@legai.vn</Text>
+                          <Text>phapluatlegai@gmail.com</Text>
+                          <Text>phapluatlegai@gmail.com</Text>
                         </Space>
                       </Space>
                     </Card>
@@ -172,8 +172,8 @@ function Contact() {
                         </div>
                         <Title level={3}>Địa chỉ</Title>
                         <Space direction="vertical" size={2}>
-                          <Text>268 Lý Thường Kiệt, Phường 14</Text>
-                          <Text>Quận 10, TP. Hồ Chí Minh</Text>
+                          <Text>03 Quang Trung, Đà Nẵng</Text>
+                          <Text>Đại học Duy Tân</Text>
                         </Space>
                       </Space>
                     </Card>

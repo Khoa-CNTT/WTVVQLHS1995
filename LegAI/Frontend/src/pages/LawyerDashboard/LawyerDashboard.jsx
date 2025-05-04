@@ -19,6 +19,8 @@ import { default as LawyerCaseManager } from './LawyerCaseManager.jsx';
 import TransactionsManager from './components/TransactionsManager';
 import ContactForm from '../Contact/ContactForm';
 import PaymentInfoSetup from './components/PaymentInfoSetup';
+import ClientsManager from './components/ClientsManager';
+import LawyerSpecialtyEditor from './components/LawyerSpecialtyEditor';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -294,6 +296,18 @@ const LawyerDashboard = () => {
       <TransactionsManager />
     </div>
   );
+  
+  const renderClients = () => (
+    <div className="animate__animated animate__fadeIn">
+      <ClientsManager />
+    </div>
+  );
+  
+  const renderSpecialties = () => (
+    <div className="animate__animated animate__fadeIn">
+      <LawyerSpecialtyEditor />
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeMenu) {
@@ -313,6 +327,10 @@ const LawyerDashboard = () => {
         return renderContact();
       case 'transactions':
         return renderTransactions();
+      case 'clients':
+        return renderClients();
+      case 'specialties':
+        return renderSpecialties();
       default:
         return renderOverview();
     }

@@ -1,0 +1,174 @@
+/* CSS cho LawyerSpecialtyEditor */
+
+.specialty-editor-container {
+  padding: 20px 0;
+}
+
+.specialty-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 80px 0;
+}
+
+.specialty-form {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.section-title {
+  margin-bottom: 20px;
+}
+
+.form-label-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-label-with-icon span {
+  font-weight: 500;
+}
+
+.specialty-textarea {
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.form-actions {
+  text-align: right;
+  margin-top: 24px;
+}
+
+.form-actions-between {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.submit-button {
+  height: 40px;
+  border-radius: 4px;
+  width: auto;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Styles for Ant Design components */
+.specialty-card .ant-form-item-label > label {
+  height: 32px;
+  font-size: 14px;
+}
+
+.specialty-card .ant-input:focus,
+.specialty-card .ant-input-number:focus,
+.specialty-card .ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.specialty-card .ant-select-selection-item {
+  display: flex;
+  align-items: center;
+}
+
+/* Styles for view mode */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.profile-divider {
+  margin: 24px 0;
+}
+
+.section-divider {
+  margin: 32px 0 24px;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.profile-descriptions {
+  margin-bottom: 16px;
+}
+
+.profile-descriptions .ant-descriptions-item-label {
+  width: 180px;
+  background-color: #f8f9fa;
+}
+
+.edit-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cancel-edit-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.specialization-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.specialization-tag {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.description-content {
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-line;
+  line-height: 1.6;
+  padding: 8px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
+}
+
+/* Profile view mode styles */
+.profile-view-mode {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Profile edit mode styles */
+.profile-edit-mode {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.profile-form {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

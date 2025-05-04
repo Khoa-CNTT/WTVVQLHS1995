@@ -8,6 +8,7 @@ import DocShareModal from './components/DocShareModal';
 import DocCard from './components/DocCard';
 import DocSearchFilter from './components/DocSearchFilter';
 import DocAnalysisModal from './components/DocAnalysisModal';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 import LoadingSpinner from '../../components/Common/Spinner';
 import Navbar from '../../components/layout/Nav/Navbar';
 import ChatManager from '../../components/layout/Chat/ChatManager';
@@ -21,7 +22,9 @@ const LegalDocsPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({
     category: '',
@@ -158,21 +161,33 @@ const LegalDocsPage = () => {
     }
   };
 
+  // Mở modal xác nhận xóa
+  const handleShowDeleteConfirm = (doc) => {
+    setSelectedDoc(doc);
+    setShowDeleteModal(true);
+  };
+
   // Xử lý xóa hồ sơ
-  const handleDelete = async (docId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa hồ sơ này không?')) {
-      try {
-        const response = await legalDocService.deleteLegalDoc(docId);
-        if (response.success) {
-          toast.success('Đã xóa hồ sơ pháp lý');
-          fetchDocuments();
-        } else {
-          toast.error(response.message || 'Không thể xóa hồ sơ');
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error('Có lỗi xảy ra khi xóa hồ sơ');
+  const handleDeleteConfirm = async () => {
+    if (!selectedDoc) return;
+    
+    try {
+      setIsDeleting(true);
+      const response = await legalDocService.deleteLegalDoc(selectedDoc.id);
+      
+      if (response.success) {
+        toast.success('Đã xóa hồ sơ pháp lý thành công');
+        setShowDeleteModal(false);
+        setSelectedDoc(null);
+        fetchDocuments();
+      } else {
+        toast.error(response.message || 'Không thể xóa hồ sơ');
       }
+    } catch (error) {
+      console.error(error);
+      toast.error('Có lỗi xảy ra khi xóa hồ sơ');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -240,7 +255,7 @@ const LegalDocsPage = () => {
               isOwner={activeTab === 'my-docs'}
               onDownload={() => handleDownload(doc.id)}
               onShare={() => handleShareDoc(doc)}
-              onDelete={() => handleDelete(doc.id)}
+              onDelete={() => handleShowDeleteConfirm(doc)}
               onAnalyze={() => handleAnalyze(doc)}
             />
           </div>
@@ -376,6 +391,7 @@ const LegalDocsPage = () => {
         </div>
       </div>
       
+      {/* Các modal */}
       {showUploadModal && (
         <DocUploadModal 
           categories={categories}
@@ -397,6 +413,15 @@ const LegalDocsPage = () => {
           doc={selectedDoc}
           onClose={() => setShowAnalysisModal(false)}
           onComplete={handleAnalysisComplete}
+        />
+      )}
+      
+      {showDeleteModal && selectedDoc && (
+        <DeleteConfirmModal
+          doc={selectedDoc}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteConfirm}
+          isDeleting={isDeleting}
         />
       )}
     </>

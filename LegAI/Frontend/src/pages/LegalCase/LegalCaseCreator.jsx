@@ -4,6 +4,7 @@ import { UploadOutlined, FileOutlined, FileTextOutlined, SaveOutlined, SendOutli
 import legalCaseService from '../../services/legalCaseService';
 import legalService from '../../services/legalService';
 import userService from '../../services/userService';
+import transactionService from '../../services/transactionService';
 import { useNavigate } from 'react-router-dom';
 import styles from './LegalCase.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
@@ -56,21 +57,44 @@ const LegalCaseCreator = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Lấy danh sách loại vụ án
-                const caseTypesRes = await legalCaseService.getCaseTypes();
-                if (caseTypesRes && caseTypesRes.data) {
-                    setCaseTypes(caseTypesRes.data);
+                // Lấy danh sách loại vụ án từ FeeReferences
+                const feeReferencesRes = await transactionService.getFeeReferences();
+                if (feeReferencesRes && feeReferencesRes.success && feeReferencesRes.data) {
+                    // Chuyển đổi dữ liệu từ FeeReferences sang định dạng caseTypes
+                    const mappedCaseTypes = feeReferencesRes.data.map(fee => ({
+                        case_type: fee.case_type,
+                        description: fee.description
+                    }));
+                    setCaseTypes(mappedCaseTypes);
                 } else {
-                    // Nếu không có dữ liệu, sử dụng danh sách mặc định
-                    setCaseTypes([
-                        { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
-                        { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
-                        { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
-                        { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
-                        { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
-                        { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
-                        { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
-                    ]);
+                    // Nếu không có dữ liệu, thử lấy từ legalCaseService
+                    try {
+                        const caseTypesRes = await legalCaseService.getCaseTypes();
+                        if (caseTypesRes && caseTypesRes.data) {
+                            setCaseTypes(caseTypesRes.data);
+                        } else {
+                            setCaseTypes([
+                                { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+                                { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+                                { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
+                                { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
+                                { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+                                { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
+                                { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+                            ]);
+                        }
+                    } catch (caseTypeError) {
+                        console.error('Lỗi khi lấy danh sách loại vụ án:', caseTypeError);
+                        setCaseTypes([
+                            { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+                            { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+                            { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
+                            { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
+                            { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+                            { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
+                            { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+                        ]);
+                    }
                 }
 
                 try {
@@ -84,7 +108,7 @@ const LegalCaseCreator = () => {
                     setTemplates([]);
                 }
             } catch (error) {
-                console.error('Lỗi khi lấy dữ liệu loại vụ án:', error);
+                console.error('Lỗi khi lấy dữ liệu:', error);
                 // Sử dụng danh sách mặc định khi có lỗi
                 setCaseTypes([
                     { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
@@ -782,7 +806,11 @@ const LegalCaseCreator = () => {
                                             label="Tiêu đề vụ án"
                                             rules={[{ required: true, message: 'Vui lòng nhập tiêu đề vụ án' }]}
                                         >
-                                            <Input placeholder="Nhập tiêu đề vụ án" size="large" />
+                                            <Input 
+                                                placeholder="Nhập tiêu đề vụ án" 
+                                                size="large" 
+                                                style={{ height: '50px', borderRadius: '8px' }} 
+                                            />
                                         </Form.Item>
 
                                         <Form.Item
@@ -790,10 +818,24 @@ const LegalCaseCreator = () => {
                                             label="Loại vụ án"
                                             rules={[{ required: true, message: 'Vui lòng chọn loại vụ án' }]}
                                         >
-                                            <Select placeholder="Chọn loại vụ án" size="large">
+                                            <Select 
+                                                placeholder="Chọn loại vụ án" 
+                                                size="large" 
+                                                style={{ width: '100%', height: '50px' }}
+                                                dropdownMatchSelectWidth={false}
+                                                dropdownStyle={{ minWidth: '300px' }}
+                                                optionLabelProp="label"
+                                            >
                                                 {caseTypes.map(type => (
-                                                    <Option key={type.case_type} value={type.case_type}>
-                                                        {type.case_type} - {type.description}
+                                                    <Option 
+                                                        key={type.case_type} 
+                                                        value={type.case_type} 
+                                                        label={type.case_type}
+                                                    >
+                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                            <span style={{ fontWeight: 'bold' }}>{type.case_type}</span>
+                                                            <span style={{ fontSize: '12px', color: '#666' }}>{type.description}</span>
+                                                        </div>
                                                     </Option>
                                                 ))}
                                             </Select>
@@ -803,7 +845,11 @@ const LegalCaseCreator = () => {
                                             name="description"
                                             label="Mô tả chi tiết"
                                         >
-                                            <TextArea rows={6} placeholder="Nhập mô tả chi tiết về vụ án" />
+                                            <TextArea 
+                                                rows={6} 
+                                                placeholder="Nhập mô tả chi tiết về vụ án" 
+                                                style={{ borderRadius: '8px', fontSize: '15px', padding: '12px' }}
+                                            />
                                         </Form.Item>
 
                                         <Form.Item
@@ -821,7 +867,13 @@ const LegalCaseCreator = () => {
                                                         maxCount={1} 
                                                         className={styles.uploadArea}
                                                     >
-                                                        <Button icon={<UploadOutlined />} size="large" type="dashed" block>
+                                                        <Button 
+                                                            icon={<UploadOutlined />} 
+                                                            size="large" 
+                                                            type="dashed" 
+                                                            block
+                                                            style={{ height: '50px', borderRadius: '8px' }}
+                                                        >
                                                             Chọn tài liệu
                                                         </Button>
                                                         <div className={styles.uploadHint}>
@@ -853,6 +905,7 @@ const LegalCaseCreator = () => {
                                                         loading={submitting}
                                                         size="large"
                                                         className={styles.submitButton}
+                                                        style={{ height: '50px', minWidth: '150px', borderRadius: '8px' }}
                                                     >
                                                         Lưu vụ án
                                                     </Button>
@@ -861,6 +914,7 @@ const LegalCaseCreator = () => {
                                                         type="default"
                                                         onClick={() => navigate('/legal-cases')}
                                                         size="large"
+                                                        style={{ height: '50px', minWidth: '100px', borderRadius: '8px' }}
                                                     >
                                                         Hủy
                                                     </Button>
@@ -889,7 +943,7 @@ const LegalCaseCreator = () => {
                                             className={styles.aiForm}
                                         >
                                             <Row gutter={24}>
-                                                <Col xs={24} md={12}>
+                                                <Col xs={24} md={24}>
                                                     <Form.Item
                                                         name="template_id"
                                                         label="Chọn mẫu văn bản"
@@ -898,7 +952,13 @@ const LegalCaseCreator = () => {
                                                             message: 'Vui lòng chọn mẫu văn bản' 
                                                         }]}
                                                     >
-                                                        <Select placeholder="Chọn mẫu văn bản" size="large">
+                                                        <Select 
+                                                            placeholder="Chọn mẫu văn bản" 
+                                                            size="large"
+                                                            style={{ width: '100%', height: '50px' }}
+                                                            dropdownMatchSelectWidth={false}
+                                                            dropdownStyle={{ minWidth: '350px' }}
+                                                        >
                                                             {templates.map(template => (
                                                                 <Option key={template.id} value={template.id}>
                                                                     {template.title}
@@ -907,7 +967,7 @@ const LegalCaseCreator = () => {
                                                         </Select>
                                                     </Form.Item>
                                                 </Col>
-                                                <Col xs={24} md={12}>
+                                                <Col xs={24} md={24}>
                                                     <Form.Item
                                                         name="user_input"
                                                         label="Yêu cầu soạn thảo"
@@ -919,6 +979,7 @@ const LegalCaseCreator = () => {
                                                         <TextArea
                                                             rows={4}
                                                             placeholder="Mô tả yêu cầu soạn thảo của bạn (ví dụ: soạn đơn khởi kiện tranh chấp hợp đồng mua bán giá trị 500 triệu đồng)"
+                                                            style={{ borderRadius: '8px', fontSize: '15px', padding: '12px' }}
                                                         />
                                                     </Form.Item>
                                                 </Col>
@@ -932,6 +993,7 @@ const LegalCaseCreator = () => {
                                                         icon={<FileTextOutlined />}
                                                         loading={aiLoading}
                                                         className={styles.draftButton}
+                                                        style={{ height: '50px', minWidth: '150px', borderRadius: '8px' }}
                                                     >
                                                         Tạo bản nháp
                                                     </Button>
@@ -958,6 +1020,14 @@ const LegalCaseCreator = () => {
                                                                     onChange={handleDraftChange}
                                                                     placeholder="Nội dung bản nháp AI"
                                                                     className={styles.aiDraftEditor}
+                                                                    style={{ 
+                                                                        width: '100%',
+                                                                        borderRadius: '8px',
+                                                                        fontSize: '15px',
+                                                                        lineHeight: '1.8',
+                                                                        padding: '16px',
+                                                                        minHeight: '500px'
+                                                                    }}
                                                                 />
                                                             </div>
                                                         </Form.Item>
@@ -975,6 +1045,7 @@ const LegalCaseCreator = () => {
                                                             size="large"
                                                             className={styles.submitButton}
                                                             onClick={handleSubmitWithAI}
+                                                            style={{ height: '50px', minWidth: '200px', borderRadius: '8px' }}
                                                         >
                                                             Lưu vụ án với bản nháp AI
                                                         </Button>
@@ -983,6 +1054,7 @@ const LegalCaseCreator = () => {
                                                             type="default"
                                                             onClick={() => navigate('/legal-cases')}
                                                             size="large"
+                                                            style={{ height: '50px', minWidth: '100px', borderRadius: '8px' }}
                                                         >
                                                             Hủy
                                                         </Button>
@@ -1042,6 +1114,14 @@ const LegalCaseCreator = () => {
                                                                         onChange={handleFileContentChange}
                                                                         placeholder="Nhập nội dung tài liệu tại đây"
                                                                         className={styles.aiDraftEditor}
+                                                                        style={{ 
+                                                                            width: '100%',
+                                                                            borderRadius: '8px',
+                                                                            fontSize: '15px',
+                                                                            lineHeight: '1.8',
+                                                                            padding: '16px',
+                                                                            minHeight: '500px'
+                                                                        }}
                                                                     />
                                                                 </div>
                                                             </Form.Item>
@@ -1057,6 +1137,7 @@ const LegalCaseCreator = () => {
                                                                 size="large"
                                                                 className={styles.submitButton}
                                                                 onClick={() => form.submit()}
+                                                                style={{ height: '50px', minWidth: '200px', borderRadius: '8px' }}
                                                             >
                                                                 Lưu vụ án với nội dung đã chỉnh sửa
                                                             </Button>
@@ -1065,6 +1146,7 @@ const LegalCaseCreator = () => {
                                                                 type="default"
                                                                 onClick={() => navigate('/legal-cases')}
                                                                 size="large"
+                                                                style={{ height: '50px', minWidth: '100px', borderRadius: '8px' }}
                                                             >
                                                                 Hủy
                                                             </Button>
