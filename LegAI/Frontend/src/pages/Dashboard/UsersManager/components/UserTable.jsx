@@ -31,9 +31,18 @@ const UserTable = ({ users, startIndex = 0, onEditUser, onToggleLock, onResetPas
       key: 'role',
       render: (role) => {
         let color = 'blue';
-        if (role === 'Admin') color = 'red';
-        if (role === 'Lawyer') color = 'green';
-        return <Tag color={color}>{role}</Tag>;
+        let roleText = 'Người Dùng';
+        
+        if (role === 'admin') {
+          color = 'red';
+          roleText = 'Quản Trị Viên';
+        }
+        if (role === 'lawyer') {
+          color = 'green';
+          roleText = 'Luật Sư';
+        }
+        
+        return <Tag color={color}>{roleText}</Tag>;
       },
     },
     {
