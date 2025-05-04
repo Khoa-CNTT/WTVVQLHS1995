@@ -61,12 +61,14 @@ CREATE TABLE LegalCases (
     lawyer_id INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    file_url VARCHAR(255),
     case_type VARCHAR(100) NOT NULL,
     status VARCHAR(50) DEFAULT 'draft',
     ai_content TEXT,
     is_ai_generated BOOLEAN DEFAULT FALSE,
     fee_amount DECIMAL(12, 2),
     fee_details JSONB,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -142,20 +144,38 @@ CREATE TABLE ChatMessages (
     FOREIGN KEY (sender_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
--- Bảng Transactions
-CREATE TABLE Transactions (
+-- Tạo bảng Transactions để lưu thông tin giao dịch thanh toán
+CREATE TABLE IF NOT EXISTS Transactions (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    lawyer_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    service_type VARCHAR(50) NOT NULL,
-    payment_method VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES Users(id),
+    lawyer_id INTEGER REFERENCES Users(id),
     case_id INTEGER REFERENCES LegalCases(id),
-    payment_info JSONB,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
+    amount DECIMAL(15, 2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    description TEXT,
+    fee_details JSONB,
+    payment_provider VARCHAR(100),
+    transaction_code VARCHAR(100),
+    payment_details JSONB,
+    confirmation_notes TEXT,
+    confirmation_date TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Tạo bảng BankAccounts để lưu thông tin tài khoản ngân hàng
+CREATE TABLE IF NOT EXISTS BankAccounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES Users(id),
+    bank_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    account_holder VARCHAR(100) NOT NULL,
+    branch VARCHAR(100),
+    is_default BOOLEAN DEFAULT false,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Migration: Tạo bảng AuditLogs để lưu các hoạt động và thông báo
@@ -312,17 +332,17 @@ CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_doc_id ON UserLegalDocAcces
 CREATE INDEX IF NOT EXISTS idx_user_legal_doc_access_granted_to ON UserLegalDocAccess(granted_to);
 
 -- Bảng tài liệu vụ án
-CREATE TABLE IF NOT EXISTS CaseDocuments (
-  id SERIAL PRIMARY KEY,
-  case_id INTEGER REFERENCES LegalCases(id) NOT NULL,
-  original_name VARCHAR(255) NOT NULL,
-  file_path VARCHAR(255) NOT NULL,
-  mime_type VARCHAR(100),
-  encryption_key VARCHAR(255),
-  size INTEGER,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP
-);
+-- CREATE TABLE IF NOT EXISTS CaseDocuments (
+--   id SERIAL PRIMARY KEY,
+--   case_id INTEGER REFERENCES LegalCases(id) NOT NULL,
+--   original_name VARCHAR(255) NOT NULL,
+--   file_path VARCHAR(255) NOT NULL,
+--   mime_type VARCHAR(100),
+--   encryption_key VARCHAR(255),
+--   size INTEGER,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   deleted_at TIMESTAMP
+-- );
 
 -- Thêm dữ liệu mẫu cho bảng phí
 INSERT INTO FeeReferences (case_type, description, base_fee, percentage_fee, calculation_method, min_fee, max_fee)

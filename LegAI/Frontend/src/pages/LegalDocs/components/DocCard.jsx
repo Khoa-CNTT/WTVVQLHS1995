@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './DocCard.module.css';
 import PropTypes from 'prop-types';
 
@@ -12,6 +13,7 @@ const DocCard = ({
   onAnalyze 
 }) => {
   const [showActions, setShowActions] = useState(false);
+  const navigate = useNavigate();
   
   // Xác định icon dựa trên loại file
   const getFileIcon = (fileType) => {
@@ -64,7 +66,7 @@ const DocCard = ({
   // Xử lý click vào các action
   const handleViewClick = (e) => {
     e.stopPropagation();
-    onView();
+    navigate(`/legal-docs/${doc.id}`);
   };
   
   const handleDownloadClick = (e) => {
@@ -98,6 +100,7 @@ const DocCard = ({
       className={styles.card}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onClick={handleViewClick}
     >
       <div className={styles.cardHeader}>
         <div className={styles.fileIcon}>
@@ -198,7 +201,7 @@ const DocCard = ({
 DocCard.propTypes = {
   doc: PropTypes.object.isRequired,
   isOwner: PropTypes.bool,
-  onView: PropTypes.func.isRequired,
+  onView: PropTypes.func,
   onDownload: PropTypes.func.isRequired,
   onShare: PropTypes.func,
   onDelete: PropTypes.func,

@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import styles from '../UsersManagerPage.module.css';
+import { Modal, Form, Input, Select, Button, Row, Col, Typography, Tag, Space, Descriptions, Divider } from 'antd';
+import { UserOutlined, MailOutlined, PhoneOutlined, HomeOutlined, EditOutlined, CloseOutlined, SaveOutlined, CheckCircleOutlined, CloseCircleOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+
+const { TextArea } = Input;
+const { Text, Title } = Typography;
+const { Option } = Select;
 
 const EditUserModal = ({ user, onSave, onClose }) => {
+  const [form] = Form.useForm();
   // Đảm bảo tất cả dữ liệu có giá trị hợp lệ
   const [formData, setFormData] = useState({
     id: user.id || '',
@@ -11,78 +17,23 @@ const EditUserModal = ({ user, onSave, onClose }) => {
     phone: user.phone || '',
     address: user.address || '',
     bio: user.bio || '',
-    role: user.role || 'user',
+    role: user.role.toLowerCase() || 'user',
     is_verified: user.is_verified || false,
     is_locked: user.is_locked || false,
     failed_attempts: user.failed_attempts || 0,
     last_login: user.last_login || '',
     created_at: user.created_at || ''
   });
-  const [errors, setErrors] = useState({});
 
-  const validateField = (name, value) => {
-    let error = '';
-    switch (name) {
-      case 'full_name':
-        if (!value || value.trim() === '') error = 'Họ tên không được để trống';
-        break;
-      case 'phone':
-        if (value) {
-        const phoneRegex = /^[0-9]{10,11}$/;
-        if (!phoneRegex.test(value)) error = 'Số điện thoại không hợp lệ';
-        }
-        break;
-      default:
-        break;
-    }
-    return error;
-  };
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
-    
-    setFormData({ ...formData, [name]: newValue });
-    
-    const error = validateField(name, newValue);
-    setErrors({ ...errors, [name]: error });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Kiểm tra lỗi
-    let hasErrors = false;
-    const newErrors = {};
-    
-    // Kiểm tra họ tên
-    if (!formData.full_name || formData.full_name.trim() === '') {
-      newErrors.full_name = 'Họ tên không được để trống';
-      hasErrors = true;
-    }
-
-    // Kiểm tra số điện thoại nếu có
-    if (formData.phone) {
-      const phoneRegex = /^[0-9]{10,11}$/;
-      if (!phoneRegex.test(formData.phone)) {
-        newErrors.phone = 'Số điện thoại không hợp lệ';
-        hasErrors = true;
-      }
-    }
-    
-    if (hasErrors) {
-      setErrors(newErrors);
-      return;
-    }
-    
+  const onFinish = (values) => {
     // Chuẩn bị dữ liệu đúng format để gửi lên server
     const userData = {
       id: formData.id, // Đảm bảo có ID
-      fullName: formData.full_name,
-      phone: formData.phone || '',
-      address: formData.address || '',
-      bio: formData.bio || '',
-      role: formData.role
+      fullName: values.full_name,
+      phone: values.phone || '',
+      address: values.address || '',
+      bio: values.bio || '',
+      role: values.role
     };
     
     onSave(userData);
@@ -99,249 +50,157 @@ const EditUserModal = ({ user, onSave, onClose }) => {
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div 
-        className={styles.modalCompact}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'white',
-          borderRadius: '8px',
-          width: '90%',
-          maxWidth: '800px',
-          maxHeight: '80vh',
-          overflowY: 'auto',
-          padding: '20px'
-        }}
-      >
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>
-            <i className="fas fa-user-edit" style={{ marginRight: '8px' }}></i> 
-            Chỉnh sửa thông tin người dùng
-          </h2>
-          <button 
-            className={styles.modalCloseButton}
-            onClick={onClose}
-          >
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-        
-            <div style={{ 
-              display: 'flex', 
-          flexWrap: 'wrap',
-          gap: '10px',
-          marginBottom: '15px',
-          backgroundColor: '#f8f9fa',
-          padding: '10px',
-          borderRadius: '6px',
-          textAlign: 'left'
-        }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
-              <span style={{ 
-              display: 'inline-block',
-                backgroundColor: formData.is_verified ? '#d4edda' : '#f8d7da',
-              color: formData.is_verified ? '#155724' : '#721c24',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '0.85rem',
-              marginRight: '5px'
-              }}>
-                <i className={formData.is_verified ? "fas fa-check-circle" : "fas fa-times-circle"} style={{ marginRight: '5px' }}></i>
+    <Modal
+      title={
+        <Space>
+          <EditOutlined />
+          <span>Chỉnh sửa thông tin người dùng</span>
+        </Space>
+      }
+      open={true}
+      width={800}
+      onCancel={onClose}
+      footer={null}
+      maskClosable={false}
+      centered
+    >
+      <div style={{ marginBottom: 20 }}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col span={24}>
+            <Space wrap>
+              <Tag color={formData.is_verified ? "success" : "error"} icon={formData.is_verified ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
                 {formData.is_verified ? 'Đã xác minh' : 'Chưa xác minh'}
-              </span>
-              <span style={{ 
-              display: 'inline-block',
-                backgroundColor: formData.is_locked ? '#ffe9e9' : '#e3faef',
-              color: formData.is_locked ? '#e53e3e' : '#38a169',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '0.85rem'
-              }}>
-                <i className={formData.is_locked ? "fas fa-lock" : "fas fa-lock-open"} style={{ marginRight: '5px' }}></i>
+              </Tag>
+              <Tag color={formData.is_locked ? "error" : "success"} icon={formData.is_locked ? <LockOutlined /> : <UnlockOutlined />}>
                 {formData.is_locked ? 'Đã khóa' : 'Đang hoạt động'}
-              </span>
-          </div>
-          
-          <div style={{ flex: '1', minWidth: '200px', fontSize: '0.85rem' }}>
-            <div><strong>ID:</strong> {formData.id}</div>
-            <div><strong>Ngày tạo:</strong> {formatDateTime(formData.created_at)}</div>
-            </div>
-          
-          <div style={{ flex: '1', minWidth: '200px', fontSize: '0.85rem' }}>
-              <div><strong>Lần đăng nhập cuối:</strong> {formatDateTime(formData.last_login)}</div>
-              <div><strong>Số lần đăng nhập thất bại:</strong> {formData.failed_attempts}</div>
-          </div>
-        </div>
+              </Tag>
+            </Space>
+          </Col>
+        </Row>
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
-            gap: '15px',
-            marginBottom: '15px'
-          }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Tên đăng nhập
-              </label>
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  disabled
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: '#f9f9f9'
-                }}
-                />
-              </div>
-              
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Email
-              </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  disabled
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: '#f9f9f9'
-                }}
-                />
-              </div>
-              
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Họ tên <span style={{ color: '#e53e3e' }}>*</span>
-              </label>
-                <input
-                  type="text"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: `1px solid ${errors.full_name ? '#e53e3e' : '#ddd'}`,
-                  borderRadius: '4px'
-                }}
-                />
-              {errors.full_name && (
-                <small style={{ color: '#e53e3e', fontSize: '0.8rem', display: 'block', marginTop: '3px' }}>
-                  {errors.full_name}
-                </small>
-              )}
-              </div>
-              
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Số điện thoại
-              </label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: `1px solid ${errors.phone ? '#e53e3e' : '#ddd'}`,
-                  borderRadius: '4px'
-                }}
-                />
-              {errors.phone && (
-                <small style={{ color: '#e53e3e', fontSize: '0.8rem', display: 'block', marginTop: '3px' }}>
-                  {errors.phone}
-                </small>
-              )}
-            </div>
-            
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Địa chỉ
-              </label>
-                <input
-                  type="text"
-                  name="address"
-                value={formData.address}
-                  onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-                />
-              </div>
-              
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Vai trò
-              </label>
-                <select 
-                  name="role" 
-                  value={formData.role} 
-                  onChange={handleChange} 
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-                >
-                  <option value="Admin">Admin</option>
-                  <option value="User">User</option>
-                <option value="Lawyer">Luật sư</option>
-                </select>
-            </div>
-          </div>
-          
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-              Giới thiệu
-            </label>
-            <textarea
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              rows="3"
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                resize: 'vertical'
-              }}
-              placeholder="Thêm thông tin giới thiệu về người dùng..."
-            />
-          </div>
-
-          <div className={styles.modalActions}>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className={styles.cancelButton}
-            >
-              <i className="fas fa-times"></i> Hủy
-            </button>
-            <button 
-              type="submit" 
-              className={styles.saveButton}
-            >
-              <i className="fas fa-save"></i> Lưu thay đổi
-            </button>
-          </div>
-        </form>
+        <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} bordered style={{ marginTop: 12 }}>
+          <Descriptions.Item label="ID">{formData.id}</Descriptions.Item>
+          <Descriptions.Item label="Ngày tạo">{formatDateTime(formData.created_at)}</Descriptions.Item>
+          <Descriptions.Item label="Lần đăng nhập cuối">{formatDateTime(formData.last_login)}</Descriptions.Item>
+          <Descriptions.Item label="Số lần đăng nhập thất bại">{formData.failed_attempts}</Descriptions.Item>
+        </Descriptions>
       </div>
-    </div>
+
+      <Divider />
+
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{
+          username: formData.username,
+          email: formData.email,
+          full_name: formData.full_name,
+          phone: formData.phone,
+          address: formData.address,
+          role: formData.role,
+          bio: formData.bio
+        }}
+        onFinish={onFinish}
+      >
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Tên đăng nhập"
+              name="username"
+            >
+              <Input
+                prefix={<UserOutlined className="site-form-item-icon" />}
+                disabled
+              />
+            </Form.Item>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Email"
+              name="email"
+            >
+              <Input
+                prefix={<MailOutlined className="site-form-item-icon" />}
+                disabled
+              />
+            </Form.Item>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Họ tên"
+              name="full_name"
+              rules={[{ required: true, message: 'Họ tên không được để trống' }]}
+            >
+              <Input prefix={<UserOutlined className="site-form-item-icon" />} />
+            </Form.Item>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[
+                { 
+                  pattern: /^[0-9]{10,11}$/, 
+                  message: 'Số điện thoại không hợp lệ',
+                  validateTrigger: 'onBlur'
+                }
+              ]}
+            >
+              <Input prefix={<PhoneOutlined className="site-form-item-icon" />} />
+            </Form.Item>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Địa chỉ"
+              name="address"
+            >
+              <Input prefix={<HomeOutlined className="site-form-item-icon" />} />
+            </Form.Item>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Vai trò"
+              name="role"
+              rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+            >
+              <Select>
+                <Option value="admin">Quản trị viên</Option>
+                <Option value="user">Người dùng</Option>
+                <Option value="lawyer">Luật sư</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          
+          <Col span={24}>
+            <Form.Item
+              label="Giới thiệu"
+              name="bio"
+            >
+              <TextArea 
+                rows={4}
+                placeholder="Thêm thông tin giới thiệu về người dùng..."
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+        
+        <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+          <Space>
+            <Button onClick={onClose} icon={<CloseOutlined />}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
+              Lưu thay đổi
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 };
 

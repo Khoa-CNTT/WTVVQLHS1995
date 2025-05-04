@@ -1,9 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import styles from './AvailabilityManager.module.css';
+import { 
+  Card, Button, Calendar, TimePicker, Modal, Form, Input, 
+  Typography, Row, Col, Spin, List, Divider, Alert, Popconfirm, 
+  DatePicker, Space, Badge, Empty, ConfigProvider
+} from 'antd';
+import { 
+  PlusOutlined, CalendarOutlined, DeleteOutlined, 
+  SaveOutlined, CloseOutlined, ExclamationCircleOutlined,
+  CalendarTwoTone, ClockCircleOutlined
+} from '@ant-design/icons';
 import appointmentService from '../../../services/appointmentService';
 import authService from '../../../services/authService';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import updateLocale from 'dayjs/plugin/updateLocale';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
+// Cấu hình dayjs
+dayjs.extend(customParseFormat);
+dayjs.extend(updateLocale);
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isSameOrBefore);
+dayjs.locale('vi');
+
+// Cấu hình lại định dạng hiển thị cho locale vi
+dayjs.updateLocale('vi', {
+  months: [
+    'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+    'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+  ],
+  weekdays: ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'],
+  weekdaysShort: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+  weekdaysMin: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+});
+
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const AvailabilityManager = () => {
   const [availabilities, setAvailabilities] = useState([]);
@@ -18,7 +56,13 @@ const AvailabilityManager = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [generatingSchedule, setGeneratingSchedule] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [date, setDate] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const init = async () => {
@@ -58,32 +102,55 @@ const AvailabilityManager = () => {
   }, [navigate]);
 
   const fetchAvailabilities = async (lawyerId) => {
-    if (!lawyerId) {
-      console.error('Không có ID luật sư để lấy lịch trống');
-      return;
-    }
-    
     try {
       setLoading(true);
-      const response = await appointmentService.getLawyerAvailability(lawyerId);
       
-      console.log('Response từ getLawyerAvailability:', response);
+      // Đảm bảo có ID luật sư - nếu không được truyền vào, lấy từ localStorage
+      let id = lawyerId;
+      if (!id) {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          id = user.id;
+        }
+      }
+      
+      // Kiểm tra lại nếu vẫn không có ID
+      if (!id) {
+        console.error('Không có ID luật sư để lấy lịch trống');
+        setAvailabilities([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log(`[AvailabilityManager] Đang lấy lịch trống cho luật sư ID: ${id}`);
+      const response = await appointmentService.getLawyerAvailability(id);
+      console.log(`[AvailabilityManager] Kết quả từ API:`, response);
       
       if (response && response.status === 'success') {
-        if (Array.isArray(response.data)) {
-          console.log('Đã lấy lịch trống:', response.data.length);
-          console.log('Chi tiết lịch trống:', response.data);
-          setAvailabilities(response.data);
+        // Phần quan trọng: Kiểm tra xem data có phải là mảng và có dữ liệu không
+        const data = Array.isArray(response.data) ? response.data : [];
+        
+        if (data.length > 0) {
+          console.log(`[AvailabilityManager] Tìm thấy ${data.length} lịch trống`);
+          setAvailabilities(data);
         } else {
-          console.log('Dữ liệu không phải mảng:', response.data);
+          console.log(`[AvailabilityManager] Không tìm thấy lịch trống nào`);
+          
+          // So sánh với dữ liệu trong bảng PostgreSQL mà bạn gửi cho tôi
+          if (id === 9) {
+            console.log('[AvailabilityManager] Có 9 lịch trống trong database nhưng không được trả về trong API');
+            console.log('[AvailabilityManager] Cần kiểm tra lại endpoint API /appointments/lawyer/:id/availability');
+          }
+          
           setAvailabilities([]);
         }
       } else {
-        console.log('Không có lịch trống hoặc phản hồi không đúng định dạng:', response);
+        console.error(`[AvailabilityManager] API trả về trạng thái không phải success:`, response);
         setAvailabilities([]);
       }
     } catch (error) {
-      console.error('Lỗi khi lấy lịch trống:', error);
+      console.error('[AvailabilityManager] Lỗi khi lấy lịch trống:', error);
       handleApiError(error, 'Không thể lấy danh sách lịch trống');
       setAvailabilities([]);
     } finally {
@@ -100,24 +167,37 @@ const AvailabilityManager = () => {
     const endTime = new Date(tomorrow);
     endTime.setHours(17, 0, 0, 0);
 
+    // Cập nhật state cho form mới
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+    setDate(tomorrowString);
+    setStartTime('08:00');
+    setEndTime('17:00');
+
+    // Hiển thị modal mới
+    setIsModalVisible(true);
+    
+    // Giữ lại phần mới cho modal cũ để tương thích
     setNewAvailability({
       start_time: tomorrow.toISOString().slice(0, 16),
       end_time: endTime.toISOString().slice(0, 16)
     });
+    
+    // Sử dụng dayjs để khởi tạo giá trị mặc định với timezone cụ thể
+    form.setFieldsValue({
+      time_range: [
+        dayjs(tomorrow).tz('Asia/Ho_Chi_Minh'), 
+        dayjs(endTime).tz('Asia/Ho_Chi_Minh')
+      ]
+    });
+    
     setShowAddModal(true);
+    setError('');
   };
 
   const handleAddModalClose = () => {
     setShowAddModal(false);
     setError('');
-  };
-
-  const handleAvailabilityChange = (e) => {
-    const { name, value } = e.target;
-    setNewAvailability(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    form.resetFields();
   };
 
   const handleApiError = (error, customMessage = 'Đã xảy ra lỗi') => {
@@ -153,86 +233,74 @@ const AvailabilityManager = () => {
     toast.error(errorMessage);
   };
 
-  const handleAddAvailability = async (e) => {
-    e.preventDefault();
-    
-    try {
-      // Kiểm tra người dùng đăng nhập
-      const user = authService.getCurrentUser();
-      if (!user || !user.id) {
-        setError("Không thể xác định ID luật sư. Vui lòng đăng nhập lại.");
-        return;
-      }
-      
-      // Validate dữ liệu
-      if (!newAvailability.start_time || !newAvailability.end_time) {
-        setError("Vui lòng chọn thời gian bắt đầu và kết thúc");
-        return;
-      }
-      
-      // Kiểm tra thời gian hợp lệ
-      const startTime = new Date(newAvailability.start_time);
-      const endTime = new Date(newAvailability.end_time);
-      
-      if (startTime >= endTime) {
-        setError("Thời gian kết thúc phải sau thời gian bắt đầu");
-        return;
-      }
-      
-      const now = new Date();
-      if (startTime < now) {
-        setError("Không thể thêm lịch trống cho thời gian đã qua");
-        return;
-      }
-      
-      // Chuẩn bị dữ liệu
-      const availabilityData = {
-        ...newAvailability,
-        lawyer_id: user.id
-      };
-      
-      // Gọi API thêm lịch trống
-      setLoading(true);
-      const response = await appointmentService.addAvailability(availabilityData);
-      
-      if (response.success) {
-        // Thêm thành công
-        setSuccessMessage('Đã thêm lịch trống thành công!');
-        setTimeout(() => setSuccessMessage(''), 5000);
-        
-        // Đóng modal và làm mới danh sách
-        setShowAddModal(false);
-        resetNewAvailability();
-        await fetchAvailabilities(user.id);
-      } else {
-        // Xử lý lỗi
-        let errorMessage = response.message || 'Không thể thêm lịch trống';
-        
-        // Nếu là lỗi trùng lịch từ server, đưa ra thông báo cụ thể
-        if (response.message && response.message.includes('trùng')) {
-          errorMessage = 'Lịch trống đã tồn tại trong cơ sở dữ liệu. Vui lòng kiểm tra lại.';
-        }
-        
-        handleApiError(response, errorMessage);
-      }
-    } catch (error) {
-      handleApiError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteAvailability = async (availabilityId) => {
-    if (!availabilityId || !window.confirm('Bạn có chắc chắn muốn xóa lịch trống này?')) {
+  const handleAddAvailability = async () => {
+    // Đảm bảo các trường bắt buộc không bị trống
+    if (!date || !startTime || !endTime) {
+      toast.error('Vui lòng chọn đầy đủ ngày và giờ');
       return;
     }
 
     try {
+      setIsLoading(true);
+
+      // Kiểm tra đăng nhập và quyền hạn
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (!currentUser || !currentUser.id) {
+        toast.error('Vui lòng đăng nhập để thực hiện chức năng này');
+        setIsLoading(false);
+        return;
+      }
+
+      // Tạo đối tượng ngày từ chuỗi ngày
+      const selectedDate = dayjs(date).format('YYYY-MM-DD');
+      
+      // Tạo chuỗi thời gian đầy đủ cho thời gian bắt đầu và kết thúc
+      const formattedStartTime = `${selectedDate}T${startTime}:00`;
+      const formattedEndTime = `${selectedDate}T${endTime}:00`;
+
+      // Kiểm tra thời gian kết thúc phải sau thời gian bắt đầu
+      if (new Date(formattedEndTime) <= new Date(formattedStartTime)) {
+        toast.error('Thời gian kết thúc phải sau thời gian bắt đầu');
+        setIsLoading(false);
+        return;
+      }
+
+      // Chuẩn bị dữ liệu để gửi đi
+      const availabilityData = {
+        lawyer_id: currentUser.id,
+        start_time: formattedStartTime,
+        end_time: formattedEndTime
+      };
+
+      // Gọi service để thêm slot trống
+      const response = await appointmentService.addAvailability(availabilityData);
+
+      if (response.success) {
+        toast.success('Thêm lịch trống thành công');
+        setIsModalVisible(false);
+        // Reset form
+        setDate(null);
+        setStartTime(null);
+        setEndTime(null);
+        // Tải lại dữ liệu - không cần truyền ID vì đã được xử lý trong hàm
+        fetchAvailabilities();
+      } else {
+        toast.error(response.message || 'Không thể thêm lịch trống');
+      }
+    } catch (error) {
+      console.error('Lỗi khi thêm lịch trống:', error);
+      toast.error('Đã xảy ra lỗi khi thêm lịch trống');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAvailability = async (availabilityId) => {
+    try {
       const response = await appointmentService.deleteAvailability(availabilityId);
       if (response.success === true) {
-        if (currentUser?.id) {
-          await fetchAvailabilities(currentUser.id);
-        }
+        // Tải lại danh sách không cần truyền ID
+        await fetchAvailabilities();
         toast.success('Xóa lịch trống thành công');
       } else {
         throw new Error(response.message || 'Không thể xóa lịch trống');
@@ -333,7 +401,8 @@ const AvailabilityManager = () => {
       }
       
       toast.success(`Đã tạo ${addedCount} khung giờ làm việc trong tuần`);
-      fetchAvailabilities(currentUser.id); // Cập nhật danh sách
+      // Không cần truyền currentUser.id nữa, hàm fetchAvailabilities tự xử lý
+      fetchAvailabilities();
     } catch (error) {
       handleApiError(error);
     } finally {
@@ -341,28 +410,20 @@ const AvailabilityManager = () => {
     }
   };
 
-  const formatDateTime = (dateString) => {
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('vi-VN', options);
-  };
-
-  // Nhóm các lịch trống theo ngày
+  // Sửa lại hàm nhóm các lịch trống theo ngày
   const groupAvailabilitiesByDate = () => {
     const grouped = {};
     if (Array.isArray(availabilities)) {
       availabilities.forEach(availability => {
-        const date = new Date(availability.start_time).toDateString();
-        if (!grouped[date]) {
-          grouped[date] = [];
+        // Đảm bảo sử dụng đúng ngày từ chuỗi ISO
+        const dbDate = new Date(availability.start_time);
+        // Lấy chính xác ngày tháng năm từ đối tượng Date mà không quan tâm đến múi giờ
+        const dateKey = `${dbDate.getFullYear()}-${dbDate.getMonth() + 1}-${dbDate.getDate()}`;
+        
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
         }
-        grouped[date].push(availability);
+        grouped[dateKey].push(availability);
       });
 
       // Sắp xếp các slot theo thời gian
@@ -373,121 +434,189 @@ const AvailabilityManager = () => {
     return grouped;
   };
 
-  const resetNewAvailability = () => {
-    setNewAvailability({
-      start_time: '',
-      end_time: ''
+  const formatTime = (dateString) => {
+    return dayjs(dateString).format('HH:mm');
+  };
+  
+  const formatDate = (dateKey) => {
+    // Phân tích dateKey để lấy các thành phần ngày, tháng, năm
+    const [year, month, day] = dateKey.split('-').map(num => parseInt(num));
+    
+    // Tạo đối tượng Date với các thành phần đã phân tích
+    const date = new Date(year, month - 1, day);
+    
+    // Định dạng ngày tháng theo tiếng Việt
+    return date.toLocaleDateString('vi-VN', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
     });
   };
 
   return (
-    <div className={styles.availabilityManager}>
-      <div className={styles.header}>
-        <div className={styles.actionButtons}>
-          <button className={styles.addButton} onClick={handleAddModalOpen}>
-            <i className="fas fa-plus"></i> Thêm lịch trống
-          </button>
-          <button className={styles.generateButton} onClick={handleGenerateWeeklySchedule}>
-            <i className="fas fa-calendar"></i> Tạo lịch tự động
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className={styles.loading}>
-          <i className="fas fa-spinner fa-spin"></i> Đang tải...
-        </div>
-      ) : !Array.isArray(availabilities) || availabilities.length === 0 ? (
-        <div className={styles.emptyState}>
-          <i className="fas fa-calendar-times"></i>
-          <p>Chưa có lịch trống nào được tạo</p>
-        </div>
-      ) : (
-        <div className={styles.calendarView}>
-          {Object.entries(groupAvailabilitiesByDate()).map(([date, slots]) => (
-            <div key={date} className={styles.dayCard}>
-              <div className={styles.dayHeader}>
-                <h4>{new Date(date).toLocaleDateString('vi-VN', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</h4>
-              </div>
-              <div className={styles.timeSlotList}>
-                {slots.map((slot) => (
-                  <div key={`${slot.id || ''}-${slot.start_time}-${slot.end_time}`} className={styles.timeSlot}>
-                    <span className={styles.timeRange}>
-                      {new Date(slot.start_time).toLocaleTimeString('vi-VN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })} 
-                      {' - '}
-                      {new Date(slot.end_time).toLocaleTimeString('vi-VN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                    <button 
-                      className={styles.deleteButton}
-                      onClick={() => handleDeleteAvailability(slot.id)}
-                    >
-                      <i className="fas fa-trash-alt"></i>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showAddModal && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3>Thêm lịch trống mới</h3>
-              <button className={styles.closeButton} onClick={handleAddModalClose}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <form onSubmit={handleAddAvailability} className={styles.modalForm}>
-              {error && <div className={styles.errorMessage}>{error}</div>}
-              {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
-              <div className={styles.formGroup}>
-                <label>Thời gian bắt đầu:</label>
-                <input
-                  type="datetime-local"
-                  name="start_time"
-                  value={newAvailability.start_time}
-                  onChange={handleAvailabilityChange}
-                  min={new Date().toISOString().slice(0, 16)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Thời gian kết thúc:</label>
-                <input
-                  type="datetime-local"
-                  name="end_time"
-                  value={newAvailability.end_time}
-                  onChange={handleAvailabilityChange}
-                  min={newAvailability.start_time}
-                  required
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button type="submit" className={styles.saveButton}>
-                  <i className="fas fa-save"></i> Lưu
-                </button>
-                <button type="button" className={styles.cancelButton} onClick={handleAddModalClose}>
-                  <i className="fas fa-times"></i> Hủy
-                </button>
-              </div>
-            </form>
+    <div>
+      <Card
+        extra={
+          <Space>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={handleAddModalOpen}
+            >
+              Thêm lịch trống
+            </Button>
+            <Button 
+              type="default" 
+              icon={<CalendarOutlined />} 
+              onClick={handleGenerateWeeklySchedule}
+              loading={generatingSchedule}
+            >
+              Tạo lịch tự động
+            </Button>
+          </Space>
+        }
+      >
+        {successMessage && (
+          <Alert 
+            message={successMessage} 
+            type="success" 
+            showIcon 
+            style={{ marginBottom: 16 }} 
+            closable
+          />
+        )}
+        
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>Đang tải...</div>
           </div>
-        </div>
-      )}
+        ) : !Array.isArray(availabilities) || availabilities.length === 0 ? (
+          <Empty 
+            description="Chưa có lịch trống nào được tạo" 
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : (
+          <div>
+            {Object.entries(groupAvailabilitiesByDate()).map(([dateKey, slots]) => (
+              <Card 
+                key={dateKey} 
+                type="inner" 
+                title={
+                  <Space>
+                    <CalendarTwoTone />
+                    <Text strong>
+                      {formatDate(dateKey)}
+                    </Text>
+                  </Space>
+                }
+                style={{ marginBottom: 16 }}
+              >
+                <List
+                  dataSource={slots}
+                  renderItem={slot => (
+                    <List.Item
+                      key={`${slot.id || ''}-${slot.start_time}-${slot.end_time}`}
+                      actions={[
+                        <Popconfirm
+                          title="Bạn có chắc chắn muốn xóa lịch trống này?"
+                          onConfirm={() => handleDeleteAvailability(slot.id)}
+                          okText="Có"
+                          cancelText="Không"
+                        >
+                          <Button 
+                            danger 
+                            type="text" 
+                            icon={<DeleteOutlined />}
+                          />
+                        </Popconfirm>
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={<Badge status="success" />}
+                        title={
+                          <Space>
+                            <ClockCircleOutlined />
+                            <Text>
+                              {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                            </Text>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            ))}
+          </div>
+        )}
+      </Card>
+      {/* Modal thêm lịch trống mới (UI đơn giản hơn) */}
+      <Modal
+        title="Thêm lịch trống mới"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setIsModalVisible(false)}>
+            Hủy
+          </Button>,
+          <Button key="submit" type="primary" loading={isLoading} onClick={handleAddAvailability}>
+            Thêm lịch
+          </Button>
+        ]}
+      >
+        <Form layout="vertical">
+          <Form.Item 
+            label="Ngày" 
+            required
+            rules={[{ required: true, message: 'Vui lòng chọn ngày' }]}
+          >
+            <DatePicker
+              value={date ? dayjs(date) : null}
+              onChange={(value) => setDate(value ? value.format('YYYY-MM-DD') : null)}
+              format="DD/MM/YYYY"
+              style={{ width: '100%' }}
+              disabledDate={(current) => {
+                return current && current.isBefore(dayjs().startOf('day'));
+              }}
+            />
+          </Form.Item>
+          
+          <Row gutter={8}>
+            <Col span={12}>
+              <Form.Item 
+                label="Giờ bắt đầu" 
+                required
+                rules={[{ required: true, message: 'Vui lòng chọn giờ bắt đầu' }]}
+              >
+                <TimePicker
+                  value={startTime ? dayjs(startTime, 'HH:mm') : null}
+                  onChange={(value) => setStartTime(value ? value.format('HH:mm') : null)}
+                  format="HH:mm"
+                  style={{ width: '100%' }}
+                  minuteStep={15}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item 
+                label="Giờ kết thúc" 
+                required
+                rules={[{ required: true, message: 'Vui lòng chọn giờ kết thúc' }]}
+              >
+                <TimePicker
+                  value={endTime ? dayjs(endTime, 'HH:mm') : null}
+                  onChange={(value) => setEndTime(value ? value.format('HH:mm') : null)}
+                  format="HH:mm"
+                  style={{ width: '100%' }}
+                  minuteStep={15}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import styles from './DocumentDetail.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
 import Loader from '../../components/layout/Loading/Loading';
-import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt, FaBalanceScale } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 /**
@@ -405,6 +405,12 @@ const DocumentDetail = () => {
                 >
                   <FaShare /> Chia sẻ
                 </button>
+                <Link 
+                  to={`/legal/documents/${document.id}/compare`} 
+                  className={`${styles['action-button']} ${styles.compare}`}
+                >
+                  <FaBalanceScale /> So sánh
+                </Link>
                 <button 
                   className={`${styles['action-button']} ${styles.favorite} ${isFavorite ? styles.active : ''}`}
                   onClick={toggleFavorite}

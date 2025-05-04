@@ -20,7 +20,7 @@ const createLegalCase = async (caseData) => {
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, user_id, title, description, case_type, status, 
-        ai_content, is_ai_generated, created_at, updated_at
+        ai_content, is_ai_generated, file_url, created_at, updated_at
     `;
     
     const caseValues = [
@@ -31,46 +31,14 @@ const createLegalCase = async (caseData) => {
       caseData.status || 'draft',
       caseData.ai_content || null,
       caseData.is_ai_generated || false,
-      caseData.file_url || 'default_no_file.txt'
+      caseData.file_url || null
     ];
     
     const caseResult = await client.query(caseQuery, caseValues);
     const newCase = caseResult.rows[0];
     
-    // Nếu có files, thêm vào bảng CaseDocuments
-    if (caseData.files && caseData.files.length > 0) {
-      const documentValues = [];
-      const documentParams = [];
-      let paramIndex = 1;
-      
-      for (let i = 0; i < caseData.files.length; i++) {
-        const file = caseData.files[i];
-        documentParams.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
-        documentValues.push(
-          newCase.id,
-          file.original_name,
-          file.file_path,
-          file.mime_type,
-          file.encryption_key
-        );
-      }
-      
-      const documentQuery = `
-        INSERT INTO CaseDocuments (
-          case_id, original_name, file_path, mime_type, encryption_key
-        )
-        VALUES ${documentParams.join(', ')}
-        RETURNING id, case_id, original_name
-      `;
-      
-      await client.query(documentQuery, documentValues);
-    }
-    
     await client.query('COMMIT');
-    
-    // Lấy vụ án đầy đủ với documents
-    const result = await getLegalCaseById(newCase.id);
-    return result;
+    return newCase;
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Lỗi khi tạo vụ án:', error);
@@ -93,14 +61,7 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
     
     let query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.created_at, c.updated_at,
-        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
-          ELSE json_agg(json_build_object(
-            'id', d.id,
-            'original_name', d.original_name,
-            'mime_type', d.mime_type
-          )) 
-        END AS documents,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
         CASE WHEN l.id IS NULL THEN NULL
           ELSE json_build_object(
@@ -110,7 +71,6 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
           )
         END AS lawyer
       FROM LegalCases c
-      LEFT JOIN CaseDocuments d ON c.id = d.case_id
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
       WHERE c.user_id = $1 AND c.deleted_at IS NULL
@@ -125,7 +85,6 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
     }
     
     query += `
-      GROUP BY c.id, u.username, l.id, l.username, l.full_name
       ORDER BY c.created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
@@ -141,24 +100,23 @@ const getLegalCasesByUserId = async (userId, options = {}) => {
 };
 
 /**
- * Lấy chi tiết vụ án theo ID
- * @param {number} caseId - ID vụ án
- * @returns {Promise<Object>} Chi tiết vụ án
+ * Lấy danh sách vụ án của luật sư
+ * @param {number} lawyerId - ID luật sư
+ * @param {Object} options - Tùy chọn: page, limit, status
+ * @returns {Promise<Array>} Danh sách vụ án
  */
-const getLegalCaseById = async (caseId) => {
+const getLegalCasesByLawyerId = async (lawyerId, options = {}) => {
   try {
-    const query = `
+    const { page = 1, limit = 10, status } = options;
+    const offset = (page - 1) * limit;
+    
+    let query = `
       SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
-        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.ai_content,
-        c.created_at, c.updated_at,
-        CASE WHEN COUNT(d.id) = 0 THEN '[]'::json 
-          ELSE json_agg(json_build_object(
-            'id', d.id,
-            'original_name', d.original_name,
-            'mime_type', d.mime_type
-          )) 
-        END AS documents,
+        c.lawyer_id, c.fee_amount, c.is_ai_generated, c.file_url, c.created_at, c.updated_at,
         u.username AS user_name,
+        u.full_name AS customer_name,
+        u.email AS customer_email,
+        u.phone AS customer_phone,
         CASE WHEN l.id IS NULL THEN NULL
           ELSE json_build_object(
             'id', l.id,
@@ -167,22 +125,81 @@ const getLegalCaseById = async (caseId) => {
           )
         END AS lawyer
       FROM LegalCases c
-      LEFT JOIN CaseDocuments d ON c.id = d.case_id
+      LEFT JOIN Users u ON c.user_id = u.id
+      LEFT JOIN Users l ON c.lawyer_id = l.id
+      WHERE c.lawyer_id = $1 AND c.deleted_at IS NULL
+    `;
+    
+    const values = [lawyerId];
+    let paramIndex = 2;
+    
+    if (status) {
+      query += ` AND c.status = $${paramIndex++}`;
+      values.push(status);
+    }
+    
+    query += `
+      ORDER BY c.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `;
+    
+    values.push(limit, offset);
+    
+    const result = await pool.query(query, values);
+    return result.rows;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách vụ án của luật sư:', error);
+    throw error;
+  }
+};
+
+/**
+ * Lấy chi tiết vụ án theo ID
+ * @param {number} caseId - ID vụ án
+ * @returns {Promise<Object>} Chi tiết vụ án
+ */
+const getLegalCaseById = async (caseId) => {
+  try {
+    // Kiểm tra và chuyển đổi ID sang số nguyên
+    const caseIdInt = parseInt(caseId, 10);
+    
+    // Nếu không thể chuyển đổi thành số nguyên hợp lệ
+    if (isNaN(caseIdInt)) {
+      throw new Error(`ID vụ án không hợp lệ: ${caseId}`);
+    }
+    
+    const query = `
+      SELECT c.id, c.user_id, c.title, c.description, c.case_type, c.status,
+        c.lawyer_id, c.fee_amount, c.fee_details, c.ai_content, c.is_ai_generated, 
+        c.notes, c.file_url, c.created_at, c.updated_at,
+        u.username AS user_name,
+        u.full_name AS customer_name,
+        u.email AS customer_email,
+        u.phone AS customer_phone,
+        CASE WHEN l.id IS NULL THEN NULL
+          ELSE json_build_object(
+            'id', l.id,
+            'username', l.username,
+            'full_name', l.full_name,
+            'email', l.email,
+            'phone', l.phone
+          )
+        END AS lawyer
+      FROM LegalCases c
       LEFT JOIN Users u ON c.user_id = u.id
       LEFT JOIN Users l ON c.lawyer_id = l.id
       WHERE c.id = $1 AND c.deleted_at IS NULL
-      GROUP BY c.id, u.username, l.id, l.username, l.full_name
     `;
     
-    const result = await pool.query(query, [caseId]);
+    const result = await pool.query(query, [caseIdInt]);
     
     if (result.rows.length === 0) {
-      return null;
+      throw new Error('Không tìm thấy vụ án');
     }
     
     return result.rows[0];
   } catch (error) {
-    console.error('Lỗi khi lấy chi tiết vụ án:', error);
+    console.error(`Lỗi khi lấy chi tiết vụ án ID ${caseId}:`, error);
     throw error;
   }
 };
@@ -222,13 +239,30 @@ const assignLawyer = async (caseId, lawyerId) => {
  */
 const createAppointment = async (appointmentData) => {
   try {
+    // Kiểm tra các trường bắt buộc
+    if (!appointmentData.customer_id || !appointmentData.lawyer_id) {
+      throw new Error('Thiếu thông tin khách hàng hoặc luật sư');
+    }
+    
+    // Kiểm tra và thiết lập thời gian mặc định nếu cần
+    if (!appointmentData.start_time || !appointmentData.end_time) {
+      const now = new Date();
+      const startTime = appointmentData.start_time ? new Date(appointmentData.start_time) : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const endTime = appointmentData.end_time ? new Date(appointmentData.end_time) : new Date(startTime.getTime() + 60 * 60 * 1000);
+      
+      appointmentData.start_time = startTime.toISOString();
+      appointmentData.end_time = endTime.toISOString();
+    }
+    
+    // Chuẩn bị câu lệnh SQL với đầy đủ các trường
     const query = `
       INSERT INTO Appointments (
-        customer_id, lawyer_id, case_id, status, notes, appointment_type
+        customer_id, lawyer_id, case_id, status, notes, appointment_type,
+        start_time, end_time, purpose
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, customer_id, lawyer_id, case_id, status, notes, 
-        appointment_type, created_at
+        appointment_type, start_time, end_time, created_at
     `;
     
     const values = [
@@ -237,7 +271,10 @@ const createAppointment = async (appointmentData) => {
       appointmentData.case_id,
       appointmentData.status || 'pending',
       appointmentData.notes || '',
-      appointmentData.appointment_type || 'case_consultation'
+      appointmentData.appointment_type || 'case_consultation',
+      appointmentData.start_time,
+      appointmentData.end_time,
+      appointmentData.purpose || 'Tư vấn pháp lý'
     ];
     
     const result = await pool.query(query, values);
@@ -249,31 +286,74 @@ const createAppointment = async (appointmentData) => {
 };
 
 /**
- * Tính phí vụ án dựa trên loại và tham số
+ * Tính phí vụ án dựa trên loại vụ án
  * @param {string} caseType - Loại vụ án
- * @param {Object} parameters - Các tham số tính phí
+ * @param {Object} parameters - Tham số tính phí
  * @returns {Promise<Object>} Thông tin phí
  */
 const calculateFee = async (caseType, parameters = {}) => {
   try {
-    // Lấy thông tin phí tham chiếu từ bảng FeeReferences
+    console.log('Bắt đầu tính phí với thông tin:', { caseType, parameters });
+    
+    // Ánh xạ loại vụ án tiếng Việt sang tiếng Anh để khớp với bảng FeeReferences
+    const caseTypeMapping = {
+      'Dân sự': 'civil',
+      'Hình sự': 'criminal',
+      'Hành chính': 'administrative',
+      'Lao động': 'labor',
+      'Hôn nhân gia đình': 'divorce',
+      'Kinh doanh thương mại': 'commercial',
+      'Sở hữu trí tuệ': 'intellectual',
+      'Đất đai': 'land'
+    };
+    
+    // Chuyển đổi case_type sang mã tiếng Anh tương ứng
+    const englishCaseType = caseTypeMapping[caseType] || caseType;
+    
+    console.log(`Ánh xạ loại vụ án từ "${caseType}" thành "${englishCaseType}"`);
+    
+    // Truy vấn thông tin tính phí từ database - Sửa từ FeePolicies sang FeeReferences
     const feeQuery = `
-      SELECT base_fee, percentage_fee, calculation_method, min_fee, max_fee
+      SELECT base_fee, percentage_fee, min_fee, max_fee, calculation_method
       FROM FeeReferences
       WHERE case_type = $1
+      LIMIT 1
     `;
     
-    const feeResult = await pool.query(feeQuery, [caseType]);
+    const feeResult = await pool.query(feeQuery, [englishCaseType]);
     
+    // Nếu không có thông tin phí, dùng mức cơ bản
     if (feeResult.rows.length === 0) {
-      throw new Error(`Không tìm thấy thông tin phí cho loại vụ án: ${caseType}`);
+      console.log('Không tìm thấy chính sách phí cho loại vụ án:', englishCaseType);
+      console.log('Sử dụng phí mặc định: 3,000,000 VND');
+      
+      // Trả về phí mặc định
+      return {
+        case_type: caseType,
+        base_fee: 3000000,
+        additional_fee: 0,
+        total_fee: 3000000,
+        calculation_method: 'fixed',
+        parameters: parameters
+      };
     }
     
     const feeInfo = feeResult.rows[0];
-    const baseFee = parseFloat(feeInfo.base_fee) || 0;
+    console.log('Thông tin fee từ database:', feeInfo);
+    
+    // Đảm bảo các giá trị đều là số
+    const baseFee = parseFloat(feeInfo.base_fee) || 3000000; // Đảm bảo baseFee luôn có giá trị tối thiểu
     const percentageFee = parseFloat(feeInfo.percentage_fee) || 0;
-    const minFee = parseFloat(feeInfo.min_fee) || 0;
+    const minFee = parseFloat(feeInfo.min_fee) || 2000000; // Đảm bảo minFee luôn có giá trị tối thiểu
     const maxFee = parseFloat(feeInfo.max_fee) || 0;
+    
+    console.log('Thông tin phí từ cơ sở dữ liệu (sau khi parse):', {
+      baseFee, 
+      percentageFee, 
+      minFee, 
+      maxFee, 
+      calculationMethod: feeInfo.calculation_method
+    });
     
     // Tính toán phí dựa trên phương thức tính
     let totalFee = baseFee;
@@ -281,35 +361,69 @@ const calculateFee = async (caseType, parameters = {}) => {
     
     // Nếu có giá trị tranh chấp, tính thêm phần trăm
     if (parameters.dispute_value && percentageFee > 0) {
-      const disputeValue = parseFloat(parameters.dispute_value);
-      additionalFee = disputeValue * (percentageFee / 100);
+      // Chuyển đổi sang số nếu là chuỗi
+      const disputeValue = typeof parameters.dispute_value === 'string' 
+                         ? parseFloat(parameters.dispute_value.replace(/,/g, '')) 
+                         : parseFloat(parameters.dispute_value);
+                         
+      if (!isNaN(disputeValue) && disputeValue > 0) {
+        additionalFee = disputeValue * (percentageFee / 100);
+        console.log('Tính phí bổ sung dựa trên giá trị tranh chấp:', {
+          disputeValue,
+          percentageFee,
+          calculatedAdditionalFee: additionalFee
+        });
+      } else {
+        console.log('Giá trị tranh chấp không hợp lệ:', parameters.dispute_value);
+      }
     }
     
     totalFee += additionalFee;
+    console.log('Tổng phí sau khi cộng phí bổ sung:', totalFee);
     
     // Áp dụng giới hạn min/max
     if (minFee > 0 && totalFee < minFee) {
+      console.log(`Phí ${totalFee} nhỏ hơn mức tối thiểu ${minFee}, đặt lại thành ${minFee}`);
       totalFee = minFee;
     }
     
     if (maxFee > 0 && totalFee > maxFee) {
+      console.log(`Phí ${totalFee} lớn hơn mức tối đa ${maxFee}, đặt lại thành ${maxFee}`);
       totalFee = maxFee;
+    }
+    
+    // Đảm bảo phí tối thiểu
+    if (totalFee <= 0) {
+      console.log('Phí tính được <= 0, đặt lại thành phí mặc định 3,000,000 VND');
+      totalFee = 3000000;
     }
     
     // Làm tròn đến 1000 đồng
     totalFee = Math.ceil(totalFee / 1000) * 1000;
     
-    return {
+    const result = {
       case_type: caseType,
       base_fee: baseFee,
       additional_fee: additionalFee,
-      total_fee: totalFee,
+      total_fee: totalFee > 0 ? totalFee : 3000000, // Đảm bảo luôn trả về phí lớn hơn 0
       calculation_method: feeInfo.calculation_method,
       parameters: parameters
     };
+    
+    console.log('Kết quả tính phí cuối cùng:', result);
+    return result;
   } catch (error) {
     console.error('Lỗi khi tính phí vụ án:', error);
-    throw error;
+    // Trả về giá trị mặc định khi có lỗi để tránh việc phí bằng 0
+    return {
+      case_type: caseType,
+      base_fee: 3000000,
+      additional_fee: 0,
+      total_fee: 3000000,
+      calculation_method: 'fixed',
+      parameters: parameters,
+      error_occurred: true
+    };
   }
 };
 
@@ -321,23 +435,67 @@ const calculateFee = async (caseType, parameters = {}) => {
  */
 const updateFeeInfo = async (caseId, feeDetails) => {
   try {
+    console.log('Bắt đầu cập nhật thông tin phí cho vụ án ID:', caseId);
+    console.log('Chi tiết phí:', feeDetails);
+    
+    // Đảm bảo total_fee luôn là số lớn hơn 0
+    let totalFee = parseFloat(feeDetails.total_fee);
+    
+    if (isNaN(totalFee) || totalFee <= 0) {
+      console.log(`Phí không hợp lệ (${feeDetails.total_fee}), đặt lại thành phí mặc định 3,000,000 VND`);
+      totalFee = 3000000;
+      feeDetails.total_fee = totalFee;
+    }
+    
+    // Kiểm tra xem phí có bị null hoặc <= 0 không để đảm bảo luôn có phí hợp lệ
     const query = `
       UPDATE LegalCases
       SET fee_amount = $1, fee_details = $2, updated_at = NOW()
       WHERE id = $3 AND deleted_at IS NULL
-      RETURNING id, fee_amount
+      RETURNING id, fee_amount, fee_details
     `;
     
+    // Chuyển đổi feeDetails thành chuỗi JSON
+    const feeDetailsJson = JSON.stringify(feeDetails);
+    
     const values = [
-      feeDetails.total_fee,
-      JSON.stringify(feeDetails),
+      totalFee,
+      feeDetailsJson,
       caseId
     ];
+    
+    console.log('Thông tin cập nhật:', {
+      caseId,
+      totalFee,
+      feeDetailsType: typeof feeDetails,
+      feeDetailsJson
+    });
     
     const result = await pool.query(query, values);
     
     if (result.rows.length === 0) {
       throw new Error('Không tìm thấy vụ án');
+    }
+    
+    console.log('Cập nhật phí thành công. Kết quả:', result.rows[0]);
+    
+    // Cập nhật cả trạng thái nếu cần
+    try {
+      // Kiểm tra trạng thái hiện tại
+      const caseStatusQuery = `SELECT status FROM LegalCases WHERE id = $1`;
+      const caseStatusResult = await pool.query(caseStatusQuery, [caseId]);
+      
+      if (caseStatusResult.rows.length > 0) {
+        const currentStatus = caseStatusResult.rows[0].status;
+        
+        // Nếu trạng thái là 'draft', cập nhật thành 'pending' (chờ thanh toán)
+        if (currentStatus === 'draft') {
+          await updateCaseStatus(caseId, 'pending');
+        }
+      }
+    } catch (statusError) {
+      console.error('Lỗi khi cập nhật trạng thái vụ án:', statusError);
+      // Không ném lỗi, vẫn tiếp tục vì phí đã được cập nhật thành công
     }
     
     return await getLegalCaseById(caseId);
@@ -474,78 +632,6 @@ const updateCaseStatus = async (caseId, status) => {
 };
 
 /**
- * Lấy thông tin tài liệu vụ án
- * @param {number} caseId - ID vụ án
- * @param {number} documentId - ID tài liệu
- * @returns {Promise<Object>} Thông tin tài liệu
- */
-const getCaseDocumentById = async (caseId, documentId) => {
-  try {
-    const query = `
-      SELECT id, case_id, original_name, file_path, mime_type, 
-        encryption_key, created_at
-      FROM CaseDocuments
-      WHERE case_id = $1 AND id = $2
-    `;
-    
-    const result = await pool.query(query, [caseId, documentId]);
-    
-    if (result.rows.length === 0) {
-      return null;
-    }
-    
-    return result.rows[0];
-  } catch (error) {
-    console.error('Lỗi khi lấy thông tin tài liệu:', error);
-    throw error;
-  }
-};
-
-/**
- * Thêm tài liệu mới cho vụ án
- * @param {number} caseId - ID vụ án
- * @param {Array} files - Danh sách tài liệu
- * @returns {Promise<Array>} Danh sách tài liệu đã thêm
- */
-const addCaseDocuments = async (caseId, files) => {
-  try {
-    if (!files || files.length === 0) {
-      return [];
-    }
-    
-    const values = [];
-    const params = [];
-    let paramIndex = 1;
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      params.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
-      values.push(
-        caseId,
-        file.original_name,
-        file.file_path,
-        file.mime_type,
-        file.encryption_key
-      );
-    }
-    
-    const query = `
-      INSERT INTO CaseDocuments (
-        case_id, original_name, file_path, mime_type, encryption_key
-      )
-      VALUES ${params.join(', ')}
-      RETURNING id, case_id, original_name, mime_type, created_at
-    `;
-    
-    const result = await pool.query(query, values);
-    return result.rows;
-  } catch (error) {
-    console.error('Lỗi khi thêm tài liệu cho vụ án:', error);
-    throw error;
-  }
-};
-
-/**
  * Lấy thông tin người dùng theo ID
  * @param {number} userId - ID người dùng
  * @returns {Promise<Object>} Thông tin người dùng
@@ -614,50 +700,64 @@ const getDocumentTemplateById = async (templateId) => {
 };
 
 /**
- * Cập nhật vụ án
+ * Cập nhật thông tin vụ án
  * @param {number} caseId - ID vụ án
  * @param {Object} updateData - Dữ liệu cập nhật
  * @returns {Promise<Object>} Vụ án đã cập nhật
  */
 const updateLegalCase = async (caseId, updateData) => {
+  const client = await pool.connect();
+  
   try {
-    // Tạo câu query động dựa trên dữ liệu cần cập nhật
-    const keys = Object.keys(updateData);
+    await client.query('BEGIN');
     
-    if (keys.length === 0) {
-      return await getLegalCaseById(caseId);
-    }
-    
-    const setClauses = [];
+    // Xây dựng câu lệnh UPDATE động
+    const updateFields = [];
     const values = [];
     let paramIndex = 1;
     
-    keys.forEach(key => {
-      setClauses.push(`${key} = $${paramIndex++}`);
-      values.push(updateData[key]);
-    });
+    for (const [key, value] of Object.entries(updateData)) {
+      if (['title', 'description', 'case_type', 'file_url', 'status', 'ai_content', 'is_ai_generated', 'notes', 'fee_amount', 'fee_details'].includes(key)) {
+        updateFields.push(`${key} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+    }
     
-    setClauses.push(`updated_at = NOW()`);
+    // Luôn cập nhật trường updated_at
+    updateFields.push(`updated_at = NOW()`);
     
+    // Kiểm tra nếu không có trường nào được cập nhật
+    if (updateFields.length === 1 && updateFields[0] === 'updated_at = NOW()') {
+      return await getLegalCaseById(caseId);
+    }
+    
+    // Thực hiện câu lệnh UPDATE
     const query = `
       UPDATE LegalCases
-      SET ${setClauses.join(', ')}
+      SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex} AND deleted_at IS NULL
       RETURNING id
     `;
     
     values.push(caseId);
     
-    const result = await pool.query(query, values);
+    const result = await client.query(query, values);
     
     if (result.rows.length === 0) {
-      throw new Error('Không tìm thấy vụ án hoặc không thể cập nhật');
+      throw new Error('Không tìm thấy vụ án hoặc vụ án đã bị xóa');
     }
     
+    await client.query('COMMIT');
+    
+    // Trả về vụ án đã cập nhật
     return await getLegalCaseById(caseId);
   } catch (error) {
-    console.error('Lỗi khi cập nhật vụ án:', error);
+    await client.query('ROLLBACK');
+    console.error(`Lỗi khi cập nhật vụ án ID ${caseId}:`, error);
     throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -691,27 +791,30 @@ const deleteLegalCase = async (caseId) => {
 const getCaseTypes = async () => {
   try {
     // Trả về dữ liệu mặc định thay vì truy vấn cơ sở dữ liệu
+    // Đảm bảo case_type_code khớp với bảng FeeReferences
     return [
-      { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
-      { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
-      { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
-      { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
-      { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
-      { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
-      { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+      { case_type: 'Dân sự', case_type_code: 'civil', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+      { case_type: 'Hình sự', case_type_code: 'criminal', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+      { case_type: 'Hành chính', case_type_code: 'administrative', description: 'Khiếu nại, tố cáo hành chính' },
+      { case_type: 'Lao động', case_type_code: 'labor', description: 'Tranh chấp lao động, hợp đồng lao động' },
+      { case_type: 'Hôn nhân gia đình', case_type_code: 'divorce', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+      { case_type: 'Kinh doanh thương mại', case_type_code: 'commercial', description: 'Tranh chấp thương mại, doanh nghiệp' },
+      { case_type: 'Sở hữu trí tuệ', case_type_code: 'intellectual', description: 'Bản quyền, nhãn hiệu, sáng chế' },
+      { case_type: 'Đất đai', case_type_code: 'land', description: 'Tranh chấp đất đai, quyền sử dụng đất' }
     ];
   } catch (error) {
     console.error('Lỗi khi lấy danh sách loại vụ án:', error);
     
     // Trả về dữ liệu mặc định khi có lỗi để tránh lỗi 500
     return [
-      { case_type: 'Dân sự', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
-      { case_type: 'Hình sự', description: 'Bào chữa, tư vấn các vụ án hình sự' },
-      { case_type: 'Hành chính', description: 'Khiếu nại, tố cáo hành chính' },
-      { case_type: 'Lao động', description: 'Tranh chấp lao động, hợp đồng lao động' },
-      { case_type: 'Hôn nhân gia đình', description: 'Ly hôn, phân chia tài sản, nuôi con' },
-      { case_type: 'Kinh doanh thương mại', description: 'Tranh chấp thương mại, doanh nghiệp' },
-      { case_type: 'Sở hữu trí tuệ', description: 'Bản quyền, nhãn hiệu, sáng chế' }
+      { case_type: 'Dân sự', case_type_code: 'civil', description: 'Tranh chấp dân sự, hợp đồng, đất đai' },
+      { case_type: 'Hình sự', case_type_code: 'criminal', description: 'Bào chữa, tư vấn các vụ án hình sự' },
+      { case_type: 'Hành chính', case_type_code: 'administrative', description: 'Khiếu nại, tố cáo hành chính' },
+      { case_type: 'Lao động', case_type_code: 'labor', description: 'Tranh chấp lao động, hợp đồng lao động' },
+      { case_type: 'Hôn nhân gia đình', case_type_code: 'divorce', description: 'Ly hôn, phân chia tài sản, nuôi con' },
+      { case_type: 'Kinh doanh thương mại', case_type_code: 'commercial', description: 'Tranh chấp thương mại, doanh nghiệp' },
+      { case_type: 'Sở hữu trí tuệ', case_type_code: 'intellectual', description: 'Bản quyền, nhãn hiệu, sáng chế' },
+      { case_type: 'Đất đai', case_type_code: 'land', description: 'Tranh chấp đất đai, quyền sử dụng đất' }
     ];
   }
 };
@@ -719,6 +822,7 @@ const getCaseTypes = async () => {
 module.exports = {
   createLegalCase,
   getLegalCasesByUserId,
+  getLegalCasesByLawyerId,
   getLegalCaseById,
   assignLawyer,
   createAppointment,
@@ -728,8 +832,6 @@ module.exports = {
   getTransactionById,
   updateTransactionStatus,
   updateCaseStatus,
-  getCaseDocumentById,
-  addCaseDocuments,
   getUserById,
   getDocumentTemplateById,
   updateLegalCase,

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import styles from '../DashboardPage.module.css';
+import { Menu, Dropdown } from 'antd';
+import { HomeOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import 'animate.css';
 
 const UserMenuPortal = ({ isOpen, position, onMouseEnter, onMouseLeave, onClose, items }) => {
   const [portalContainer, setPortalContainer] = useState(null);
@@ -40,6 +42,26 @@ const UserMenuPortal = ({ isOpen, position, onMouseEnter, onMouseLeave, onClose,
   // Không render gì nếu menu đóng hoặc chưa có container
   if (!isOpen || !portalContainer) return null;
 
+  // Map các icon chuẩn cho các menu item
+  const getItemIcon = (icon) => {
+    switch(icon) {
+      case '🏠': return <HomeOutlined />;
+      case '👤': return <UserOutlined />;
+      case '🚪': return <LogoutOutlined />;
+      default: return null;
+    }
+  };
+
+  const menuItems = items.map((item, index) => ({
+    key: index.toString(),
+    icon: getItemIcon(item.icon),
+    label: item.label,
+    onClick: () => {
+      item.onClick();
+      onClose();
+    }
+  }));
+
   return ReactDOM.createPortal(
     <>
       {/* Invisible overlay để bắt sự kiện click bên ngoài */}
@@ -55,24 +77,23 @@ const UserMenuPortal = ({ isOpen, position, onMouseEnter, onMouseLeave, onClose,
         onClick={onClose}
       />
       
-      <div
-        className={`${styles.userDropdownMenu} animate__animated animate__fadeIn`}
+      <div 
         style={{
-          top: `${position.top}px`,
-          right: `${position.right}px`,
+          position: 'fixed',
+          top: position.top,
+          right: position.right,
+          zIndex: 99999,
+          backgroundColor: 'white',
+          borderRadius: '4px',
+          boxShadow: '0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
+          minWidth: '150px'
         }}
+        className="animate__animated animate__fadeIn"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onClick={(e) => e.stopPropagation()}
       >
-        {items.map((item, index) => (
-          <div key={index} className={styles.userMenuItem} onClick={() => {
-            item.onClick();
-            onClose();
-          }}>
-            <span>{item.icon}</span> {item.label}
-          </div>
-        ))}
+        <Menu items={menuItems} />
       </div>
     </>,
     portalContainer

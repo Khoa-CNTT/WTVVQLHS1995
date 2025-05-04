@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import styles from './LegalDocs.module.css';
 import * as legalDocService from '../../services/legalDocService';
 import DocUploadModal from './components/DocUploadModal';
-import DocDetailsModal from './components/DocDetailsModal';
 import DocShareModal from './components/DocShareModal';
 import DocCard from './components/DocCard';
 import DocSearchFilter from './components/DocSearchFilter';
@@ -20,7 +19,6 @@ const LegalDocsPage = () => {
   const [activeTab, setActiveTab] = useState('my-docs');
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -143,12 +141,6 @@ const LegalDocsPage = () => {
     });
   };
 
-  // Mở modal chi tiết
-  const handleViewDetails = (doc) => {
-    setSelectedDoc(doc);
-    setShowDetailsModal(true);
-  };
-
   // Mở modal chia sẻ
   const handleShareDoc = (doc) => {
     setSelectedDoc(doc);
@@ -188,13 +180,6 @@ const LegalDocsPage = () => {
   const handleUploadSuccess = () => {
     setShowUploadModal(false);
     toast.success('Đã tải lên hồ sơ pháp lý thành công');
-    fetchDocuments();
-  };
-
-  // Xử lý cập nhật hồ sơ
-  const handleUpdateSuccess = () => {
-    setShowDetailsModal(false);
-    toast.success('Đã cập nhật hồ sơ pháp lý thành công');
     fetchDocuments();
   };
 
@@ -253,7 +238,6 @@ const LegalDocsPage = () => {
             <DocCard 
               doc={doc}
               isOwner={activeTab === 'my-docs'}
-              onView={() => handleViewDetails(doc)}
               onDownload={() => handleDownload(doc.id)}
               onShare={() => handleShareDoc(doc)}
               onDelete={() => handleDelete(doc.id)}
@@ -397,16 +381,6 @@ const LegalDocsPage = () => {
           categories={categories}
           onClose={() => setShowUploadModal(false)}
           onSuccess={handleUploadSuccess}
-        />
-      )}
-      
-      {showDetailsModal && selectedDoc && (
-        <DocDetailsModal 
-          doc={selectedDoc}
-          categories={categories}
-          onClose={() => setShowDetailsModal(false)}
-          onUpdate={handleUpdateSuccess}
-          isOwner={activeTab === 'my-docs'}
         />
       )}
       

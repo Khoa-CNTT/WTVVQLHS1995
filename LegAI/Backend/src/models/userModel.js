@@ -17,12 +17,18 @@ const findById = async (userId) => {
 // Tìm lawyer theo id
 const findLawyerById = async (lawyerId) => {
   try {
+    
+    // Sửa query để tìm kiếm luật sư không phân biệt chữ hoa chữ thường
     const result = await pool.query(
-      "SELECT u.*, ld.rating, ld.specialization, ld.experience_years FROM Users u JOIN LawyerDetails ld ON u.id = ld.lawyer_id WHERE u.id = $1 AND u.role = 'Lawyer'",
+      "SELECT u.*, ld.rating, ld.specialization, ld.experience_years FROM Users u LEFT JOIN LawyerDetails ld ON u.id = ld.lawyer_id WHERE u.id = $1 AND LOWER(u.role) = 'lawyer'",
       [lawyerId]
     );
+    
+
+    
     return result.rows[0];
   } catch (error) {
+    console.error(`[userModel] Lỗi khi tìm luật sư:`, error);
     throw error;
   }
 };
@@ -95,7 +101,7 @@ const findLawyers = async (criteria = {}) => {
 
 // Tạo user mới
 const createUser = async (userData) => {
-  const { username, email, password, fullName, phone, role = 'User' } = userData;
+  const { username, email, password, fullName, phone, role = 'user' } = userData;
   
   try {
     // Hash mật khẩu

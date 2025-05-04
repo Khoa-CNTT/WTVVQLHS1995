@@ -1,0 +1,1022 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: #333;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background-color: #f5f5f5;
+  border: none;
+  border-radius: 4px;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background-color: #e5e5e5;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.downloadButton {
+  background-color: #0f4c81;
+  color: white;
+}
+
+.downloadButton:hover {
+  background-color: #0d3d68;
+}
+
+.shareButton {
+  background-color: #4caf50;
+  color: white;
+}
+
+.shareButton:hover {
+  background-color: #3d8b40;
+}
+
+.editButton {
+  background-color: #ff9800;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #e68900;
+}
+
+.deleteButton {
+  background-color: #f44336;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #d32f2f;
+}
+
+.analyzeButton {
+  background-color: #9c27b0;
+  color: white;
+}
+
+.analyzeButton:hover {
+  background-color: #7b1fa2;
+}
+
+.analyzedButton {
+  background-color: #673ab7;
+}
+
+.analyzedButton:hover {
+  background-color: #512da8;
+}
+
+/* Content */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.docInfo {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+.docHeader {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.fileIconLarge {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #0f4c81;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fileIconLarge i {
+  font-size: 2.5rem;
+}
+
+.docTitleSection {
+  flex: 1;
+}
+
+.docTitle {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  color: #0f4c81;
+}
+
+.docDescription {
+  margin: 0 0 1rem 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.docMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.metaItem i {
+  color: #0f4c81;
+}
+
+.docTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background-color: #e6f0f9;
+  color: #0f4c81;
+  padding: 0.3rem 0.7rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+}
+
+/* Analysis Section */
+.analysisSection {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+.sectionTitle {
+  margin: 0 0 1.5rem 0;
+  color: #0f4c81;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.sectionTitle i {
+  color: #0f4c81;
+}
+
+.analysisContent {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.analysisSummary,
+.analysisKeywords,
+.analysisType,
+.analysisRecommendations {
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.analysisSummary h3,
+.analysisKeywords h3,
+.analysisType h3,
+.analysisRecommendations h3 {
+  margin: 0 0 1rem 0;
+  color: #0f4c81;
+  font-size: 1.2rem;
+}
+
+.keywordsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.keyword {
+  background-color: #e6f0f9;
+  color: #0f4c81;
+  padding: 0.3rem 0.7rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+}
+
+.documentType {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+}
+
+.documentType i {
+  color: #0f4c81;
+}
+
+/* Document Content & Viewers */
+.documentContent {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  min-height: 500px;
+}
+
+.contentViewer {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 2rem;
+  overflow: visible;
+  width: 100%;
+  min-height: 500px;
+}
+
+.textContent {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 2.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  max-height: none;
+  overflow-y: visible;
+  width: 100%;
+  margin: 0;
+  border: 1px solid #e6e6e6;
+}
+
+.documentText {
+  font-family: 'Segoe UI', 'Roboto', 'Open Sans', sans-serif;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 1.15rem;
+  line-height: 1.9;
+  margin: 0;
+  padding: 0 1rem;
+  width: 100%;
+  overflow: visible;
+  display: block;
+  text-align: left;
+  color: #333;
+  max-height: none;
+  letter-spacing: 0.01em;
+}
+
+.documentText > div {
+  padding: 5px 0;
+  min-height: 1.9em;
+  margin-bottom: 0.4em;
+}
+
+.imagePreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.imagePreview img {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.noPreview,
+.noContent,
+.pdfNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 200px;
+}
+
+.noPreview i,
+.noContent i,
+.pdfNotice i {
+  font-size: 3rem;
+  color: #0f4c81;
+}
+
+.downloadInlineButton {
+  padding: 0.6rem 1.2rem;
+  background-color: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.downloadInlineButton:hover {
+  background-color: #0d3d68;
+}
+
+.downloadButtonContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eaeaea;
+}
+
+.pdfViewer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  height: 100%;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: 600px;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .pdfFrame {
+    height: 500px;
+  }
+  
+  .imagePreview img {
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdfFrame {
+    height: 400px;
+  }
+  
+  .imagePreview img {
+    max-height: 300px;
+  }
+  
+  .documentText {
+    font-size: 1rem;
+    line-height: 1.7;
+    padding: 0 0.5rem;
+  }
+  
+  .documentText > div {
+    padding: 3px 0;
+  }
+}
+
+/* Form styling */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup label {
+  font-weight: 500;
+  color: #333;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cancelButton {
+  padding: 0.8rem 1.5rem;
+  background-color: #f1f1f1;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: #e2e2e2;
+}
+
+.saveButton {
+  padding: 0.8rem 1.5rem;
+  background-color: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: #0d3d68;
+}
+
+.saveButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Loading & Error */
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #666;
+  gap: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  min-height: 300px;
+}
+
+.returnButton {
+  padding: 0.8rem 1.5rem;
+  background-color: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.returnButton:hover {
+  background-color: #0d3d68;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .headerActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .actionButton {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .docHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .fileIconLarge {
+    margin-bottom: 1rem;
+  }
+  
+  .docMeta {
+    justify-content: center;
+  }
+  
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .analysisContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .actionButton span {
+    display: none;
+  }
+  
+  .actionButton {
+    padding: 0.6rem;
+    justify-content: center;
+  }
+  
+  .headerActions {
+    justify-content: center;
+  }
+}
+
+/* Thêm CSS cho iframe PDF và nút chỉnh sửa nội dung */
+.pdfFrame {
+  width: 100%;
+  height: 600px;
+  border: none;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.pdfViewer {
+  width: 100%;
+  min-height: 600px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.editContentButton {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editContentButton:hover {
+  background-color: #e68900;
+}
+
+.contentEditContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.contentEditArea {
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.contentEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Responsive styles for PDF viewer */
+@media (max-width: 768px) {
+  .pdfFrame {
+    height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdfFrame {
+    height: 300px;
+  }
+  
+  .editContentButton span {
+    display: none;
+  }
+  
+  .editContentButton {
+    padding: 0.5rem;
+  }
+}
+
+.docxViewer {
+  width: 100%;
+  min-height: 600px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.docxActions {
+  padding: 15px;
+  border-top: 1px solid #ddd;
+  background-color: #f0f0f0;
+  display: flex;
+  justify-content: center;
+}
+
+.convertButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  background-color: #4a6fdc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.convertButton:hover {
+  background-color: #345dc4;
+}
+
+.convertButton i {
+  font-size: 1.1rem;
+}
+
+.pdfViewerControls {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  background-color: #f0f0f0;
+  border-top: 1px solid #ddd;
+}
+
+.backToDocxButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backToDocxButton:hover {
+  background-color: #5a6268;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: 600px;
+  border: none;
+}
+
+.viewAllButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewAllButton:hover {
+  background-color: #138496;
+}
+
+.viewAllButton i {
+  font-size: 1.1rem;
+}
+
+.extractButton {
+  background-color: #38bdf8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.3s;
+}
+
+.extractButton:hover {
+  background-color: #0284c7;
+}
+
+.extractContentButton {
+  background-color: #38bdf8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1rem;
+  transition: background-color 0.3s;
+}
+
+.extractContentButton:hover {
+  background-color: #0284c7;
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.aiLabel {
+  font-size: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.noContentActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+.noContent {
+  text-align: center;
+  padding: 2rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.noContent i {
+  font-size: 3rem;
+  color: #9ca3af;
+  margin-bottom: 1rem;
+}
+
+.noContent p {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+.loadMoreContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.loadMoreContainer small {
+  color: #777;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.loadMoreButton {
+  background-color: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.loadMoreButton:hover:not(:disabled) {
+  background-color: #0d3d68;
+  transform: translateY(-2px);
+}
+
+.loadMoreButton:disabled {
+  background-color: #7ca6c9;
+  cursor: not-allowed;
+}
+
+.fileUploadPlaceholder {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fileUploadPlaceholder:hover {
+  border-color: #0f4c81;
+  background-color: #f0f4f9;
+}
+
+.fileUploadPlaceholder i {
+  font-size: 1.5rem;
+  color: #0f4c81;
+}
+
+.fileUploadPlaceholder span {
+  font-size: 1rem;
+  color: #333;
+}
+
+.fileUploadPlaceholder small {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.newFilePreview {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+.newFilePreview .fileIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background-color: #e6f0f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.newFilePreview .fileIcon i {
+  font-size: 1.2rem;
+  color: #0f4c81;
+}
+
+.newFilePreview .fileInfo {
+  flex: 1;
+  overflow: hidden;
+}
+
+.newFilePreview .fileName {
+  margin: 0 0 0.3rem 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.newFilePreview .fileSize {
+  margin: 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.removeFileButton {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 1rem;
+  transition: color 0.3s ease;
+}
+
+.removeFileButton:hover {
+  color: #e74c3c;
+}
+
+@media (max-width: 768px) {
+  .fileUploadPlaceholder {
+    padding: 1rem;
+  }
+  
+  .newFilePreview {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .newFilePreview .fileIcon {
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .removeFileButton {
+    margin: 0.5rem 0 0 0;
+  }
+} 

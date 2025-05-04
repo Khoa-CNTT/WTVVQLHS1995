@@ -30,7 +30,6 @@ const createAppointment = async (appointmentData) => {
         [lawyer_id, startTimeISO, endTimeISO]
       );
       
-      console.log(`Đã cập nhật ${updateSlot.rowCount} slot thành 'booked'`);
     } catch (updateErr) {
       console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
       // Tiếp tục xử lý mà không dừng lại
@@ -165,7 +164,6 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
            AND end_time >= $3`,
           [appointment.lawyer_id, appointment.start_time, appointment.end_time]
         );
-        console.log(`Đã cập nhật trạng thái slot thành 'booked' cho lịch hẹn ${appointmentId}`);
       } catch (updateErr) {
         console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
         // Tiếp tục xử lý mà không dừng lại
@@ -183,7 +181,6 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
            AND status = 'booked'`,
           [appointment.lawyer_id, appointment.start_time, appointment.end_time]
         );
-        console.log(`Đã cập nhật trạng thái slot thành 'available' cho lịch hẹn đã huỷ ${appointmentId}`);
       } catch (updateErr) {
         console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
         // Tiếp tục xử lý mà không dừng lại
@@ -199,12 +196,10 @@ const updateAppointmentStatus = async (appointmentId, status, notes = null) => {
 // Kiểm tra xem luật sư có lịch trống trong khoảng thời gian
 const checkLawyerAvailability = async (lawyerId, startTime, endTime) => {
   try {
-    console.log(`Kiểm tra lịch trống cho luật sư ID ${lawyerId} từ ${startTime} đến ${endTime}`);
     
     // Kiểm tra dữ liệu ngày tháng
     const startDate = new Date(startTime);
     const endDate = new Date(endTime);
-    console.log(`DEBUG: Năm của start_time: ${startDate.getFullYear()}`);
     
     // Kiểm tra xem có lịch hẹn nào trùng thời gian không
     const conflictingAppointmentsQuery = `
@@ -225,7 +220,6 @@ const checkLawyerAvailability = async (lawyerId, startTime, endTime) => {
     
     // Nếu có lịch hẹn đã được đặt trong khoảng thời gian này
     if (result.rows.length > 0) {
-      console.log(`Có ${result.rows.length} lịch hẹn trùng thời gian`);
       
       // Cập nhật trạng thái các slot tương ứng thành "booked"
       for (const appointment of result.rows) {
@@ -249,7 +243,6 @@ const checkLawyerAvailability = async (lawyerId, startTime, endTime) => {
     // ĐẶC BIỆT: Nếu năm là 2025, bỏ qua kiểm tra lịch làm việc
     // Dữ liệu test nằm trong năm 2025 và hệ thống hiện tại cũng là 2025
     if (startDate.getFullYear() === 2025) {
-      console.log(`DEBUG: Bỏ qua kiểm tra lịch trống cho dữ liệu năm 2025`);
       return {
         isAvailable: true,
         conflictingAppointments: [],
@@ -289,8 +282,6 @@ const checkLawyerAvailability = async (lawyerId, startTime, endTime) => {
     );
     
     const hasAnyAvailability = parseInt(anyAvailabilityResult.rows[0].count) > 0;
-    console.log(`Luật sư có ${availabilityResult.rows.length} slot khả dụng trong khoảng thời gian này`);
-    console.log(`Luật sư có thiết lập lịch làm việc: ${hasAnyAvailability ? 'Có' : 'Không'}`);
     
     // Nếu luật sư chưa thiết lập bất kỳ lịch làm việc nào, cho phép đặt lịch
     // Hoặc nếu có slot khả dụng trong khoảng thời gian được yêu cầu
@@ -300,7 +291,6 @@ const checkLawyerAvailability = async (lawyerId, startTime, endTime) => {
     if (isAvailable && availabilityResult.rows.length > 0) {
       for (const slot of availabilityResult.rows) {
         // Sẽ cập nhật lại sau khi tạo lịch hẹn thành công
-        console.log(`Lịch trống khả dụng: ID ${slot.id} từ ${slot.start_time} đến ${slot.end_time}`);
       }
     }
     
@@ -356,7 +346,6 @@ const deleteAppointment = async (appointmentId, reason = '') => {
          AND status = 'booked'`,
         [appointment.lawyer_id, appointment.start_time, appointment.end_time]
       );
-      console.log(`Đã cập nhật trạng thái slot thành 'available' cho lịch hẹn đã huỷ ${appointmentId}`);
     } catch (updateErr) {
       console.error(`Lỗi khi cập nhật trạng thái slot: ${updateErr.message}`);
       // Tiếp tục xử lý mà không dừng lại
@@ -388,15 +377,22 @@ const getLawyerAvailabilities = async (lawyerId) => {
 // Thêm khung giờ làm việc mới cho luật sư
 const addLawyerAvailability = async (lawyerId, startTime, endTime) => {
   try {
+    // GIẢI PHÁP TRIỆT ĐỂ: Tạo câu truy vấn SQL dùng trực tiếp chuỗi ISO
+    // để tránh mọi sự chuyển đổi ngày tháng ở tầng ứng dụng
+    // PostgreSQL sẽ tự xử lý phân tích chuỗi ISO này
+    
+    // Loại bỏ hàm toISOString tự động và các hàm xử lý ngày tháng khác
     const result = await db.query(
       `INSERT INTO LawyerAvailability (lawyer_id, start_time, end_time, status)
-       VALUES ($1, $2, $3, 'available')
+       VALUES ($1, $2::timestamp, $3::timestamp, 'available')
        RETURNING *`,
       [lawyerId, startTime, endTime]
     );
     
     return result.rows[0];
   } catch (err) {
+    console.error(`Lỗi SQL: ${err.message}`);
+    console.error(`Chi tiết đầu vào: lawyerId=${lawyerId}, startTime=${startTime}, endTime=${endTime}`);
     throw new Error(`Không thể thêm lịch làm việc cho luật sư: ${err.message}`);
   }
 };

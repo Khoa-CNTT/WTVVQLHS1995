@@ -8,10 +8,20 @@ import LegalDocsPage from '../pages/LegalDocs/LegalDocsPage';
 import LawyerDashboard from '../pages/LawyerDashboard/LawyerDashboard';
 import UsersManagerPage from '../pages/Dashboard/UsersManager/UsersManager';
 import ContractManager from '../pages/Contracts/ContractManager';
+import ContractDetail from '../pages/Contracts/ContractDetail';
 import LegalCaseList from '../pages/LegalCase/LegalCaseList';
 import LegalCaseDetail from '../pages/LegalCase/LegalCaseDetail';
 import LegalCaseCreator from '../pages/LegalCase/LegalCaseCreator';
+import LegalCaseEditor from '../pages/LegalCase/LegalCaseEditor';
+import Payment from '../pages/Payment/Payment';
+import PaymentGuide from '../pages/Payment/PaymentGuide';
 import authService from '../services/authService';
+import LegalDocDetail from '../pages/LegalDocs/LegalDocDetail';
+import EditLegalDocument from '../pages/Dashboard/LegalDocuments/EditLegalDocument';
+import CreateLegalDocument from '../pages/Dashboard/LegalDocuments/CreateLegalDocument';
+import TransactionManager from '../pages/Dashboard/Transaction/TransactionManager';
+import LegalCaseManager from '../pages/Dashboard/LegalCase/LegalCaseManager';
+import FeeReferenceManager from '../pages/Dashboard/Fee/FeeReferenceManager';
 
 // Kiểm tra đăng nhập
 const isAuthenticated = () => authService.isAuthenticated();
@@ -89,6 +99,15 @@ const AppRouter = () => {
           </ProtectedRoute>
         } />
         
+        {/* Route chi tiết hợp đồng */}
+        <Route path="/contracts/:id" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <ContractDetail />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
         {/* Route dành cho admin */}
         <Route path="/dashboard" element={
           <ProtectedRoute roles={['admin']}>
@@ -129,7 +148,7 @@ const AppRouter = () => {
         <Route path="/legal-docs/:id" element={
           <ProtectedRoute>
             <PageTransition custom="fade">
-              <LegalDocsPage />
+              <LegalDocDetail />
             </PageTransition>
           </ProtectedRoute>
         } />
@@ -156,6 +175,74 @@ const AppRouter = () => {
             <PageTransition custom="fade">
               <LegalCaseDetail />
             </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/legal-cases/:id/edit" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <LegalCaseEditor />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route thanh toán */}
+        <Route path="/payment" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <Payment />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/payment/guide" element={
+          <ProtectedRoute>
+            <PageTransition custom="fade">
+              <PaymentGuide />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Route chỉnh sửa văn bản pháp luật */}
+        <Route path="/dashboard/legal-documents/edit/:id" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <EditLegalDocument />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route thêm mới văn bản pháp luật */}
+        <Route path="/dashboard/legal-documents/new" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <CreateLegalDocument />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route quản lý giao dịch */}
+        <Route path="/dashboard/transactions" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <TransactionManager />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route quản lý vụ án */}
+        <Route path="/dashboard/legal-cases" element={
+          <ProtectedRoute roles={['admin']}>
+            <PageTransition custom="fade">
+              <LegalCaseManager />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Route quản lý quản lý phí tham chiếu */}
+        <Route path="/dashboard/fee-references" element={
+          <ProtectedRoute permission="admin">
+            <Dashboard />
           </ProtectedRoute>
         } />
       </Routes>

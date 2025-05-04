@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const pdf = require("pdf-parse");
 const puppeteer = require("puppeteer");
+const textract = require("textract");
 
 /**
  * @desc    Lấy danh sách văn bản pháp luật
@@ -412,15 +413,21 @@ const storage = multer.diskStorage({
 // Middleware upload file
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // Tăng lên 20MB max
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
   fileFilter: function (req, file, cb) {
-    // Chỉ cho phép PDF
-    if (file.mimetype !== "application/pdf") {
-      return cb(new Error("Chỉ cho phép upload file PDF"), false);
+    // Cho phép PDF, DOC, DOCX
+    const allowedMimeTypes = [
+      "application/pdf",
+      "application/msword", // DOC
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" // DOCX
+    ];
+    
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error("Chỉ cho phép upload file PDF, DOC, DOCX"), false);
     }
     cb(null, true);
   },
-}).single("pdf_file");
+}).single("file");
 
 // Hàm phân tích PDF cải tiến
 const parsePDF = async (dataBuffer) => {
@@ -455,7 +462,7 @@ const parsePDF = async (dataBuffer) => {
 };
 
 /**
- * @desc    Upload và chuyển đổi file PDF thành HTML
+ * @desc    Upload và chuyển đổi file PDF/Word thành HTML
  * @route   POST /api/legal/upload-pdf
  * @access  Private/Admin
  */
@@ -502,13 +509,25 @@ const uploadPdfDocument = asyncHandler(async (req, res) => {
           throw new Error("File rỗng hoặc không thể đọc nội dung");
         }
 
-        // Parse PDF sang text và lấy thông tin vị trí
-        const data = await parsePDF(dataBuffer);
-        const text = data.text || "";
+        let text = "";
+        let htmlContent = "";
+        let iframeHtml = "";
+        let pages = 0;
+        let metadata = {};
 
-        // Tạo một iframe để hiển thị PDF trực tiếp
-        const b64 = dataBuffer.toString("base64");
-        const iframeHtml = `
+        // Xử lý dựa trên loại file
+        const mimeType = req.file.mimetype;
+        
+        if (mimeType === "application/pdf") {
+          // Xử lý file PDF
+          const data = await parsePDF(dataBuffer);
+          text = data.text || "";
+          pages = data.numpages || 0;
+          metadata = data.metadata || {};
+          
+          // Tạo iframe để hiển thị PDF
+          const b64 = dataBuffer.toString("base64");
+          iframeHtml = `
 <div class="pdf-container">
   <iframe 
     src="data:application/pdf;base64,${b64}#toolbar=0&navpanes=0" 
@@ -517,34 +536,30 @@ const uploadPdfDocument = asyncHandler(async (req, res) => {
     style="border: none; background: transparent;">
   </iframe>
 </div>`;
+        } else {
+          // Xử lý file DOCX/DOC
+          text = await new Promise((resolve, reject) => {
+            textract.fromBufferWithName(
+              req.file.originalname,
+              dataBuffer,
+              { preserveLineBreaks: true },
+              (err, text) => {
+                if (err) {
+                  console.error("Lỗi khi trích xuất nội dung từ Word:", err);
+                  reject(new Error("Không thể trích xuất nội dung từ file Word"));
+                } else {
+                  resolve(text);
+                }
+              }
+            );
+          });
+        }
 
-        // Đồng thời tạo HTML từ text để có thể chỉnh sửa và tìm kiếm dễ dàng
-        const htmlContent = convertTextToHtml(text);
+        // Chuyển đổi text thành HTML
+        htmlContent = convertTextToHtml(text);
 
-        // Tạo đầu ra chỉ bao gồm iframe PDF không có tabs
-        const combinedOutput = `
-<div class="document-container">
-  <div class="pdf-container">
-    ${iframeHtml}
-  </div>
-</div>
-<style>
-  .document-container {
-    width: 100%;
-    font-family: 'Times New Roman', Times, serif;
-  }
-  .pdf-container {
-    width: auto;
-    overflow: visible;
-  }
-  iframe {
-    width: 100%;
-    min-height: 1200px;
-    border: none;
-    background: transparent;
-  }
-</style>
-`;
+        // Tạo đầu ra
+        const combinedOutput = iframeHtml || htmlContent;
 
         // Xóa file tạm sau khi xử lý
         if (fs.existsSync(filePath)) {
@@ -555,13 +570,14 @@ const uploadPdfDocument = asyncHandler(async (req, res) => {
           status: "success",
           data: {
             html: combinedOutput,
-            text: htmlContent,
-            pages: data.numpages || 0,
-            info: data.metadata || {},
+            content: htmlContent,
+            text: text,
+            pages: pages,
+            info: metadata,
           },
         });
       } catch (error) {
-        console.error("Lỗi chi tiết khi xử lý file PDF:", error);
+        console.error("Lỗi chi tiết khi xử lý file:", error);
 
         // Đảm bảo xóa file tạm nếu có lỗi
         if (req.file && fs.existsSync(req.file.path)) {
@@ -574,7 +590,7 @@ const uploadPdfDocument = asyncHandler(async (req, res) => {
 
         res.status(500).json({
           status: "error",
-          message: `Lỗi khi xử lý file PDF: ${
+          message: `Lỗi khi xử lý file: ${
             error.message || "Lỗi không xác định"
           }`,
         });

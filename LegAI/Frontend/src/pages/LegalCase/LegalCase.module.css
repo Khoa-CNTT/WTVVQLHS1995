@@ -150,16 +150,25 @@
   width: 100%;
 }
 
-.customTextAreaContainer .ant-input {
-  width: 100%;
-  max-width: none;
-  resize: vertical;
+.customTextAreaContainer textarea.ant-input {
+  min-height: 300px !important;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+  padding: 16px !important;
+  border: 2px solid #d9d9d9 !important;
+  border-radius: 6px !important;
+}
+
+.customTextAreaContainer textarea.ant-input:hover,
+.customTextAreaContainer textarea.ant-input:focus {
+  border-color: #3d5a80 !important;
+  box-shadow: 0 0 0 2px rgba(61, 90, 128, 0.2) !important;
 }
 
 .aiDraftEditor {
   width: 100%;
   max-width: 800px; /* Giới hạn chiều rộng tối đa */
-  min-width: 300px; 
+  min-width: 300px;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   padding: 12px;
@@ -180,18 +189,19 @@
 }
 
 .uploadArea {
-  padding: 24px;
+  padding: 32px;
   border: 2px dashed #d9d9d9;
   border-radius: 8px;
   background-color: #fafafa;
   text-align: center;
   transition: all 0.3s;
   cursor: pointer;
-  min-height: 150px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin-bottom: 20px;
 }
 
 .uploadArea:hover {
@@ -308,7 +318,24 @@
   align-items: center;
   margin-bottom: 24px;
 }
-
+.title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+.title::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(to right, #0d6efd, #0b5ed7);
+  border-radius: 2px;
+}
 .statusBadge {
   margin-right: 8px;
 }
@@ -563,15 +590,15 @@
     align-items: flex-start;
     gap: 16px;
   }
-  
+
   .searchBar {
     padding: 12px 0;
   }
-  
+
   .statusFilter {
     margin-top: 16px;
   }
-  
+
   .createButton {
     width: 100%;
   }
@@ -893,21 +920,21 @@
   .caseHeader {
     flex-direction: column;
   }
-  
+
   .headerButtons {
     margin-top: 20px;
     width: 100%;
   }
-  
+
   .headerButtons button {
     flex: 1;
   }
-  
+
   .disputeValueInput {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .amountInput {
     width: 100%;
   }
@@ -944,7 +971,7 @@
   .aiCard {
     margin-bottom: 24px;
   }
-  
+
   .aiFormActions,
   .formActions {
     display: flex;
@@ -952,14 +979,184 @@
     align-items: center;
     gap: 16px;
   }
-  
+
   .aiFormActions button,
   .formActions button {
     width: 100%;
   }
-  
+
   .uploadArea {
     padding: 16px;
     min-height: 120px;
   }
-} 
+}
+
+.lawyerNotes {
+  margin-top: 20px;
+}
+
+.notesCard {
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.notesContent {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.notesEditContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notesEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fileEditorContainer {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 2px solid #e6e9f0;
+  transition: all 0.3s;
+  display: block;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fileContent {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 1.7;
+  transition: all 0.3s;
+  resize: vertical;
+}
+
+.fileContent:hover,
+.fileContent:focus {
+  border-color: #3d5a80;
+  box-shadow: 0 0 0 2px rgba(61, 90, 128, 0.2);
+  outline: none;
+}
+
+.uploadTabs {
+  margin-bottom: 20px;
+}
+
+.uploadTabs :global(.ant-tabs-nav::before) {
+  border-bottom: 1px solid #e6e9f0;
+}
+
+.uploadTabs :global(.ant-tabs-tab) {
+  font-size: 16px;
+  padding: 8px 16px;
+}
+
+.uploadTabs :global(.ant-tabs-tab.ant-tabs-tab-active) {
+  font-weight: 600;
+}
+
+.uploadTabs :global(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #3d5a80;
+}
+
+.uploadTabs :global(.ant-tabs-ink-bar) {
+  background-color: #3d5a80;
+}
+
+.fileTypeIcon {
+  font-size: 28px;
+  margin-right: 10px;
+}
+
+.fileTypeIconContainer {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: #f0f7ff;
+  border-radius: 6px;
+  border-left: 4px solid #3d5a80;
+}
+
+/* Styles cho modal AI */
+.aiModalContent {
+  padding: 15px 0;
+  width: 100%;
+}
+
+.aiPromptArea {
+  margin-bottom: 15px;
+}
+
+.aiPromptArea textarea {
+  font-size: 16px;
+  padding: 10px;
+}
+
+.aiResultArea {
+  margin-top: 15px;
+}
+
+.aiResultContent {
+  margin-top: 15px;
+}
+
+.aiResultContent textarea {
+  font-size: 16px;
+  padding: 10px;
+  line-height: 1.6;
+}
+
+/* Sửa kích thước modal dropdown */
+:global(.ant-select-dropdown) {
+  width: auto !important;
+  max-width: 90vw !important;
+  min-width: 200px !important;
+}
+
+:global(.ant-modal-wrap) :global(.ant-select-dropdown) {
+  min-width: 300px !important;
+}
+
+/* Sửa dropdown trong modal AI */
+:global(.ant-modal) :global(.ant-select) {
+  width: 100%;
+}
+
+:global(.ant-modal) :global(.ant-select-selector) {
+  height: auto !important;
+  min-height: 40px !important;
+  padding: 5px 10px !important;
+}
+
+:global(.ant-modal) :global(.ant-select-selection-item) {
+  line-height: 30px !important;
+  padding: 0 6px !important;
+  font-size: 16px !important;
+}
+
+:global(.ant-modal) :global(.ant-select-dropdown) {
+  min-width: 300px !important;
+  max-width: 90vw !important;
+  width: auto !important;
+}
+
+:global(.ant-modal) :global(.ant-select-item) {
+  padding: 10px 12px !important;
+  font-size: 16px !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.4 !important;
+}

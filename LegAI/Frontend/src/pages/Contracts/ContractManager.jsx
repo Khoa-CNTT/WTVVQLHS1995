@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaDownload, FaPlus, FaFileContract, FaList, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaDownload, FaPlus, FaFileContract, FaList, FaTimes, FaEye } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { getContracts, createContract, updateContract, deleteContract, downloadContractFile } from '../../services/contractService';
 import styles from './ContractManager.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
@@ -33,6 +34,7 @@ const ContractManager = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const navigate = useNavigate();
   
   // State cho form và modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -273,6 +275,11 @@ const ContractManager = () => {
     }).format(date);
   };
 
+  // Xử lý mở trang chi tiết hợp đồng
+  const handleViewDetailPage = (contractId) => {
+    navigate(`/contracts/${contractId}`);
+  };
+
   return (
     <>
       <Navbar />
@@ -319,7 +326,7 @@ const ContractManager = () => {
                     <td>
                       <span 
                         className={styles.contractTitleLink}
-                        onClick={() => handleShowDetailModal(contract)}
+                        onClick={() => handleViewDetailPage(contract.id)}
                       >
                         {contract.title}
                       </span>
@@ -330,6 +337,12 @@ const ContractManager = () => {
                     <td>{formatDate(contract.end_date)}</td>
                     <td>
                       <div className={styles.actionButtons}>
+                        <button 
+                          title="Xem chi tiết"
+                          onClick={() => handleViewDetailPage(contract.id)}
+                        >
+                          <FaEye />
+                        </button>
                         <button 
                           title="Chi tiết"
                           onClick={() => handleShowDetailModal(contract)}

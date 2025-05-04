@@ -1,0 +1,157 @@
+.paymentFormContainer {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.paymentCard {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.paymentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.amountDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.amount {
+  color: #1890ff;
+  margin-top: 0 !important;
+}
+
+.steps {
+  margin-bottom: 32px;
+}
+
+.paymentContent {
+  min-height: 300px;
+}
+
+.paymentMethodGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.paymentMethodButton {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  height: auto !important;
+  padding: 16px !important;
+  width: calc(50% - 6px);
+  border-radius: 4px !important;
+}
+
+.paymentMethodButton span {
+  margin-top: 8px;
+}
+
+.paymentMethodButton:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.paymentInstructions {
+  margin-top: 15px;
+  font-size: 15px;
+  color: #666;
+  max-width: 400px;
+  text-align: center;
+}
+
+.qrCodeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 30px 0;
+  background-color: #f8f9ff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.qrCode {
+  width: 200px;
+  height: 200px;
+  margin: 20px 0;
+  padding: 12px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.confirmationContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.successIcon {
+  font-size: 64px;
+  color: #52c41a;
+  margin-bottom: 24px;
+}
+
+.confirmationDetails {
+  width: 100%;
+  margin: 24px 0;
+}
+
+.confirmationCard {
+  text-align: left;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.errorContainer {
+  max-width: 500px;
+  margin: 64px auto;
+  text-align: center;
+}
+
+.noteText {
+  margin: 20px 0;
+  font-style: italic;
+  color: #666;
+  text-align: center;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+@media (max-width: 576px) {
+  .paymentHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .amountDisplay {
+    align-items: flex-start;
+    margin-top: 12px;
+  }
+  
+  .paymentMethodButton {
+    width: 100%;
+  }
+} 

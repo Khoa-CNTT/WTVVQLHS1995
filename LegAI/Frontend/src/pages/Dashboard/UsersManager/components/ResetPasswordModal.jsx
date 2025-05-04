@@ -1,80 +1,12 @@
 import React, { useState } from 'react';
-import styles from '../UsersManagerPage.module.css';
+import { Modal, Form, Input, Button, Alert, Space, Typography } from 'antd';
+import { KeyOutlined, SaveOutlined, CloseOutlined, EyeOutlined, EyeInvisibleOutlined, SyncOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 
 const ResetPasswordModal = ({ userId, onSave, onClose }) => {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [form] = Form.useForm();
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState('');
-
-  // Styles inline
-  const passwordInputWrapperStyle = {
-    position: 'relative',
-    width: '100%'
-  };
-
-  const togglePasswordStyle = {
-    position: 'absolute',
-    right: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    color: '#6c757d',
-    cursor: 'pointer',
-    padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '24px',
-    height: '24px'
-  };
-
-  const passwordHintStyle = {
-    display: 'block',
-    marginTop: '5px',
-    color: '#6c757d',
-    fontSize: '0.85rem'
-  };
-
-  const generateButtonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 16px',
-    backgroundColor: '#e9ecef',
-    color: '#495057',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '0.95rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    width: '100%',
-    justifyContent: 'center',
-    margin: '10px 0',
-    transition: 'all 0.2s'
-  };
-
-  const errorAlertStyle = {
-    padding: '10px 15px',
-    marginBottom: '15px',
-    borderRadius: '4px',
-    backgroundColor: '#f8d7da',
-    color: '#721c24',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '0.95rem'
-  };
-
-  const modalStyle = {
-    margin: '0 auto',
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    width: '100%',
-    maxWidth: '450px'
-  };
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
@@ -85,104 +17,138 @@ const ResetPasswordModal = ({ userId, onSave, onClose }) => {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     
-    setNewPassword(password);
-    setConfirmPassword(password);
+    form.setFieldsValue({ 
+      newPassword: password,
+      confirmPassword: password 
+    });
+    
+    // Tạm thời hiển thị mật khẩu để người dùng có thể nhìn thấy
+    setPasswordVisible(true);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const onFinish = (values) => {
+    setError('');
     
     // Kiểm tra mật khẩu
-    if (!newPassword) {
+    if (!values.newPassword) {
       setError('Vui lòng nhập mật khẩu mới');
       return;
     }
     
-    if (newPassword.length < 6) {
+    if (values.newPassword.length < 6) {
       setError('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     
-    if (newPassword !== confirmPassword) {
+    if (values.newPassword !== values.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
       return;
     }
+
     toast.success('Đã đặt lại mật khẩu thành công');
-    onSave(userId, newPassword);
+    onSave(userId, values.newPassword);
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={modalStyle}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>
-            <i className="fas fa-key"></i> Đặt lại mật khẩu
-          </h2>
-          <button className={styles.modalCloseButton} onClick={onClose}>
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
+    <Modal
+      title={
+        <Space>
+          <KeyOutlined />
+          <span>Đặt lại mật khẩu</span>
+        </Space>
+      }
+      open={true}
+      onCancel={onClose}
+      footer={null}
+      maskClosable={false}
+      centered
+      width={450}
+    >
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      
+      <Form 
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+      >
+        <Form.Item
+          label="Mật khẩu mới"
+          name="newPassword"
+          rules={[
+            { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+          ]}
+        >
+          <Input.Password
+            placeholder="Nhập mật khẩu mới"
+            visibilityToggle={{ 
+              visible: passwordVisible, 
+              onVisibleChange: setPasswordVisible 
+            }}
+            prefix={<KeyOutlined />}
+          />
+        </Form.Item>
         
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {error && (
-            <div style={errorAlertStyle}>
-              <i className="fas fa-exclamation-circle"></i> {error}
-            </div>
-          )}
-          
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Mật khẩu mới:</label>
-            <div style={passwordInputWrapperStyle}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={styles.formInput}
-                placeholder="Nhập mật khẩu mới"
-              />
-              <button 
-                type="button" 
-                style={togglePasswordStyle}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-              </button>
-            </div>
-            <small style={passwordHintStyle}>Mật khẩu phải có ít nhất 6 ký tự</small>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Xác nhận mật khẩu:</label>
-            <div style={passwordInputWrapperStyle}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={styles.formInput}
-                placeholder="Nhập lại mật khẩu mới"
-              />
-            </div>
-          </div>
-          
-          <button 
-            type="button" 
-            onClick={generateRandomPassword} 
-            style={generateButtonStyle}
+        <Form.Item
+          label="Xác nhận mật khẩu"
+          name="confirmPassword"
+          dependencies={['newPassword']}
+          rules={[
+            { required: true, message: 'Vui lòng xác nhận mật khẩu' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('newPassword') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+              },
+            })
+          ]}
+        >
+          <Input.Password
+            placeholder="Nhập lại mật khẩu mới"
+            visibilityToggle={{ 
+              visible: passwordVisible, 
+              onVisibleChange: setPasswordVisible 
+            }}
+            prefix={<KeyOutlined />}
+          />
+        </Form.Item>
+        
+        <Form.Item>
+          <Button 
+            block 
+            icon={<SyncOutlined />}
+            onClick={generateRandomPassword}
+            style={{ marginBottom: 16 }}
           >
-            <i className="fas fa-random"></i> Tạo mật khẩu ngẫu nhiên
-          </button>
+            Tạo mật khẩu ngẫu nhiên
+          </Button>
           
-          <div className={styles.modalActions}>
-            <button type="submit" className={styles.saveButton}>
-              <i className="fas fa-save"></i> Lưu thay đổi
-            </button>
-            <button type="button" className={styles.cancelButton} onClick={onClose}>
-              <i className="fas fa-times"></i> Hủy
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Mật khẩu sẽ được tạo ngẫu nhiên với ít nhất 10 ký tự bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+          </Typography.Text>
+        </Form.Item>
+        
+        <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+          <Space>
+            <Button onClick={onClose} icon={<CloseOutlined />}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
+              Lưu thay đổi
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 };
 

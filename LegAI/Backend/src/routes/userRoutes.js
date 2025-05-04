@@ -82,7 +82,7 @@ router.post('/change-password', authenticateToken, userController.changePassword
 router.get('/check-constraints', userController.checkDatabaseConstraints);
 
 // Route lấy thống kê người dùng
-router.get('/users/:userId/stats', authenticateToken, userController.getUserStats);
+router.get('/:userId/stats', userController.getUserStats);
 
 // Route đăng ký làm luật sư - Upload nhiều file với các fieldname khác nhau
 router.post('/register-lawyer', upload.fields([
@@ -113,5 +113,14 @@ router.post('/reset-sequence', authenticateToken, (req, res, next) => {
 
 // Tìm kiếm người dùng theo email
 router.get('/find-by-email', authenticateToken, userController.findUserByEmail);
+
+// Routes quản lý tài khoản ngân hàng
+router.get('/bank-accounts', authenticateToken, userController.getUserBankAccounts);
+router.post('/bank-accounts', authenticateToken, userController.addBankAccount);
+router.put('/bank-accounts/:id', authenticateToken, userController.updateBankAccount);
+router.delete('/bank-accounts/:id', authenticateToken, userController.deleteBankAccount);
+
+// Route lấy tài khoản ngân hàng mặc định của luật sư theo ID
+router.get('/lawyers/:id/bank-account', userController.getLawyerBankAccount);
 
 module.exports = router;

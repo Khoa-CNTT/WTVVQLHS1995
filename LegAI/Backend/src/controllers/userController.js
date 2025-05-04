@@ -4,6 +4,9 @@ const bcryptjs = require('bcryptjs');
 const pool = require('../config/database');
 // Thêm emailService để gửi email
 const emailService = require('../services/emailService');
+const jwt = require('jsonwebtoken');
+const asyncHandler = require('../middleware/async');
+const { v4: uuidv4 } = require('uuid');
 
 // Tạo đường dẫn lưu file upload
 const fs = require('fs');
@@ -175,22 +178,39 @@ const updateUser = async (req, res) => {
             });
         }
 
-        // Kiểm tra dữ liệu trước khi cập nhật
-        if (!userData.fullName) {
-            return res.status(400).json({
+        // Lấy thông tin người dùng hiện tại trước khi cập nhật
+        const currentUser = await userService.getUserById(userId);
+        if (!currentUser) {
+            return res.status(404).json({
                 status: 'error',
-                message: 'Họ tên không được để trống'
+                message: 'Không tìm thấy người dùng'
             });
+        }
+
+        // Kiểm tra dữ liệu fullName từ request
+        // Nếu không có fullName trong request, sử dụng giá trị hiện tại
+        if (!userData.fullName && userData.fullName !== '') {
+            userData.fullName = currentUser.full_name || '';
         }
 
         // Chuẩn bị dữ liệu đúng format cho userService
         const updateData = {
             fullName: userData.fullName,
-            phone: userData.phone || '', // Đảm bảo không bị null
-            role: userData.role,
-            address: userData.address || '', // Đảm bảo không bị null
-            bio: userData.bio || ''  // Đảm bảo không bị null
+            phone: userData.phone !== undefined ? userData.phone : currentUser.phone || '',
+            role: userData.role || currentUser.role,
+            address: userData.address !== undefined ? userData.address : currentUser.address || '',
+            bio: userData.bio !== undefined ? userData.bio : currentUser.bio || ''
         };
+
+        // Bổ sung các trường khác nếu có trong request
+        // Ví dụ: các trường liên quan đến thanh toán
+        if (userData.hourly_rate !== undefined) updateData.hourly_rate = userData.hourly_rate;
+        if (userData.commission_rate !== undefined) updateData.commission_rate = userData.commission_rate;
+        if (userData.min_retainer_fee !== undefined) updateData.min_retainer_fee = userData.min_retainer_fee;
+        if (userData.payment_notes !== undefined) updateData.payment_notes = userData.payment_notes;
+        if (userData.payment_setup_complete !== undefined) updateData.payment_setup_complete = userData.payment_setup_complete;
+
+        // Có thể bổ sung thêm các trường khác
 
         const updatedUser = await userService.updateUser(userId, updateData);
         
@@ -344,16 +364,29 @@ const getUserStats = async (req, res) => {
             });
         }
         
-        // Mặc định trả về các thống kê cơ bản
-        // Trong thực tế, bạn sẽ truy vấn cơ sở dữ liệu để lấy số liệu thực
+        // Lấy dữ liệu thống kê thực tế từ database
         const stats = {
-            documents: 0,  // Số lượng tài liệu
-            cases: 0,      // Số lượng vụ án
-            appointments: 0, // Số cuộc hẹn
-            consultations: 0 // Số lần tư vấn
+            documents: 0,
+            cases: 0,
+            appointments: 0,
+            contracts: 0
         };
         
-        // TODO: Truy vấn thống kê thực tế từ cơ sở dữ liệu
+        // Đếm số lượng tài liệu pháp lý
+        const documentsResult = await pool.query('SELECT COUNT(*) as count FROM LegalDocuments');
+        stats.documents = parseInt(documentsResult.rows[0].count || 0);
+        
+        // Đếm số lượng vụ án
+        const casesResult = await pool.query('SELECT COUNT(*) as count FROM LegalCases');
+        stats.cases = parseInt(casesResult.rows[0].count || 0);
+        
+        // Đếm số lượng lịch hẹn
+        const appointmentsResult = await pool.query('SELECT COUNT(*) as count FROM Appointments');
+        stats.appointments = parseInt(appointmentsResult.rows[0].count || 0);
+        
+        // Đếm số lượng hợp đồng
+        const contractsResult = await pool.query('SELECT COUNT(*) as count FROM Contracts');
+        stats.contracts = parseInt(contractsResult.rows[0].count || 0);
         
         res.json({
             status: 'success',
@@ -1119,9 +1152,379 @@ const findUserByEmail = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Lấy danh sách tài khoản ngân hàng của người dùng
+ * @route   GET /api/users/bank-accounts
+ * @access  Private
+ */
+exports.getUserBankAccounts = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Lấy danh sách tài khoản ngân hàng từ database
+    const query = `
+      SELECT * FROM BankAccounts
+      WHERE user_id = $1 AND status = 'active'
+      ORDER BY is_default DESC, created_at DESC
+    `;
+    
+    const result = await pool.query(query, [userId]);
+    
+    return res.status(200).json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách tài khoản ngân hàng:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách tài khoản ngân hàng'
+    });
+  }
+});
+
+/**
+ * @desc    Thêm tài khoản ngân hàng mới
+ * @route   POST /api/users/bank-accounts
+ * @access  Private
+ */
+exports.addBankAccount = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { bank_name, account_number, account_holder, branch, is_default } = req.body;
+    
+    // Kiểm tra dữ liệu đầu vào
+    if (!bank_name || !account_number || !account_holder) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp đầy đủ thông tin tài khoản ngân hàng'
+      });
+    }
+    
+    // Kiểm tra tài khoản có tồn tại chưa
+    const checkQuery = `
+      SELECT * FROM BankAccounts
+      WHERE user_id = $1 AND account_number = $2 AND status = 'active'
+    `;
+    
+    const checkResult = await pool.query(checkQuery, [userId, account_number]);
+    
+    // Nếu tài khoản đã tồn tại, trả về thành công với dữ liệu tài khoản hiện có
+    if (checkResult.rows.length > 0) {
+      const existingAccount = checkResult.rows[0];
+      
+      // Nếu người dùng yêu cầu đặt làm mặc định và tài khoản chưa phải mặc định
+      if (is_default && !existingAccount.is_default) {
+        // Cập nhật các tài khoản khác thành không mặc định
+        const updateDefaultQuery = `
+          UPDATE BankAccounts
+          SET is_default = false
+          WHERE user_id = $1 AND id != $2
+        `;
+        await pool.query(updateDefaultQuery, [userId, existingAccount.id]);
+        
+        // Cập nhật tài khoản này thành mặc định
+        const setDefaultQuery = `
+          UPDATE BankAccounts
+          SET is_default = true
+          WHERE id = $1
+          RETURNING *
+        `;
+        const updatedResult = await pool.query(setDefaultQuery, [existingAccount.id]);
+        
+        if (updatedResult.rows.length > 0) {
+          return res.status(200).json({
+            success: true,
+            data: updatedResult.rows[0],
+            message: 'Tài khoản ngân hàng này đã tồn tại và được cập nhật thành mặc định'
+          });
+        }
+      }
+      
+      return res.status(200).json({
+        success: true,
+        data: existingAccount,
+        message: 'Tài khoản ngân hàng này đã tồn tại'
+      });
+    }
+    
+    // Nếu đặt làm mặc định, cập nhật tất cả tài khoản khác thành không mặc định
+    if (is_default) {
+      const updateDefaultQuery = `
+        UPDATE BankAccounts
+        SET is_default = false
+        WHERE user_id = $1
+      `;
+      
+      await pool.query(updateDefaultQuery, [userId]);
+    }
+    
+    // Thêm tài khoản ngân hàng mới
+    const insertQuery = `
+      INSERT INTO BankAccounts (
+        user_id, bank_name, account_number, account_holder,
+        branch, is_default, status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 'active')
+      RETURNING *
+    `;
+    
+    const insertResult = await pool.query(insertQuery, [
+      userId,
+      bank_name,
+      account_number,
+      account_holder,
+      branch || null,
+      is_default || false
+    ]);
+    
+    return res.status(201).json({
+      success: true,
+      data: insertResult.rows[0],
+      message: 'Thêm tài khoản ngân hàng thành công'
+    });
+  } catch (error) {
+    console.error('Lỗi khi thêm tài khoản ngân hàng:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi thêm tài khoản ngân hàng'
+    });
+  }
+});
+
+/**
+ * @desc    Cập nhật tài khoản ngân hàng
+ * @route   PUT /api/users/bank-accounts/:id
+ * @access  Private
+ */
+exports.updateBankAccount = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const accountId = req.params.id;
+    const { bank_name, account_holder, branch, is_default } = req.body;
+    
+    // Kiểm tra tài khoản tồn tại và thuộc về người dùng
+    const checkQuery = `
+      SELECT * FROM BankAccounts
+      WHERE id = $1 AND user_id = $2 AND status = 'active'
+    `;
+    
+    const checkResult = await pool.query(checkQuery, [accountId, userId]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản ngân hàng'
+      });
+    }
+    
+    // Nếu đặt làm mặc định, cập nhật tất cả tài khoản khác thành không mặc định
+    if (is_default) {
+      const updateDefaultQuery = `
+        UPDATE BankAccounts
+        SET is_default = false
+        WHERE user_id = $1 AND id != $2
+      `;
+      
+      await pool.query(updateDefaultQuery, [userId, accountId]);
+    }
+    
+    // Cập nhật tài khoản ngân hàng
+    const updateQuery = `
+      UPDATE BankAccounts
+      SET 
+        bank_name = COALESCE($3, bank_name),
+        account_holder = COALESCE($4, account_holder),
+        branch = COALESCE($5, branch),
+        is_default = COALESCE($6, is_default),
+        updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    
+    const updateResult = await pool.query(updateQuery, [
+      accountId,
+      userId,
+      bank_name,
+      account_holder,
+      branch,
+      is_default
+    ]);
+    
+    return res.status(200).json({
+      success: true,
+      data: updateResult.rows[0],
+      message: 'Cập nhật tài khoản ngân hàng thành công'
+    });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật tài khoản ngân hàng:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật tài khoản ngân hàng'
+    });
+  }
+});
+
+/**
+ * @desc    Xóa tài khoản ngân hàng
+ * @route   DELETE /api/users/bank-accounts/:id
+ * @access  Private
+ */
+exports.deleteBankAccount = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const accountId = req.params.id;
+    
+    // Kiểm tra tài khoản tồn tại và thuộc về người dùng
+    const checkQuery = `
+      SELECT * FROM BankAccounts
+      WHERE id = $1 AND user_id = $2 AND status = 'active'
+    `;
+    
+    const checkResult = await pool.query(checkQuery, [accountId, userId]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản ngân hàng'
+      });
+    }
+    
+    // Nếu là tài khoản mặc định, không cho phép xóa
+    if (checkResult.rows[0].is_default) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa tài khoản mặc định. Vui lòng đặt tài khoản khác làm mặc định trước.'
+      });
+    }
+    
+    // Xóa tài khoản ngân hàng (đặt trạng thái là inactive)
+    const deleteQuery = `
+      UPDATE BankAccounts
+      SET status = 'inactive', updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    
+    await pool.query(deleteQuery, [accountId, userId]);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Xóa tài khoản ngân hàng thành công'
+    });
+  } catch (error) {
+    console.error('Lỗi khi xóa tài khoản ngân hàng:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa tài khoản ngân hàng'
+    });
+  }
+});
+
+/**
+ * @desc    Lấy tài khoản ngân hàng mặc định của luật sư
+ * @route   GET /api/users/lawyers/:id/bank-account
+ * @access  Private
+ */
+exports.getLawyerBankAccount = async (req, res) => {
+  try {
+    const lawyerId = req.params.id;
+    
+    console.log('Đang lấy tài khoản ngân hàng cho luật sư ID:', lawyerId);
+    
+    // Kiểm tra ID luật sư hợp lệ
+    if (!lawyerId || isNaN(parseInt(lawyerId))) {
+      console.error('ID luật sư không hợp lệ:', lawyerId);
+      return res.status(400).json({
+        success: false,
+        message: 'ID luật sư không hợp lệ'
+      });
+    }
+    
+    // Kiểm tra xem người dùng có tồn tại và là luật sư không
+    // Sử dụng ILIKE để không phân biệt chữ hoa/chữ thường
+    const userQuery = `
+      SELECT id, role FROM Users WHERE id = $1 AND role ILIKE $2
+    `;
+    
+    const userResult = await pool.query(userQuery, [lawyerId, '%lawyer%']);
+    
+    if (userResult.rows.length === 0) {
+      console.error('Không tìm thấy luật sư với ID:', lawyerId);
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy luật sư'
+      });
+    }
+    
+    // Lấy tài khoản ngân hàng mặc định của luật sư
+    const query = `
+      SELECT * FROM BankAccounts
+      WHERE user_id = $1 AND status = 'active' AND is_default = true
+      LIMIT 1
+    `;
+    
+    console.log('Thực hiện truy vấn tài khoản mặc định cho luật sư ID:', lawyerId);
+    const result = await pool.query(query, [lawyerId]);
+    
+    if (result.rows.length === 0) {
+      console.log('Không tìm thấy tài khoản mặc định, tìm tài khoản khác');
+      // Nếu không có tài khoản mặc định, lấy tài khoản đầu tiên
+      const fallbackQuery = `
+        SELECT * FROM BankAccounts
+        WHERE user_id = $1 AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      
+      const fallbackResult = await pool.query(fallbackQuery, [lawyerId]);
+      
+      if (fallbackResult.rows.length === 0) {
+        console.error('Không tìm thấy bất kỳ tài khoản ngân hàng nào cho luật sư ID:', lawyerId);
+        
+        // Trả về tài khoản hệ thống mặc định thay vì lỗi
+        const defaultSystemAccount = {
+          bank_name: 'Vietcombank',
+          account_number: '1023456789',
+          account_holder: 'CÔNG TY LEGAI',
+          branch: 'Hà Nội',
+          is_default: true,
+          status: 'active'
+        };
+        
+        console.log('Trả về tài khoản hệ thống mặc định');
+        return res.status(200).json({
+          success: true,
+          message: 'Sử dụng tài khoản hệ thống mặc định',
+          data: defaultSystemAccount
+        });
+      }
+      
+      console.log('Tìm thấy tài khoản thay thế cho luật sư ID:', lawyerId);
+      return res.status(200).json({
+        success: true,
+        data: fallbackResult.rows[0]
+      });
+    }
+    
+    console.log('Tìm thấy tài khoản mặc định cho luật sư ID:', lawyerId);
+    return res.status(200).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy tài khoản ngân hàng của luật sư:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy tài khoản ngân hàng của luật sư'
+    });
+  }
+};
+
+// Cập nhật module.exports để bao gồm tất cả các hàm
 module.exports = {
     register,
-    verifyAccount,
+    verifyAccount, 
     getUsers,
     getUserById,
     updateUser,
@@ -1138,6 +1541,12 @@ module.exports = {
     getLawyerById,
     uploadAvatar,
     resetUserSequence,
-    findUserByEmail
+    findUserByEmail,
+    // Thêm các hàm được export bằng exports.functionName
+    getUserBankAccounts: exports.getUserBankAccounts,
+    addBankAccount: exports.addBankAccount,
+    updateBankAccount: exports.updateBankAccount,
+    deleteBankAccount: exports.deleteBankAccount,
+    getLawyerBankAccount: exports.getLawyerBankAccount
 };
 

@@ -31,9 +31,9 @@ build/
 *.sln
 
 # Tệp lock của package manager (nếu dùng yarn hoặc pnpm, có thể bỏ package-lock.json)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Tệp coverage của test
 coverage/

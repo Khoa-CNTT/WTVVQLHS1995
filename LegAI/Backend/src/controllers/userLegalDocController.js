@@ -1,4 +1,6 @@
+// Import required modules
 const userLegalDocModel = require('../models/userLegalDocModel');
+const pool = require('../config/database');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -482,7 +484,6 @@ const shareDoc = asyncHandler(async (req, res) => {
     
     try {
         // Kiểm tra xem người dùng shared_with có tồn tại không
-        const pool = require('../config/database');
         const userCheck = await pool.query('SELECT id FROM Users WHERE id = $1', [shared_with]);
         
         if (userCheck.rows.length === 0) {
@@ -1025,14 +1026,38 @@ const getAllUserDocs = async (req, res) => {
             category = null, 
             search = null, 
             sortBy = 'created_at', 
-            sortOrder = 'DESC'
+            sortOrder = 'DESC',
+            docId = null
         } = req.query;
 
+        // Nếu có docId, trả về chi tiết 1 hồ sơ
+        if (docId) {
+            const doc = await pool.query(
+                `SELECT d.*, u.username, u.full_name as owner_name, u.email as user_email
+                FROM UserLegalDocs d
+                JOIN Users u ON d.user_id = u.id
+                WHERE d.id = $1`,
+                [docId]
+            );
+            
+            if (doc.rows.length === 0) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'Không tìm thấy hồ sơ pháp lý'
+                });
+            }
+            
+            return res.status(200).json({
+                status: 'success',
+                data: doc.rows
+            });
+        }
+
         // Truy vấn SQL trực tiếp để lấy thông tin chi tiết hơn
-        const offset = (page - 1) * limit;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
         
         let query = `
-            SELECT d.*, u.username, u.full_name as owner_name
+            SELECT d.*, u.username, u.full_name as owner_name, u.email as user_email
             FROM UserLegalDocs d
             JOIN Users u ON d.user_id = u.id
             WHERE 1=1
@@ -1056,18 +1081,27 @@ const getAllUserDocs = async (req, res) => {
                 OR d.description ILIKE $${paramIndex}
                 OR u.username ILIKE $${paramIndex}
                 OR u.full_name ILIKE $${paramIndex}
-                OR $${paramIndex} = ANY(d.tags)
             )`;
             params.push(`%${search}%`);
         }
 
+        // Xử lý sắp xếp an toàn (tránh SQL injection)
+        const validSortColumns = ['created_at', 'updated_at', 'title', 'category'];
+        const validSortOrders = ['ASC', 'DESC'];
+        
+        const safeColumnName = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+        const safeOrderDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
         // Thêm sắp xếp
-        query += ` ORDER BY d.${sortBy} ${sortOrder}`;
+        query += ` ORDER BY d.${safeColumnName} ${safeOrderDirection}`;
 
         // Thêm phân trang
         query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
-        params.push(limit, offset);
+        params.push(parseInt(limit), offset);
 
+        console.log('Query:', query);
+        console.log('Params:', params);
+        
         const documents = await pool.query(query, params);
         
         // Đếm tổng số hồ sơ (không áp dụng phân trang)
@@ -1093,7 +1127,6 @@ const getAllUserDocs = async (req, res) => {
                 OR d.description ILIKE $${countParamIndex}
                 OR u.username ILIKE $${countParamIndex}
                 OR u.full_name ILIKE $${countParamIndex}
-                OR $${countParamIndex} = ANY(d.tags)
             )`;
             countParams.push(`%${search}%`);
         }
@@ -1115,7 +1148,7 @@ const getAllUserDocs = async (req, res) => {
         console.error('Lỗi khi lấy danh sách hồ sơ pháp lý của tất cả người dùng:', error);
         return res.status(500).json({
             status: 'error',
-            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu'
+            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu: ' + error.message
         });
     }
 };
@@ -1151,16 +1184,81 @@ const getUserDocsById = async (req, res) => {
             sortOrder = 'DESC'
         } = req.query;
 
-        const options = {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            category,
-            search,
-            sortBy,
-            sortOrder
-        };
+        // Truy vấn SQL trực tiếp để lấy thông tin chi tiết hơn
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        
+        let query = `
+            SELECT d.*, u.username, u.full_name as owner_name, u.email as user_email
+            FROM UserLegalDocs d
+            JOIN Users u ON d.user_id = u.id
+            WHERE d.user_id = $1
+        `;
 
-        const result = await userLegalDocModel.getUserLegalDocs(userId, options);
+        let params = [userId];
+        let paramIndex = 1;
+
+        // Thêm điều kiện tìm kiếm theo danh mục
+        if (category) {
+            paramIndex++;
+            query += ` AND d.category = $${paramIndex}`;
+            params.push(category);
+        }
+
+        // Thêm điều kiện tìm kiếm theo từ khóa
+        if (search) {
+            paramIndex++;
+            query += ` AND (
+                d.title ILIKE $${paramIndex}
+                OR d.description ILIKE $${paramIndex}
+            )`;
+            params.push(`%${search}%`);
+        }
+
+        // Xử lý sắp xếp an toàn (tránh SQL injection)
+        const validSortColumns = ['created_at', 'updated_at', 'title', 'category'];
+        const validSortOrders = ['ASC', 'DESC'];
+        
+        const safeColumnName = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+        const safeOrderDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+        // Thêm sắp xếp
+        query += ` ORDER BY d.${safeColumnName} ${safeOrderDirection}`;
+
+        // Thêm phân trang
+        query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+        params.push(parseInt(limit), offset);
+
+        console.log('User docs query:', query);
+        console.log('User docs params:', params);
+        
+        const documents = await pool.query(query, params);
+        
+        // Đếm tổng số hồ sơ (không áp dụng phân trang)
+        let countQuery = `
+            SELECT COUNT(*) FROM UserLegalDocs d
+            WHERE d.user_id = $1
+        `;
+        
+        let countParams = [userId];
+        let countParamIndex = 1;
+        
+        if (category) {
+            countParamIndex++;
+            countQuery += ` AND d.category = $${countParamIndex}`;
+            countParams.push(category);
+        }
+        
+        if (search) {
+            countParamIndex++;
+            countQuery += ` AND (
+                d.title ILIKE $${countParamIndex}
+                OR d.description ILIKE $${countParamIndex}
+            )`;
+            countParams.push(`%${search}%`);
+        }
+        
+        const countResult = await pool.query(countQuery, countParams);
+        const totalDocs = parseInt(countResult.rows[0].count);
         
         // Lấy thông tin người dùng
         const userInfo = await pool.query(
@@ -1171,14 +1269,19 @@ const getUserDocsById = async (req, res) => {
         return res.status(200).json({
             status: 'success',
             user: userInfo.rows[0],
-            data: result.data,
-            pagination: result.pagination
+            data: documents.rows,
+            pagination: {
+                total: totalDocs,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalDocs / limit)
+            }
         });
     } catch (error) {
         console.error('Lỗi khi lấy danh sách hồ sơ pháp lý của người dùng:', error);
         return res.status(500).json({
             status: 'error',
-            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu'
+            message: 'Đã xảy ra lỗi trong quá trình xử lý yêu cầu: ' + error.message
         });
     }
 };

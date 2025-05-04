@@ -377,27 +377,65 @@ exports.cancelAppointment = asyncHandler(async (req, res, next) => {
 // @access  Public
 exports.getLawyerAvailability = asyncHandler(async (req, res, next) => {
   const lawyerId = req.params.id;
+  
+  console.log(`[Backend] Đang lấy lịch trống cho luật sư ID: ${lawyerId}`);
 
-  // Kiểm tra xem luật sư có tồn tại không
-  const lawyer = await userModel.findLawyerById(lawyerId);
-  if (!lawyer) {
-    // Thay vì báo lỗi, trả về mảng trống
-    return res.status(200).json({
+  try {
+    // Kiểm tra xem id có hợp lệ không
+    if (!lawyerId || isNaN(parseInt(lawyerId))) {
+      console.log(`[Backend] ID luật sư không hợp lệ: ${lawyerId}`);
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID luật sư không hợp lệ',
+        data: []
+      });
+    }
+    
+    // Kiểm tra trực tiếp xem người dùng có tồn tại và là luật sư không
+    const userResult = await db.query(
+      `SELECT id, full_name, role FROM Users WHERE id = $1`,
+      [lawyerId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      console.log(`[Backend] Không tìm thấy người dùng với ID: ${lawyerId}`);
+      return res.status(200).json({
+        status: 'success',
+        message: 'Không tìm thấy thông tin luật sư',
+        count: 0,
+        data: []
+      });
+    }
+    
+    const user = userResult.rows[0];
+    console.log(`[Backend] Tìm thấy người dùng: ${user.full_name}, vai trò: ${user.role}`);
+    
+    // KIỂM TRA TRỰC TIẾP BẰNG SQL QUERY để lấy lịch trống
+    const rawResults = await db.query(
+      `SELECT * FROM LawyerAvailability 
+       WHERE lawyer_id = $1 
+       AND status = 'available'
+       ORDER BY start_time ASC`,
+      [lawyerId]
+    );
+    
+    const availabilities = rawResults.rows;
+    console.log(`[Backend] Kết quả SQL: ${availabilities.length} lịch trống`);
+    
+    res.status(200).json({
       status: 'success',
-      message: 'Không tìm thấy thông tin luật sư hoặc luật sư chưa có lịch trống',
-      count: 0,
+      message: availabilities.length > 0 ? 'Lấy lịch trống thành công' : 'Luật sư chưa có lịch trống',
+      count: availabilities.length,
+      data: availabilities
+    });
+  } catch (error) {
+    console.error(`[Backend] Lỗi khi lấy lịch trống: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: `Lỗi khi lấy lịch trống: ${error.message}`,
       data: []
     });
   }
-
-  // Lấy khung giờ làm việc của luật sư
-  const availabilities = await appointmentModel.getLawyerAvailabilities(lawyerId);
-
-  res.status(200).json({
-    status: 'success',
-    count: availabilities.length,
-    data: availabilities
-  });
 });
 
 // @desc    Thêm khung giờ làm việc cho luật sư

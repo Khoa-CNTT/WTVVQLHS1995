@@ -1,29 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { Table, Card, Button, Input, Select, Space, Pagination, Modal, Form, Spin, Typography, Alert, DatePicker, Upload, Tag } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined, UploadOutlined, ExclamationCircleOutlined, CalendarOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import styles from './LegalDocumentsManager.module.css';
 import axiosInstance from '../../../config/axios';
 import { API_URL } from '../../../config/constants';
-import Spinner from '../../../components/Common/Spinner';
+import moment from 'moment';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TextArea } = Input;
+const { confirm } = Modal;
 
 const LegalDocumentsManager = () => {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocumentType, setSelectedDocumentType] = useState('');
   const [documentTypes, setDocumentTypes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  const [modalMode, setModalMode] = useState('add');
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const pdfFileRef = useRef(null);
-
+  const [form] = Form.useForm();
+  
   const [formData, setFormData] = useState({
     title: '',
     document_type: '',
@@ -46,25 +54,26 @@ const LegalDocumentsManager = () => {
       const params = new URLSearchParams();
       params.append('page', currentPage);
       params.append('limit', 10);
-
+      
       if (searchTerm) {
         params.append('search', searchTerm);
       }
-
+      
       if (selectedDocumentType) {
         params.append('document_type', selectedDocumentType);
       }
-
+      
       const response = await axiosInstance.get(`${API_URL}/legal/documents?${params.toString()}`);
-
+      
       if (response.data && response.data.status === 'success') {
         setDocuments(response.data.data);
         setTotalPages(response.data.pagination.totalPages);
+        setTotalItems(response.data.pagination.totalItems || response.data.pagination.totalPages * 10);
       }
     } catch (err) {
-      console.error('Lỗi khi lấy danh sách văn bản pháp luật:', err);
-      setError('Không thể tải danh sách văn bản pháp luật');
-      toast.error('Không thể tải danh sách văn bản pháp luật');
+      console.error('Lỗi khi lấy danh sách văn bản pháp lý:', err);
+      setError('Không thể tải danh sách văn bản pháp lý');
+      toast.error('Không thể tải danh sách văn bản pháp lý');
     } finally {
       setLoading(false);
     }
@@ -77,50 +86,38 @@ const LegalDocumentsManager = () => {
         setDocumentTypes(response.data.data);
       }
     } catch (err) {
-      console.error('Lỗi khi lấy danh sách loại văn bản:', err);
+      console.error('Lỗi khi lấy danh sách loại văn bản pháp lý:', err);
     }
   };
 
   const openAddModal = () => {
-    setFormData({
-      title: '',
-      document_type: '',
-      version: '',
-      content: '',
-      summary: '',
-      issued_date: new Date().toISOString().split('T')[0],
-      language: 'Tiếng Việt',
-      keywords: []
-    });
-    setModalMode('add');
-    setIsModalOpen(true);
+    navigate('/dashboard/legal-documents/new');
   };
 
   const openEditModal = (document) => {
-    const date = new Date(document.issued_date);
-    // Chuyển đổi ngày theo múi giờ Việt Nam
-    const formattedDate = date.toLocaleDateString('sv-SE', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).split('/').reverse().join('-'); // Định dạng YYYY-MM-DD
-
-    const formattedDocument = {
-      ...document,
-      issued_date: formattedDate,
-      keywords: document.keywords || [],
-    };
-
-    setSelectedDocument(document);
-    setFormData(formattedDocument);
-    setModalMode('edit');
-    setIsModalOpen(true);
+    if (document && document.id) {
+      localStorage.setItem('editingDocument', JSON.stringify(document));
+      
+      navigate(`/dashboard/legal-documents/edit/${document.id}`);
+    } else {
+      toast.error('Không tìm thấy thông tin văn bản để chỉnh sửa');
+    }
   };
 
   const openDeleteModal = (document) => {
     setSelectedDocument(document);
-    setIsDeleteModalOpen(true);
+    confirm({
+      title: 'Xác nhận xóa văn bản pháp lý',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: `Bạn có chắc chắn muốn xóa văn bản "${document.title}" không? 
+                Hành động này không thể hoàn tác.`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk() {
+        handleDelete(document);
+      },
+    });
   };
 
   const openPdfModal = () => {
@@ -128,149 +125,131 @@ const LegalDocumentsManager = () => {
     setIsPdfModalOpen(true);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'keywords') {
-      // Xử lý từ khóa (chuỗi phân cách bằng dấu phẩy)
-      // Chia chuỗi thành mảng, loại bỏ khoảng trắng, loại bỏ phần tử rỗng, và loại bỏ trùng lặp
-      const keywordsArray = value.split(',')
-        .map(keyword => keyword.trim())
-        .filter(keyword => keyword)
-        .filter((value, index, self) => self.indexOf(value) === index);
-      
-      setFormData({
-        ...formData,
-        keywords: keywordsArray
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
+  const handleInputChange = (name, value) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
   };
 
   const handleSearchInputChange = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset về trang 1 khi tìm kiếm mới
+    setCurrentPage(1);
   };
 
-  const handleDocumentTypeChange = (e) => {
-    setSelectedDocumentType(e.target.value);
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi loại văn bản
+  const handleDocumentTypeChange = (value) => {
+    setSelectedDocumentType(value);
+    setCurrentPage(1);
   };
 
-  const handleSubmitForm = async (e) => {
-    e.preventDefault();
-
-    if (!formData.title || !formData.document_type || !formData.content) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
-      return;
-    }
-
+  const handleSubmitForm = async () => {
     try {
+      const values = await form.validateFields();
+      
+      // Chuyển đổi mảng từ khóa thành chuỗi
+      if (values.keywords && Array.isArray(values.keywords)) {
+        values.keywords = values.keywords.join(', ');
+      }
+      
+      // Chuyển đổi ngày phát hành sang định dạng chuẩn
+      if (values.issued_date) {
+        values.issued_date = values.issued_date.format('YYYY-MM-DD');
+      }
+      
+      setLoading(true);
+      
       if (modalMode === 'add') {
-        const response = await axiosInstance.post(`${API_URL}/legal/documents`, formData);
+        const response = await axiosInstance.post(`${API_URL}/legal/documents`, values);
         if (response.data && response.data.status === 'success') {
-          toast.success('Thêm văn bản pháp luật thành công');
+          toast.success('Thêm văn bản pháp lý mới thành công');
+          setIsModalOpen(false);
           fetchDocuments();
-          closeModal();
         }
-      } else {
+      } else if (modalMode === 'edit' && selectedDocument) {
         const response = await axiosInstance.put(
           `${API_URL}/legal/documents/${selectedDocument.id}`,
-          formData
+          values
         );
         if (response.data && response.data.status === 'success') {
-          toast.success('Cập nhật văn bản pháp luật thành công');
+          toast.success('Cập nhật văn bản pháp lý thành công');
+          setIsModalOpen(false);
           fetchDocuments();
-          closeModal();
         }
       }
     } catch (err) {
-      console.error('Lỗi khi lưu văn bản pháp luật:', err);
-      toast.error(err.response?.data?.message || 'Lỗi khi lưu văn bản pháp luật');
+      console.error('Lỗi khi lưu văn bản pháp lý:', err);
+      toast.error('Không thể lưu văn bản pháp lý: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (doc) => {
     try {
-      const response = await axiosInstance.delete(`${API_URL}/legal/documents/${selectedDocument.id}`);
+      setLoading(true);
+      // Sử dụng document được truyền vào hoặc selectedDocument nếu có
+      const documentToDelete = doc || selectedDocument;
+      
+      if (!documentToDelete || !documentToDelete.id) {
+        throw new Error('Không tìm thấy thông tin văn bản pháp lý để xóa');
+      }
+      
+      const response = await axiosInstance.delete(
+        `${API_URL}/legal/documents/${documentToDelete.id}`
+      );
+      
       if (response.data && response.data.status === 'success') {
-        toast.success('Xóa văn bản pháp luật thành công');
+        toast.success('Xóa văn bản pháp lý thành công');
         fetchDocuments();
-        closeDeleteModal();
       }
     } catch (err) {
-      console.error('Lỗi khi xóa văn bản pháp luật:', err);
-      toast.error(err.response?.data?.message || 'Lỗi khi xóa văn bản pháp luật');
+      console.error('Lỗi khi xóa văn bản pháp lý:', err);
+      toast.error('Không thể xóa văn bản pháp lý: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+      setSelectedDocument(null);
     }
   };
 
-  const handleUploadPdf = async (e) => {
-    e.preventDefault();
-    const fileInput = pdfFileRef.current;
-
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-      toast.error('Vui lòng chọn file PDF để tải lên');
-      return;
-    }
-
-    const file = fileInput.files[0];
-    if (file.type !== 'application/pdf') {
-      toast.error('Vui lòng chỉ chọn file PDF');
-      return;
-    }
-
-    // Kiểm tra kích thước file (giới hạn 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast.error('Kích thước file vượt quá giới hạn 10MB');
-      return;
-    }
-
-    const formDataForUpload = new FormData();
-    formDataForUpload.append('pdf_file', file);
-
-    try {
+  const handleUploadPdf = async (info) => {
+    if (info.file.status === 'uploading') {
       setIsUploading(true);
+      return;
+    }
+    
+    if (info.file.status !== 'done') {
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', info.file.originFileObj);
+      
       const response = await axiosInstance.post(
         `${API_URL}/legal/upload-pdf`,
-        formDataForUpload,
+        formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
-
+      
       if (response.data && response.data.status === 'success') {
-        setHtmlContent(response.data.data.html);
-        setFormData({
-          ...formData,
-          content: response.data.data.html
+        setHtmlContent(response.data.data.content);
+        form.setFieldsValue({
+          content: response.data.data.content
         });
-        toast.success('Chuyển đổi PDF thành HTML thành công');
-        closePdfModal();
+        setFormData(prev => ({
+          ...prev,
+          content: response.data.data.content
+        }));
+        toast.success('Chuyển đổi Word/PDF thành HTML thành công');
+        setIsPdfModalOpen(false);
       }
     } catch (err) {
-      console.error('Lỗi khi tải lên file PDF:', err);
-      // Hiển thị thông báo lỗi cụ thể từ server nếu có
-      if (err.response && err.response.data && err.response.data.message) {
-        toast.error(`Lỗi: ${err.response.data.message}`);
-      } else if (err.message) {
-        toast.error(`Lỗi: ${err.message}`);
-      } else {
-        toast.error('Lỗi khi tải lên hoặc chuyển đổi file PDF');
-      }
-
-      // Giữ modal mở để người dùng có thể chọn lại file
-      setIsUploading(false);
-      // Không đóng modal, reset file input để người dùng có thể chọn lại
-      if (pdfFileRef.current) {
-        pdfFileRef.current.value = '';
-      }
+      console.error('Lỗi khi chuyển đổi Word/PDF:', err);
+      toast.error('Không thể chuyển đổi Word/PDF: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploading(false);
     }
@@ -279,16 +258,11 @@ const LegalDocumentsManager = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDocument(null);
-  };
-
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedDocument(null);
+    form.resetFields();
   };
 
   const closePdfModal = () => {
     setIsPdfModalOpen(false);
-    pdfFileRef.current.value = '';
   };
 
   const handlePageChange = (page) => {
@@ -296,376 +270,300 @@ const LegalDocumentsManager = () => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    
+    const options = { 
+      year: 'numeric', 
+      month: 'numeric', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    
+    return new Date(dateString).toLocaleDateString('vi-VN', options);
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`${styles.pageButton} ${currentPage === i ? styles.activePage : ''}`}
-          onClick={() => handlePageChange(i)}
-          disabled={currentPage === i}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return (
-      <div className={styles.pagination}>
-        <button
-          className={styles.pageButton}
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          &laquo;
-        </button>
-        {pages}
-        <button
-          className={styles.pageButton}
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          &raquo;
-        </button>
-      </div>
-    );
-  };
+  const columns = [
+    {
+      title: 'STT',
+      key: 'index',
+      width: '8%',
+      render: (_, __, index) => (currentPage - 1) * 10 + index + 1,
+    },
+    {
+      title: 'Tiêu đề',
+      dataIndex: 'title',
+      key: 'title',
+      width: '35%',
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'Loại văn bản',
+      dataIndex: 'document_type',
+      key: 'document_type',
+    },
+    {
+      title: 'Ngày ban hành',
+      dataIndex: 'issued_date',
+      key: 'issued_date',
+      render: (text) => text ? formatDate(text) : 'N/A',
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (text) => formatDate(text),
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: '15%',
+      render: (_, record) => (
+        <Space>
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => openEditModal(record)}
+            size="small"
+          />
+          <Button 
+            type="primary" 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => openDeleteModal(record)}
+            size="small"
+          />
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className={styles.container}>
+    <Card className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.searchBar}>
-          <input
-            type="text"
-            placeholder="Tìm kiếm văn bản..."
-            value={searchTerm}
-            onChange={handleSearchInputChange}
-            className={styles.searchInput}
-          />
-          <select
-            value={selectedDocumentType}
-            onChange={handleDocumentTypeChange}
-            className={styles.selectFilter}
-          >
-            <option value="">Tất cả loại văn bản</option>
-            {documentTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button className={styles.addButton} onClick={openAddModal}>
-          <i className="fas fa-plus"></i> Thêm văn bản mới
-        </button>
+        <Button 
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={openAddModal}
+        >
+          Thêm văn bản pháp lý
+        </Button>
       </div>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner />
-          <p>Đang tải dữ liệu...</p>
-        </div>
-      ) : error ? (
-        <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>{error}</p>
-          <button className={styles.retryButton} onClick={fetchDocuments}>
-            Thử lại
-          </button>
-        </div>
-      ) : documents.length === 0 ? (
-        <div className={styles.emptyContainer}>
-          <p>Không có văn bản pháp luật nào</p>
-          <button className={styles.addButton} onClick={openAddModal}>
-            <i className="fas fa-plus"></i> Thêm văn bản mới
-          </button>
-        </div>
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
+        <Input
+          placeholder="Tìm kiếm văn bản pháp lý..."
+          value={searchTerm}
+          onChange={handleSearchInputChange}
+          prefix={<SearchOutlined />}
+          style={{ flex: 1 }}
+        />
+        <Select
+          placeholder="Loại văn bản"
+          value={selectedDocumentType}
+          onChange={handleDocumentTypeChange}
+          style={{ width: 200 }}
+          allowClear
+        >
+          {documentTypes.map((type) => (
+            <Option key={type.id || type} value={type.id || type}>
+              {type.name || type}
+            </Option>
+          ))}
+        </Select>
+      </div>
+
+      {error ? (
+        <Alert
+          message="Lỗi"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button onClick={fetchDocuments} type="primary" size="small">
+              Thử lại
+            </Button>
+          }
+        />
       ) : (
-        <>
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>STT</th>
-                  <th>Tiêu đề</th>
-                  <th>Loại văn bản</th>
-                  <th>Ngày ban hành</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((document, index) => (
-                  <tr key={document.id}>
-                    <td>{(currentPage - 1) * 10 + index + 1}</td>
-                    <td>
-                      <div className={styles.documentTitle}>
-                        {document.title}
-                      </div>
-                      {document.keywords && document.keywords.length > 0 && (
-                        <div className={styles.keywordsList}>
-                          {document.keywords.map((keyword, idx) => (
-                            <span key={idx} className={styles.keywordTag}>
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td>{document.document_type}</td>
-                    <td>{formatDate(document.issued_date)}</td>
-                    <td>
-                      <div className={styles.actions}>
-                        <button
-                          className={styles.editButton}
-                          onClick={() => openEditModal(document)}
-                          title="Chỉnh sửa"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => openDeleteModal(document)}
-                          title="Xóa"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && renderPagination()}
-        </>
+        <Table
+          columns={columns}
+          dataSource={documents}
+          rowKey="id"
+          pagination={false}
+          loading={loading}
+        />
       )}
 
-      {/* Modal thêm/sửa văn bản */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{modalMode === 'add' ? 'Thêm văn bản mới' : 'Chỉnh sửa văn bản'}</h2>
-              <button className={styles.closeButton} onClick={closeModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <form onSubmit={handleSubmitForm}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="title">Tiêu đề <span className={styles.required}>*</span></label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="document_type">Loại văn bản <span className={styles.required}>*</span></label>
-                    <select
-                      id="document_type"
-                      name="document_type"
-                      value={formData.document_type}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Chọn loại văn bản</option>
-                      {documentTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="version">Phiên bản</label>
-                    <input
-                      type="text"
-                      id="version"
-                      name="version"
-                      value={formData.version}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="issued_date">Ngày ban hành <span className={styles.required}>*</span></label>
-                    <input
-                      type="date"
-                      id="issued_date"
-                      name="issued_date"
-                      value={formData.issued_date}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="language">Ngôn ngữ</label>
-                    <select
-                      id="language"
-                      name="language"
-                      value={formData.language}
-                      onChange={handleInputChange}
-                    >
-                      <option value="Tiếng Việt">Tiếng Việt</option>
-                      <option value="English">Tiếng Anh</option>
-                    </select>
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="summary">Tóm tắt</label>
-                  <textarea
-                    id="summary"
-                    name="summary"
-                    value={formData.summary}
-                    onChange={handleInputChange}
-                    rows={3}
-                  ></textarea>
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="keywords">Từ khóa (ngăn cách bằng dấu phẩy)</label>
-                  <input
-                    type="text"
-                    id="keywords"
-                    name="keywords"
-                    value={formData.keywords.join(', ')}
-                    onChange={handleInputChange}
-                    placeholder="Ví dụ: luật, hợp đồng, dân sự"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="content">Nội dung <span className={styles.required}>*</span></label>
-                  <div className={styles.editorControls}>
-                    <button
-                      type="button"
-                      className={styles.pdfButton}
-                      onClick={openPdfModal}
-                      title="Tải lên file PDF"
-                    >
-                      <i className="fas fa-file-pdf"></i> Tải lên PDF
-                    </button>
-                  </div>
-                  <textarea
-                    id="content"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    rows={10}
-                    required
-                  ></textarea>
-                </div>
-                <div className={styles.modalActions}>
-                  <button type="submit" className={styles.saveButton}>
-                    {modalMode === 'add' ? 'Thêm văn bản' : 'Cập nhật'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cancelButton}
-                    onClick={closeModal}
-                  >
-                    Hủy bỏ
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+      {totalPages > 1 && (
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <Pagination
+            current={currentPage}
+            total={totalItems}
+            pageSize={10}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+          />
         </div>
       )}
 
-      {/* Modal xác nhận xóa */}
-      {isDeleteModalOpen && selectedDocument && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.deleteModal}>
-            <div className={styles.modalHeader}>
-              <h2>Xác nhận xóa</h2>
-              <button className={styles.closeButton} onClick={closeDeleteModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Bạn có chắc chắn muốn xóa văn bản <strong>"{selectedDocument.title}"</strong> không?</p>
-              <p className={styles.warningText}>
-                <i className="fas fa-exclamation-triangle"></i> Hành động này không thể hoàn tác!
-              </p>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.deleteButton} onClick={handleDelete}>
-                Xóa văn bản
-              </button>
-              <button className={styles.cancelButton} onClick={closeDeleteModal}>
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title={modalMode === 'add' ? 'Thêm văn bản pháp lý mới' : 'Chỉnh sửa văn bản pháp lý'}
+        open={isModalOpen}
+        onCancel={closeModal}
+        footer={[
+          <Button key="back" onClick={closeModal}>
+            Hủy bỏ
+          </Button>,
+          <Button
+            key="pdf"
+            type="default"
+            icon={<UploadOutlined />}
+            onClick={openPdfModal}
+          >
+            Tải tệp
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={handleSubmitForm}
+          >
+            {modalMode === 'add' ? 'Thêm mới' : 'Cập nhật'}
+          </Button>,
+        ]}
+        width={800}
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={formData}
+        >
+          <Form.Item
+            name="title"
+            label="Tiêu đề"
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề văn bản pháp lý' }]}
+          >
+            <Input placeholder="Nhập tiêu đề văn bản pháp lý" />
+          </Form.Item>
+          
+          <Form.Item
+            name="document_type"
+            label="Loại văn bản"
+            rules={[{ required: true, message: 'Vui lòng chọn loại văn bản pháp lý' }]}
+          >
+            <Select placeholder="Chọn loại văn bản pháp lý">
+              {documentTypes.map((type) => (
+                <Option key={type.id || type} value={type.id || type}>
+                  {type.name || type}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="version"
+            label="Phiên bản"
+          >
+            <Input placeholder="Nhập phiên bản (nếu có)" />
+          </Form.Item>
+          
+          <Form.Item
+            name="language"
+            label="Ngôn ngữ"
+            rules={[{ required: true, message: 'Vui lòng chọn ngôn ngữ' }]}
+          >
+            <Select>
+              <Option value="Tiếng Việt">Tiếng Việt</Option>
+              <Option value="English">English</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="issued_date"
+            label="Ngày ban hành"
+          >
+            <DatePicker 
+              format="DD/MM/YYYY" 
+              placeholder="Chọn ngày"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="keywords"
+            label="Từ khóa"
+          >
+            <Select
+              mode="tags"
+              placeholder="Nhập từ khóa và nhấn Enter"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="summary"
+            label="Tóm tắt"
+          >
+            <TextArea
+              rows={4}
+              placeholder="Nhập tóm tắt về văn bản pháp lý"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="content"
+            label="Nội dung HTML"
+            rules={[{ required: true, message: 'Vui lòng nhập nội dung văn bản pháp lý' }]}
+          >
+            <TextArea
+              rows={15}
+              placeholder="Nhập mã HTML cho văn bản pháp lý"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
-      {/* Modal tải lên PDF */}
-      {isPdfModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.pdfModal}>
-            <div className={styles.modalHeader}>
-              <h2>Tải lên và chuyển đổi file PDF</h2>
-              <button className={styles.closeButton} onClick={closePdfModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Chọn file PDF để tự động chuyển đổi thành nội dung HTML.</p>
-              <div className={styles.pdfUploadForm}>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  ref={pdfFileRef}
-                  className={styles.fileInput}
-                />
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.uploadButton}
-                onClick={handleUploadPdf}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Spinner size="small" /> Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-upload"></i> Tải lên và chuyển đổi
-                  </>
-                )}
-              </button>
-              <button className={styles.cancelButton} onClick={closePdfModal}>
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
+      <Modal
+        title="Tải lên và chuyển đổi file Word/PDF"
+        open={isPdfModalOpen}
+        onCancel={closePdfModal}
+        footer={null}
+      >
+        <p>Chọn file Word (DOCX, DOC) hoặc PDF để tự động chuyển đổi thành nội dung HTML.</p>
+        <Upload.Dragger
+          name="file"
+          accept=".pdf,.doc,.docx"
+          action={`${API_URL}/legal/upload-pdf`}
+          onChange={handleUploadPdf}
+          showUploadList={false}
+          customRequest={({ file, onSuccess }) => {
+            setTimeout(() => {
+              onSuccess("ok");
+            }, 0);
+          }}
+        >
+          <p className="ant-upload-drag-icon">
+            <FileTextOutlined />
+          </p>
+          <p className="ant-upload-text">Nhấp hoặc kéo thả file vào khu vực này</p>
+          <p className="ant-upload-hint">Hỗ trợ tệp DOCX, DOC và PDF</p>
+        </Upload.Dragger>
+        <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+          <Button onClick={closePdfModal} style={{ marginRight: 8 }}>
+            Hủy bỏ
+          </Button>
+          <Button
+            type="primary"
+            loading={isUploading}
+            icon={<UploadOutlined />}
+          >
+            Tải lên và chuyển đổi
+          </Button>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Card>
   );
 };
 

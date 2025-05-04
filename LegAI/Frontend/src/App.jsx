@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './theme';
-import AppRouter from './router';
+import AppRouter from './router/index';
 import { Toaster } from 'react-hot-toast';
 import ChatManager from './components/layout/Chat/ChatManager';
 

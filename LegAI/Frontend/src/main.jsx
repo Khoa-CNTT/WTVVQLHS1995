@@ -22,7 +22,10 @@ const originalConsoleError = console.error;
 console.error = function(msg) {
   if (typeof msg === 'string' && 
       (msg.includes('Encountered two children with the same key') || 
-       msg.includes('Non-unique keys'))) {
+       msg.includes('Non-unique keys') ||
+       msg.includes('[antd: Menu] `children` is deprecated. Please use `items` instead.') ||
+       msg.includes('[antd: Card] `headStyle` is deprecated. Please use `styles.header` instead.') ||
+       msg.includes('findDOMNode is deprecated and will be removed in the next major release'))) {
     return;
   }
   originalConsoleError.apply(console, arguments);

@@ -1,6 +1,15 @@
 import React from 'react';
-import { FaExclamationTriangle, FaTrash, FaFileAlt, FaCalendarAlt, FaBuilding, FaTags } from 'react-icons/fa';
-import styles from '../ContractManager.module.css';
+import { Typography, Alert, Space, Button, List, Divider } from 'antd';
+import { 
+  ExclamationCircleOutlined, 
+  DeleteOutlined, 
+  FileOutlined, 
+  CalendarOutlined, 
+  TeamOutlined, 
+  TagOutlined 
+} from '@ant-design/icons';
+
+const { Title, Text, Paragraph } = Typography;
 
 const DeleteConfirmation = ({ 
   contract, 
@@ -11,62 +20,88 @@ const DeleteConfirmation = ({
 }) => {
   if (!contract) return null;
   
+  const contractDetails = [
+    {
+      icon: <FileOutlined />,
+      label: 'Tiêu đề:',
+      value: contract.title
+    },
+    {
+      icon: <TagOutlined />,
+      label: 'Loại hợp đồng:',
+      value: contract.contract_type
+    },
+    {
+      icon: <TeamOutlined />,
+      label: 'Đối tác:',
+      value: contract.partner || 'Chưa xác định'
+    },
+    {
+      icon: <CalendarOutlined />,
+      label: 'Thời gian:',
+      value: `${formatDate(contract.start_date)} - ${formatDate(contract.end_date)}`
+    }
+  ];
+  
   return (
-    <div className={styles.deleteConfirmContainer}>
-      <div className={styles.warningHeader}>
-        <FaExclamationTriangle className={styles.warningIcon} />
-        <h3>Xác nhận xóa hợp đồng</h3>
+    <Space direction="vertical" style={{ width: '100%' }} size="large">
+      <div style={{ textAlign: 'center' }}>
+        <ExclamationCircleOutlined 
+          style={{ 
+            fontSize: 48, 
+            color: '#ff4d4f', 
+            marginBottom: 16 
+          }} 
+        />
+        <Title level={4}>Xác nhận xóa hợp đồng</Title>
       </div>
       
-      <p className={styles.deleteQuestion}>
-        Bạn có chắc chắn muốn xóa hợp đồng <strong>"{contract.title}"</strong>?
-      </p>
+      <Paragraph style={{ fontSize: 16, textAlign: 'center' }}>
+        Bạn có chắc chắn muốn xóa hợp đồng <Text strong>"{contract.title}"</Text>?
+      </Paragraph>
       
-      <div className={styles.contractSummary}>
-        <div className={styles.summaryItem}>
-          <FaFileAlt />
-          <span><strong>Tiêu đề:</strong> {contract.title}</span>
-        </div>
-        <div className={styles.summaryItem}>
-          <FaTags />
-          <span><strong>Loại hợp đồng:</strong> {contract.contract_type}</span>
-        </div>
-        <div className={styles.summaryItem}>
-          <FaBuilding />
-          <span><strong>Đối tác:</strong> {contract.partner || 'Chưa xác định'}</span>
-        </div>
-        <div className={styles.summaryItem}>
-          <FaCalendarAlt />
-          <span><strong>Thời gian:</strong> {formatDate(contract.start_date)} - {formatDate(contract.end_date)}</span>
-        </div>
+      <List
+        bordered
+        dataSource={contractDetails}
+        renderItem={item => (
+          <List.Item>
+            <Space>
+              {item.icon}
+              <Text strong>{item.label}</Text>
+              {item.value}
+            </Space>
+          </List.Item>
+        )}
+      />
+      
+      <Alert
+        message="Lưu ý: Hành động này không thể hoàn tác."
+        type="warning"
+        showIcon
+        icon={<ExclamationCircleOutlined />}
+      />
+      
+      <Divider />
+      
+      <div style={{ textAlign: 'right' }}>
+        <Space>
+          <Button 
+            onClick={handleCloseModals}
+          >
+            Hủy
+          </Button>
+          <Button 
+            type="primary" 
+            danger
+            icon={<DeleteOutlined />}
+            onClick={handleDeleteContract}
+            loading={loading}
+          >
+            Xóa hợp đồng
+          </Button>
+        </Space>
       </div>
-      
-      <p className={styles.warningText}>
-        <FaExclamationTriangle /> Lưu ý: Hành động này không thể hoàn tác.
-      </p>
-      
-      <div className={styles.deleteActions}>
-        <button 
-          className={styles.cancelButton} 
-          onClick={handleCloseModals}
-        >
-          Hủy
-        </button>
-        <button 
-          className={styles.deleteButton} 
-          onClick={handleDeleteContract} 
-          disabled={loading}
-        >
-          {loading ? (
-            <span className={styles.loadingSpinner}></span>
-          ) : (
-            <>
-              <FaTrash /> Xóa hợp đồng
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+    </Space>
   );
 };
 

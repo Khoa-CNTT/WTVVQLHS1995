@@ -220,7 +220,7 @@ const LegalCaseList = () => {
       <Content className={styles.legalCaseContent}>
         <div className={styles.legalCaseList}>
           <div className={styles.listHeader}>
-            <Title level={2}>Vụ án pháp lý</Title>
+            <Title className={styles.title} level={2}>Vụ án pháp lý</Title>
             <Button
               type="primary"
               icon={<PlusOutlined />}

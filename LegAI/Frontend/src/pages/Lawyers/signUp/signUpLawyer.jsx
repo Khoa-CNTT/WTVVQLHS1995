@@ -1,9 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import styles from "./form_sign_up.module.css";
 import authService from "../../../services/authService";
 import userService from "../../../services/userService";
+import { 
+  Form, Input, Button, Checkbox, Upload, DatePicker, 
+  InputNumber, Typography, Space, Divider, Alert, 
+  Card, Row, Col, Spin, message as antMessage
+} from 'antd';
+import {
+  UserOutlined, MailOutlined, PhoneOutlined, IdcardOutlined,
+  CalendarOutlined, HomeOutlined, BookOutlined, AuditOutlined,
+  SafetyOutlined, TeamOutlined, BankOutlined, FolderOutlined,
+  UploadOutlined, CheckOutlined, SendOutlined, LeftOutlined
+} from '@ant-design/icons';
+import moment from 'moment';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+const { Dragger } = Upload;
 
 function LawyerRegisterForm() {
   const navigate = useNavigate();
@@ -13,6 +28,7 @@ function LawyerRegisterForm() {
   const [currentUser, setCurrentUser] = useState(null);
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [previewCertification, setPreviewCertification] = useState(null);
+  const [form] = Form.useForm();
   
   const [formData, setFormData] = useState({
     // Thông tin cơ bản (từ tài khoản người dùng)
@@ -28,12 +44,12 @@ function LawyerRegisterForm() {
     
     // Thông tin luật sư
     certification: "",
-    experienceYears: "0",
+    experienceYears: 0,
     specialization: [],
     
     // Thông tin bổ sung
     idCard: "",
-    birthDate: "",
+    birthDate: null,
     licenseNumber: "",
     barAssociation: "",
     lawOffice: "",
@@ -48,53 +64,97 @@ function LawyerRegisterForm() {
       setCurrentUser(user);
       
       // Điền thông tin từ người dùng đã đăng nhập
-      setFormData(prevData => ({
-        ...prevData,
+      const updatedFormData = {
+        ...formData,
         username: user.username || "",
         email: user.email || "",
         phone: user.phone || "",
         fullName: user.fullName || "",
-      }));
+      };
+      
+      setFormData(updatedFormData);
+      
+      // Cập nhật form Ant Design
+      form.setFieldsValue({
+        username: user.username || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        fullName: user.fullName || "",
+        experienceYears: 0
+      });
     } else {
       // Nếu không có người dùng đăng nhập, chuyển hướng về trang đăng nhập
       navigate("/login");
     }
-  }, [navigate]);
+  }, [navigate, form]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
+  const handleChange = (changedValues, allValues) => {
+    const updatedData = { ...formData };
     
-    if (type === "file") {
-      if (files && files[0]) {
-        setFormData({ ...formData, [name]: files[0] });
-        
-        // Tạo URL xem trước cho tệp đã chọn
-        const fileUrl = URL.createObjectURL(files[0]);
-        if (name === "avatarFile") {
+    // Cập nhật tất cả các trường từ form
+    Object.keys(changedValues).forEach(key => {
+      // Xử lý trường hợp đặc biệt
+      if (key === 'birthDate') {
+        updatedData[key] = changedValues[key] ? changedValues[key].format('YYYY-MM-DD') : null;
+      } else {
+        updatedData[key] = changedValues[key];
+      }
+    });
+    
+    setFormData(updatedData);
+    
+    // Xóa lỗi cho các trường đã được cập nhật
+    if (errors) {
+      const updatedErrors = { ...errors };
+      Object.keys(changedValues).forEach(key => {
+        delete updatedErrors[key];
+      });
+      setErrors(updatedErrors);
+    }
+  };
+  
+  const handleSpecializationChange = (checkedValues) => {
+    setFormData({ ...formData, specialization: checkedValues });
+    // Xóa lỗi nếu đã chọn chuyên môn
+    if (errors.specialization && checkedValues.length > 0) {
+      const { specialization, ...restErrors } = errors;
+      setErrors(restErrors);
+    }
+  };
+
+  const handleUploadChange = ({ file, fileList }, fieldName) => {
+    if (file.status === 'done' || file.status === 'uploading' || file.status === 'error') {
+      const fileObj = file.originFileObj || file;
+      
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: fileObj
+      }));
+      
+      // Tạo URL xem trước cho tệp đã chọn
+      if (fileObj) {
+        const fileUrl = URL.createObjectURL(fileObj);
+        if (fieldName === "avatarFile") {
           setPreviewAvatar(fileUrl);
-        } else if (name === "certificationFile") {
+        } else if (fieldName === "certificationFile") {
           setPreviewCertification(fileUrl);
         }
       }
-    } else if (type === "checkbox" && name === "specialization") {
-      const updated = checked
-        ? [...formData.specialization, value]
-        : formData.specialization.filter((item) => item !== value);
-      setFormData({ ...formData, specialization: updated });
-    } else if (type === "checkbox") {
-      setFormData({ ...formData, [name]: checked });
-    } else {
-      setFormData({ ...formData, [name]: value });
       
-      // Xóa lỗi khi người dùng bắt đầu chỉnh sửa
-      if (errors[name]) {
-        setErrors({ ...errors, [name]: "" });
+      // Xóa lỗi khi đã tải lên file
+      if (errors[fieldName]) {
+        const updatedErrors = { ...errors };
+        delete updatedErrors[fieldName];
+        setErrors(updatedErrors);
       }
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
+    
+    // Lấy giá trị hiện tại từ form
+    const values = form.getFieldsValue();
     
     // Kiểm tra các trường bắt buộc
     const requiredFields = [
@@ -106,18 +166,13 @@ function LawyerRegisterForm() {
     ];
     
     requiredFields.forEach(item => {
-      if (!formData[item.field] || formData[item.field].trim() === "") {
+      if (!values[item.field] || values[item.field].trim() === "") {
         newErrors[item.field] = item.message;
       }
     });
     
-    // Kiểm tra số năm kinh nghiệm
-    if (isNaN(parseInt(formData.experienceYears)) || parseInt(formData.experienceYears) < 0) {
-      newErrors.experienceYears = "Số năm kinh nghiệm không hợp lệ";
-    }
-    
     // Kiểm tra chuyên môn
-    if (formData.specialization.length === 0) {
+    if (!values.specialization || values.specialization.length === 0) {
       newErrors.specialization = "Vui lòng chọn ít nhất một lĩnh vực chuyên môn";
     }
     
@@ -132,7 +187,7 @@ function LawyerRegisterForm() {
     }
     
     // Kiểm tra đồng ý điều khoản
-    if (!formData.agree) {
+    if (!values.agree) {
       newErrors.agree = "Bạn phải đồng ý với điều khoản và chính sách";
     }
     
@@ -140,11 +195,8 @@ function LawyerRegisterForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Lưu lại trạng thái hiện tại của form trước khi kiểm tra
-    const currentFormData = { ...formData };
+  const handleSubmit = async (values) => {
+    // Lưu lại trạng thái hiện tại của form
     setErrors({});
     
     // Kiểm tra form
@@ -155,16 +207,11 @@ function LawyerRegisterForm() {
         text: "Vui lòng điền đầy đủ thông tin bắt buộc"
       });
       
-      // Cuộn đến phần tử lỗi đầu tiên
-      setTimeout(() => {
-        const firstErrorField = Object.keys(errors)[0];
-        if (firstErrorField) {
-          const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
-          if (errorElement) {
-            errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }
-      }, 100);
+      // Scroll đến phần tử lỗi đầu tiên
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        form.scrollToField(firstErrorField);
+      }
       
       return;
     }
@@ -185,45 +232,38 @@ function LawyerRegisterForm() {
       }
       
       // Thêm thông tin cơ bản của tài khoản đã đăng nhập
-      // (Backend vẫn yêu cầu các trường này mặc dù đã có trong DB)
-      data.append("username", currentFormData.username);
-      data.append("email", currentFormData.email);
-      data.append("phone", currentFormData.phone);
-      data.append("fullName", currentFormData.fullName);
+      data.append("username", formData.username);
+      data.append("email", formData.email);
+      data.append("phone", formData.phone);
+      data.append("fullName", formData.fullName);
       
       // Thêm mật khẩu mặc định (backend yêu cầu)
-      // Sử dụng mật khẩu giả vì người dùng đã đăng nhập
       data.append("password", "updated_password_placeholder");
       
       // Thêm dữ liệu profile
-      data.append("address", currentFormData.address);
-      data.append("bio", currentFormData.bio || "");
+      data.append("address", values.address);
+      data.append("bio", values.bio || "");
       
       // Thêm file avatar
-      if (currentFormData.avatarFile) {
-        data.append("avatar", currentFormData.avatarFile);
+      if (formData.avatarFile) {
+        data.append("avatar", formData.avatarFile);
       }
       
       // Thêm dữ liệu luật sư
-      data.append("certification", currentFormData.certification || "");
-      data.append("experienceYears", currentFormData.experienceYears || "0");
-      data.append("specialization", currentFormData.specialization.join(","));
+      data.append("certification", formData.certification || "");
+      data.append("experienceYears", values.experienceYears || "0");
+      data.append("specialization", values.specialization.join(","));
       
       // Thêm dữ liệu bổ sung
-      data.append("idCard", currentFormData.idCard);
-      data.append("birthDate", currentFormData.birthDate || "");
-      data.append("licenseNumber", currentFormData.licenseNumber);
-      data.append("barAssociation", currentFormData.barAssociation);
-      data.append("lawOffice", currentFormData.lawOffice);
+      data.append("idCard", values.idCard);
+      data.append("birthDate", values.birthDate ? values.birthDate.format('YYYY-MM-DD') : '');
+      data.append("licenseNumber", values.licenseNumber);
+      data.append("barAssociation", values.barAssociation);
+      data.append("lawOffice", values.lawOffice);
       
       // Thêm file chứng chỉ
-      if (currentFormData.certificationFile) {
-        data.append("certificationFile", currentFormData.certificationFile);
-      }
-      
-      // In ra console để debug
-      for (let pair of data.entries()) {
-        console.log(pair[0] + ": " + pair[1]);
+      if (formData.certificationFile) {
+        data.append("certificationFile", formData.certificationFile);
       }
       
       // Gửi yêu cầu đăng ký luật sư với token xác thực
@@ -242,7 +282,6 @@ function LawyerRegisterForm() {
       
       // Cập nhật thông tin người dùng trong localStorage mà không cần đăng nhập lại
       try {
-        // Sử dụng hàm refreshUserData thay vì updateUserInLocalStorage
         await userService.refreshUserData();
         console.log("Đã cập nhật thông tin người dùng trong localStorage");
       } catch (refreshError) {
@@ -252,7 +291,7 @@ function LawyerRegisterForm() {
       // Cuộn lên đầu trang để hiển thị thông báo
       window.scrollTo({ top: 0, behavior: "smooth" });
       
-      // Đăng xuất người dùng sau 3 giây và chuyển hướng về trang đăng nhập
+      // Đăng xuất người dùng sau 5 giây và chuyển hướng về trang đăng nhập
       setTimeout(() => {
         authService.logout();
         navigate("/login?message=relogin_required");
@@ -260,9 +299,6 @@ function LawyerRegisterForm() {
       
     } catch (error) {
       console.error("Lỗi đăng ký:", error);
-      
-      // Hiển thị chi tiết lỗi nhận được
-      console.log("Phản hồi chi tiết:", error.response?.data);
       
       // Xử lý lỗi
       if (error.response?.data?.message) {
@@ -284,322 +320,399 @@ function LawyerRegisterForm() {
     }
   };
 
+  const normFile = (e) => {
+    if (Array.isArray(e)) {
+      return e;
+    }
+    return e?.fileList;
+  };
+
   return (
-    <div className={styles.container}>
-      <h2 className={styles.title}>Đăng Ký Trở Thành Luật Sư</h2>
-      <span className={styles.backToLogin} onClick={() => navigate('/')}> Trở về</span>
+    <Card 
+      style={{ 
+        maxWidth: 900, 
+        margin: '3rem auto', 
+        borderRadius: 15,
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
+      }}
+      bodyStyle={{ padding: '2.5rem' }}
+    >
+      <Space style={{ marginBottom: 24, width: '100%', justifyContent: 'space-between' }}>
+        <Title level={2} style={{ marginBottom: 0 }}>Đăng Ký Trở Thành Luật Sư</Title>
+        <Button icon={<LeftOutlined />} type="link" onClick={() => navigate('/')}>Trở về</Button>
+      </Space>
+      
       {message.text && (
-        <div className={`${styles.message} ${styles[message.type]}`}>
-          {message.text}
-        </div>
+        <Alert
+          message={message.type === "success" ? "Thành công" : "Lỗi"}
+          description={message.text}
+          type={message.type === "success" ? "success" : "error"}
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
       )}
       
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formCard}>
-          <h3 className={styles.sectionTitle}>
-            <i className="fas fa-user-circle"></i> Thông tin tài khoản
-          </h3>
-        <div className={styles.grid}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Tên đăng nhập</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-user"></i>
-                <input 
-                  name="username" 
-                  value={formData.username}
-                  disabled={true}
-                  className={`${styles.input} ${styles.readOnly}`} 
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        onValuesChange={handleChange}
+        initialValues={{
+          experienceYears: 0,
+          specialization: []
+        }}
+      >
+        <Card
+          title={
+            <Space>
+              <UserOutlined />
+              <span>Thông tin tài khoản</span>
+            </Space>
+          }
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={24}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="username"
+                label="Tên đăng nhập"
+              >
+                <Input 
+                  prefix={<UserOutlined />} 
+                  disabled={true} 
                 />
-              </div>
-              <div className={styles.infoMsg}>Đã đăng nhập với tài khoản này</div>
-            </div>
+              </Form.Item>
+            </Col>
             
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Email</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-envelope"></i>
-                <input 
-                  type="email" 
-                  name="email" 
-                  value={formData.email}
-                  disabled={true}
-                  className={`${styles.input} ${styles.readOnly}`}
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+              >
+                <Input 
+                  prefix={<MailOutlined />} 
+                  disabled={true} 
                 />
-              </div>
-            </div>
-          </div>
-        </div>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Text type="secondary">Đã đăng nhập với tài khoản này</Text>
+        </Card>
 
-        <div className={styles.formCard}>
-          <h3 className={styles.sectionTitle}>
-            <i className="fas fa-id-card"></i> Thông tin cá nhân
-          </h3>
-          <div className={styles.grid}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Họ và tên</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-user-tag"></i>
-                <input 
-                  name="fullName" 
-                  value={formData.fullName}
+        <Card
+          title={
+            <Space>
+              <IdcardOutlined />
+              <span>Thông tin cá nhân</span>
+            </Space>
+          }
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={24}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="fullName"
+                label="Họ và tên"
+              >
+                <Input 
+                  prefix={<UserOutlined />} 
                   disabled={true}
-                  className={`${styles.input} ${styles.readOnly}`}
                 />
-              </div>
-            </div>
+              </Form.Item>
+            </Col>
             
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Ngày sinh</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-calendar-alt"></i>
-                <input 
-                  type="date" 
-                  name="birthDate" 
-                  value={formData.birthDate}
-                  onChange={handleChange} 
-                  className={styles.input} 
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="birthDate"
+                label="Ngày sinh"
+              >
+                <DatePicker 
+                  style={{ width: '100%' }} 
+                  format="DD/MM/YYYY" 
+                  placeholder="Chọn ngày sinh"
                 />
-              </div>
-            </div>
+              </Form.Item>
+            </Col>
             
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Số điện thoại</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-phone"></i>
-                <input 
-                  name="phone" 
-                  value={formData.phone}
-                  disabled={true}
-                  className={`${styles.input} ${styles.readOnly}`}
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+              >
+                <Input 
+                  prefix={<PhoneOutlined />} 
+                  disabled={true} 
                 />
-              </div>
-            </div>
+              </Form.Item>
+            </Col>
             
-            <div className={styles.formGroup}>
-              <label className={styles.label}>CCCD/CMND <span className={styles.required}>*</span></label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-id-card"></i>
-                <input 
-                  name="idCard" 
-                  value={formData.idCard}
-                  onChange={handleChange} 
-                  placeholder="Nhập số CCCD/CMND"
-                  className={`${styles.input} ${errors.idCard ? styles.inputError : ""}`} 
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="idCard"
+                label="CCCD/CMND"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập số CCCD/CMND' }
+                ]}
+                validateStatus={errors.idCard ? 'error' : ''}
+                help={errors.idCard}
+              >
+                <Input 
+                  prefix={<IdcardOutlined />} 
+                  placeholder="Nhập số CCCD/CMND" 
                 />
-              </div>
-              {errors.idCard && <div className={styles.errorMsg}>{errors.idCard}</div>}
-            </div>
-          </div>
+              </Form.Item>
+            </Col>
+          </Row>
           
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Địa chỉ <span className={styles.required}>*</span></label>
-            <div className={styles.inputWithIcon}>
-              <i className="fas fa-map-marker-alt"></i>
-              <input 
-                name="address" 
-                value={formData.address}
-                onChange={handleChange} 
-                placeholder="Nhập địa chỉ liên hệ đầy đủ"
-                className={`${styles.input} ${errors.address ? styles.inputError : ""}`} 
-              />
-            </div>
-            {errors.address && <div className={styles.errorMsg}>{errors.address}</div>}
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Giới thiệu bản thân</label>
-        <textarea
-              name="bio"
-              value={formData.bio}
-          onChange={handleChange}
-          className={styles.textarea}
-              placeholder="Hãy chia sẻ về kinh nghiệm và lý do bạn muốn trở thành luật sư trên LegAI..."
-        ></textarea>
-          </div>
-        </div>
-        
-        <div className={styles.formCard}>
-          <h3 className={styles.sectionTitle}>
-            <i className="fas fa-gavel"></i> Thông tin chuyên môn
-          </h3>
-          <div className={styles.grid}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Số thẻ luật sư <span className={styles.required}>*</span></label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-certificate"></i>
-                <input 
-                  name="licenseNumber" 
-                  value={formData.licenseNumber}
-                  onChange={handleChange} 
-                  placeholder="Nhập số thẻ luật sư"
-                  className={`${styles.input} ${errors.licenseNumber ? styles.inputError : ""}`} 
-                />
-              </div>
-              {errors.licenseNumber && <div className={styles.errorMsg}>{errors.licenseNumber}</div>}
-            </div>
-            
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Tên Đoàn luật sư <span className={styles.required}>*</span></label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-users"></i>
-                <input 
-                  name="barAssociation" 
-                  value={formData.barAssociation}
-                  onChange={handleChange} 
-                  placeholder="Nhập tên Đoàn luật sư"
-                  className={`${styles.input} ${errors.barAssociation ? styles.inputError : ""}`} 
-                />
-              </div>
-              {errors.barAssociation && <div className={styles.errorMsg}>{errors.barAssociation}</div>}
-            </div>
-            
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Tên văn phòng/công ty luật <span className={styles.required}>*</span></label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-building"></i>
-                <input 
-                  name="lawOffice" 
-                  value={formData.lawOffice}
-                  onChange={handleChange} 
-                  placeholder="Nhập tên văn phòng/công ty luật"
-                  className={`${styles.input} ${errors.lawOffice ? styles.inputError : ""}`} 
-                />
-              </div>
-              {errors.lawOffice && <div className={styles.errorMsg}>{errors.lawOffice}</div>}
-            </div>
-            
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Số năm kinh nghiệm</label>
-              <div className={styles.inputWithIcon}>
-                <i className="fas fa-briefcase"></i>
-                <input 
-                  type="number" 
-                  name="experienceYears" 
-                  value={formData.experienceYears}
-                  onChange={handleChange} 
-                  placeholder="Nhập số năm kinh nghiệm"
-                  className={`${styles.input} ${errors.experienceYears ? styles.inputError : ""}`} 
-                  min="0"
-                />
-              </div>
-              {errors.experienceYears && <div className={styles.errorMsg}>{errors.experienceYears}</div>}
-            </div>
-          </div>
-
-        <div className={styles.checkboxGroup}>
-            <label className={styles.label}>Lĩnh vực chuyên môn <span className={styles.required}>*</span></label>
-            {errors.specialization && <div className={styles.errorMsg}>{errors.specialization}</div>}
-          <div className={styles.checkboxWrap}>
-              {["Dân sự", "Hình sự", "Hôn nhân", "Đất đai", "Doanh nghiệp", "Sở hữu trí tuệ", "Lao động", "Hành chính"].map((field) => (
-              <label key={field} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                    name="specialization"
-                  value={field}
-                    checked={formData.specialization.includes(field)}
-                  onChange={handleChange}
-                />
-                <span>{field}</span>
-              </label>
-            ))}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.formCard}>
-          <h3 className={styles.sectionTitle}>
-            <i className="fas fa-file-image"></i> Tài liệu chứng minh
-          </h3>
-          <div className={styles.fileUploadGrid}>
-            <div className={styles.fileUploadItem}>
-              <label className={styles.fileLabel}>
-                <span>Ảnh thẻ luật sư <span className={styles.required}>*</span></span>
-                <div className={`${styles.fileDropArea} ${errors.certificationFile ? styles.fileError : ""}`}>
-                  {previewCertification ? (
-                    <div className={styles.previewImage}>
-                      <img src={previewCertification} alt="Ảnh thẻ luật sư" />
-                      <div className={styles.changeFileOverlay}>
-                        <span>Thay đổi</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <i className="fas fa-cloud-upload-alt"></i>
-                      <span>Kéo thả hoặc nhấp để chọn ảnh</span>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    name="certificationFile" 
-                    accept="image/*"
-                    onChange={handleChange} 
-                    className={styles.fileInput} 
-                  />
-                </div>
-                {errors.certificationFile && <div className={styles.errorMsg}>{errors.certificationFile}</div>}
-          </label>
-            </div>
-            
-            <div className={styles.fileUploadItem}>
-              <label className={styles.fileLabel}>
-                <span>Ảnh đại diện <span className={styles.required}>*</span></span>
-                <div className={`${styles.fileDropArea} ${errors.avatarFile ? styles.fileError : ""}`}>
-                  {previewAvatar ? (
-                    <div className={styles.previewImage}>
-                      <img src={previewAvatar} alt="Ảnh đại diện" />
-                      <div className={styles.changeFileOverlay}>
-                        <span>Thay đổi</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <i className="fas fa-cloud-upload-alt"></i>
-                      <span>Kéo thả hoặc nhấp để chọn ảnh</span>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    name="avatarFile" 
-                    accept="image/*"
-                    onChange={handleChange} 
-                    className={styles.fileInput} 
-                  />
-                </div>
-                {errors.avatarFile && <div className={styles.errorMsg}>{errors.avatarFile}</div>}
-          </label>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.termsSection}>
-        <div className={styles.agree}>
-            <input 
-              type="checkbox" 
-              id="agreeTerms"
-              name="agree" 
-              checked={formData.agree} 
-              onChange={handleChange} 
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[
+              { required: true, message: 'Vui lòng nhập địa chỉ liên hệ đầy đủ' }
+            ]}
+            validateStatus={errors.address ? 'error' : ''}
+            help={errors.address}
+          >
+            <Input 
+              prefix={<HomeOutlined />} 
+              placeholder="Nhập địa chỉ liên hệ đầy đủ" 
             />
-            <label htmlFor="agreeTerms">
-              Tôi đồng ý với <span className={styles.terms}>Điều khoản & Chính sách</span> của LegAI
-          </label>
-          </div>
-          {errors.agree && <div className={styles.errorMsg}>{errors.agree}</div>}
-        </div>
+          </Form.Item>
+          
+          <Form.Item
+            name="bio"
+            label="Giới thiệu bản thân"
+          >
+            <TextArea
+              placeholder="Hãy chia sẻ về kinh nghiệm và lý do bạn muốn trở thành luật sư trên LegAI..."
+              autoSize={{ minRows: 4, maxRows: 8 }}
+            />
+          </Form.Item>
+        </Card>
+        
+        <Card
+          title={
+            <Space>
+              <AuditOutlined />
+              <span>Thông tin chuyên môn</span>
+            </Space>
+          }
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={24}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="licenseNumber"
+                label="Số thẻ luật sư"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập số thẻ luật sư' }
+                ]}
+                validateStatus={errors.licenseNumber ? 'error' : ''}
+                help={errors.licenseNumber}
+              >
+                <Input 
+                  prefix={<SafetyOutlined />} 
+                  placeholder="Nhập số thẻ luật sư"
+                />
+              </Form.Item>
+            </Col>
+            
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="barAssociation"
+                label="Tên Đoàn luật sư"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập tên Đoàn luật sư' }
+                ]}
+                validateStatus={errors.barAssociation ? 'error' : ''}
+                help={errors.barAssociation}
+              >
+                <Input 
+                  prefix={<TeamOutlined />} 
+                  placeholder="Nhập tên Đoàn luật sư" 
+                />
+              </Form.Item>
+            </Col>
+            
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="lawOffice"
+                label="Tên văn phòng/công ty luật"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập tên văn phòng/công ty luật' }
+                ]}
+                validateStatus={errors.lawOffice ? 'error' : ''}
+                help={errors.lawOffice}
+              >
+                <Input 
+                  prefix={<BankOutlined />}
+                  placeholder="Nhập tên văn phòng/công ty luật" 
+                />
+              </Form.Item>
+            </Col>
+            
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="experienceYears"
+                label="Số năm kinh nghiệm"
+              >
+                <InputNumber 
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập số năm kinh nghiệm"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-        <button type="submit" className={styles.submitBtn} disabled={loading}>
-          {loading ? (
-            <>
-              <i className="fas fa-spinner fa-spin"></i> Đang xử lý...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-paper-plane"></i> Gửi Đăng Ký
-            </>
-          )}
-        </button>
-      </form>
-    </div>
+          <Form.Item
+            name="specialization"
+            label="Lĩnh vực chuyên môn"
+            rules={[
+              { required: true, message: 'Vui lòng chọn ít nhất một lĩnh vực chuyên môn' }
+            ]}
+            validateStatus={errors.specialization ? 'error' : ''}
+            help={errors.specialization}
+          >
+            <Checkbox.Group 
+              onChange={handleSpecializationChange}
+              style={{ width: '100%' }}
+            >
+              <Row gutter={[16, 16]}>
+                {["Dân sự", "Hình sự", "Hôn nhân", "Đất đai", "Doanh nghiệp", "Sở hữu trí tuệ", "Lao động", "Hành chính"].map((field) => (
+                  <Col xs={24} sm={12} md={8} key={field}>
+                    <Checkbox value={field} style={{ lineHeight: '32px' }}>
+                      {field}
+                    </Checkbox>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
+          </Form.Item>
+        </Card>
+
+        <Card
+          title={
+            <Space>
+              <UploadOutlined />
+              <span>Tài liệu chứng minh</span>
+            </Space>
+          }
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={24}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="certificationFile"
+                label="Ảnh thẻ luật sư"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
+                validateStatus={errors.certificationFile ? 'error' : ''}
+                help={errors.certificationFile}
+                extra="Tải lên ảnh thẻ luật sư để xác thực thông tin"
+              >
+                <Dragger
+                  name="certificationFile"
+                  accept="image/*"
+                  multiple={false}
+                  showUploadList={false}
+                  beforeUpload={() => false}
+                  onChange={(info) => handleUploadChange(info, 'certificationFile')}
+                  style={{ height: 200 }}
+                >
+                  {previewCertification ? (
+                    <img 
+                      src={previewCertification} 
+                      alt="Ảnh thẻ luật sư" 
+                      style={{ 
+                        maxHeight: '100%', 
+                        maxWidth: '100%',
+                        objectFit: 'contain' 
+                      }} 
+                    />
+                  ) : (
+                    <>
+                      <p className="ant-upload-drag-icon">
+                        <UploadOutlined />
+                      </p>
+                      <p className="ant-upload-text">Kéo thả hoặc nhấp để chọn ảnh</p>
+                    </>
+                  )}
+                </Dragger>
+              </Form.Item>
+            </Col>
+            
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="avatarFile"
+                label="Ảnh đại diện"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
+                validateStatus={errors.avatarFile ? 'error' : ''}
+                help={errors.avatarFile}
+                extra="Tải lên ảnh đại diện chuyên nghiệp"
+              >
+                <Dragger
+                  name="avatarFile"
+                  accept="image/*"
+                  multiple={false}
+                  showUploadList={false}
+                  beforeUpload={() => false}
+                  onChange={(info) => handleUploadChange(info, 'avatarFile')}
+                  style={{ height: 200 }}
+                >
+                  {previewAvatar ? (
+                    <img 
+                      src={previewAvatar} 
+                      alt="Ảnh đại diện" 
+                      style={{ 
+                        maxHeight: '100%', 
+                        maxWidth: '100%',
+                        objectFit: 'contain' 
+                      }} 
+                    />
+                  ) : (
+                    <>
+                      <p className="ant-upload-drag-icon">
+                        <UploadOutlined />
+                      </p>
+                      <p className="ant-upload-text">Kéo thả hoặc nhấp để chọn ảnh</p>
+                    </>
+                  )}
+                </Dragger>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+
+        <Card style={{ marginBottom: 24 }}>
+          <Form.Item
+            name="agree"
+            valuePropName="checked"
+            validateStatus={errors.agree ? 'error' : ''}
+            help={errors.agree}
+          >
+            <Checkbox>
+              Tôi đồng ý với <a href="#terms">Điều khoản & Chính sách</a> của LegAI
+            </Checkbox>
+          </Form.Item>
+        </Card>
+
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            icon={loading ? null : <SendOutlined />}
+            size="large"
+            block
+            style={{ height: 50 }}
+          >
+            {loading ? 'Đang xử lý...' : 'Gửi Đăng Ký'}
+          </Button>
+        </Form.Item>
+      </Form>
+    </Card>
   );
 }
 

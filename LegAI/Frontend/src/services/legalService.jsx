@@ -63,8 +63,45 @@ const getLegalDocuments = async (searchParams = {}) => {
  */
 const getLegalDocumentById = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/legal/documents/${id}`, getHeaders());
-    return response.data;
+    // Kiểm tra ID có phải là số hay không
+    if (!id || isNaN(parseInt(id)) || id === 'dashboard' || id === 'new') {
+      console.error('ID không hợp lệ:', id);
+      throw new Error(`ID không hợp lệ cho văn bản pháp lý: "${id}"`);
+    }
+    
+    // Thực hiện API call với timeout để tránh request bị treo
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 giây timeout
+    
+    try {
+      const response = await axios.get(`${API_URL}/legal/documents/${id}`, {
+        ...getHeaders(),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Kiểm tra xem response có hợp lệ không
+      if (!response.data || response.data.status !== 'success') {
+        throw new Error('Dữ liệu trả về từ API không hợp lệ');
+      }
+      
+      return response.data;
+    } catch (apiError) {
+      clearTimeout(timeoutId);
+      
+      // Kiểm tra xem lỗi có phải do timeout hay không
+      if (apiError.name === 'AbortError') {
+        throw new Error('Yêu cầu API bị hủy do quá thời gian');
+      }
+      
+      // Nếu là lỗi 404, tức là không tìm thấy văn bản
+      if (apiError.response && apiError.response.status === 404) {
+        throw new Error(`Không tìm thấy văn bản với ID ${id}`);
+      }
+      
+      throw apiError;
+    }
   } catch (error) {
     console.error(`Lỗi khi lấy chi tiết văn bản có ID ${id}:`, error);
     throw error;
