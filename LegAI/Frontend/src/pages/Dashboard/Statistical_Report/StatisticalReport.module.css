@@ -1,0 +1,25 @@
+.container {
+    padding: 24px;
+  }
+  
+  .topBar {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .statCards {
+    margin-bottom: 24px;
+  }
+  
+  .cardTitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  
+  .cardValue {
+    font-size: 18px;
+    font-weight: bold;
+  }
