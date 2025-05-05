@@ -22,7 +22,8 @@ import {
   FileWordOutlined,
   ContainerOutlined,
   MoneyCollectOutlined,
-  SolutionOutlined
+  SolutionOutlined,
+  AuditOutlined
 } from '@ant-design/icons';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
@@ -43,6 +44,7 @@ import AIConsultationManager from './AIConsultation/AIConsultationManager';
 import TransactionManager from './Transaction/TransactionManager';
 import LegalCaseManager from './LegalCase/LegalCaseManager';
 import FeeReferenceManager from './Fee/FeeReferenceManager';
+import LawyerApplicationsPage from './LawyerApplications/LawyerApplicationsPage';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -256,6 +258,7 @@ function Dashboard() {
   const menuItems = [
     { key: 'tổng-quan', label: 'Tổng Quan', icon: <HomeOutlined />, title: 'Tổng quan hệ thống' },
     { key: 'người-dùng', label: 'Tài Khoản', icon: <TeamOutlined />, title: 'Quản lý tài khoản người dùng' },
+    { key: 'lawyer-applications', label: 'Đơn đăng ký luật sư', icon: <AuditOutlined />, title: 'Quản lý đơn đăng ký luật sư', hidden: !(currentUser && currentUser.role === 'admin') },
     { key: 'tài-liệu-pháp-lý', label: 'Tài Liệu pháp luật', icon: <FileTextOutlined />, title: 'Quản lý tài liệu pháp luật' },
     { key: 'hồ-sơ-người-dùng', label: 'Hồ sơ pháp lý', icon: <FolderOutlined />, title: 'Quản lý hồ sơ pháp lý' },
     { key: 'quản-lý-vụ-án', label: 'Vụ án pháp lý', icon: <BankOutlined />, title: 'Quản lý vụ án pháp lý', hidden: !(currentUser && currentUser.role === 'admin') },
@@ -395,6 +398,8 @@ function Dashboard() {
       return <LegalCaseManager />;
     } else if (pathname === '/dashboard/fee-references') {
       return <FeeReferenceManager />;
+    } else if (pathname === '/dashboard/lawyer-applications') {
+      return <LawyerApplicationsPage />;
     }
     
     // Các trường hợp khác dựa vào activeMenu
@@ -423,6 +428,8 @@ function Dashboard() {
         return <UsersManagerPage />;
       case 'phí-pháp-lý':
         return <FeeReferenceManager />;
+      case 'lawyer-applications':
+        return <LawyerApplicationsPage />;
       default:
         return renderDashboardOverview();
     }

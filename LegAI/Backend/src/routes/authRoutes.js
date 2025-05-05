@@ -5,19 +5,46 @@ const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Cấu hình multer để xử lý upload file
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/');
+        // Xác định thư mục lưu trữ chính xác
+        const uploadPath = path.join(__dirname, '../../uploads');
+        // Log để debug
+        console.log('Đường dẫn upload:', uploadPath);
+        // Đảm bảo thư mục tồn tại
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
+        const ext = path.extname(file.originalname);
+        const filename = file.fieldname + '-' + uniqueSuffix + ext;
+        console.log('Tên file được tạo:', filename);
+        cb(null, filename);
     }
 });
 
-const upload = multer({ storage: storage });
+// Filter chỉ chấp nhận file ảnh
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Chỉ hỗ trợ định dạng JPEG, JPG, PNG hoặc PDF!'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
+    fileFilter: fileFilter
+});
 
 // Routes công khai
 router.post('/login', authController.login);

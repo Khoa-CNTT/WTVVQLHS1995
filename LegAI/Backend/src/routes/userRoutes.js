@@ -123,4 +123,9 @@ router.delete('/bank-accounts/:id', authenticateToken, userController.deleteBank
 // Route lấy tài khoản ngân hàng mặc định của luật sư theo ID
 router.get('/lawyers/:id/bank-account', userController.getLawyerBankAccount);
 
+// Routes quản lý đơn đăng ký luật sư
+router.get('/pending-lawyers', authenticateToken, userController.getPendingLawyers);
+router.put('/approve-lawyer/:lawyerId', authenticateToken, userController.approveLawyerRegistration);
+router.put('/reject-lawyer/:lawyerId', authenticateToken, userController.rejectLawyerRegistration);
+
 module.exports = router;

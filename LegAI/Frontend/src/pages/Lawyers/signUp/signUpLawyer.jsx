@@ -12,7 +12,8 @@ import {
   UserOutlined, MailOutlined, PhoneOutlined, IdcardOutlined,
   CalendarOutlined, HomeOutlined, BookOutlined, AuditOutlined,
   SafetyOutlined, TeamOutlined, BankOutlined, FolderOutlined,
-  UploadOutlined, CheckOutlined, SendOutlined, LeftOutlined
+  UploadOutlined, CheckOutlined, SendOutlined, LeftOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import moment from 'moment';
 
@@ -26,7 +27,6 @@ function LawyerRegisterForm() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [errors, setErrors] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
-  const [previewAvatar, setPreviewAvatar] = useState(null);
   const [previewCertification, setPreviewCertification] = useState(null);
   const [form] = Form.useForm();
   
@@ -39,7 +39,6 @@ function LawyerRegisterForm() {
     
     // Thông tin profile
     address: "",
-    avatarFile: null,
     bio: "",
     
     // Thông tin luật sư
@@ -123,8 +122,22 @@ function LawyerRegisterForm() {
   };
 
   const handleUploadChange = ({ file, fileList }, fieldName) => {
-    if (file.status === 'done' || file.status === 'uploading' || file.status === 'error') {
+    if (file.status !== 'removed') {
       const fileObj = file.originFileObj || file;
+      
+      // Kiểm tra loại file
+      const isJpgOrPngOrPdf = fileObj.type === 'image/jpeg' || fileObj.type === 'image/png' || fileObj.type === 'application/pdf';
+      const isLt5M = fileObj.size / 1024 / 1024 < 5;
+      
+      if (!isJpgOrPngOrPdf) {
+        antMessage.error('Chỉ hỗ trợ tải lên file JPG/PNG/PDF!');
+        return;
+      }
+      
+      if (!isLt5M) {
+        antMessage.error('File phải nhỏ hơn 5MB!');
+        return;
+      }
       
       setFormData(prev => ({
         ...prev,
@@ -132,12 +145,15 @@ function LawyerRegisterForm() {
       }));
       
       // Tạo URL xem trước cho tệp đã chọn
-      if (fileObj) {
+      if (fileObj && (fileObj.type === 'image/jpeg' || fileObj.type === 'image/png')) {
         const fileUrl = URL.createObjectURL(fileObj);
-        if (fieldName === "avatarFile") {
-          setPreviewAvatar(fileUrl);
-        } else if (fieldName === "certificationFile") {
+        if (fieldName === "certificationFile") {
           setPreviewCertification(fileUrl);
+        }
+      } else if (fileObj && fileObj.type === 'application/pdf') {
+        // PDF không hiển thị xem trước ảnh, nhưng vẫn cần setPreviewCertification để kích hoạt hiển thị icon PDF
+        if (fieldName === "certificationFile") {
+          setPreviewCertification('pdf_preview');
         }
       }
       
@@ -176,14 +192,9 @@ function LawyerRegisterForm() {
       newErrors.specialization = "Vui lòng chọn ít nhất một lĩnh vực chuyên môn";
     }
     
-    // Kiểm tra file avatar
-    if (!formData.avatarFile) {
-      newErrors.avatarFile = "Vui lòng tải lên ảnh đại diện";
-    }
-    
     // Kiểm tra file chứng chỉ
     if (!formData.certificationFile) {
-      newErrors.certificationFile = "Vui lòng tải lên ảnh thẻ luật sư";
+      newErrors.certificationFile = "Vui lòng tải lên ảnh chứng chỉ hành nghề luật sư";
     }
     
     // Kiểm tra đồng ý điều khoản
@@ -244,11 +255,6 @@ function LawyerRegisterForm() {
       data.append("address", values.address);
       data.append("bio", values.bio || "");
       
-      // Thêm file avatar
-      if (formData.avatarFile) {
-        data.append("avatar", formData.avatarFile);
-      }
-      
       // Thêm dữ liệu luật sư
       data.append("certification", formData.certification || "");
       data.append("experienceYears", values.experienceYears || "0");
@@ -277,15 +283,14 @@ function LawyerRegisterForm() {
       // Xử lý phản hồi thành công
       setMessage({
         type: "success",
-        text: "Đăng ký thành công! Hồ sơ của bạn đang được xem xét. Vui lòng đăng xuất và đăng nhập lại để sử dụng đầy đủ quyền truy cập luật sư."
+        text: "Đăng ký thành công! Đơn đăng ký luật sư của bạn đã được gửi và đang chờ phê duyệt từ quản trị viên. Bạn vẫn có thể sử dụng tài khoản hiện tại cho đến khi được duyệt."
       });
       
       // Cập nhật thông tin người dùng trong localStorage mà không cần đăng nhập lại
       try {
         await userService.refreshUserData();
-        console.log("Đã cập nhật thông tin người dùng trong localStorage");
       } catch (refreshError) {
-        console.error("Lỗi khi cập nhật thông tin người dùng:", refreshError);
+        // Xử lý lỗi khi cập nhật thông tin người dùng
       }
       
       // Cuộn lên đầu trang để hiển thị thông báo
@@ -298,8 +303,6 @@ function LawyerRegisterForm() {
       }, 5000);
       
     } catch (error) {
-      console.error("Lỗi đăng ký:", error);
-      
       // Xử lý lỗi
       if (error.response?.data?.message) {
         setMessage({
@@ -600,89 +603,65 @@ function LawyerRegisterForm() {
           }
           style={{ marginBottom: 24 }}
         >
-          <Row gutter={24}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="certificationFile"
-                label="Ảnh thẻ luật sư"
-                valuePropName="fileList"
-                getValueFromEvent={normFile}
-                validateStatus={errors.certificationFile ? 'error' : ''}
-                help={errors.certificationFile}
-                extra="Tải lên ảnh thẻ luật sư để xác thực thông tin"
-              >
-                <Dragger
-                  name="certificationFile"
-                  accept="image/*"
-                  multiple={false}
-                  showUploadList={false}
-                  beforeUpload={() => false}
-                  onChange={(info) => handleUploadChange(info, 'certificationFile')}
-                  style={{ height: 200 }}
-                >
-                  {previewCertification ? (
+          <Form.Item
+            name="certificationFile"
+            label="Ảnh chứng chỉ hành nghề luật sư"
+            valuePropName="fileList"
+            getValueFromEvent={normFile}
+            validateStatus={errors.certificationFile ? 'error' : ''}
+            help={errors.certificationFile}
+            extra="Tải lên ảnh chứng chỉ hành nghề luật sư để xác thực thông tin (hỗ trợ: JPG, PNG, PDF)"
+          >
+            <Dragger
+              name="certificationFile"
+              accept="image/jpeg,image/png,application/pdf"
+              multiple={false}
+              showUploadList={false}
+              beforeUpload={(file) => {
+                const isJpgOrPngOrPdf = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'application/pdf';
+                if (!isJpgOrPngOrPdf) {
+                  antMessage.error('Chỉ hỗ trợ tải lên file JPG/PNG/PDF!');
+                }
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  antMessage.error('File phải nhỏ hơn 5MB!');
+                }
+                return false; // Luôn return false để tránh tự động upload, vì chúng ta đang xử lý bằng FormData
+              }}
+              onChange={(info) => handleUploadChange(info, 'certificationFile')}
+              style={{ height: 200, width: '100%' }}
+            >
+              {previewCertification ? (
+                <div>
+                  {formData.certificationFile?.type === 'application/pdf' ? (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <FilePdfOutlined style={{ fontSize: '64px', color: '#ff4d4f' }} />
+                      <p>Đã tải lên file PDF</p>
+                      <p>{formData.certificationFile.name}</p>
+                    </div>
+                  ) : (
                     <img 
                       src={previewCertification} 
-                      alt="Ảnh thẻ luật sư" 
+                      alt="Ảnh chứng chỉ hành nghề luật sư" 
                       style={{ 
                         maxHeight: '100%', 
                         maxWidth: '100%',
                         objectFit: 'contain' 
                       }} 
                     />
-                  ) : (
-                    <>
-                      <p className="ant-upload-drag-icon">
-                        <UploadOutlined />
-                      </p>
-                      <p className="ant-upload-text">Kéo thả hoặc nhấp để chọn ảnh</p>
-                    </>
                   )}
-                </Dragger>
-              </Form.Item>
-            </Col>
-            
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="avatarFile"
-                label="Ảnh đại diện"
-                valuePropName="fileList"
-                getValueFromEvent={normFile}
-                validateStatus={errors.avatarFile ? 'error' : ''}
-                help={errors.avatarFile}
-                extra="Tải lên ảnh đại diện chuyên nghiệp"
-              >
-                <Dragger
-                  name="avatarFile"
-                  accept="image/*"
-                  multiple={false}
-                  showUploadList={false}
-                  beforeUpload={() => false}
-                  onChange={(info) => handleUploadChange(info, 'avatarFile')}
-                  style={{ height: 200 }}
-                >
-                  {previewAvatar ? (
-                    <img 
-                      src={previewAvatar} 
-                      alt="Ảnh đại diện" 
-                      style={{ 
-                        maxHeight: '100%', 
-                        maxWidth: '100%',
-                        objectFit: 'contain' 
-                      }} 
-                    />
-                  ) : (
-                    <>
-                      <p className="ant-upload-drag-icon">
-                        <UploadOutlined />
-                      </p>
-                      <p className="ant-upload-text">Kéo thả hoặc nhấp để chọn ảnh</p>
-                    </>
-                  )}
-                </Dragger>
-              </Form.Item>
-            </Col>
-          </Row>
+                </div>
+              ) : (
+                <>
+                  <p className="ant-upload-drag-icon">
+                    <UploadOutlined />
+                  </p>
+                  <p className="ant-upload-text">Kéo thả hoặc nhấp để chọn ảnh/tài liệu</p>
+                  <p className="ant-upload-hint">Hỗ trợ: JPG, PNG, PDF (tối đa 5MB)</p>
+                </>
+              )}
+            </Dragger>
+          </Form.Item>
         </Card>
 
         <Card style={{ marginBottom: 24 }}>

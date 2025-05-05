@@ -214,6 +214,7 @@ CREATE TABLE LawyerDetails (
     experience_years INT NOT NULL,
     specialization VARCHAR(255) NOT NULL,
     rating DECIMAL(3,1) NOT NULL DEFAULT 0.0,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (lawyer_id) REFERENCES Users(id) ON DELETE CASCADE
 );

@@ -646,11 +646,11 @@ const registerLawyer = async (req, res) => {
                 });
             }
             
-            // Kiểm tra avatar và certificationFile
-            if (!req.files || !req.files.avatar || !req.files.certificationFile) {
+            // Kiểm tra certificationFile
+            if (!req.files || !req.files.certificationFile) {
                 return res.status(400).json({
                     status: 'error',
-                    message: 'Vui lòng tải lên ảnh đại diện và ảnh thẻ luật sư'
+                    message: 'Vui lòng tải lên ảnh chứng chỉ hành nghề luật sư'
                 });
             }
             
@@ -663,14 +663,9 @@ const registerLawyer = async (req, res) => {
                 });
             }
             
-            // Cập nhật vai trò người dùng thành "Lawyer" với chữ L viết hoa
-            await pool.query(
-                'UPDATE Users SET role = $1 WHERE id = $2 RETURNING *',
-                ['Lawyer', userId]
-            );
+            // KHÔNG cập nhật vai trò người dùng thành "Lawyer", giữ nguyên vai trò hiện tại
             
             // Tạo đường dẫn lưu file
-            const avatarPath = req.files.avatar[0].path;
             const certificationPath = req.files.certificationFile[0].path;
             
             // Kiểm tra xem người dùng đã có profile chưa
@@ -682,14 +677,14 @@ const registerLawyer = async (req, res) => {
             if (existingProfile.rows.length > 0) {
                 // Cập nhật profile nếu đã tồn tại
                 await pool.query(
-                    'UPDATE UserProfiles SET address = $1, avatar_url = $2, bio = $3, updated_at = CURRENT_TIMESTAMP WHERE user_id = $4',
-                    [truncateField(address), avatarPath, bio || '', userId]
+                    'UPDATE UserProfiles SET address = $1, bio = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3',
+                    [truncateField(address), bio || '', userId]
                 );
             } else {
                 // Tạo profile mới nếu chưa tồn tại
                 await pool.query(
                     'INSERT INTO UserProfiles (user_id, address, avatar_url, bio, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)',
-                    [userId, truncateField(address), avatarPath, bio || '']
+                    [userId, truncateField(address), '', bio || '']
                 );
             }
             
@@ -699,7 +694,8 @@ const registerLawyer = async (req, res) => {
                 certification: truncatedCertification || truncatedLicenseNumber,
                 experience_years: parseInt(experienceYears) || 0,
                 specialization: truncatedSpecialization || '',
-                rating: 0.0
+                rating: 0.0,
+                status: 'pending' // Đặt trạng thái là 'pending', chờ admin phê duyệt
             };
             
             // Kiểm tra xem đã có thông tin luật sư chưa
@@ -711,23 +707,23 @@ const registerLawyer = async (req, res) => {
             if (existingLawyerDetails.rows.length > 0) {
                 // Cập nhật thông tin luật sư nếu đã tồn tại
                 await pool.query(
-                    'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3 WHERE lawyer_id = $4',
-                    [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, userId]
+                    'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, status = $4 WHERE lawyer_id = $5',
+                    [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.status, userId]
                 );
             } else {
                 try {
                     // Thêm thông tin luật sư nếu chưa tồn tại
                     await pool.query(
-                        'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)',
-                        [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
+                        'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
+                        [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, lawyerData.status]
                     );
                 } catch (insertError) {
                     // Nếu lỗi vi phạm ràng buộc khóa chính, thử cập nhật thay vì thêm mới
                     if (insertError.constraint === 'lawyerdetails_pkey') {
                         console.log('Đã xảy ra lỗi khóa chính, chuyển sang cập nhật bản ghi');
                         await pool.query(
-                            'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4 WHERE lawyer_id = $5',
-                            [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, userId]
+                            'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4, status = $5 WHERE lawyer_id = $6',
+                            [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, lawyerData.status, userId]
                         );
                     } else {
                         // Nếu là lỗi khác, ném lại lỗi
@@ -738,10 +734,10 @@ const registerLawyer = async (req, res) => {
             
             return res.status(200).json({
                 status: 'success',
-                message: 'Đăng ký làm luật sư thành công. Hồ sơ của bạn đang được xem xét.',
+                message: 'Đơn đăng ký làm luật sư đã được gửi và đang chờ phê duyệt',
                 data: {
                     userId: userId,
-                    role: 'Lawyer'
+                    status: 'pending'
                 }
             });
         } else {
@@ -754,11 +750,11 @@ const registerLawyer = async (req, res) => {
                 });
             }
 
-            // Kiểm tra avatar và certificationFile
-            if (!req.files || !req.files.avatar || !req.files.certificationFile) {
+            // Kiểm tra certificationFile
+            if (!req.files || !req.files.certificationFile) {
                 return res.status(400).json({
                     status: 'error',
-                    message: 'Vui lòng tải lên ảnh đại diện và ảnh thẻ luật sư'
+                    message: 'Vui lòng tải lên ảnh chứng chỉ hành nghề luật sư'
                 });
             }
 
@@ -772,24 +768,23 @@ const registerLawyer = async (req, res) => {
             }
 
             // Tạo đường dẫn lưu file
-            const avatarPath = req.files.avatar[0].path;
             const certificationPath = req.files.certificationFile[0].path;
 
-            // Đăng ký người dùng với vai trò Lawyer
+            // Đăng ký người dùng mới với vai trò 'user' (không phải 'lawyer')
             const newUser = await userService.createUser(
                 username, 
                 password, 
                 email, 
                 phone, 
                 fullName,
-                'Lawyer' // Vai trò luật sư với chữ L viết hoa
+                'user' // Đặt vai trò là user thay vì lawyer
             );
 
             // Lưu thông tin profile
             const userProfileData = {
                 user_id: newUser.id,
                 address: truncateField(address),
-                avatar_url: avatarPath,
+                avatar_url: '',
                 bio: bio || ''
             };
             
@@ -799,28 +794,29 @@ const registerLawyer = async (req, res) => {
                 [userProfileData.user_id, userProfileData.address, userProfileData.avatar_url, userProfileData.bio]
             );
 
-            // Lưu thông tin luật sư
+            // Lưu thông tin luật sư với trạng thái 'pending'
             const lawyerData = {
                 lawyer_id: newUser.id,
                 certification: truncatedCertification || truncatedLicenseNumber,
                 experience_years: parseInt(experienceYears) || 0,
                 specialization: truncatedSpecialization || '',
-                rating: 0.0
+                rating: 0.0,
+                status: 'pending' // Trạng thái chờ phê duyệt
             };
             
             // Lưu thông tin luật sư vào database
             try {
                 const lawyerResult = await pool.query(
-                    'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING *',
-                    [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating]
+                    'INSERT INTO LawyerDetails (lawyer_id, certification, experience_years, specialization, rating, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP) RETURNING *',
+                    [lawyerData.lawyer_id, lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, lawyerData.status]
                 );
             } catch (insertError) {
                 // Nếu lỗi vi phạm ràng buộc khóa chính, thử cập nhật thay vì thêm mới
                 if (insertError.constraint === 'lawyerdetails_pkey') {
                     console.log('Đã xảy ra lỗi khóa chính trong đăng ký mới, chuyển sang cập nhật bản ghi');
                     await pool.query(
-                        'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4 WHERE lawyer_id = $5',
-                        [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, newUser.id]
+                        'UPDATE LawyerDetails SET certification = $1, experience_years = $2, specialization = $3, rating = $4, status = $5 WHERE lawyer_id = $6',
+                        [lawyerData.certification, lawyerData.experience_years, lawyerData.specialization, lawyerData.rating, lawyerData.status, newUser.id]
                     );
                 } else {
                     // Nếu là lỗi khác, ném lại lỗi
@@ -839,10 +835,11 @@ const registerLawyer = async (req, res) => {
 
             return res.status(201).json({
                 status: 'success',
-                message: 'Đăng ký làm luật sư thành công. Vui lòng kiểm tra email để xác minh tài khoản.',
+                message: 'Đăng ký tài khoản thành công. Đơn đăng ký làm luật sư của bạn đang chờ phê duyệt. Vui lòng kiểm tra email để xác minh tài khoản.',
                 data: {
                     userId: newUser.id,
-                    email: newUser.email
+                    email: newUser.email,
+                    status: 'pending'
                 }
             });
         }
@@ -1521,6 +1518,226 @@ exports.getLawyerBankAccount = async (req, res) => {
   }
 };
 
+// Lấy danh sách đơn đăng ký luật sư đang chờ duyệt
+const getPendingLawyers = async (req, res) => {
+    try {
+        // Kiểm tra quyền Admin
+        if (req.user.role.toLowerCase() !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền truy cập tài nguyên này'
+            });
+        }
+        
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        
+        // Lấy tổng số đơn đăng ký đang chờ duyệt
+        const countQuery = `
+            SELECT COUNT(*) 
+            FROM LawyerDetails ld
+            JOIN Users u ON ld.lawyer_id = u.id
+            WHERE ld.status = 'pending'
+        `;
+        
+        const countResult = await pool.query(countQuery);
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Lấy danh sách đơn đăng ký với phân trang
+        const query = `
+            SELECT 
+                ld.lawyer_id, 
+                ld.certification, 
+                ld.experience_years, 
+                ld.specialization, 
+                ld.status,
+                ld.created_at as registration_date,
+                u.username, 
+                u.email, 
+                u.phone, 
+                u.full_name,
+                up.address,
+                up.bio
+            FROM LawyerDetails ld
+            JOIN Users u ON ld.lawyer_id = u.id
+            LEFT JOIN UserProfiles up ON u.id = up.user_id
+            WHERE ld.status = 'pending'
+            ORDER BY ld.created_at DESC
+            LIMIT $1 OFFSET $2
+        `;
+        
+        const result = await pool.query(query, [limit, offset]);
+        
+        return res.status(200).json({
+            success: true,
+            data: result.rows,
+            pagination: {
+                total: totalItems,
+                totalPages,
+                currentPage: page,
+                limit
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách đơn đăng ký luật sư:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi lấy danh sách đơn đăng ký luật sư'
+        });
+    }
+};
+
+// Phê duyệt đơn đăng ký làm luật sư
+const approveLawyerRegistration = async (req, res) => {
+    try {
+        // Kiểm tra quyền Admin
+        if (req.user.role.toLowerCase() !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền thực hiện hành động này'
+            });
+        }
+        
+        const { lawyerId } = req.params;
+        
+        // Kiểm tra xem đơn đăng ký có tồn tại không
+        const checkQuery = `
+            SELECT ld.*, u.username, u.full_name, u.email 
+            FROM LawyerDetails ld
+            JOIN Users u ON ld.lawyer_id = u.id
+            WHERE ld.lawyer_id = $1 AND ld.status = 'pending'
+        `;
+        
+        const checkResult = await pool.query(checkQuery, [lawyerId]);
+        
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đơn đăng ký luật sư đang chờ duyệt'
+            });
+        }
+        
+        // Cập nhật trạng thái đơn đăng ký thành 'approved'
+        const updateLawyerQuery = `
+            UPDATE LawyerDetails
+            SET status = 'approved'
+            WHERE lawyer_id = $1
+            RETURNING *
+        `;
+        
+        await pool.query(updateLawyerQuery, [lawyerId]);
+        
+        // Cập nhật vai trò của người dùng thành 'lawyer'
+        const updateUserQuery = `
+            UPDATE Users
+            SET role = 'lawyer'
+            WHERE id = $1
+            RETURNING *
+        `;
+        
+        const updateResult = await pool.query(updateUserQuery, [lawyerId]);
+        
+        // Gửi email thông báo cho người dùng (nếu có)
+        try {
+            const userEmail = checkResult.rows[0].email;
+            const userName = checkResult.rows[0].full_name || checkResult.rows[0].username;
+            
+            // Triển khai gửi email thông báo - ở đây bạn có thể sử dụng emailService
+            // await emailService.sendLawyerApprovalNotification(userEmail, userName);
+        } catch (emailError) {
+            console.error('Không thể gửi email thông báo phê duyệt:', emailError);
+        }
+        
+        return res.status(200).json({
+            success: true,
+            message: 'Đã phê duyệt đơn đăng ký luật sư thành công',
+            data: {
+                userId: lawyerId,
+                role: updateResult.rows[0].role,
+                status: 'approved'
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi khi phê duyệt đơn đăng ký luật sư:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi phê duyệt đơn đăng ký luật sư'
+        });
+    }
+};
+
+// Từ chối đơn đăng ký làm luật sư
+const rejectLawyerRegistration = async (req, res) => {
+    try {
+        // Kiểm tra quyền Admin
+        if (req.user.role.toLowerCase() !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền thực hiện hành động này'
+            });
+        }
+        
+        const { lawyerId } = req.params;
+        const { reason } = req.body;
+        
+        // Kiểm tra xem đơn đăng ký có tồn tại không
+        const checkQuery = `
+            SELECT ld.*, u.username, u.full_name, u.email 
+            FROM LawyerDetails ld
+            JOIN Users u ON ld.lawyer_id = u.id
+            WHERE ld.lawyer_id = $1 AND ld.status = 'pending'
+        `;
+        
+        const checkResult = await pool.query(checkQuery, [lawyerId]);
+        
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đơn đăng ký luật sư đang chờ duyệt'
+            });
+        }
+        
+        // Cập nhật trạng thái đơn đăng ký thành 'rejected'
+        const updateQuery = `
+            UPDATE LawyerDetails
+            SET status = 'rejected'
+            WHERE lawyer_id = $1
+            RETURNING *
+        `;
+        
+        await pool.query(updateQuery, [lawyerId]);
+        
+        // Gửi email thông báo cho người dùng (nếu có)
+        try {
+            const userEmail = checkResult.rows[0].email;
+            const userName = checkResult.rows[0].full_name || checkResult.rows[0].username;
+            
+            // Triển khai gửi email thông báo - ở đây bạn có thể sử dụng emailService
+            // await emailService.sendLawyerRejectionNotification(userEmail, userName, reason);
+        } catch (emailError) {
+            console.error('Không thể gửi email thông báo từ chối:', emailError);
+        }
+        
+        return res.status(200).json({
+            success: true,
+            message: 'Đã từ chối đơn đăng ký luật sư',
+            data: {
+                userId: lawyerId,
+                status: 'rejected',
+                reason: reason || 'Không đủ điều kiện'
+            }
+        });
+    } catch (error) {
+        console.error('Lỗi khi từ chối đơn đăng ký luật sư:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi từ chối đơn đăng ký luật sư'
+    });
+  }
+};
+
 // Cập nhật module.exports để bao gồm tất cả các hàm
 module.exports = {
     register,
@@ -1547,6 +1764,9 @@ module.exports = {
     addBankAccount: exports.addBankAccount,
     updateBankAccount: exports.updateBankAccount,
     deleteBankAccount: exports.deleteBankAccount,
-    getLawyerBankAccount: exports.getLawyerBankAccount
+    getLawyerBankAccount: exports.getLawyerBankAccount,
+    getPendingLawyers,
+    approveLawyerRegistration,
+    rejectLawyerRegistration
 };
 

@@ -1,0 +1,11 @@
+.content {
+  padding: 24px;
+  min-height: 280px;
+  background: #f0f2f5;
+}
+
+.applicationDetails p {
+  margin-bottom: 8px;
+}
+
+/* Thêm CSS cho các chi tiết thêm khi cần */ 
