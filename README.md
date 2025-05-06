@@ -10,9 +10,10 @@
 ![ViteJS](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white&style=flat-square) 
 ![React Router](https://img.shields.io/badge/React_Router-CA4245?logo=react-router&logoColor=white&style=flat-square) 
 ![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white&style=flat-square)
-![CSS Modules](https://img.shields.io/badge/CSS_Modules-000000?logo=css3&logoColor=white&style=flat-square)
-![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white&style=flat-square)
+![MUI](https://img.shields.io/badge/MUI-007FFF?logo=mui&logoColor=white&style=flat-square)
 ![Ant Design](https://img.shields.io/badge/Ant_Design-0170FE?logo=antdesign&logoColor=white&style=flat-square)
+![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-764ABC?logo=redux&logoColor=white&style=flat-square)
+![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white&style=flat-square)
 
 ### Backend
 ![NodeJS](https://img.shields.io/badge/NodeJS-339933?logo=nodedotjs&logoColor=white&style=flat-square)
@@ -27,6 +28,7 @@
 ![RAG](https://img.shields.io/badge/RAG-412991?logo=ai&logoColor=white&style=flat-square)
 ![Ollama](https://img.shields.io/badge/Ollama-00C244?logo=openai&logoColor=white&style=flat-square)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-40AEF0?logo=database&logoColor=white&style=flat-square)
+![Transformers](https://img.shields.io/badge/Transformers-FF9A00?logo=huggingface&logoColor=white&style=flat-square)
 
 ### DevOps & Tools
 ![Git](https://img.shields.io/badge/Git-F05032?logo=git&logoColor=white&style=flat-square)
@@ -46,189 +48,70 @@
 
 ---
 
-## Tiến Độ Dự Án Hiện Tại
+## Tính Năng Nổi Bật
 
-### Giai Đoạn Hiện Tại: Sprint 4/5 (85% hoàn thành)
+### 1. Tư Vấn Pháp Lý Với AI
+- **Chatbot Pháp Lý Thông Minh**: Trả lời câu hỏi pháp luật với độ chính xác cao
+- **Công Nghệ RAG**: Kết hợp tìm kiếm và sinh văn bản để cải thiện chất lượng tư vấn
+- **Hỗ Trợ Đa Lĩnh Vực**: Tư vấn về dân sự, hành chính, hình sự, lao động, kinh doanh...
 
-#### Đã Hoàn Thành:
-- ✅ **Database**: Thiết kế và triển khai cơ sở dữ liệu với ràng buộc khóa ngoại
-- ✅ **Backend API**: 
-  - Hệ thống xác thực JWT và quản lý phiên làm việc
-  - API đăng ký, đăng nhập, quên mật khẩu
-  - Endpoints quản lý thông tin người dùng
-  - API quản lý cuộc hẹn giữa khách hàng và luật sư
-  - Hệ thống gửi email tự động với Nodemailer (8 template khác nhau)
-  - API tạo và quản lý vụ án pháp lý
-  - API tải lên và quản lý tài liệu liên quan đến vụ án
-  - API tính phí dịch vụ pháp lý
-  - API tạo bản nháp văn bản sử dụng AI
-- ✅ **Frontend**: 
-  - Các trang: Trang chủ, Đăng nhập/Đăng ký, Danh sách luật sư, Chi tiết luật sư
-  - Trang profile người dùng với chức năng cập nhật thông tin, đổi avatar
-  - Form đặt lịch hẹn với luật sư
-  - Giao diện quản lý lịch hẹn cho khách hàng và luật sư
-  - Form liên hệ với hệ thống gửi email tự động
-  - Giao diện quản lý vụ án (danh sách, tạo mới, chi tiết, chỉnh sửa)
-  - Tích hợp AI để soạn thảo văn bản pháp lý
-  - Hệ thống quản lý tài liệu (upload, download)
-- ✅ **AI Integration**:
-  - Tích hợp mô hình Qwen2.5 (3B) AI Localhost
-  - Kỹ thuật RAG (Retrieval-Augmented Generation) để cải thiện độ chính xác câu trả lời
-  - Soạn thảo văn bản pháp lý với AI
-- ✅ **Security**: 
-  - Mã hóa mật khẩu với bcrypt
-  - Xác thực email OTP
-  - Bảo vệ route với middleware kiểm tra JWT
+### 2. Quản Lý Vụ Án Pháp Lý
+- **Hệ Thống Toàn Diện**: Tạo, phân loại, theo dõi trạng thái vụ án
+- **Tự Động Hóa**: Soạn thảo văn bản pháp lý sử dụng AI
+- **Gắn Kết Với Luật Sư**: Đặt lịch hẹn và trao đổi trực tiếp
 
-#### Đang Triển Khai (Sprint 4): 
-- 🔄 **Payment System**:
-  - Tích hợp cổng thanh toán
-  - Quản lý hóa đơn và lịch sử thanh toán
-  - Giao diện xác nhận thanh toán
-- 🔄 **Admin Dashboard**:
-  - Giao diện quản lý người dùng
-  - Thống kê cơ bản về lịch hẹn và người dùng
-  - Quản lý danh sách luật sư
-  - Báo cáo doanh thu và phân tích
-- 🔄 **Responsive Design**:
-  - Tối ưu hóa giao diện trên các thiết bị di động
-  - Cải thiện trải nghiệm người dùng trên điện thoại và máy tính bảng
+### 3. Hệ Thống Thanh Toán
+- **Tính Phí Thông Minh**: Tự động tính toán chi phí theo loại vụ án và độ phức tạp
+- **Thanh Toán Trực Tuyến**: Hỗ trợ đa dạng phương thức thanh toán
+- **Quản Lý Hóa Đơn**: Lưu trữ và theo dõi lịch sử giao dịch
 
-#### Sắp Triển Khai (Sprint 5):
-- ⏳ **Advanced Search**:
-  - Tìm kiếm nâng cao các văn bản pháp lý
-  - Tìm kiếm dựa trên ngữ nghĩa (semantic search)
-- ⏳ **Multi-language Support**:
-  - Hỗ trợ Tiếng Anh cho người dùng quốc tế
-  - Chuyển đổi ngôn ngữ trong giao diện
-- ⏳ **Performance Optimization**:
-  - Tối ưu hóa thời gian tải trang
-  - Cải thiện hiệu suất ứng dụng
+### 4. Quản Lý Tài Liệu Pháp Lý
+- **Lưu Trữ An Toàn**: Bảo mật dữ liệu với hệ thống mã hóa
+- **Phân Tích Tài Liệu**: Trích xuất thông tin quan trọng từ văn bản
+- **Chia Sẻ & Cộng Tác**: Phân quyền và chia sẻ tài liệu với người dùng khác
+
+### 5. Tra Cứu Pháp Luật Nâng Cao
+- **Tìm Kiếm Thông Minh**: Kết hợp tìm kiếm ngữ nghĩa và từ khóa
+- **So Sánh Văn Bản**: Đối chiếu các phiên bản văn bản pháp luật
+- **Gợi Ý Văn Bản Liên Quan**: Tự động đề xuất văn bản tương tự
 
 ---
 
-## Chi Tiết Công Nghệ Mới Nhất
+## Các Dịch Vụ Chính
 
-### Frontend
-- **ReactJS**: Framework JavaScript cho phát triển giao diện người dùng
-- **Vite**: Công cụ build nhanh, thay thế cho Create React App
-- **React Router v6**: Quản lý định tuyến trong ứng dụng React
-- **Ant Design**: Thư viện UI components chuyên nghiệp
-- **CSS Modules**: Tổ chức và scope CSS cho component
-- **Axios**: Thư viện HTTP client để gọi API
-- **react-toastify**: Hiển thị thông báo và cảnh báo
-- **date-fns**: Xử lý định dạng ngày tháng
-- **jwt-decode**: Giải mã token JWT ở client
+1. **Tư Vấn Pháp Luật Dân Sự**
+   - Tranh chấp hợp đồng, đất đai, thừa kế tài sản
+   - Bồi thường thiệt hại ngoài hợp đồng
+   - Giải quyết tranh chấp dân sự
 
-### Backend
-- **Node.js**: Môi trường runtime JavaScript phía server
-- **Express.js**: Web framework cho Node.js
-- **PostgreSQL**: Hệ quản trị cơ sở dữ liệu quan hệ
-- **JWT**: JSON Web Token cho xác thực
-- **Multer**: Xử lý upload file
-- **Bcrypt**: Mã hóa mật khẩu
-- **Nodemailer**: Thư viện gửi email từ Node.js
-- **Ollama**: Triển khai mô hình AI cục bộ
-- **Qwen2.5 (3B)**: Mô hình ngôn ngữ lớn cho xử lý ngôn ngữ tự nhiên
-- **ChromaDB**: Vector database cho kỹ thuật RAG
-- **RAG**: Kỹ thuật Retrieval-Augmented Generation
+2. **Tư Vấn Pháp Luật Hôn Nhân Gia Đình**
+   - Đăng ký kết hôn, ly hôn
+   - Phân chia tài sản chung vợ chồng
+   - Quyền nuôi con, cấp dưỡng
 
-### DevOps
-- **Git & GitHub**: Quản lý phiên bản và cộng tác
-- **ESLint**: Linting JavaScript code
-- **Prettier**: Format code
-- **Postman**: Testing API endpoints
+3. **Tư Vấn Pháp Luật Doanh Nghiệp**
+   - Thành lập doanh nghiệp, thay đổi đăng ký kinh doanh
+   - Soạn thảo và rà soát hợp đồng thương mại
+   - Tư vấn sở hữu trí tuệ và tranh chấp thương mại
+
+4. **Tư Vấn Pháp Luật Lao Động**
+   - Soạn thảo hợp đồng lao động
+   - Tư vấn về bảo hiểm xã hội, quyền lợi người lao động
+   - Xử lý tranh chấp giữa người lao động và người sử dụng lao động
+
+5. **Dịch Vụ Soạn Thảo Văn Bản Pháp Lý**
+   - Soạn thảo đơn khởi kiện, đơn khiếu nại
+   - Hợp đồng và thỏa thuận pháp lý
+   - Các loại đơn từ hành chính
 
 ---
 
-## Cấu Trúc Dự Án Mới
-
-Dự án được chia thành hai phần chính:
-
-### 1. Backend (Node.js/Express)
-- **Cấu trúc thư mục**:
-  ```
-  Backend/
-  ├── src/
-  │   ├── config/        # Cấu hình ứng dụng
-  │   ├── controllers/   # Xử lý logic nghiệp vụ
-  │   ├── middleware/    # Middleware (auth, upload, validation)
-  │   ├── models/        # Mô hình dữ liệu và schema
-  │   ├── routes/        # API routes
-  │   ├── services/      # Logic nghiệp vụ
-  │   │   ├── ragService.js    # Dịch vụ RAG
-  │   │   ├── ollamaService.js # Kết nối với Ollama
-  │   │   └── ...
-  │   ├── data/          # Dữ liệu pháp lý
-  │   ├── utils/         # Tiện ích
-  │   └── app.js         # Entry point
-  ├── uploads/           # Thư mục lưu tài liệu upload
-  ├── migrations/        # Database migrations
-  └── ...
-  ```
-
-### 2. Frontend (React/Vite)
-- **Cấu trúc thư mục**:
-  ```
-  Frontend/
-  ├── src/
-  │   ├── assets/        # Tài nguyên tĩnh (hình ảnh, fonts)
-  │   ├── components/    # Components tái sử dụng
-  │   │   ├── layout/    # Components bố cục (Header, Footer, Navbar)
-  │   │   └── ...
-  │   ├── pages/         # Các trang
-  │   │   ├── Home/      # Trang chủ
-  │   │   ├── LegalCase/ # Trang quản lý vụ án
-  │   │   └── ...
-  │   ├── router/        # Cấu hình định tuyến
-  │   ├── services/      # Gọi API
-  │   ├── store/         # Quản lý trạng thái
-  │   ├── styles/        # CSS toàn cục
-  │   ├── hooks/         # React hooks
-  │   ├── utils/         # Tiện ích
-  │   ├── App.jsx        # Component App
-  │   └── main.jsx       # Entry point
-  └── ...
-  ```
-
----
-
-## Tính Năng Chính (Cập Nhật)
-
-1. **Quản Lý Vụ Án Pháp Lý**
-   - Tạo và quản lý vụ án
-   - Tải lên tài liệu liên quan
-   - Phân loại và tìm kiếm vụ án
-   - Xem chi tiết và cập nhật trạng thái vụ án
-
-2. **Soạn Thảo AI**
-   - Sử dụng AI để soạn thảo văn bản pháp lý
-   - Dựa trên mẫu văn bản và yêu cầu của người dùng
-   - Hỗ trợ nhiều loại văn bản pháp lý khác nhau
-
-3. **Tư Vấn Pháp Lý**
-   - Kết nối người dùng với luật sư
-   - Tính toán và quản lý phí dịch vụ
-   - Thanh toán trực tuyến
-   - Đánh giá và xếp hạng luật sư
-
-4. **Quản Lý Tài Liệu**
-   - Tải lên và quản lý tài liệu pháp lý
-   - Xem và tải xuống tài liệu
-   - Phân loại và tổ chức tài liệu
-
-5. **Tra Cứu Pháp Luật**
-   - Tìm kiếm thông tin pháp luật
-   - Xem và so sánh văn bản pháp luật
-   - Hỏi đáp với AI về vấn đề pháp lý
-
----
-
-## Hướng Dẫn Cài Đặt (Cập Nhật)
+## Hướng Dẫn Cài Đặt
 
 ### Yêu Cầu Hệ Thống
-- NodeJS (>= 14.0.0)
+- NodeJS (>= 16.0.0)
 - Ollama đã cài đặt và chạy với mô hình Qwen2.5 3B
+- PostgreSQL (>= 14.0)
 - RAM: tối thiểu 8GB
 - VRAM: 4-6GB (nếu sử dụng GPU)
 
@@ -236,7 +119,7 @@ Dự án được chia thành hai phần chính:
 
 #### 1. Cài Đặt Ollama và Mô Hình Qwen2.5
 ```bash
-# Tải và cài đặt Ollama từ https://ollama.ai/
+# Tải và cài đặt Ollama từ https://ollama.ai
 # Chạy Ollama server
 ollama serve
 
@@ -249,8 +132,9 @@ ollama pull qwen2.5:3b
 cd LegAI/Backend
 npm install
 
-# Tạo file .env từ mẫu và cập nhật thông tin cấu hình
+# Tạo file .env từ mẫu
 cp .env.example .env
+# Cập nhật thông tin cấu hình PostgreSQL và cài đặt khác
 
 # Khởi tạo database
 npm run migrate
@@ -264,8 +148,9 @@ npm run dev
 cd LegAI/Frontend
 npm install
 
-# Tạo file .env từ mẫu và cập nhật thông tin cấu hình
+# Tạo file .env từ mẫu
 cp .env.example .env
+# Cập nhật API_URL và các cấu hình khác
 
 # Chạy ứng dụng trong chế độ development
 npm run dev
@@ -277,26 +162,88 @@ npm run dev
 
 ---
 
-## Thành Viên Nhóm và Phân Công
+## Kiến Trúc Hệ Thống
 
-| Họ Tên                | Mã Sinh Viên   | Vai Trò           | Phụ Trách                | Thành Tựu                          |
-|-----------------------|----------------|-------------------|--------------------------|-----------------------------------|
-| **Huỳnh Văn Quý**     | 27211201995    | Scrum Master      | Backend, Database        | API Endpoints, Database Schema     |
-| **Phạm Minh Quân**    | 27211202256    | Product Owner     | Frontend, UI/UX          | React Components, Responsive Design|
-| **Trần Kim Thịnh**    | 27211235618    | Developer         | Email System, Frontend,Database   | Email Templates, UI Components     |
-| **Lê Hoàng Phúc**     | 27211202366    | Developer         | Backend, API             | Authentication, File Upload Logic  |
-| **Nguyễn Ngọc Kỳ Phương** | 27204321839 | Developer       | Testing, Documentation   | Bug Fixes, Documentation           |
+### Frontend (React/Vite)
+```
+Frontend/
+├── src/
+│   ├── assets/        # Tài nguyên tĩnh (hình ảnh, fonts)
+│   ├── components/    # Components tái sử dụng
+│   ├── hooks/         # Custom React hooks
+│   ├── pages/         # Các trang ứng dụng
+│   ├── services/      # Các service gọi API
+│   ├── store/         # Redux store & slices
+│   ├── styles/        # CSS modules & global styles
+│   ├── utils/         # Utility functions
+│   ├── App.jsx        # Component App chính
+│   └── main.jsx       # Entry point
+```
 
-**Giảng viên hướng dẫn**: ThS. Lưu Văn Hiền (luuvanhien@dtu.edu.vn, 0779800029)  
+### Backend (Node.js/Express)
+```
+Backend/
+├── src/
+│   ├── config/        # Cấu hình ứng dụng
+│   ├── controllers/   # Xử lý logic nghiệp vụ
+│   ├── middleware/    # Middleware (auth, upload, etc)
+│   ├── models/        # Mô hình dữ liệu
+│   ├── routes/        # API routes
+│   ├── services/      # Logic nghiệp vụ phức tạp
+│   │   ├── aiService.js    # Dịch vụ AI
+│   │   ├── ragService.js   # Dịch vụ RAG
+│   │   └── ...
+│   ├── data/          # Dữ liệu pháp luật
+│   ├── utils/         # Utility & helper
+│   └── app.js         # Entry point
+├── uploads/           # Thư mục lưu file upload
+└── database.sql       # Schema cơ sở dữ liệu
+```
+
+---
+
+## Thành Viên Nhóm
+
+| Họ Tên | Mã Sinh Viên | Vai Trò | Phụ Trách |
+|--------|--------------|---------|-----------|
+| **Huỳnh Văn Quý** | 27211201995 | Scrum Master | Backend, Database |
+| **Phạm Minh Quân** | 27211202256 | Product Owner | Frontend, UI/UX |
+| **Trần Kim Thịnh** | 27211235618 | Developer | Email System, Frontend, Database |
+| **Lê Hoàng Phúc** | 27211202366 | Developer | Backend, API |
+| **Nguyễn Ngọc Kỳ Phương** | 27204321839 | Developer | Testing, Documentation |
+
+**Giảng viên hướng dẫn**: ThS. Lưu Văn Hiền (luuvanhien@dtu.edu.vn)
 
 ---
 
 ## Liên Hệ
 
-- **GitHub Repository**: [github.com/your-team/legai](https://github.com/your-team/legai)  
-- **Email Dự Án**: legai.project@gmail.com  
-- **Người Liên Hệ Chính**: Trần Kim Thịnh, trankimthinh23@gmail.com, 0384160548  
+- **GitHub Repository**: [github.com/your-team/legai](https://github.com/your-team/legai)
+- **Email Dự Án**: legai.project@gmail.com
+- **Người Liên Hệ Chính**: Trần Kim Thịnh (trankimthinh23@gmail.com)
 
 ---
 
-Cập nhật cuối: 15/05/2023
+## Công Nghệ AI Đã Triển Khai
+
+### 1. RAG (Retrieval-Augmented Generation)
+- **Mô hình nhúng**: Xenova/multilingual-e5-small (384 chiều)
+- **Vector Database**: ChromaDB
+- **Mô hình sinh văn bản**: Qwen2.5 3B
+- **Xử lý ngôn ngữ**: Hỗ trợ tiếng Việt tối ưu
+
+### 2. Xử Lý Tài Liệu
+- Phân tích nội dung PDF/DOCX
+- Trích xuất thông tin và từ khóa
+- Sinh tóm tắt thông minh
+
+### 3. So Sánh Văn Bản Pháp Luật
+- Phát hiện sự khác biệt giữa các phiên bản
+- Đánh dấu phần thêm mới, xóa bỏ, và sửa đổi
+- Cung cấp phân tích tổng quan về mức độ thay đổi
+
+---
+
+## Giấy Phép
+
+© 2023-2024 LegAI Project Team. All Rights Reserved.
