@@ -220,16 +220,16 @@ CREATE TABLE LawyerDetails (
 );
 
 -- Bảng DigitalSignatures
-CREATE TABLE DigitalSignatures (
-    id SERIAL PRIMARY KEY,
-    contract_id INT NOT NULL,
-    user_id INT NOT NULL,
-    signature_hash VARCHAR(255) NOT NULL,
-    signed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NOT NULL,
-    FOREIGN KEY (contract_id) REFERENCES Contracts(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
-);
+-- CREATE TABLE DigitalSignatures (
+--     id SERIAL PRIMARY KEY,
+--     contract_id INT NOT NULL,
+--     user_id INT NOT NULL,
+--     signature_hash VARCHAR(255) NOT NULL,
+--     signed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--     status VARCHAR(50) NOT NULL,
+--     FOREIGN KEY (contract_id) REFERENCES Contracts(id) ON DELETE CASCADE,
+--     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+-- );
 
 -- Bảng DocumentTemplates
 CREATE TABLE DocumentTemplates (
@@ -366,3 +366,24 @@ ALTER TABLE Appointments ADD COLUMN IF NOT EXISTS appointment_type VARCHAR(50) D
 
 -- Bổ sung trường payment_info vào bảng Transactions nếu chưa có
 ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS payment_info JSONB;
+
+-- StatisticsReports Table
+CREATE TABLE IF NOT EXISTS StatisticsReports (
+    id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255) NOT NULL,
+    report_type VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    report_data JSONB NOT NULL,
+    chart_data JSONB,
+    created_by INTEGER REFERENCES Users(id),
+    is_published BOOLEAN DEFAULT FALSE,
+    report_format VARCHAR(20) DEFAULT 'json',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for StatisticsReports
+CREATE INDEX IF NOT EXISTS idx_statisticsreports_report_type ON StatisticsReports(report_type);
+CREATE INDEX IF NOT EXISTS idx_statisticsreports_created_by ON StatisticsReports(created_by);
+CREATE INDEX IF NOT EXISTS idx_statisticsreports_date_range ON StatisticsReports(start_date, end_date);

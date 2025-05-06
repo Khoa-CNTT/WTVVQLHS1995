@@ -1,25 +1,193 @@
 .container {
-    padding: 24px;
-  }
-  
-  .topBar {
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .statCards {
-    margin-bottom: 24px;
-  }
-  
-  .cardTitle {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 8px;
-  }
-  
-  .cardValue {
-    font-size: 18px;
-    font-weight: bold;
-  }
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+
+.filterBar {
+  display: flex;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tabs {
+  margin-top: 16px;
+}
+
+.emptyReport {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.emptyReport p {
+  margin: 16px 0;
+  color: #666;
+  font-size: 16px;
+}
+
+.reportContainer {
+  padding: 8px;
+}
+
+.chartCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.chartCard :global(.ant-card-body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tableCard {
+  margin-top: 16px;
+}
+
+.actionBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 16px;
+}
+
+.summaryCard {
+  background-color: #f9f9f9;
+  margin-bottom: 16px;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.statIcon {
+  font-size: 32px;
+  margin-right: 16px;
+  color: #1890ff;
+}
+
+.statContent {
+  flex: 1;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+/* Cài đặt cho biểu đồ */
+:global(.recharts-wrapper),
+:global(.recharts-surface) {
+  width: 100% !important;
+  overflow: visible;
+}
+
+:global(.recharts-responsive-container) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+:global(.recharts-legend-wrapper) {
+  font-size: 12px;
+  bottom: 0px !important;
+  position: relative !important;
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+:global(.recharts-default-legend) {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+:global(.recharts-legend-item) {
+  margin-right: 10px !important;
+  margin-bottom: 4px;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+:global(.recharts-layer.recharts-pie) {
+  transform-origin: center;
+}
+
+:global(.recharts-sector) {
+  transition: transform 0.3s;
+}
+
+:global(.recharts-sector:hover) {
+  transform: scale(1.05);
+}
+
+.recharts-wrapper {
+  font-size: 12px;
+}
+
+/* Fix for pie charts */
+.recharts-pie {
+  min-height: 200px;
+}
+
+/* Make sure all legend items are visible */
+.recharts-legend-wrapper {
+  white-space: normal !important;
+}
+
+/* Add animation to charts */
+.recharts-layer {
+  transition: transform 0.3s;
+}
+
+.recharts-layer:hover {
+  transform: scale(1.01);
+}
+
+.reportList {
+  margin-top: 16px;
+}
+
+.reportCard {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.reportCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+.activeReportCard {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modalButtons button {
+  margin-left: 8px;
+}

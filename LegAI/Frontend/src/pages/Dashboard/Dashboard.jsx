@@ -23,7 +23,8 @@ import {
   ContainerOutlined,
   MoneyCollectOutlined,
   SolutionOutlined,
-  AuditOutlined
+  AuditOutlined,
+  BarChartOutlined
 } from '@ant-design/icons';
 import styles from './DashboardPage.module.css';
 import UsersManagerPage from './UsersManager/UsersManager';
@@ -45,6 +46,7 @@ import TransactionManager from './Transaction/TransactionManager';
 import LegalCaseManager from './LegalCase/LegalCaseManager';
 import FeeReferenceManager from './Fee/FeeReferenceManager';
 import LawyerApplicationsPage from './LawyerApplications/LawyerApplicationsPage';
+import StatisticalReport from './Statistical_Report/StatisticalReport';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -268,6 +270,7 @@ function Dashboard() {
     { key: 'tin-nhắn', label: 'Tin Nhắn', icon: <MessageOutlined />, title: 'Hệ thống tin nhắn' },
     { key: 'giao-dịch', label: 'Giao Dịch', icon: <DollarOutlined />, title: 'Quản lý giao dịch' },
     { key: 'phí-pháp-lý', label: 'Phí pháp lý', icon: <DollarOutlined />, title: 'Quản lý phí pháp lý' },
+    { key: 'thống-kê-báo-cáo', label: 'Thống kê Báo cáo', icon: <BarChartOutlined />, title: 'Thống kê và Báo cáo', hidden: !(currentUser && currentUser.role === 'admin') },
   ];
 
   const userMenuItems = [
@@ -353,6 +356,30 @@ function Dashboard() {
           </Card>
         </Col>
       </Row>
+      
+      {/* Thêm hàng mới cho các chức năng quản trị bổ sung */}
+      <Title level={4} style={{ marginTop: 24, marginBottom: 16 }}>Chức năng quản trị</Title>
+      <Row gutter={[16, 16]}>
+        {currentUser && currentUser.role === 'admin' && (
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Card hoverable>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                <BarChartOutlined style={{ fontSize: 24, color: '#1890ff', marginRight: 12 }} />
+                <span style={{ fontSize: 16, fontWeight: 500 }}>Thống kê và Báo cáo</span>
+              </div>
+              <Divider style={{ margin: '12px 0' }} />
+              <Button 
+                type="primary" 
+                onClick={() => navigate('/dashboard/statistical-report')}
+                block
+              >
+                Xem báo cáo thống kê
+              </Button>
+            </Card>
+          </Col>
+        )}
+        {/* Có thể thêm các chức năng khác ở đây */}
+      </Row>
     </div>
   );
 
@@ -400,6 +427,8 @@ function Dashboard() {
       return <FeeReferenceManager />;
     } else if (pathname === '/dashboard/lawyer-applications') {
       return <LawyerApplicationsPage />;
+    } else if (pathname === '/dashboard/statistical-report') {
+      return <StatisticalReport />;
     }
     
     // Các trường hợp khác dựa vào activeMenu
@@ -430,6 +459,8 @@ function Dashboard() {
         return <FeeReferenceManager />;
       case 'lawyer-applications':
         return <LawyerApplicationsPage />;
+      case 'thống-kê-báo-cáo':
+        return <StatisticalReport />;
       default:
         return renderDashboardOverview();
     }
