@@ -53,13 +53,24 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 1.5rem;
+  
 }
-
+.heroDescription {
+  font-size: 1.25rem;
+  color: #fff ;
+  margin-bottom: 2rem;
+}
 .heroTitleSecondary {
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   font-weight: 400;
   color: #ffcc00;
   margin-bottom: 0.5rem;
+  background: linear-gradient(to right, #ffffff, #a5d8ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  animation: glowText 3s infinite alternate;
 }
 
 .heroTitlePrimary {
@@ -68,13 +79,31 @@
   color: #ffffff;
   line-height: 1.2;
   text-transform: uppercase;
+  font-size: 3.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #ffffff, #ffffff,yellow);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  animation: glowText 3s infinite alternate;
+}
+@keyframes glowText {
+  0% {
+    text-shadow: 0 0 5px rgba(165, 216, 255, 0.5);
+    background-position: 0% 50%;
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(165, 216, 255, 0.8);
+    background-position: 100% 50%;
+  }
+  100% {
+    text-shadow: 0 0 5px rgba(165, 216, 255, 0.5);
+    background-position: 0% 50%;
+  }
 }
 
-.heroDescription {
-  font-size: 1.25rem;
-  color: #fff;
-  margin-bottom: 2rem;
-}
 
 .heroBtnGroup {
   display: flex;
