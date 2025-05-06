@@ -1290,4 +1290,5 @@ const StatisticalReport = () => {
   );
 };
 
+// Xuất component để sử dụng trong các file khác
 export default StatisticalReport;

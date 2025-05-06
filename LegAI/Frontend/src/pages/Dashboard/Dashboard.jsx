@@ -75,6 +75,8 @@ function Dashboard() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const [notificationPosition, setNotificationPosition] = useState({ top: 0, right: 0 });
   const notificationIconRef = useRef(null);
+  const sidebarRef = useRef(null);
+  const [collapseButtonLeft, setCollapseButtonLeft] = useState(280); // Mặc định
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -204,13 +206,36 @@ function Dashboard() {
     }
   }, [showNotifications]);
 
+  // Cập nhật vị trí của nút khi cửa sổ thay đổi kích thước
+  useEffect(() => {
+    const updateButtonPosition = () => {
+      if (sidebarRef.current) {
+        const sidebarWidth = collapsed ? 80 : 280;
+        setCollapseButtonLeft(sidebarWidth);
+      }
+    };
+
+    window.addEventListener('resize', updateButtonPosition);
+    updateButtonPosition(); // Gọi ngay lần đầu
+
+    return () => {
+      window.removeEventListener('resize', updateButtonPosition);
+    };
+  }, [collapsed]);
+
   const goToHomePage = () => navigate('/');
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
   
-  const toggleCollapsed = () => setCollapsed(!collapsed);
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+    // Cập nhật vị trí của nút khi toggle
+    setTimeout(() => {
+      setCollapseButtonLeft(!collapsed ? 80 : 280);
+    }, 10);
+  };
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const goToProfilePage = () => navigate('/profile');
 
@@ -378,7 +403,6 @@ function Dashboard() {
             </Card>
           </Col>
         )}
-        {/* Có thể thêm các chức năng khác ở đây */}
       </Row>
     </div>
   );
@@ -546,33 +570,13 @@ function Dashboard() {
         collapsible 
         collapsed={collapsed}
         width={280}
-        style={{
-          background: 'linear-gradient(180deg, #1e3a8a, #3b82f6)',
-          overflowY: 'auto',
-          height: '100vh',
-          position: 'fixed',
-          left: 0,
-          zIndex: 1000
-        }}
+        className={styles.sidebar}
+        ref={sidebarRef}
       >
-        <div 
-          style={{ 
-            padding: '20px 0', 
-            textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.2)',
-            cursor: 'pointer'
-          }}
-          onClick={goToHomePage}
-        >
+        <div className={styles.logoContainer} onClick={goToHomePage}>
           <Title 
             level={3} 
-            style={{ 
-              margin: 0, 
-              color: 'white',
-              background: 'linear-gradient(45deg, #fff, #ffd700)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}
+            className={styles.logoText}
           >
             LegAI
           </Title>
@@ -581,30 +585,26 @@ function Dashboard() {
           theme="dark"
           mode="inline"
           selectedKeys={[activeMenu]}
-          items={menuItems}
+          items={menuItems.filter(item => !item.hidden).map(item => ({
+            key: item.key,
+            icon: React.cloneElement(item.icon, { className: styles.menuIcon }),
+            label: <span className={styles.menuLabel}>{item.label}</span>,
+            title: item.title
+          }))}
           onClick={e => {
             setActiveMenu(e.key);
-            // Thêm tab vào URL để xử lý refresh trang
             navigate(`/dashboard?tab=${e.key}`, { replace: true });
           }}
-          style={{ background: 'transparent', borderRight: 0 }}
+          className={styles.sidebarMenu}
         />
-        <div 
-          style={{ 
-            position: 'absolute', 
-            bottom: 0, 
-            width: '100%', 
-            padding: '16px', 
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-          }}
-        >
+        <div className={styles.logoutContainer} style={{ width: collapsed ? 80 : 280 }}>
           <Button 
             type="default" 
-            icon={<LogoutOutlined />} 
+            icon={<LogoutOutlined className={styles.logoutIcon} />} 
             onClick={handleLogout}
-            block
+            className={styles.logoutButton}
             danger
-            style={{ background: 'transparent', borderColor: '#ffd700', color: 'white' }}
+            block
           >
             {!collapsed && 'Đăng xuất'}
           </Button>
@@ -614,56 +614,28 @@ function Dashboard() {
         <Button
           type="primary"
           onClick={toggleCollapsed}
-          style={{
-            position: 'fixed',
-            top: 20,
-            left: collapsed ? 80 : 280,
-            transform: 'translateX(-50%)',
-            zIndex: 1001,
-            width: 32,
-            height: 32,
-            padding: 0,
-            borderRadius: '50%'
-          }}
+          className={styles.collapseButton}
+          style={{ left: collapseButtonLeft }}
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         />
-        <Header 
-          style={{ 
-            background: 'white', 
-            padding: '0 24px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 999,
-            width: '100%'
-          }}
-        >
+        <Header className={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Title level={4} style={{ margin: 0,padding: 0 }}>HỆ THỐNG QUẢN LÝ PHÁP LÝ</Title>
+            <Title level={4} style={{ margin: 0, padding: 0 }}>HỆ THỐNG QUẢN LÝ PHÁP LÝ</Title>
             <Text type="secondary">{getCurrentDate()}</Text>
           </div>
           <Space size="middle">
-            <Badge count={notifications}>
+            <Badge count={notifications} className={styles.notificationBadge}>
               <Avatar
                 ref={notificationIconRef}
                 icon={<BellOutlined />}
-                style={{ cursor: 'pointer', background: '#1890ff' }}
+                className={styles.notificationAvatar}
                 onClick={toggleNotifications}
               />
             </Badge>
             <Text>{currentUser?.fullName || currentUser?.username || 'NGƯỜI DÙNG'}</Text>
             <Avatar 
               ref={userAvatarRef}
-              style={{ 
-                backgroundColor: '#f56a00', 
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
+              className={styles.userAvatar}
               onMouseEnter={handleUserMenuMouseEnter}
               onMouseLeave={handleUserMenuMouseLeave}
             >
@@ -690,7 +662,7 @@ function Dashboard() {
             items={userMenuItems}
           />
         </Header>
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
+        <Content className={styles.content}>
           {renderContent()}
         </Content>
       </Layout>
