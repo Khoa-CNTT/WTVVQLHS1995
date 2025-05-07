@@ -155,8 +155,6 @@ function AddUserModal({ onClose, onSave }) {
             >
               <Select placeholder="Chọn vai trò người dùng">
                 <Option value="user">Người dùng</Option>
-                <Option value="admin">Quản trị viên</Option>
-                <Option value="lawyer">Luật sư</Option>
               </Select>
             </Form.Item>
           </Col>

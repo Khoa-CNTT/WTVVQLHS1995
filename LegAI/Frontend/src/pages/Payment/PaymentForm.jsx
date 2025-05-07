@@ -72,13 +72,7 @@ const PaymentForm = () => {
         
         if (isNaN(parsedLawyerId)) {
           console.error('ID luật sư không hợp lệ:', lawyerId);
-          // Sử dụng tài khoản mặc định
-          setDefaultBankAccount({
-            bank_name: 'Vietcombank',
-            account_number: '1023456789',
-            account_holder: 'CÔNG TY LEGAI',
-            branch: 'Hà Nội'
-          });
+          setDefaultBankAccount(null);
           setLoadingBankAccount(false);
           return;
         }
@@ -93,43 +87,49 @@ const PaymentForm = () => {
             setDefaultBankAccount(response.data);
           } else {
             console.warn('Không lấy được thông tin tài khoản ngân hàng của luật sư:', response?.message || 'Không có phản hồi');
-            // Sử dụng tài khoản mặc định của hệ thống nếu không lấy được tài khoản của luật sư
-            setDefaultBankAccount({
-              bank_name: 'Vietcombank',
-              account_number: '1023456789',
-              account_holder: 'CÔNG TY LEGAI',
-              branch: 'Hà Nội'
-            });
+            // Không sử dụng tài khoản mặc định nữa
+            setDefaultBankAccount(null);
+            
+            // Hiển thị thông báo lỗi
+            message.error('Luật sư chưa cập nhật thông tin tài khoản ngân hàng. Vui lòng liên hệ với luật sư để được hướng dẫn thanh toán.', 5);
+            
+            // Chuyển về trang chi tiết vụ án
+            if (transactionData && transactionData.case_id) {
+              setTimeout(() => {
+                navigate(`/legal-cases/${transactionData.case_id}`);
+              }, 2000);
+            } else {
+              setTimeout(() => {
+                navigate('/legal-cases');
+              }, 2000);
+            }
           }
         } catch (apiError) {
           console.error('Lỗi API khi lấy thông tin tài khoản ngân hàng:', apiError);
-          // Sử dụng tài khoản mặc định trong trường hợp lỗi API
-          setDefaultBankAccount({
-            bank_name: 'Vietcombank',
-            account_number: '1023456789',
-            account_holder: 'CÔNG TY LEGAI',
-            branch: 'Hà Nội'
-          });
+          // Không sử dụng tài khoản mặc định nữa
+          setDefaultBankAccount(null);
+          
+          // Hiển thị thông báo lỗi
+          message.error('Không thể lấy thông tin tài khoản ngân hàng. Vui lòng thử lại sau hoặc liên hệ với luật sư.', 5);
         }
       } else {
-        console.log('Không có lawyer_id, sử dụng tài khoản mặc định của hệ thống');
-        // Nếu không có case_id hoặc lawyer_id, lấy tài khoản mặc định của hệ thống
-        setDefaultBankAccount({
-          bank_name: 'Vietcombank',
-          account_number: '1023456789',
-          account_holder: 'CÔNG TY LEGAI',
-          branch: 'Hà Nội'
-        });
+        console.log('Không có lawyer_id, không thể tiếp tục thanh toán');
+        setDefaultBankAccount(null);
+        
+        // Hiển thị thông báo lỗi
+        message.error('Không thể xác định luật sư phụ trách vụ án. Vui lòng thử lại sau.', 5);
+        
+        // Chuyển về trang danh sách vụ án
+        setTimeout(() => {
+          navigate('/legal-cases');
+        }, 2000);
       }
     } catch (error) {
       console.error('Lỗi khi lấy thông tin tài khoản ngân hàng:', error);
-      // Sử dụng tài khoản mặc định trong trường hợp lỗi
-      setDefaultBankAccount({
-        bank_name: 'Vietcombank',
-        account_number: '1023456789',
-        account_holder: 'CÔNG TY LEGAI',
-        branch: 'Hà Nội'
-      });
+      setDefaultBankAccount(null);
+      
+      // Hiển thị thông báo lỗi
+      message.error('Không thể lấy thông tin tài khoản ngân hàng. Vui lòng thử lại sau.', 5);
     } finally {
       setLoadingBankAccount(false);
     }
@@ -394,137 +394,124 @@ const PaymentForm = () => {
   
   // Hiển thị phương thức thanh toán qua mã QR
   const renderPaymentQR = () => (
-    <>
-      {loadingBankAccount ? (
-        <Spin tip="Đang tải thông tin tài khoản...">
-          <div style={{ minHeight: 100 }} />
-        </Spin>
-      ) : defaultBankAccount ? (
-        <>
+    <div className={styles.paymentMethodSection}>
+      {!defaultBankAccount ? (
+        <div className={styles.noAccountWarning}>
           <Alert
-            message="Thông tin chuyển khoản"
-            description={
-              <div>
-                <Paragraph>
-                  <Text strong>Ngân hàng:</Text> {defaultBankAccount.bank_name}
-                </Paragraph>
-                <Paragraph>
-                  <Text strong>Số tài khoản:</Text> {defaultBankAccount.account_number}
-                </Paragraph>
-                <Paragraph>
-                  <Text strong>Chủ tài khoản:</Text> {defaultBankAccount.account_holder}
-                </Paragraph>
-                {defaultBankAccount.branch && (
-                  <Paragraph>
-                    <Text strong>Chi nhánh:</Text> {defaultBankAccount.branch}
-                  </Paragraph>
-                )}
-                <Paragraph>
-                  <Text strong>Nội dung chuyển khoản:</Text> {transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'}
-                </Paragraph>
-                <Paragraph>
-                  <Text strong>Số tiền:</Text> {transactionData ? `${parseInt(transactionData.amount).toLocaleString('vi-VN')} VNĐ` : 'N/A'}
-                </Paragraph>
-              </div>
-            }
-            type="info"
+            message="Không thể thanh toán"
+            description="Luật sư chưa cập nhật thông tin tài khoản ngân hàng. Vui lòng liên hệ với luật sư để được hướng dẫn thanh toán."
+            type="error"
             showIcon
           />
-          
-          {caseData && !caseData.lawyer_id && (
-            <Alert
-              message="Chưa có luật sư phụ trách"
-              description="Vụ án này chưa được phân công cho luật sư. Khoản thanh toán của bạn sẽ được chuyển vào tài khoản của hệ thống và sẽ được chuyển tiếp đến luật sư khi vụ án được phân công."
-              type="warning"
-              showIcon
-              style={{ marginTop: 16, marginBottom: 16 }}
-            />
-          )}
-          
-          <div className={styles.qrCodeContainer}>
-            <Title level={5}>Quét mã QR để thanh toán</Title>
-            {transactionService.generateBankQRData(
-              defaultBankAccount,
-              transactionData?.amount || 0,
-              transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
-            ).startsWith('http') ? (
-              // Nếu trả về URL (từ sepay.vn), hiển thị bằng thẻ img 
-              <img
-                id="bankQRCode"
-                src={transactionService.generateBankQRData(
-                  defaultBankAccount,
-                  transactionData?.amount || 0,
-                  transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
-                )}
-                alt="Mã QR thanh toán"
-                style={{ width: 200, height: 200 }}
-                className={styles.qrCode}
-              />
-            ) : (
-              // Nếu trả về chuỗi dữ liệu QR thông thường, sử dụng QRCodeSVG như trước
-              <QRCodeSVG 
-                id="bankQRCode"
-                value={transactionService.generateBankQRData(
-                  defaultBankAccount,
-                  transactionData?.amount || 0,
-                  transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
-                )}
-                size={200}
-                level="H"
-                includeMargin={true}
-                className={styles.qrCode}
-              />
-            )}
-            <Button 
-              type="default"
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadQR}
-            >
-              Tải xuống mã QR
-            </Button>
-            <Paragraph className={styles.paymentInstructions}>
-              Sử dụng ứng dụng ngân hàng của bạn để quét mã QR và thanh toán nhanh chóng
-            </Paragraph>
-          </div>
-          
-          <Divider />
-          
-          <Alert
-            message="Thông tin quan trọng"
-            description={
-              caseData && caseData.lawyer_id ? 
-              "Sau khi bạn chuyển khoản, luật sư phụ trách vụ án sẽ xác nhận thanh toán của bạn. Trạng thái vụ án sẽ được cập nhật sau khi luật sư xác nhận đã nhận được thanh toán." :
-              "Sau khi bạn chuyển khoản, hệ thống sẽ ghi nhận giao dịch của bạn. Khi vụ án được phân công cho luật sư, họ sẽ xác nhận thanh toán và tiếp tục xử lý vụ việc của bạn."
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 20 }}
-          />
-          
-          <div className={styles.actionButtons}>
-            <Button 
-              type="primary"
-              onClick={handleConfirmPayment}
-              loading={submitting}
-              size="large"
-            >
-              Đã thanh toán - Tiếp tục
-            </Button>
-          </div>
-          
-          <Paragraph className={styles.noteText}>
-            Vui lòng giữ lại biên lai hoặc chứng từ chuyển khoản để đối chiếu khi cần thiết.
-          </Paragraph>
-        </>
+          <Button 
+            type="primary" 
+            onClick={() => navigate(`/legal-cases/${transactionData?.case_id || ''}`)}
+            style={{ marginTop: '16px' }}
+          >
+            Quay lại vụ án
+          </Button>
+        </div>
       ) : (
-        <Alert
-          message="Không tìm thấy thông tin tài khoản"
-          description="Không thể tải thông tin tài khoản ngân hàng. Vui lòng liên hệ với chúng tôi để được hỗ trợ."
-          type="warning"
-          showIcon
-        />
+        <div className={styles.qrCodeSection}>
+          <Title level={4}>Quét mã QR để thanh toán</Title>
+          <Paragraph className={styles.bankInfoText}>
+            Vui lòng sử dụng ứng dụng ngân hàng để quét mã QR bên dưới và chuyển khoản theo số tiền yêu cầu.
+          </Paragraph>
+          
+          <Row gutter={[24, 24]} className={styles.paymentInfoContainer}>
+            <Col xs={24} sm={12}>
+              <Card className={styles.bankInfoCard} bordered={false}>
+                <div className={styles.bankAccountInfo}>
+                  <div className={styles.bankAccountLabel}>
+                    <BankOutlined /> Thông tin chuyển khoản
+                  </div>
+                  <div className={styles.bankInfo}>
+                    <div className={styles.bankInfoRow}>
+                      <span className={styles.infoLabel}>Ngân hàng:</span>
+                      <span className={styles.infoValue}>{defaultBankAccount.bank_name}</span>
+                    </div>
+                    <div className={styles.bankInfoRow}>
+                      <span className={styles.infoLabel}>Số tài khoản:</span>
+                      <span className={styles.infoValue}>{defaultBankAccount.account_number}</span>
+                    </div>
+                    <div className={styles.bankInfoRow}>
+                      <span className={styles.infoLabel}>Chủ tài khoản:</span>
+                      <span className={styles.infoValue}>{defaultBankAccount.account_holder}</span>
+                    </div>
+                    <div className={styles.bankInfoRow}>
+                      <span className={styles.infoLabel}>Số tiền:</span>
+                      <span className={styles.infoValue}>
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(transactionData?.amount || 0)}
+                      </span>
+                    </div>
+                    <div className={styles.bankInfoRow}>
+                      <span className={styles.infoLabel}>Nội dung CK:</span>
+                      <span className={styles.infoValue}>LEGAI {transactionData?.id || ''}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            
+            <Col xs={24} sm={12}>
+              <div className={styles.qrCodeContainer}>
+                {defaultBankAccount && transactionService.supportsBankQR(defaultBankAccount.bank_name) ? (
+                  <div className={styles.qrImageContainer}>
+                    {/* QR Code từ thư viện hoặc IMG từ URL */}
+                    {transactionService.generateBankQRData(
+                      defaultBankAccount,
+                      transactionData?.amount || 0,
+                      transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+                    ).startsWith('http') ? (
+                      <img 
+                        id="bankQRCode"
+                        src={transactionService.generateBankQRData(
+                          defaultBankAccount,
+                          transactionData?.amount || 0,
+                          transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+                        )} 
+                        alt="Mã QR thanh toán"
+                        className={styles.qrCodeImage}
+                      />
+                    ) : (
+                      <QRCodeSVG
+                        id="bankQRCode"
+                        value={transactionService.generateBankQRData(
+                          defaultBankAccount,
+                          transactionData?.amount || 0,
+                          transactionData?.id ? `LEGAI ${transactionData.id}` : 'LEGAI PAYMENT'
+                        )}
+                        size={200}
+                        level="M"
+                        className={styles.qrCodeSvg}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <Alert
+                    message="Không hỗ trợ tạo mã QR"
+                    description={defaultBankAccount ? 
+                      `Ngân hàng ${defaultBankAccount.bank_name} không được hỗ trợ tạo mã QR tự động. Vui lòng sử dụng thông tin chuyển khoản bên cạnh.` :
+                      "Không thể tạo mã QR vì không có thông tin ngân hàng."}
+                    type="warning"
+                    showIcon
+                  />
+                )}
+                
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleDownloadQR}
+                  disabled={!defaultBankAccount || !transactionService.supportsBankQR(defaultBankAccount.bank_name)}
+                  className={styles.downloadButton}
+                >
+                  Tải mã QR
+                </Button>
+              </div>
+            </Col>
+          </Row>
+        </div>
       )}
-    </>
+    </div>
   );
   
   if (loading) {

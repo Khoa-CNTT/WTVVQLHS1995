@@ -588,6 +588,32 @@ export const updateTransactionStatus = async (transactionId, status, updateData 
 };
 
 /**
+ * Kiểm tra xem ngân hàng có hỗ trợ tạo mã QR không
+ * @param {string} bankName - Tên ngân hàng
+ * @returns {boolean} - True nếu hỗ trợ, false nếu không
+ */
+export const supportsBankQR = (bankName) => {
+  if (!bankName) return false;
+  
+  // Danh sách các ngân hàng được hỗ trợ tạo mã QR
+  const supportedBanks = [
+    'vietcombank', 'vietinbank', 'bidv', 'agribank', 'techcombank',
+    'mbbank', 'vpbank', 'acb', 'sacombank', 'tpbank', 'hdbank',
+    'ocb', 'vib', 'seabank'
+  ];
+  
+  // Chuẩn hóa tên ngân hàng để so khớp
+  const normalizedBankName = bankName.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
+    .replace(/\s+/g, '')              // Xóa khoảng trắng
+    .replace(/[^a-z0-9]/g, '');       // Chỉ giữ lại chữ cái và số
+  
+  // Kiểm tra xem tên ngân hàng có trong danh sách hỗ trợ không
+  return supportedBanks.some(bank => normalizedBankName.includes(bank));
+};
+
+/**
  * Tạo chuỗi dữ liệu QR theo chuẩn VietQR cho các ngân hàng Việt Nam
  * @param {Object} bankData Thông tin tài khoản ngân hàng
  * @param {number} amount Số tiền thanh toán
@@ -596,6 +622,7 @@ export const updateTransactionStatus = async (transactionId, status, updateData 
  */
 export const generateBankQRData = (bankData, amount, content) => {
   if (!bankData || !bankData.bank_name || !bankData.account_number) {
+    console.error('Không có thông tin tài khoản ngân hàng hợp lệ:', bankData);
     return '';
   }
 
@@ -632,96 +659,7 @@ export const generateBankQRData = (bankData, amount, content) => {
     return qrUrl;
   } catch (error) {
     console.error('Lỗi khi tạo URL mã QR:', error);
-    
-    // Fallback: Sử dụng phương thức cũ nếu có lỗi
-    // Mapping tên ngân hàng sang mã BIN ngân hàng theo chuẩn Napas
-    const bankBins = {
-      // Các ngân hàng lớn
-      'vietcombank': '970436',
-      'vietinbank': '970415',
-      'bidv': '970418',
-      'agribank': '970405',
-      'techcombank': '970407',
-      'mbbank': '970422',
-      'vpbank': '970432',
-      'acb': '970416',
-      'sacombank': '970403',
-      'tpbank': '970423',
-      'hdbank': '970437',
-      'ocb': '970448',
-      'scb': '970429',
-      'vib': '970441',
-      'msb': '970426',
-      'seabank': '970440',
-      'baovietbank': '970438',
-      'namabank': '970428',
-      'abbank': '970425',
-      'vietabank': '970427',
-      'eximbank': '970431',
-      'gpbank': '970408',
-      'kienlongbank': '970452',
-      'lienvietpostbank': '970449',
-      'ncb': '970419',
-      'oceanbank': '970414',
-      'pgbank': '970430',
-      'pvcombank': '970412',
-      'shinhanbank': '970424',
-      'vietbank': '970433',
-      'wooribank': '970457'
-    };
-    
-    // Chuẩn hóa tên ngân hàng để so khớp với danh sách mã BIN
-    // Xóa dấu, khoảng trắng, chuyển về chữ thường
-    const normalizeBankName = (name) => {
-      return name.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
-        .replace(/\s+/g, '')              // Xóa khoảng trắng
-        .replace(/[^a-z0-9]/g, '');       // Chỉ giữ lại chữ cái và số
-    };
-    
-    // Tìm mã BIN từ tên ngân hàng được chuẩn hóa
-    const normalizedBankName = normalizeBankName(bankData.bank_name);
-    let bankBin = '';
-    
-    // Tìm ngân hàng từ tên được chuẩn hóa
-    for (const [bank, bin] of Object.entries(bankBins)) {
-      if (normalizedBankName.includes(bank)) {
-        bankBin = bin;
-        break;
-      }
-    }
-    
-    // Nếu không tìm thấy, sử dụng VietQR chung
-    if (!bankBin) {
-      // Tìm kiếm theo từ khóa thông dụng
-      if (normalizedBankName.includes('vietcom')) bankBin = '970436';
-      else if (normalizedBankName.includes('vietin')) bankBin = '970415';
-      else if (normalizedBankName.includes('bidv')) bankBin = '970418';
-      else if (normalizedBankName.includes('agri')) bankBin = '970405';
-      else if (normalizedBankName.includes('techcom')) bankBin = '970407';
-      else if (normalizedBankName.includes('mb')) bankBin = '970422';
-      else if (normalizedBankName.includes('vp')) bankBin = '970432';
-      else if (normalizedBankName.includes('acb')) bankBin = '970416';
-      else if (normalizedBankName.includes('sacom')) bankBin = '970403';
-      else bankBin = '970436'; // Mặc định là Vietcombank nếu không nhận dạng được
-    }
-    
-    // Chuẩn hóa số tiền (số nguyên, không có dấu phẩy hay chấm)
-    const cleanedAmount = amount ? Math.round(Number(amount)).toString() : '0';
-    
-    // Chuẩn hóa nội dung chuyển khoản (tối đa 25 ký tự, không dấu)
-    const maxContentLength = 25;
-    let cleanedContent = content || '';
-    cleanedContent = cleanedContent
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')  // Xóa dấu
-      .replace(/[^a-zA-Z0-9\s]/g, '')   // Chỉ giữ lại chữ cái, số và khoảng trắng
-      .substring(0, maxContentLength);   // Giới hạn độ dài
-    
-    // Tạo chuỗi dữ liệu QR theo chuẩn VietQR
-    // Định dạng: bankBin|accountNumber|amount|content
-    return `${bankBin}|${bankData.account_number}|${cleanedAmount}|${cleanedContent}`;
+    return '';
   }
 };
 
@@ -865,6 +803,90 @@ export const deleteFeeReference = async (id) => {
   }
 };
 
+/**
+ * Cập nhật thông tin tài khoản ngân hàng
+ * @param {number} accountId - ID tài khoản ngân hàng
+ * @param {Object} bankData - Dữ liệu cập nhật
+ * @returns {Promise<Object>} Kết quả cập nhật
+ */
+export const updateBankAccount = async (accountId, bankData) => {
+  try {
+    // Kiểm tra accountId hợp lệ
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'ID tài khoản không hợp lệ',
+        data: null
+      };
+    }
+    
+    const response = await axios.put(
+      `${API_URL}/users/bank-accounts/${accountId}`,
+      bankData,
+      getHeaders()
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi cập nhật tài khoản ngân hàng:', error);
+    
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Không thể cập nhật tài khoản ngân hàng',
+        data: null
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Đã xảy ra lỗi khi cập nhật tài khoản ngân hàng',
+      data: null
+    };
+  }
+};
+
+/**
+ * Xóa tài khoản ngân hàng
+ * @param {number} accountId - ID tài khoản ngân hàng
+ * @returns {Promise<Object>} Kết quả xóa
+ */
+export const deleteBankAccount = async (accountId) => {
+  try {
+    // Kiểm tra accountId hợp lệ
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'ID tài khoản không hợp lệ',
+        data: null
+      };
+    }
+    
+    const response = await axios.delete(
+      `${API_URL}/users/bank-accounts/${accountId}`,
+      getHeaders()
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi xóa tài khoản ngân hàng:', error);
+    
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || 'Không thể xóa tài khoản ngân hàng',
+        data: null
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Đã xảy ra lỗi khi xóa tài khoản ngân hàng',
+      data: null
+    };
+  }
+};
+
 export default {
   getLawyerTransactions,
   getLawyerFinancialStats,
@@ -881,5 +903,8 @@ export default {
   getFeeReferences,
   createFeeReference,
   updateFeeReference,
-  deleteFeeReference
+  deleteFeeReference,
+  supportsBankQR,
+  updateBankAccount,
+  deleteBankAccount
 }; 

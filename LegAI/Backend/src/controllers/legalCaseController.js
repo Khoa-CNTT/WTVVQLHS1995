@@ -1268,21 +1268,11 @@ exports.getLawyerBankAccount = asyncHandler(async (req, res) => {
       if (fallbackResult.rows.length === 0) {
         console.error('Không tìm thấy bất kỳ tài khoản ngân hàng nào cho luật sư ID:', lawyerId);
         
-        // Trả về tài khoản hệ thống mặc định thay vì lỗi
-        const defaultSystemAccount = {
-          bank_name: 'Vietcombank',
-          account_number: '1023456789',
-          account_holder: 'CÔNG TY LEGAI',
-          branch: 'Hà Nội',
-          is_default: true,
-          status: 'active'
-        };
-        
-        console.log('Trả về tài khoản hệ thống mặc định');
-        return res.status(200).json({
-          success: true,
-          message: 'Sử dụng tài khoản hệ thống mặc định',
-          data: defaultSystemAccount
+        // Trả về thông báo lỗi thay vì tài khoản mặc định
+        return res.status(404).json({
+          success: false,
+          message: 'Luật sư chưa cập nhật thông tin tài khoản ngân hàng',
+          data: null
         });
       }
       

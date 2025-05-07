@@ -7,7 +7,7 @@ import {
 import { 
   CheckCircleOutlined, CloseCircleOutlined, 
   DollarOutlined, BankOutlined, EyeOutlined,
-  CalendarOutlined, ExclamationCircleOutlined, PlusOutlined
+  CalendarOutlined, ExclamationCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import transactionService from '../../../services/transactionService';
 import legalCaseService from '../../../services/legalCaseService';
@@ -55,6 +55,9 @@ const TransactionsManager = () => {
   const [processingConfirm, setProcessingConfirm] = useState(false);
   const [hasPendingTransactions, setHasPendingTransactions] = useState(false);
   const [hasBankAccounts, setHasBankAccounts] = useState(false);
+  const [editBankAccountModal, setEditBankAccountModal] = useState(false);
+  const [currentBankAccount, setCurrentBankAccount] = useState(null);
+  const [editBankAccountForm] = Form.useForm();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -626,6 +629,88 @@ const TransactionsManager = () => {
     }
   };
 
+  const handleEditBankAccount = (account) => {
+    setCurrentBankAccount(account);
+    editBankAccountForm.setFieldsValue({
+      bank_name: account.bank_name,
+      account_number: account.account_number,
+      account_holder: account.account_holder,
+      branch: account.branch,
+      is_default: account.is_default
+    });
+    setEditBankAccountModal(true);
+  };
+
+  const handleDeleteBankAccount = (accountId) => {
+    confirm({
+      title: 'Bạn có chắc chắn muốn xóa tài khoản ngân hàng này?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Tài khoản ngân hàng sau khi xóa sẽ không thể khôi phục',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          const response = await transactionService.deleteBankAccount(accountId);
+          
+          if (response && response.success) {
+            notification.success({
+              message: 'Xóa tài khoản ngân hàng thành công',
+              description: 'Tài khoản ngân hàng đã được xóa thành công.'
+            });
+            
+            // Làm mới danh sách tài khoản ngân hàng
+            fetchBankAccounts();
+          } else {
+            notification.error({
+              message: 'Xóa tài khoản ngân hàng thất bại',
+              description: response.message || 'Không thể xóa tài khoản ngân hàng.'
+            });
+          }
+        } catch (error) {
+          console.error('Lỗi khi xóa tài khoản ngân hàng:', error);
+          notification.error({
+            message: 'Xóa tài khoản ngân hàng thất bại',
+            description: 'Có lỗi xảy ra khi xóa tài khoản ngân hàng.'
+          });
+        }
+      }
+    });
+  };
+
+  const handleUpdateBankAccount = async (values) => {
+    if (!currentBankAccount) return;
+    
+    try {
+      const response = await transactionService.updateBankAccount(currentBankAccount.id, values);
+      
+      if (response && response.success) {
+        notification.success({
+          message: 'Cập nhật tài khoản ngân hàng thành công',
+          description: 'Thông tin tài khoản ngân hàng đã được cập nhật thành công.'
+        });
+        
+        // Đóng modal và làm mới dữ liệu
+        setEditBankAccountModal(false);
+        setCurrentBankAccount(null);
+        
+        // Làm mới danh sách tài khoản ngân hàng
+        fetchBankAccounts();
+      } else {
+        notification.error({
+          message: 'Cập nhật tài khoản ngân hàng thất bại',
+          description: response.message || 'Không thể cập nhật tài khoản ngân hàng.'
+        });
+      }
+    } catch (error) {
+      console.error('Lỗi khi cập nhật tài khoản ngân hàng:', error);
+      notification.error({
+        message: 'Cập nhật tài khoản ngân hàng thất bại',
+        description: 'Có lỗi xảy ra khi cập nhật tài khoản ngân hàng.'
+      });
+    }
+  };
+
   const renderBankAccountsTab = () => {
     if (loadingBankAccounts) {
       return (
@@ -670,7 +755,17 @@ const TransactionsManager = () => {
           
           {bankAccounts.map(account => (
             <Col xs={24} sm={12} md={8} key={account.id}>
-              <Card className={styles.bankAccountCard}>
+              <Card 
+                className={styles.bankAccountCard}
+                actions={[
+                  <Tooltip title="Sửa tài khoản">
+                    <EditOutlined key="edit" onClick={() => handleEditBankAccount(account)} />
+                  </Tooltip>,
+                  <Tooltip title="Xóa tài khoản">
+                    <DeleteOutlined key="delete" onClick={() => handleDeleteBankAccount(account.id)} />
+                  </Tooltip>,
+                ]}
+              >
                 <div className={styles.bankAccountHeader}>
                   <BankOutlined className={styles.bankIcon} />
                   {account.is_default && (
@@ -1002,7 +1097,7 @@ const TransactionsManager = () => {
       {/* Modal thêm tài khoản ngân hàng */}
       <Modal
         title="Thêm tài khoản ngân hàng"
-        visible={addBankAccountModal}
+        open={addBankAccountModal}
         onCancel={() => setAddBankAccountModal(false)}
         footer={null}
       >
@@ -1082,6 +1177,101 @@ const TransactionsManager = () => {
                 htmlType="submit"
               >
                 Thêm tài khoản
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+      
+      {/* Modal chỉnh sửa tài khoản ngân hàng */}
+      <Modal
+        title="Chỉnh sửa tài khoản ngân hàng"
+        open={editBankAccountModal}
+        onCancel={() => {
+          setEditBankAccountModal(false);
+          setCurrentBankAccount(null);
+        }}
+        footer={null}
+      >
+        <Form
+          form={editBankAccountForm}
+          layout="vertical"
+          onFinish={handleUpdateBankAccount}
+        >
+          <Form.Item
+            name="bank_name"
+            label="Tên ngân hàng"
+            rules={[{ required: true, message: 'Vui lòng chọn tên ngân hàng' }]}
+          >
+            <Select placeholder="Chọn ngân hàng">
+              <Option value="Vietcombank">Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)</Option>
+              <Option value="VietinBank">Ngân hàng TMCP Công thương Việt Nam (VietinBank)</Option>
+              <Option value="BIDV">Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)</Option>
+              <Option value="Agribank">Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam (Agribank)</Option>
+              <Option value="Techcombank">Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)</Option>
+              <Option value="ACB">Ngân hàng TMCP Á Châu (ACB)</Option>
+              <Option value="VPBank">Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)</Option>
+              <Option value="MBBank">Ngân hàng TMCP Quân đội (MBBank)</Option>
+              <Option value="Sacombank">Ngân hàng TMCP Sài Gòn Thương Tín (Sacombank)</Option>
+              <Option value="TPBank">Ngân hàng TMCP Tiên Phong (TPBank)</Option>
+              <Option value="HDBank">Ngân hàng TMCP Phát triển TP.HCM (HDBank)</Option>
+              <Option value="OCB">Ngân hàng TMCP Phương Đông (OCB)</Option>
+              <Option value="SHB">Ngân hàng TMCP Sài Gòn - Hà Nội (SHB)</Option>
+              <Option value="SeABank">Ngân hàng TMCP Đông Nam Á (SeABank)</Option>
+              <Option value="VIB">Ngân hàng TMCP Quốc tế Việt Nam (VIB)</Option>
+              <Option value="MSB">Ngân hàng TMCP Hàng Hải Việt Nam (MSB)</Option>
+              <Option value="Eximbank">Ngân hàng TMCP Xuất Nhập khẩu Việt Nam (Eximbank)</Option>
+              <Option value="LienVietPostBank">Ngân hàng TMCP Bưu điện Liên Việt (LienVietPostBank)</Option>
+              <Option value="Other">Ngân hàng khác</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="account_number"
+            label="Số tài khoản"
+            rules={[{ required: true, message: 'Vui lòng nhập số tài khoản' }]}
+          >
+            <Input placeholder="Nhập số tài khoản" />
+          </Form.Item>
+          
+          <Form.Item
+            name="account_holder"
+            label="Chủ tài khoản"
+            rules={[{ required: true, message: 'Vui lòng nhập tên chủ tài khoản' }]}
+          >
+            <Input placeholder="Nhập tên chủ tài khoản" />
+          </Form.Item>
+          
+          <Form.Item
+            name="branch"
+            label="Chi nhánh"
+          >
+            <Input placeholder="Nhập chi nhánh (không bắt buộc)" />
+          </Form.Item>
+          
+          <Form.Item
+            name="is_default"
+            valuePropName="checked"
+          >
+            <Checkbox>Đặt làm tài khoản mặc định</Checkbox>
+          </Form.Item>
+          
+          <Form.Item>
+            <Space>
+              <Button
+                type="default"
+                onClick={() => {
+                  setEditBankAccountModal(false);
+                  setCurrentBankAccount(null);
+                }}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+              >
+                Cập nhật tài khoản
               </Button>
             </Space>
           </Form.Item>

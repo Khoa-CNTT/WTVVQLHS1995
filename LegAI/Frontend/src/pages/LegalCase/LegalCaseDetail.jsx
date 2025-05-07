@@ -820,9 +820,9 @@ const LegalCaseDetail = () => {
             )}
             
             {/* Hiển thị cảnh báo khi luật sư chưa cập nhật tài khoản ngân hàng */}
-            {!bankAccountData && caseData.lawyer && !isPaid && !isPending && !checkingBankAccount && (
+            {!bankAccountData && caseData.lawyer && !isPaid && !checkingBankAccount && (
               <Alert
-                message="Thông tin thanh toán chưa đầy đủ"
+                message="Chưa thể thanh toán"
                 description="Luật sư chưa cập nhật thông tin tài khoản ngân hàng. Vui lòng liên hệ với luật sư để được hướng dẫn thanh toán."
                 type="warning"
                 showIcon
@@ -841,7 +841,7 @@ const LegalCaseDetail = () => {
                       <Button type="link" onClick={refreshPaymentStatus}>
                         Kiểm tra trạng thái
                       </Button>
-                      {isOwner && (
+                      {isOwner && bankAccountData && (
                         <Button type="primary" onClick={handlePayment} loading={loadingPayment}>
                           Thanh toán lại
                         </Button>
@@ -881,7 +881,7 @@ const LegalCaseDetail = () => {
               </>
             )}
             
-            {isUnpaid && !isPending && !isLawyerRole && isOwner && caseData.fee_amount > 0 && !caseData.has_transactions && (
+            {isUnpaid && !isPending && !isLawyerRole && isOwner && caseData.fee_amount > 0 && !caseData.has_transactions && bankAccountData && (
               <Button
                 type="primary"
                 icon={<DollarOutlined />}
@@ -891,6 +891,26 @@ const LegalCaseDetail = () => {
               >
                 Thanh toán ngay
               </Button>
+            )}
+            
+            {isUnpaid && !isPending && !isLawyerRole && isOwner && caseData.fee_amount > 0 && !caseData.has_transactions && !bankAccountData && (
+              <>
+                <Button
+                  type="default"
+                  icon={<DollarOutlined />}
+                  disabled
+                  block
+                  style={{ marginBottom: '10px' }}
+                >
+                  Thanh toán ngay
+                </Button>
+                <Alert
+                  message="Chưa thể thanh toán"
+                  description="Luật sư chưa cập nhật thông tin tài khoản ngân hàng. Vui lòng liên hệ với luật sư để được hướng dẫn."
+                  type="warning"
+                  showIcon
+                />
+              </>
             )}
           </Col>
           
@@ -912,7 +932,7 @@ const LegalCaseDetail = () => {
                 </Descriptions.Item>
               )}
 
-              {/* Hiển thị thông tin tài khoản ngân hàng của luật sư nếu có */}
+              {/* Chỉ hiển thị thông tin tài khoản ngân hàng khi có dữ liệu hợp lệ */}
               {bankAccountData && (
                 <Descriptions.Item label="Thông tin chuyển khoản">
                   <div>

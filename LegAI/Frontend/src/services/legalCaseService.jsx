@@ -768,27 +768,18 @@ export const getLawyerBankAccount = async (lawyerId) => {
   } catch (error) {
     console.error('Lỗi khi lấy thông tin tài khoản ngân hàng:', error);
     
-    // Trả về thông tin tài khoản mặc định của hệ thống
-    const defaultAccount = {
-      bank_name: 'Vietcombank',
-      account_number: '1023456789',
-      account_holder: 'CÔNG TY LEGAI',
-      branch: 'Hà Nội',
-      is_default: true
-    };
-    
     if (error.response) {
       console.error('Chi tiết lỗi API:', {
         status: error.response.status,
         data: error.response.data
       });
       
-      // Nếu không tìm thấy tài khoản hoặc luật sư, trả về tài khoản mặc định
+      // Nếu không tìm thấy tài khoản hoặc luật sư, trả về null
       if (error.response.status === 404) {
         return {
-          success: true,
-          message: 'Sử dụng tài khoản hệ thống mặc định',
-          data: defaultAccount
+          success: false,
+          message: 'Luật sư chưa cập nhật thông tin tài khoản ngân hàng',
+          data: null
         };
       }
     }
@@ -798,7 +789,7 @@ export const getLawyerBankAccount = async (lawyerId) => {
       success: false,
       message: error.response?.data?.message || 'Không thể lấy thông tin tài khoản ngân hàng',
       error: error.message,
-      data: defaultAccount // Vẫn cung cấp tài khoản mặc định trong trường hợp lỗi
+      data: null
     };
   }
 };
