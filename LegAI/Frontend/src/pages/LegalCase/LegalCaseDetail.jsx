@@ -49,6 +49,8 @@ const LegalCaseDetail = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [bankAccountData, setBankAccountData] = useState(null);
+  const [checkingBankAccount, setCheckingBankAccount] = useState(false);
 
   // Lấy thông tin vụ án
   useEffect(() => {
@@ -475,6 +477,34 @@ const LegalCaseDetail = () => {
     checkExistingTransactions();
   }, [caseData?.id]);
 
+  // Thêm useEffect để kiểm tra tài khoản ngân hàng của luật sư
+  useEffect(() => {
+    const checkBankAccount = async () => {
+      if (caseData && caseData.lawyer && caseData.lawyer.id) {
+        try {
+          setCheckingBankAccount(true);
+          const bankResponse = await legalCaseService.getLawyerBankAccount(caseData.lawyer.id);
+          console.log('Thông tin tài khoản ngân hàng của luật sư:', bankResponse);
+          
+          if (bankResponse && bankResponse.success && bankResponse.data) {
+            setBankAccountData(bankResponse.data);
+          } else {
+            setBankAccountData(null);
+          }
+        } catch (error) {
+          console.error('Lỗi khi kiểm tra tài khoản ngân hàng:', error);
+          setBankAccountData(null);
+        } finally {
+          setCheckingBankAccount(false);
+        }
+      }
+    };
+    
+    if (caseData?.lawyer?.id) {
+      checkBankAccount();
+    }
+  }, [caseData?.lawyer?.id]);
+
   // Cập nhật hàm handlePayment
   const handlePayment = async () => {
     try {
@@ -498,8 +528,8 @@ const LegalCaseDetail = () => {
         console.log('Vụ án đã có thông tin phí:', caseData.fee_amount);
       }
       
-      // Tạo giao dịch thanh toán với trạng thái 'draft' để không thay đổi trạng thái vụ án
-      const paymentResponse = await legalCaseService.createPayment(id, 'bank_transfer', 'draft');
+      // Tạo giao dịch thanh toán với trạng thái 'pending'
+      const paymentResponse = await legalCaseService.createPayment(id, 'bank_transfer', 'pending');
       
       if (paymentResponse && paymentResponse.success && paymentResponse.data && paymentResponse.data.transaction_id) {
         message.success('Tạo giao dịch thanh toán thành công');
@@ -519,16 +549,10 @@ const LegalCaseDetail = () => {
           cancelText: 'Để sau',
           onOk: async () => {
             try {
-              // Khi người dùng nhấn xác nhận, cập nhật trạng thái giao dịch thành 'pending'
-              await transactionService.updateTransactionStatus(transactionId, 'pending');
-              
-              // Cập nhật trạng thái vụ án
-              await legalCaseService.updateCaseStatus(id, 'pending');
-              
-              // Sau đó mới chuyển hướng đến trang thanh toán
+              // Chuyển hướng đến trang thanh toán
               navigate(`/payment?transaction_id=${transactionId}&amount=${amount}`);
             } catch (error) {
-              console.error('Lỗi khi cập nhật trạng thái giao dịch:', error);
+              console.error('Lỗi khi xử lý thanh toán:', error);
               message.error('Có lỗi xảy ra khi xử lý. Vui lòng thử lại sau.');
             }
           },
@@ -539,9 +563,7 @@ const LegalCaseDetail = () => {
           }
         });
       } else {
-        // Xử lý trường hợp không nhận được ID giao dịch
-        console.error('Không nhận được ID giao dịch hợp lệ:', paymentResponse);
-        message.error(paymentResponse?.message || 'Không thể tạo giao dịch thanh toán. Vui lòng thử lại sau.');
+        message.error(paymentResponse?.message || 'Không thể tạo giao dịch thanh toán');
       }
     } catch (error) {
       console.error('Lỗi khi xử lý thanh toán:', error);
@@ -620,10 +642,10 @@ const LegalCaseDetail = () => {
     // Kiểm tra quyền chỉnh sửa - chỉ cho luật sư được phân công
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     const assignedLawyerId = caseData.lawyer?.id;
-    const canEditNotes = 
-        (assignedLawyerId && 
+    const isCurrentUserAssignedLawyer = 
+        assignedLawyerId && 
         userData.id && 
-        String(assignedLawyerId) === String(userData.id));
+        String(assignedLawyerId) === String(userData.id);
     
     return (
       <div className={styles.lawyerNotes}>
@@ -653,7 +675,7 @@ const LegalCaseDetail = () => {
         ) : (
           <Card 
             className={styles.notesCard}
-            title={canEditNotes && (
+            title={isCurrentUserAssignedLawyer && (
               <Button 
                 type="link" 
                 icon={<EditOutlined />} 
@@ -722,7 +744,6 @@ const LegalCaseDetail = () => {
     if (!caseData) return null;
     
     // Xác định trạng thái thanh toán dựa trên dữ liệu từ caseData và transactions
-    // Kiểm tra cả hai trường payment_status và status để đảm bảo tính chính xác
     const isPaid = caseData.payment_status === 'completed' || 
                    caseData.status === 'paid' || 
                    caseData.status === 'completed';
@@ -754,10 +775,23 @@ const LegalCaseDetail = () => {
     
     // Kiểm tra xem có phải luật sư được gán cho vụ án này không
     const assignedLawyerId = caseData.lawyer_id || (caseData.lawyer && caseData.lawyer.id);
-    const isCurrentUserAssignedLawyer = 
+    const isAssignedLawyer = 
         assignedLawyerId && 
         userData.id && 
         String(assignedLawyerId) === String(userData.id);
+    
+    // Xác định trạng thái xác nhận thanh toán
+    const shouldShowConfirmButton = 
+      !isPaid && // Chưa thanh toán
+      isAssignedLawyer && // Là luật sư được gán cho vụ án
+      hasPendingTransaction && // Có giao dịch đang chờ xác nhận
+      pendingTransactionId; // Có ID giao dịch hợp lệ
+      
+    // Hiển thị nút tính phí nếu cần thiết
+    const shouldShowCalculateFeeButton = 
+      isAssignedLawyer && // Là luật sư được gán cho vụ án
+      (caseData.fee_amount === null || caseData.fee_amount === undefined) && // fee_amount là null hoặc undefined
+      (caseData.fee_details === null || caseData.fee_details === undefined); // fee_details là null hoặc undefined
     
     console.log('Chi tiết trạng thái thanh toán:', {
       isPaid,
@@ -765,35 +799,12 @@ const LegalCaseDetail = () => {
       isUnpaid,
       hasPendingTransaction,
       pendingTransactionId,
+      bankAccountData,
       payment_status: caseData.payment_status,
       case_status: caseData.status,
       has_transactions: caseData.has_transactions,
-      transaction_count: caseData.transactions?.length,
-      transactions: caseData.transactions,
-      userRole,
-      isLawyerRole,
-      assignedLawyerId,
-      currentUserId: userData.id,
-      isCurrentUserAssignedLawyer,
-      isOwner,
-      fee_amount: caseData.fee_amount,
-      fee_details: caseData.fee_details
     });
     
-    // Kiểm tra xem nút xác nhận thanh toán có nên hiển thị không
-    const shouldShowConfirmButton = 
-      !isPaid && // Chưa thanh toán
-      isCurrentUserAssignedLawyer && // Là luật sư được gán cho vụ án
-      hasPendingTransaction && // Có giao dịch đang chờ xác nhận
-      pendingTransactionId; // Có ID giao dịch hợp lệ
-    
-    // ĐIỀU KIỆN MỚI: Hiển thị nút tính phí nếu cả fee_amount và fee_details đều là null
-    // và người dùng hiện tại là luật sư được gán cho vụ án
-    const shouldShowCalculateFeeButton = 
-      isCurrentUserAssignedLawyer && // Là luật sư được gán cho vụ án
-      (caseData.fee_amount === null || caseData.fee_amount === undefined) && // fee_amount là null hoặc undefined
-      (caseData.fee_details === null || caseData.fee_details === undefined); // fee_details là null hoặc undefined
-      
     return (
       <Card className={styles.paymentStatusCard} title="Trạng thái thanh toán">
         <Row gutter={[16, 16]}>
@@ -808,10 +819,16 @@ const LegalCaseDetail = () => {
               />
             )}
             
-            {/* Alert thông báo "Đang chờ xác nhận" - Chỉ hiển thị khi:
-                1. Trạng thái thanh toán là 'pending'
-                2. Không phải là đã thanh toán (isPaid = false)
-                3. Có giao dịch nhưng giao dịch chưa được xác nhận */}
+            {/* Hiển thị cảnh báo khi luật sư chưa cập nhật tài khoản ngân hàng */}
+            {!bankAccountData && caseData.lawyer && !isPaid && !isPending && !checkingBankAccount && (
+              <Alert
+                message="Thông tin thanh toán chưa đầy đủ"
+                description="Luật sư chưa cập nhật thông tin tài khoản ngân hàng. Vui lòng liên hệ với luật sư để được hướng dẫn thanh toán."
+                type="warning"
+                showIcon
+              />
+            )}
+            
             {isPending && !isPaid && (
               <Alert
                 message="Đang chờ luật sư xác nhận thanh toán"
@@ -835,7 +852,7 @@ const LegalCaseDetail = () => {
               />
             )}
             
-            {/* NÚT TÍNH PHÍ MỚI: Hiển thị khi fee_amount và fee_details đều là null và là luật sư được gán */}
+            {/* Hiển thị nút tính phí */}
             {shouldShowCalculateFeeButton && (
               <>
                 <Card bordered={false} style={{ marginBottom: 16 }}>
@@ -894,12 +911,26 @@ const LegalCaseDetail = () => {
                   {caseData.payment_method === 'bank_transfer' ? 'Chuyển khoản ngân hàng' : caseData.payment_method}
                 </Descriptions.Item>
               )}
+
+              {/* Hiển thị thông tin tài khoản ngân hàng của luật sư nếu có */}
+              {bankAccountData && (
+                <Descriptions.Item label="Thông tin chuyển khoản">
+                  <div>
+                    <p><strong>Ngân hàng:</strong> {bankAccountData.bank_name}</p>
+                    <p><strong>Số tài khoản:</strong> {bankAccountData.account_number}</p>
+                    <p><strong>Chủ tài khoản:</strong> {bankAccountData.account_holder || caseData.lawyer.full_name}</p>
+                    {bankAccountData.branch && (
+                      <p><strong>Chi nhánh:</strong> {bankAccountData.branch}</p>
+                    )}
+                  </div>
+                </Descriptions.Item>
+              )}
             </Descriptions>
           </Col>
           
           <Col span={24}>
             <Space direction="vertical" style={{ width: '100%' }}>
-              {/* XÁC NHẬN THANH TOÁN: Chỉ hiển thị khi đáp ứng đủ điều kiện */}
+              {/* Hiển thị nút xác nhận thanh toán cho luật sư */}
               {shouldShowConfirmButton && (
                 <Button
                   type="primary"
