@@ -19,6 +19,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@mui/icons-material": "^5.15.14",
     "@mui/material": "^5.17.1",
+    "@react-oauth/google": "^0.12.1",
     "@reduxjs/toolkit": "^2.6.1",
     "animate.css": "^4.1.1",
     "animejs": "^4.0.1",

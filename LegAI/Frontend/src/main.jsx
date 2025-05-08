@@ -1,4 +1,5 @@
 import React from 'react';
+import { GoogleOauthProvider } from '@react-oauth-google';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
@@ -8,6 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import './styles/global.css';
 import { checkTokenExpiration } from './config/axios';
 
+const clentID = '902170827346-cjhnmb3figv98fv2m6e57qoumtkmfsrt.apps.googleusercontent.com';
 
 // Kiểm tra token hết hạn khi ứng dụng khởi động
 checkTokenExpiration();
@@ -34,8 +36,10 @@ console.error = function(msg) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ToastContainer />
-      <App />
+      <GoogleOauthProvider clientId={clientID}>
+        <ToastContainer />
+        <App />
+      </GoogleOauthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

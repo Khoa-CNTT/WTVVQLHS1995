@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { FaFacebookF, FaEnvelope, FaXTwitter, FaUser, FaKey } from 'react-icons/fa6';
 import { FaEye, FaEyeSlash, FaGavel, FaBalanceScale } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import authService from '../../services/authService';
 import { sendOTPEmail } from '../../services/emailService';
 import Loading from '../../components/layout/Loading/Loading';
@@ -26,7 +27,27 @@ function LoginPage() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  // xử lý đăng nhập bằng google 
+const googleLogin = useGoogleLogin({
+  onSuccess: async (tokenResponse) => {
+    try {
+      setLoading(true);
+      // Gửi access_token đến backend để xác thực
+      const response = await authService.googleLogin(tokenResponse.access_token);
+      setSuccessMessage('Đăng nhập bằng Google thành công!');
+      navigate('/'); // Chuyển hướng về trang chính
+    } catch (error) {
+      setError(error.message || 'Đăng nhập bằng Google thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  },
+  onError: (error) => {
+    setError('Đăng nhập bằng Google thất bại. Vui lòng thử lại.');
+    console.error('Google Login Error:', error);
+  },
+});
   // Kiểm tra thông báo từ các trang khác chuyển đến
   useEffect(() => {
     if (location.state?.message) {
@@ -226,7 +247,7 @@ function LoginPage() {
 
             <div className={styles.socialLogin}>
               <button title="Đăng nhập bằng Facebook"><FaFacebookF /></button>
-              <button title="Đăng nhập bằng Email"><FaEnvelope /></button>
+              <button title="Đăng nhập bằng Email" onClick={() => googleLogin()}><FaEnvelope /></button> 
               <button title="Đăng nhập bằng Twitter"><FaXTwitter /></button>
             </div>
 
