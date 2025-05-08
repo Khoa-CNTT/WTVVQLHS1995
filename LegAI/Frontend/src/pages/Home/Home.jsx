@@ -146,7 +146,7 @@ const Home = () => {
     }).format(date);
   };
 
-  // Dữ liệu cho các lĩnh vực pháp lý
+  // Dữ liệu cho các lĩnh vực pháp lýok
   const legalCategories = [
     {
       icon: <FaBuilding />,
