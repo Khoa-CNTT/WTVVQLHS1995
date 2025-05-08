@@ -862,11 +862,17 @@ const LegalCaseDetail = () => {
                       style={{ width: '100%', marginTop: 8 }}
                       formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                      min={0}
+                      min={1}
                       placeholder="Nhập giá trị tranh chấp (VNĐ)"
                       value={disputeValue} 
                       onChange={value => setDisputeValue(value)}
+                      status={disputeValue <= 0 ? 'error' : ''}
                     />
+                    {disputeValue <= 0 && (
+                      <div style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>
+                        Giá trị tranh chấp phải lớn hơn 0
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="primary"

@@ -374,7 +374,15 @@ const calculateFee = async (caseType, parameters = {}) => {
           calculatedAdditionalFee: additionalFee
         });
       } else {
-        console.log('Giá trị tranh chấp không hợp lệ:', parameters.dispute_value);
+        console.log('Giá trị tranh chấp không hợp lệ hoặc không dương:', parameters.dispute_value);
+        // Dùng giá trị mặc định cho trường hợp không hợp lệ
+        const defaultDisputeValue = 1000000;
+        additionalFee = defaultDisputeValue * (percentageFee / 100);
+        console.log('Sử dụng giá trị tranh chấp mặc định:', {
+          defaultDisputeValue,
+          percentageFee,
+          calculatedAdditionalFee: additionalFee
+        });
       }
     }
     
@@ -436,16 +444,35 @@ const calculateFee = async (caseType, parameters = {}) => {
 const updateFeeInfo = async (caseId, feeDetails) => {
   try {
     console.log('Bắt đầu cập nhật thông tin phí cho vụ án ID:', caseId);
-    console.log('Chi tiết phí:', feeDetails);
+    console.log('Chi tiết phí gốc:', feeDetails);
+    
+    // Kiểm tra và đảm bảo feeDetails là một object hợp lệ
+    if (!feeDetails || typeof feeDetails !== 'object') {
+      console.log('feeDetails không hợp lệ, tạo mới với giá trị mặc định');
+      feeDetails = {
+        total_fee: 3000000,
+        base_fee: 3000000,
+        additional_fee: 0,
+        calculation_method: 'fixed'
+      };
+    }
     
     // Đảm bảo total_fee luôn là số lớn hơn 0
-    let totalFee = parseFloat(feeDetails.total_fee);
+    let totalFee = typeof feeDetails.total_fee === 'string' 
+      ? parseFloat(feeDetails.total_fee.replace(/[^0-9.]/g, '')) 
+      : parseFloat(feeDetails.total_fee);
     
     if (isNaN(totalFee) || totalFee <= 0) {
-      console.log(`Phí không hợp lệ (${feeDetails.total_fee}), đặt lại thành phí mặc định 3,000,000 VND`);
+      console.log(`Phí không hợp lệ (${feeDetails.total_fee}), đặt lại thành phí mặc định 3,000,000 VNĐ`);
       totalFee = 3000000;
+      
+      // Cập nhật lại giá trị trong feeDetails để đảm bảo tính nhất quán
       feeDetails.total_fee = totalFee;
     }
+    
+    // Đảm bảo làm tròn đến 1000 đồng
+    totalFee = Math.ceil(totalFee / 1000) * 1000;
+    feeDetails.total_fee = totalFee;
     
     // Kiểm tra xem phí có bị null hoặc <= 0 không để đảm bảo luôn có phí hợp lệ
     const query = `
@@ -495,12 +522,13 @@ const updateFeeInfo = async (caseId, feeDetails) => {
       }
     } catch (statusError) {
       console.error('Lỗi khi cập nhật trạng thái vụ án:', statusError);
-      // Không ném lỗi, vẫn tiếp tục vì phí đã được cập nhật thành công
+      // Không throw lỗi, chỉ ghi log
     }
     
+    // Lấy và trả về thông tin vụ án đã cập nhật
     return await getLegalCaseById(caseId);
   } catch (error) {
-    console.error('Lỗi khi cập nhật thông tin phí:', error);
+    console.error('Lỗi khi cập nhật thông tin phí vụ án:', error);
     throw error;
   }
 };

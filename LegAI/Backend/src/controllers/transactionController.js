@@ -312,14 +312,14 @@ exports.createTransaction = asyncHandler(async (req, res) => {
     // Lấy số tiền từ vụ án nếu không được cung cấp
     let transaction_amount = amount;
     if (!transaction_amount || transaction_amount <= 0) {
-      if (legalCase.fee_amount && legalCase.fee_amount > 0) {
-        transaction_amount = legalCase.fee_amount;
-        console.log(`Không có thông tin số tiền, sử dụng fee_amount từ vụ án: ${transaction_amount}`);
+      if (legalCase.fee_amount && parseFloat(legalCase.fee_amount) > 0) {
+        transaction_amount = parseFloat(legalCase.fee_amount);
+        console.log(`Không có thông tin số tiền hợp lệ, sử dụng fee_amount từ vụ án: ${transaction_amount}`);
       } else {
-        console.error('Không có thông tin số tiền và vụ án không có fee_amount');
+        console.error('Không có thông tin số tiền và vụ án không có fee_amount hợp lệ');
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng cung cấp số tiền thanh toán hoặc tính phí cho vụ án trước'
+          message: 'Vui lòng cung cấp số tiền thanh toán hợp lệ hoặc tính phí cho vụ án trước'
         });
       }
     }

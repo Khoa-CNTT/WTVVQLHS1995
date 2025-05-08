@@ -33,12 +33,9 @@ const getChatHistory = () => {
   try {
     const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
     if (savedHistory) {
-      console.log('Đã tìm thấy lịch sử chat trong localStorage, kích thước:', savedHistory.length);
       const parsedHistory = JSON.parse(savedHistory);
-      console.log('Số lượng tin nhắn trong lịch sử:', parsedHistory.length);
       return parsedHistory;
     } else {
-      console.log('Không tìm thấy lịch sử chat trong localStorage');
       return [];
     }
   } catch (error) {

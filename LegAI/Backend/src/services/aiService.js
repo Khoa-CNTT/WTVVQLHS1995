@@ -39,6 +39,22 @@ const initialize = async () => {
  */
 const answerLegalQuestion = async (question, options = {}) => {
   try {
+    // Kiểm tra câu hỏi về danh tính (ai là ai)
+    if (/bạn là ai|bạn tên gì|bạn là gì|cho mình biết về bạn|giới thiệu về bạn/i.test(question)) {
+      return {
+        answer: "Tôi là LegAI - trợ lý AI pháp luật của nền tảng LegAI, được phát triển để tư vấn và hỗ trợ về các vấn đề pháp lý tại Việt Nam. Tôi có thể giúp bạn tìm hiểu thông tin pháp luật, soạn thảo văn bản pháp lý cơ bản, và kết nối với luật sư chuyên nghiệp khi cần. Bạn cần hỗ trợ về vấn đề pháp lý nào?",
+        sources: []
+      };
+    }
+    
+    // Kiểm tra câu chào
+    if (/xin chào|chào bạn|hello|hi|hey|good morning|good afternoon|good evening/i.test(question)) {
+      return {
+        answer: "Chào bạn! Tôi là LegAI - trợ lý AI pháp luật của LegAI, nền tảng tư vấn pháp luật trực tuyến hàng đầu Việt Nam. Tôi có thể giúp bạn giải đáp các thắc mắc về pháp luật Việt Nam, hỗ trợ soạn thảo văn bản pháp lý, và kết nối với luật sư chuyên nghiệp. Bạn cần tư vấn về vấn đề pháp lý nào?",
+        sources: []
+      };
+    }
+    
     // Đảm bảo câu hỏi không rỗng
     if (!question || question.trim() === '') {
       return {
@@ -59,7 +75,7 @@ const answerLegalQuestion = async (question, options = {}) => {
     // Nếu là câu hỏi về tư vấn pháp lý
     if (legalAdviceQuestions.some(pattern => pattern.test(question.trim()))) {
       return {
-        answer: "Tôi là trợ lý AI pháp luật của LegAI, có thể tư vấn cho bạn về các vấn đề pháp lý sau:\n\n1. **Tư vấn pháp luật dân sự**: Hợp đồng, quyền sở hữu tài sản, thừa kế, bồi thường thiệt hại...\n\n2. **Tư vấn pháp luật hôn nhân gia đình**: Đăng ký kết hôn, ly hôn, quyền nuôi con, cấp dưỡng, chia tài sản chung...\n\n3. **Tư vấn pháp luật doanh nghiệp**: Thành lập doanh nghiệp, quản trị công ty, giải thể, phá sản...\n\n4. **Tư vấn pháp luật lao động**: Hợp đồng lao động, bảo hiểm xã hội, tranh chấp lao động...\n\n5. **Tư vấn pháp luật đất đai**: Quyền sử dụng đất, thủ tục chuyển nhượng, tranh chấp đất đai...\n\nTôi cung cấp thông tin pháp luật chung, giải thích các quy định pháp luật, và hướng dẫn các thủ tục pháp lý. Xin lưu ý rằng thông tin này mang tính tham khảo và không thay thế cho tư vấn chính thức từ luật sư. Với các vấn đề phức tạp hoặc cần đại diện pháp lý, bạn nên tham khảo ý kiến luật sư.\n\nBạn cần tư vấn về vấn đề pháp lý cụ thể nào?",
+        answer: "Tôi là LegAI - trợ lý AI pháp luật của nền tảng LegAI, có thể tư vấn cho bạn về các vấn đề pháp lý sau:\n\n1. **Tư vấn pháp luật dân sự**: Hợp đồng, quyền sở hữu tài sản, thừa kế, bồi thường thiệt hại...\n\n2. **Tư vấn pháp luật hôn nhân gia đình**: Đăng ký kết hôn, ly hôn, quyền nuôi con, cấp dưỡng, chia tài sản chung...\n\n3. **Tư vấn pháp luật doanh nghiệp**: Thành lập doanh nghiệp, quản trị công ty, giải thể, phá sản...\n\n4. **Tư vấn pháp luật lao động**: Hợp đồng lao động, bảo hiểm xã hội, tranh chấp lao động...\n\n5. **Tư vấn pháp luật đất đai**: Quyền sử dụng đất, thủ tục chuyển nhượng, tranh chấp đất đai...\n\nNgoài ra, LegAI còn cung cấp các dịch vụ:\n- Kết nối với luật sư chuyên nghiệp\n- Soạn thảo và quản lý hợp đồng, văn bản pháp lý\n- Tra cứu văn bản pháp luật\n- Hỗ trợ giải quyết các vấn đề pháp lý\n\nTôi cung cấp thông tin pháp luật chung, giải thích các quy định pháp luật, và hướng dẫn các thủ tục pháp lý. Xin lưu ý rằng thông tin này mang tính tham khảo và không thay thế cho tư vấn chính thức từ luật sư. Với các vấn đề phức tạp hoặc cần đại diện pháp lý, bạn nên tham khảo ý kiến luật sư qua tính năng kết nối luật sư của LegAI.\n\nBạn cần tư vấn về vấn đề pháp lý cụ thể nào?",
         documents: []
       };
     }
@@ -81,7 +97,7 @@ const answerLegalQuestion = async (question, options = {}) => {
     // Nếu là câu hỏi chung về luật
     if (genericLegalQuestions.some(pattern => pattern.test(question.trim()))) {
       return {
-        answer: "Tôi có thể tư vấn về nhiều lĩnh vực pháp luật Việt Nam. Hiện tại tôi có thông tin về:\n\n1. Luật Hôn nhân và Gia đình 2014 (điều kiện kết hôn, thủ tục đăng ký kết hôn, ly hôn)\n2. Luật Doanh nghiệp 2020 (thành lập, tổ chức quản lý doanh nghiệp)\n3. Bộ luật Dân sự 2015 (quyền sở hữu, thừa kế, hợp đồng)\n4. Các quy định về lao động theo Bộ luật Lao động 2019\n5. Thủ tục đăng ký kinh doanh\n6. Thủ tục khởi kiện dân sự\n\nBạn quan tâm đến lĩnh vực nào? Hoặc bạn có thể hỏi cụ thể về vấn đề pháp lý bạn đang gặp phải.",
+        answer: "Tôi là LegAI - trợ lý AI pháp luật và có thể tư vấn về nhiều lĩnh vực pháp luật Việt Nam. Hiện tại tôi có thông tin về:\n\n1. Luật Hôn nhân và Gia đình 2014 (điều kiện kết hôn, thủ tục đăng ký kết hôn, ly hôn)\n2. Luật Doanh nghiệp 2020 (thành lập, tổ chức quản lý doanh nghiệp)\n3. Bộ luật Dân sự 2015 (quyền sở hữu, thừa kế, hợp đồng)\n4. Các quy định về lao động theo Bộ luật Lao động 2019\n5. Thủ tục đăng ký kinh doanh\n6. Thủ tục khởi kiện dân sự\n\nNền tảng LegAI cung cấp nhiều dịch vụ bao gồm tư vấn pháp luật trực tuyến, kết nối luật sư chuyên nghiệp, soạn thảo và quản lý hợp đồng, tra cứu văn bản pháp luật, và hỗ trợ giải quyết các vấn đề pháp lý.\n\nBạn quan tâm đến lĩnh vực nào? Hoặc bạn có thể hỏi cụ thể về vấn đề pháp lý bạn đang gặp phải.",
         documents: []
       };
     }
@@ -99,7 +115,7 @@ const answerLegalQuestion = async (question, options = {}) => {
     // Nếu là câu hỏi mở đầu hoặc yêu cầu hỏi
     if (promptingQuestions.some(pattern => pattern.test(question.trim()))) {
       return {
-        answer: "Tôi là trợ lý AI pháp luật, tôi có thể giúp bạn giải đáp các thắc mắc về pháp luật Việt Nam như Luật Hôn nhân và Gia đình, Luật Doanh nghiệp, Bộ luật Dân sự, và nhiều lĩnh vực khác. Bạn có thể hỏi tôi về các vấn đề như đăng ký kết hôn, thành lập doanh nghiệp, quyền thừa kế, hợp đồng, quan hệ lao động, hoặc các thủ tục pháp lý. Bạn cần tư vấn về vấn đề nào?",
+        answer: "Tôi là LegAI - trợ lý AI pháp luật của nền tảng tư vấn pháp luật trực tuyến LegAI. Tôi có thể giúp bạn giải đáp các thắc mắc về pháp luật Việt Nam như Luật Hôn nhân và Gia đình, Luật Doanh nghiệp, Bộ luật Dân sự, và nhiều lĩnh vực khác. \n\nLegAI cung cấp nhiều dịch vụ hữu ích như:\n1. Tư vấn pháp luật trực tuyến\n2. Kết nối với luật sư chuyên nghiệp\n3. Soạn thảo và quản lý hợp đồng, văn bản pháp lý\n4. Tra cứu văn bản pháp luật\n5. Hỗ trợ giải quyết các vấn đề pháp lý\n\nBạn có thể hỏi tôi về các vấn đề như đăng ký kết hôn, thành lập doanh nghiệp, quyền thừa kế, hợp đồng, quan hệ lao động, hoặc các thủ tục pháp lý. Bạn cần tư vấn về vấn đề nào?",
         documents: []
       };
     }
@@ -118,7 +134,7 @@ const answerLegalQuestion = async (question, options = {}) => {
     // Nếu là câu hỏi về tên luật sư cụ thể
     if (specificLawyerQuestions.some(pattern => pattern.test(question.trim()))) {
       return {
-        answer: "Tôi là trợ lý AI tư vấn pháp luật và không phải là luật sư. Tôi cũng không có thông tin cụ thể về các luật sư cá nhân, công ty luật hay văn phòng luật. Nếu bạn cần tìm luật sư, bạn có thể liên hệ với Luật sư ở LegAI trên thanh cuộn. Tuy nhiên, tôi có thể giúp giải đáp các câu hỏi chung về pháp luật nếu bạn cần.",
+        answer: "Tôi là LegAI - trợ lý AI pháp luật của nền tảng LegAI và không phải là luật sư. Thay vì đề xuất một luật sư cụ thể, LegAI cung cấp tính năng kết nối với đội ngũ luật sư chuyên nghiệp đa lĩnh vực. Bạn có thể dễ dàng tìm kiếm và kết nối với luật sư phù hợp với vấn đề của mình thông qua thanh công cụ của nền tảng LegAI.\n\nTôi có thể giúp giải đáp các câu hỏi chung về pháp luật, hỗ trợ soạn thảo văn bản pháp lý, và cung cấp hướng dẫn ban đầu cho vấn đề của bạn. Sau đó, nếu cần tư vấn chuyên sâu, bạn có thể dễ dàng kết nối với luật sư chuyên môn thông qua nền tảng của chúng tôi.",
         documents: []
       };
     }
@@ -134,7 +150,7 @@ const answerLegalQuestion = async (question, options = {}) => {
     if (generalLawyerQuestions.some(pattern => pattern.test(question.trim())) &&
         !specificLawyerQuestions.some(pattern => pattern.test(question.trim()))) {
       return {
-        answer: "Luật sư là người hành nghề luật, được đào tạo chuyên môn về pháp luật và được cấp phép hành nghề. Tại Việt Nam, để trở thành luật sư, một người phải có bằng cử nhân luật, hoàn thành khóa đào tạo nghề luật sư, tham gia kỳ thi cấp chứng chỉ hành nghề luật sư và được cấp thẻ luật sư.\n\nLuật sư có thể tư vấn pháp luật, soạn thảo hợp đồng, đại diện cho khách hàng trong các vụ việc dân sự, hình sự, hành chính và các lĩnh vực pháp lý khác. Tôi không phải là luật sư và thông tin tôi cung cấp chỉ mang tính tham khảo, không thay thế cho tư vấn pháp lý chuyên nghiệp từ một luật sư được cấp phép.",
+        answer: "Luật sư là người hành nghề luật, được đào tạo chuyên môn về pháp luật và được cấp phép hành nghề. Tại Việt Nam, để trở thành luật sư, một người phải có bằng cử nhân luật, hoàn thành khóa đào tạo nghề luật sư, tham gia kỳ thi cấp chứng chỉ hành nghề luật sư và được cấp thẻ luật sư.\n\nLuật sư có thể tư vấn pháp luật, soạn thảo hợp đồng, đại diện cho khách hàng trong các vụ việc dân sự, hình sự, hành chính và các lĩnh vực pháp lý khác.\n\nNền tảng LegAI cung cấp dịch vụ kết nối với đội ngũ luật sư chuyên nghiệp từ nhiều lĩnh vực khác nhau, giúp bạn dễ dàng tìm được luật sư phù hợp với vấn đề của mình. Để kết nối với luật sư, bạn có thể sử dụng tính năng kết nối luật sư trên nền tảng LegAI.\n\nTôi là LegAI - trợ lý AI pháp luật, thông tin tôi cung cấp chỉ mang tính tham khảo, không thay thế cho tư vấn pháp lý chuyên nghiệp từ một luật sư được cấp phép.",
         documents: []
       };
     }

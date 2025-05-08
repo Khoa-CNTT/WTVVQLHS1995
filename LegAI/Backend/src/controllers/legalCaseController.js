@@ -492,20 +492,35 @@ exports.calculateFee = asyncHandler(async (req, res) => {
     // Đảm bảo parameters là object
     const validParameters = parameters || {};
     
-    // Đảm bảo dispute_value luôn là số hợp lệ
-    if (validParameters.dispute_value) {
-      // Chuyển đổi nếu là chuỗi
-      if (typeof validParameters.dispute_value === 'string') {
-        validParameters.dispute_value = validParameters.dispute_value.replace(/[^0-9.]/g, '');
-        
-        // Nếu chuyển đổi ra giá trị không phải số, đặt giá trị mặc định
-        if (isNaN(parseFloat(validParameters.dispute_value))) {
-          validParameters.dispute_value = 1000000; // Giá trị mặc định nếu không hợp lệ
+    // Đảm bảo dispute_value luôn là số hợp lệ và dương
+    if (validParameters.dispute_value !== undefined) {
+      try {
+        // Chuyển đổi nếu là chuỗi
+        if (typeof validParameters.dispute_value === 'string') {
+          // Loại bỏ tất cả các ký tự không phải số và dấu chấm
+          validParameters.dispute_value = validParameters.dispute_value.replace(/[^0-9.]/g, '');
         }
+        
+        // Chuyển đổi thành số
+        const parsedValue = parseFloat(validParameters.dispute_value);
+        
+        // Kiểm tra sau khi parse là số hợp lệ và lớn hơn 0
+        if (isNaN(parsedValue) || parsedValue <= 0) {
+          validParameters.dispute_value = 1000000; // Giá trị mặc định nếu không hợp lệ hoặc không dương
+          console.log('Phát hiện giá trị tranh chấp không hợp lệ hoặc không dương, đặt thành giá trị mặc định:', validParameters.dispute_value);
+        } else {
+          validParameters.dispute_value = parsedValue; // Gán lại giá trị đã parse
+        }
+      } catch (error) {
+        console.error('Lỗi khi xử lý giá trị tranh chấp:', error);
+        validParameters.dispute_value = 1000000; // Giá trị mặc định nếu có lỗi
       }
+    } else {
+      // Nếu không có dispute_value, đặt giá trị mặc định
+      validParameters.dispute_value = 1000000;
     }
     
-    console.log('Tham số tính phí hợp lệ:', validParameters);
+    console.log('Tham số tính phí hợp lệ sau khi kiểm tra:', validParameters);
     
     // Tính phí dựa trên loại vụ án và tham số
     const feeDetails = await legalCaseModel.calculateFee(legalCase.case_type, validParameters);
@@ -1614,6 +1629,8 @@ exports.calculateLegalFeeAutomatic = asyncHandler(async (req, res) => {
     const defaultParameters = {
       dispute_value: 1000000 // Giá trị tranh chấp mặc định
     };
+    
+    console.log('Tham số tính phí tự động:', defaultParameters);
     
     // Tính phí dựa trên loại vụ án và tham số mặc định
     const feeDetails = await legalCaseModel.calculateFee(legalCase.case_type, defaultParameters);

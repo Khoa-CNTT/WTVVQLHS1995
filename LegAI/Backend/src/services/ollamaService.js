@@ -1,4 +1,5 @@
 const axios = require('axios');
+const ollama = require('ollama');
 
 // URL của Ollama API
 const OLLAMA_API_URL = "http://localhost:11434/api/chat";
@@ -32,33 +33,63 @@ NHIỆM VỤ QUAN TRỌNG:
 - KHÔNG xin lỗi hoặc giải thích bất cứ điều gì
 - Nếu không thể phân tích chính xác, vẫn TRẢ VỀ JSON chứa thông tin hữu ích nhất có thể`;
       
-      // Gọi API với system prompt đặc biệt
-      const response = await axios.post(OLLAMA_API_URL, {
-        model: MODEL_NAME,
-        messages: [
-          {
-            role: "system",
-            content: jsonSystemPrompt
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        stream: false,
-        options: {
-          temperature: options.temperature || 0.1,
-          top_p: options.top_p || 0.95,
-          top_k: 40,
+      try {
+        // Gọi API với system prompt đặc biệt
+        const response = await axios.post(OLLAMA_API_URL, {
+          model: MODEL_NAME,
+          messages: [
+            {
+              role: "system",
+              content: jsonSystemPrompt
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
           stream: false,
-          num_predict: options.max_tokens || 2000
+          options: {
+            temperature: options.temperature || 0.1,
+            top_p: options.top_p || 0.95,
+            top_k: 40,
+            stream: false,
+            num_predict: options.max_tokens || 2000
+          }
+        });
+        
+        if (response.data && response.data.message && response.data.message.content) {
+          return response.data.message.content;
+        } else {
+          throw new Error('Không nhận được phản hồi hợp lệ từ AI');
         }
-      });
-      
-      if (response.data && response.data.message && response.data.message.content) {
-        return response.data.message.content;
-      } else {
-        throw new Error('Không nhận được phản hồi hợp lệ từ AI');
+      } catch (axiosError) {
+        console.log('Gặp lỗi khi gọi Ollama API trực tiếp, đang thử với thư viện ollama-js');
+        // Sử dụng thư viện ollama-js nếu API trực tiếp không thành công
+        const completion = await ollama.chat({
+          model: MODEL_NAME,
+          messages: [
+            {
+              role: "system",
+              content: jsonSystemPrompt
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          options: {
+            temperature: options.temperature || 0.1,
+            top_p: options.top_p || 0.95,
+            top_k: 40,
+            num_predict: options.max_tokens || 2000
+          }
+        });
+        
+        if (completion && completion.message && completion.message.content) {
+          return completion.message.content;
+        } else {
+          throw new Error('Không nhận được phản hồi hợp lệ từ AI qua ollama-js');
+        }
       }
     }
     
@@ -73,9 +104,9 @@ NHIỆM VỤ QUAN TRỌNG:
       /^xin\s*ch[aà]o(\s*\w*)*$/i
     ];
     
-    // Xử lý lời chào đơn giản
+    // Kiểm tra lời chào đơn giản
     if (greetingPatterns.some(pattern => pattern.test(prompt.trim()))) {
-      return "Chào bạn! Tôi là trợ lý AI pháp luật. Tôi có thể giúp bạn giải đáp các thắc mắc về pháp luật Việt Nam. Bạn cần tư vấn về vấn đề pháp lý nào?";
+      return "Chào bạn! Tôi là LegAI - trợ lý AI pháp luật của LegAI, nền tảng tư vấn pháp luật trực tuyến hàng đầu Việt Nam. Tôi có thể giúp bạn giải đáp các thắc mắc về pháp luật Việt Nam, hỗ trợ soạn thảo văn bản pháp lý, và kết nối với luật sư chuyên nghiệp. Bạn cần tư vấn về vấn đề pháp lý nào?";
     }
     
     // Kiểm tra xem câu hỏi có phải là phản hồi thông thường không
@@ -122,30 +153,62 @@ NHIỆM VỤ QUAN TRỌNG:
     
     // Nếu không liên quan đến pháp luật, sử dụng chatbot thông thường
     if (!legalKeywords.test(prompt) && prompt.length < 80) {
-      // Gọi API với system prompt là chatbot thông thường
-      const response = await axios.post(OLLAMA_API_URL, {
-        model: MODEL_NAME,
-        messages: [
-          {
-            role: "system",
-            content: "Bạn là trợ lý AI đang trò chuyện với người dùng. Hãy trả lời ngắn gọn, tóm tắt, thân thiện, hài hước và bằng tiếng Việt. Không cần đề cập đến pháp luật nếu người dùng không hỏi. Nếu câu hỏi quá dài hoặc phức tạp, hãy nhẹ nhàng đề nghị người dùng chia nhỏ câu hỏi hoặc làm rõ hơn."
-          },
-          {
-            role: "user",
-            content: prompt
+      try {
+        // Gọi API với system prompt là chatbot thông thường
+        const response = await axios.post(OLLAMA_API_URL, {
+          model: MODEL_NAME,
+          messages: [
+            {
+              role: "system",
+              content: "Bạn là trợ lý AI đang trò chuyện với người dùng. Hãy trả lời ngắn gọn, tóm tắt, thân thiện, hài hước và bằng tiếng Việt. Không cần đề cập đến pháp luật nếu người dùng không hỏi. Nếu câu hỏi quá dài hoặc phức tạp, hãy nhẹ nhàng đề nghị người dùng chia nhỏ câu hỏi hoặc làm rõ hơn."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          stream: false,
+          options: {
+            temperature: 0.7,
+            top_p: 0.9,
+            top_k: 40,
+            stream: false
           }
-        ],
-        stream: false,
-        options: {
-          temperature: 0.7,
-          top_p: 0.9,
-          top_k: 40,
-          stream: false
+        });
+        
+        if (response.data && response.data.message && response.data.message.content) {
+          return response.data.message.content;
         }
-      });
-      
-      if (response.data && response.data.message && response.data.message.content) {
-        return response.data.message.content;
+      } catch (axiosError) {
+        console.log('Gặp lỗi khi gọi Ollama API trực tiếp, đang thử với thư viện ollama-js');
+        // Sử dụng thư viện ollama-js nếu API trực tiếp không thành công
+        try {
+          const completion = await ollama.chat({
+            model: MODEL_NAME,
+            messages: [
+              {
+                role: "system",
+                content: "Bạn là trợ lý AI đang trò chuyện với người dùng. Hãy trả lời ngắn gọn, tóm tắt, thân thiện, hài hước và bằng tiếng Việt. Không cần đề cập đến pháp luật nếu người dùng không hỏi. Nếu câu hỏi quá dài hoặc phức tạp, hãy nhẹ nhàng đề nghị người dùng chia nhỏ câu hỏi hoặc làm rõ hơn."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            options: {
+              temperature: 0.7,
+              top_p: 0.9,
+              top_k: 40
+            }
+          });
+          
+          if (completion && completion.message && completion.message.content) {
+            return completion.message.content;
+          }
+        } catch (ollamaError) {
+          console.error('Lỗi khi gọi ollama-js:', ollamaError);
+          // Không ném lỗi, tiếp tục thử phương pháp khác
+        }
       }
     }
     
@@ -172,12 +235,21 @@ NHIỆM VỤ QUAN TRỌNG:
     }
 
     // Chuẩn bị system message với context từ RAG
-    const systemMessage = `Bạn là trợ lý AI tên là LegAI pháp luật chuyên về luật Việt Nam. Hãy trả lời câu hỏi dựa trên các tài liệu pháp lý được cung cấp dưới đây. 
-Dữ liệu pháp lý:
+    const systemMessage = `Bạn là trợ lý AI pháp luật chuyên nghiệp tên là LegAI, được phát triển bởi LegAI - Nền tảng tư vấn pháp luật trực tuyến hàng đầu Việt Nam. 
+
+LegAI cung cấp các dịch vụ:
+1. Tư vấn pháp luật trực tuyến
+2. Kết nối với luật sư chuyên nghiệp
+3. Soạn thảo và quản lý hợp đồng, văn bản pháp lý
+4. Tra cứu văn bản pháp luật
+5. Hỗ trợ giải quyết các vấn đề pháp lý
+
+Hãy trả lời câu hỏi dựa trên các tài liệu pháp lý được cung cấp dưới đây:
 ${context}
 
 Hãy trả lời rõ ràng, chính xác, tóm tắt bằng tiếng Việt, và dựa trên thông tin từ dữ liệu pháp lý đã cung cấp. 
 Nếu bạn không tìm thấy thông tin cụ thể về vấn đề này trong dữ liệu, ĐỪNG TRẢ LỜI là "Tôi không tìm thấy thông tin cụ thể về vấn đề này trong bộ nhớ pháp luật của tôi". Thay vào đó, hãy giải thích chung, tóm tắt cực kì ngắn gọn về chủ đề đó dựa trên kiến thức pháp luật Việt Nam của bạn, đề cập đến nguyên tắc pháp luật liên quan, và đề xuất người dùng tìm hiểu thêm từ nguồn chính thức. Giới thiệu về lĩnh vực pháp luật liên quan, các luật chính điều chỉnh lĩnh vực đó hoặc các khái niệm cơ bản.
+Luôn giới thiệu bản thân là LegAI - trợ lý AI pháp luật và nhắc nhở người dùng rằng có thể tìm kiếm dịch vụ tư vấn luật sư chuyên nghiệp trên nền tảng LegAI nếu cần.
 Hãy sáng tạo và hữu ích, đưa ra được giá trị cho người dùng thay vì từ chối trả lời.
 Nếu bạn trích dẫn luật hoặc điều khoản cụ thể, hãy nêu rõ tên và số của luật/điều khoản đó.
 KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá nhân. Chỉ trả lời dựa trên dữ liệu đã cung cấp và kiến thức pháp luật Việt Nam chung.`;
@@ -203,27 +275,49 @@ KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá 
       }
     ];
 
-    // Gọi API
-    const response = await axios.post(OLLAMA_API_URL, {
-      model: MODEL_NAME,
-      messages: messages,
-      stream: false,
-      options: requestOptions
-    });
+    try {
+      // Gọi API
+      const response = await axios.post(OLLAMA_API_URL, {
+        model: MODEL_NAME,
+        messages: messages,
+        stream: false,
+        options: requestOptions
+      });
 
-    // Trích xuất kết quả
-    if (response.data && response.data.message && response.data.message.content) {
-      return response.data.message.content;
-    } else {
-      // Trả về thông báo thân thiện thay vì ném lỗi
-      return "Tôi đang gặp khó khăn trong việc xử lý câu hỏi của bạn. Vui lòng thử lại sau hoặc kiểm tra lại câu hỏi của bạn.";
+      // Trích xuất kết quả
+      if (response.data && response.data.message && response.data.message.content) {
+        return response.data.message.content;
+      } else {
+        // Trả về thông báo thân thiện thay vì ném lỗi
+        return "Tôi đang gặp khó khăn trong việc xử lý câu hỏi của bạn. Vui lòng thử lại sau hoặc kiểm tra lại câu hỏi của bạn.";
+      }
+    } catch (axiosError) {
+      console.log('Gặp lỗi khi gọi Ollama API trực tiếp, đang thử với thư viện ollama-js');
+      // Sử dụng thư viện ollama-js nếu API trực tiếp không thành công
+      try {
+        const completion = await ollama.chat({
+          model: MODEL_NAME,
+          messages: messages,
+          options: requestOptions
+        });
+        
+        if (completion && completion.message && completion.message.content) {
+          return completion.message.content;
+        } else {
+          return "Tôi đang gặp khó khăn trong việc xử lý câu hỏi của bạn. Vui lòng thử lại sau hoặc kiểm tra lại câu hỏi của bạn.";
+        }
+      } catch (ollamaError) {
+        console.error('Lỗi khi gọi ollama-js:', ollamaError);
+        // Trả về thông báo chung cho các lỗi kết nối
+        return "Hiện tại, hệ thống trợ lý pháp luật LegAI đang tạm ngưng hoạt động. Vui lòng thử lại sau hoặc liên hệ với quản trị viên để được hỗ trợ.";
+      }
     }
   } catch (error) {
     console.error('Lỗi khi gọi Ollama API:', error.message);
     
     // Kiểm tra lỗi kết nối và trả về thông báo thân thiện
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      return "Hiện tại, hệ thống trợ lý pháp luật đang tạm ngưng hoạt động. Vui lòng thử lại sau hoặc liên hệ với quản trị viên để được hỗ trợ.";
+      return "Hiện tại, hệ thống trợ lý pháp luật LegAI đang tạm ngưng hoạt động. Vui lòng thử lại sau hoặc liên hệ với quản trị viên để được hỗ trợ.";
     }
     
     // Trả về thông báo chung cho các lỗi khác
@@ -237,23 +331,48 @@ KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá 
  */
 const checkConnection = async () => {
   try {
-    // Gửi một yêu cầu đơn giản để kiểm tra kết nối
-    const response = await axios.post(OLLAMA_API_URL, {
-      model: MODEL_NAME,
-      messages: [
-        {
-          role: "system",
-          content: "Bạn là trợ lý AI."
-        },
-        {
-          role: "user",
-          content: "Xin chào"
-        }
-      ],
-      stream: false
-    });
-    
-    return response.status === 200;
+    // Gửi một yêu cầu đơn giản để kiểm tra kết nối qua API trực tiếp
+    try {
+      const response = await axios.post(OLLAMA_API_URL, {
+        model: MODEL_NAME,
+        messages: [
+          {
+            role: "system",
+            content: "Bạn là trợ lý AI."
+          },
+          {
+            role: "user",
+            content: "Xin chào"
+          }
+        ],
+        stream: false
+      });
+      
+      return response.status === 200;
+    } catch (axiosError) {
+      console.log('Không thể kết nối trực tiếp, đang thử với thư viện ollama-js');
+      // Thử kết nối bằng thư viện ollama-js
+      try {
+        const completion = await ollama.chat({
+          model: MODEL_NAME,
+          messages: [
+            {
+              role: "system",
+              content: "Bạn là trợ lý AI."
+            },
+            {
+              role: "user",
+              content: "Xin chào"
+            }
+          ]
+        });
+        
+        return !!completion;
+      } catch (ollamaError) {
+        console.error('Lỗi khi kiểm tra kết nối qua ollama-js:', ollamaError);
+        return false;
+      }
+    }
   } catch (error) {
     console.error('Lỗi khi kiểm tra kết nối Ollama:', error.message);
     return false;

@@ -73,15 +73,88 @@ const loadLegalData = async () => {
     // Nếu đã tải dữ liệu rồi thì trả về luôn
     if (legalData) return legalData;
     
+    // Kiểm tra thư mục data có tồn tại không, nếu không thì tạo
+    const dataDir = path.join(__dirname, '../data');
+    try {
+      await fs.access(dataDir);
+    } catch {
+      console.log('Thư mục data không tồn tại, đang tạo...');
+      await fs.mkdir(dataDir, { recursive: true });
+    }
+    
+    // Đường dẫn đến file dữ liệu
+    const dataFilePath = path.join(dataDir, 'legal_data.json');
+    
     // Đọc file JSON
     try {
-      const data = await fs.readFile(LEGAL_DATA_PATH, 'utf8');
-      legalData = JSON.parse(data);
-      console.log('Đã tải dữ liệu pháp luật thành công');
+      // Kiểm tra file có tồn tại không
+      try {
+        await fs.access(dataFilePath);
+        const data = await fs.readFile(dataFilePath, 'utf8');
+        legalData = JSON.parse(data);
+        console.log('Đã tải dữ liệu pháp luật thành công');
+      } catch {
+        // Nếu file không tồn tại, tạo file với dữ liệu mẫu
+        console.log('File dữ liệu pháp luật không tồn tại, đang tạo file mẫu...');
+        
+        // Sử dụng dữ liệu mẫu
+        legalData = {
+          laws: [
+            {
+              id: 1,
+              title: "Luật Hôn nhân và Gia đình 2014",
+              content: "Luật Hôn nhân và Gia đình số 52/2014/QH13 được Quốc hội thông qua ngày 19/6/2014 và có hiệu lực từ ngày 01/01/2015. Luật này quy định chế độ hôn nhân và gia đình, chuẩn mực pháp lý cho cách ứng xử của các thành viên trong gia đình; trách nhiệm của cá nhân, tổ chức, Nhà nước và xã hội trong việc xây dựng, củng cố chế độ hôn nhân và gia đình Việt Nam."
+            },
+            {
+              id: 2,
+              title: "Bộ luật Dân sự 2015",
+              content: "Bộ luật Dân sự số 91/2015/QH13 được Quốc hội thông qua ngày 24/11/2015 và có hiệu lực từ ngày 01/01/2017. Bộ luật này quy định địa vị pháp lý, chuẩn mực pháp lý cho cách ứng xử của cá nhân, pháp nhân, chủ thể khác; quyền, nghĩa vụ về nhân thân và tài sản của các chủ thể trong các quan hệ dân sự, hôn nhân và gia đình, kinh doanh, thương mại, lao động."
+            },
+            {
+              id: 3,
+              title: "Luật Doanh nghiệp 2020",
+              content: "Luật Doanh nghiệp số 59/2020/QH14 được Quốc hội thông qua ngày 17/6/2020 và có hiệu lực từ ngày 01/01/2021. Luật này quy định về thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp, bao gồm công ty trách nhiệm hữu hạn, công ty cổ phần, công ty hợp danh và doanh nghiệp tư nhân."
+            }
+          ],
+          faqs: [
+            {
+              id: 1,
+              question: "Thủ tục đăng ký kết hôn tại Việt Nam?",
+              answer: "Thủ tục đăng ký kết hôn tại Việt Nam theo Luật Hôn nhân và Gia đình 2014 gồm các bước: Chuẩn bị hồ sơ (đơn đăng ký kết hôn, giấy tờ tùy thân, giấy xác nhận tình trạng hôn nhân), nộp hồ sơ tại UBND cấp xã nơi cư trú của một trong hai bên, tổ chức đăng ký kết hôn và nhận giấy chứng nhận kết hôn."
+            },
+            {
+              id: 2,
+              question: "Điều kiện thành lập doanh nghiệp tư nhân?",
+              answer: "Theo Luật Doanh nghiệp 2020, để thành lập doanh nghiệp tư nhân, chủ doanh nghiệp phải là cá nhân từ đủ 18 tuổi trở lên, có năng lực hành vi dân sự đầy đủ, không thuộc đối tượng bị cấm thành lập doanh nghiệp, và không đồng thời là chủ hộ kinh doanh hoặc chủ doanh nghiệp tư nhân khác."
+            },
+            {
+              id: 3,
+              question: "Quyền thừa kế theo pháp luật Việt Nam?",
+              answer: "Theo Bộ luật Dân sự 2015, thừa kế theo pháp luật được áp dụng khi người chết không để lại di chúc hoặc di chúc không hợp pháp. Thừa kế theo pháp luật được chia thành ba hàng: Hàng thừa kế thứ nhất gồm vợ, chồng, cha đẻ, mẹ đẻ, cha nuôi, mẹ nuôi, con đẻ, con nuôi; Hàng thừa kế thứ hai gồm ông nội, bà nội, ông ngoại, bà ngoại, anh ruột, chị ruột, em ruột; Hàng thừa kế thứ ba gồm cụ nội, cụ ngoại, bác ruột, chú ruột, cậu ruột, cô ruột, dì ruột, cháu ruột."
+            }
+          ],
+          articles: [
+            {
+              id: 1,
+              title: "Hướng dẫn đăng ký kinh doanh",
+              content: "Đăng ký kinh doanh là thủ tục bắt buộc đối với mọi cá nhân, tổ chức khi bắt đầu hoạt động kinh doanh tại Việt Nam. Các bước cơ bản gồm: chuẩn bị tên doanh nghiệp, xác định loại hình doanh nghiệp, chuẩn bị hồ sơ đăng ký, nộp hồ sơ tại Phòng Đăng ký kinh doanh thuộc Sở Kế hoạch và Đầu tư, nhận giấy chứng nhận đăng ký doanh nghiệp."
+            },
+            {
+              id: 2,
+              title: "Quy trình khởi kiện dân sự",
+              content: "Khởi kiện dân sự là quyền của cá nhân, tổ chức khi quyền, lợi ích hợp pháp bị xâm phạm. Quy trình khởi kiện gồm: chuẩn bị đơn khởi kiện và tài liệu, chứng cứ; nộp đơn tại Tòa án có thẩm quyền; đóng tạm ứng án phí; Tòa án thụ lý vụ án; tham gia phiên hòa giải; tham gia phiên tòa xét xử."
+            }
+          ]
+        };
+        
+        // Lưu dữ liệu mẫu vào file
+        await fs.writeFile(dataFilePath, JSON.stringify(legalData, null, 2), 'utf8');
+        console.log('Đã tạo file dữ liệu pháp luật mẫu thành công');
+      }
     } catch (readError) {
-      console.error('Không thể đọc file dữ liệu pháp luật:', readError);
+      console.error('Lỗi khi đọc/tạo file dữ liệu pháp luật:', readError);
       
-      // Sử dụng dữ liệu mẫu nếu không tìm thấy file
+      // Sử dụng dữ liệu mẫu nếu gặp lỗi
       console.log('Sử dụng dữ liệu mẫu...');
       legalData = {
         laws: [
