@@ -445,6 +445,72 @@ const getMyAIChatHistory = async () => {
   }
 };
 
+/**
+ * Phân tích văn bản pháp luật bằng AI
+ * @param {string|number} documentId - ID của văn bản pháp luật
+ * @param {string} documentContent - Nội dung văn bản pháp luật
+ * @param {string} documentTitle - Tiêu đề văn bản pháp luật
+ * @returns {Promise<Object>} - Kết quả phân tích
+ */
+const analyzeLegalDocument = async (documentId, documentContent, documentTitle) => {
+  try {
+    console.log('Bắt đầu phân tích văn bản pháp luật:', documentTitle);
+    
+    // Lấy token
+    const token = getToken();
+    const config = {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000 // 60 giây timeout vì phân tích có thể mất thời gian
+    };
+    
+    // Tạo prompt yêu cầu phân tích chi tiết
+    const prompt = `
+      Hãy phân tích chi tiết văn bản pháp luật sau đây:
+      
+      Tiêu đề: ${documentTitle}
+      
+      Nội dung: ${documentContent}
+      
+      Yêu cầu phân tích:
+      1. Tóm tắt nội dung chính của văn bản
+      2. Xác định đối tượng áp dụng
+      3. Phân tích các điều khoản quan trọng
+      4. Chỉ ra các vấn đề pháp lý đáng chú ý
+      5. Liên hệ với các văn bản pháp luật liên quan (nếu có)
+      6. Đánh giá tác động và ý nghĩa của văn bản
+    `;
+    
+    // Gửi yêu cầu đến API để phân tích
+    const response = await axios.post(`${BASE_API_URL}/ai/analyze`, {
+      document_id: documentId,
+      document_title: documentTitle,
+      content: documentContent,
+      prompt: prompt
+    }, config);
+    
+    if (response.data && response.data.success) {
+      console.log('Phân tích văn bản thành công, kết quả có độ dài:', 
+        response.data.data.analysis ? response.data.data.analysis.length : 0);
+      return response.data;
+    } else {
+      console.error('API trả về lỗi khi phân tích văn bản:', response.data);
+      throw new Error(response.data?.message || "API không trả về dữ liệu thành công");
+    }
+  } catch (error) {
+    console.error("Lỗi khi phân tích văn bản pháp luật:", error.message);
+    
+    // Ghi log chi tiết lỗi
+    if (error.response) {
+      console.error("Lỗi từ server:", error.response.status, error.response.data);
+    }
+    
+    throw new Error("Không thể phân tích văn bản pháp luật. Vui lòng thử lại sau.");
+  }
+};
+
 export default {
   sendMessageToAI,
   getChatHistory,
@@ -455,5 +521,6 @@ export default {
   updateAIConsultation,
   deleteAIConsultation,
   getAIChatHistoryByUserId,
-  getMyAIChatHistory
+  getMyAIChatHistory,
+  analyzeLegalDocument
 }; 

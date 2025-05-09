@@ -407,6 +407,134 @@ const getUserChatHistory = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc    Phân tích văn bản pháp luật bằng AI
+ * @route   POST /api/ai/analyze
+ * @access  Private (Optional)
+ */
+const analyzeDocument = asyncHandler(async (req, res) => {
+  try {
+    const { document_id, document_title, content, prompt, options } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp nội dung văn bản để phân tích'
+      });
+    }
+    
+    // Giới hạn độ dài nội dung để tránh quá tải API
+    if (content.length > 50000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung văn bản quá dài. Vui lòng giới hạn trong 50.000 ký tự.'
+      });
+    }
+    
+    // Thiết lập các tùy chọn mặc định nếu không được cung cấp
+    const modelOptions = {
+      temperature: options?.temperature || 0.2,
+      top_p: options?.top_p || 0.95,
+      top_k: options?.top_k || 40,
+      topK: options?.topK || 3
+    };
+    
+    // Log thông tin user nếu có
+    if (req.user) {
+      console.log('Request phân tích từ user đã xác thực:', {
+        id: req.user.id,
+        role: req.user.role,
+        email: req.user.email
+      });
+    } else {
+      console.log('Request phân tích từ người dùng không xác thực (anonymous)');
+    }
+    
+    // Gửi văn bản đến AI Service để phân tích
+    const result = await aiService.analyzeLegalDocument({
+      document_id,
+      document_title,
+      content,
+      prompt
+    }, modelOptions);
+    
+    // Lấy user_id từ token xác thực nếu có
+    const userId = req.user?.id || null;
+    
+    // Lưu kết quả phân tích vào database nếu có userId
+    let dbResult = { success: false };
+    
+    if (userId) {
+      try {
+        // Chuẩn bị dữ liệu để lưu vào DB
+        const analysisData = {
+          user_id: userId,
+          document_id: document_id || null,
+          document_title: document_title || 'Văn bản không tiêu đề',
+          request: JSON.stringify({
+            content_length: content.length,
+            prompt: prompt || 'default'
+          }),
+          response: JSON.stringify({
+            analysis_length: result.analysis.length,
+            related_docs: result.related_documents.length
+          })
+        };
+        
+        // Lưu vào database
+        const query = `
+          INSERT INTO AIDocumentAnalysis (user_id, document_id, document_title, request, response, created_at)
+          VALUES ($1, $2, $3, $4, $5, NOW())
+          RETURNING id
+        `;
+        
+        const dbResponse = await pool.query(
+          query, 
+          [analysisData.user_id, analysisData.document_id, analysisData.document_title, 
+           analysisData.request, analysisData.response]
+        );
+        
+        if (dbResponse.rows.length > 0) {
+          dbResult = {
+            success: true,
+            record: { id: dbResponse.rows[0].id }
+          };
+        }
+      } catch (dbError) {
+        console.error('Lỗi khi lưu kết quả phân tích vào DB:', dbError);
+        dbResult = {
+          success: false,
+          error: dbError.message
+        };
+      }
+    }
+    
+    // Trả về kết quả phân tích
+    return res.status(200).json({
+      success: true,
+      data: result,
+      saved_to_db: dbResult.success,
+      db_record_id: dbResult.success ? dbResult.record.id : null,
+      db_error: dbResult.error || null
+    });
+  } catch (error) {
+    console.error('Lỗi khi phân tích văn bản:', error);
+    
+    // Kiểm tra lỗi kết nối Ollama
+    if (error.message && error.message.includes('Không thể kết nối đến Ollama')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Dịch vụ AI đang không khả dụng. Vui lòng thử lại sau.'
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi server khi phân tích văn bản'
+    });
+  }
+});
+
 module.exports = {
   answerQuestion,
   reloadVectorStore,
@@ -417,5 +545,6 @@ module.exports = {
   updateAIConsultation,
   deleteAIConsultation,
   getUserChatHistory,
-  getMyAIChatHistory
+  getMyAIChatHistory,
+  analyzeDocument
 }; 

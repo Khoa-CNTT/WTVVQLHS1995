@@ -12,7 +12,8 @@ const {
   updateAIConsultation,
   deleteAIConsultation,
   getUserChatHistory,
-  getMyAIChatHistory
+  getMyAIChatHistory,
+  analyzeDocument
 } = require('../controllers/aiController');
 
 // Option 1: Bỏ qua xác thực cho API ask (mặc định) - KHÔNG sử dụng cách này nữa
@@ -41,6 +42,9 @@ const optionalProtect = (req, res, next) => {
 
 // Sử dụng middleware optionalProtect để hỗ trợ cả người dùng đã đăng nhập và chưa đăng nhập
 router.post('/ask', optionalProtect, answerQuestion);
+
+// Route để phân tích văn bản pháp luật - hỗ trợ cả người dùng đã đăng nhập và chưa đăng nhập
+router.post('/analyze', optionalProtect, analyzeDocument);
 
 // Route để kiểm tra trạng thái AI - công khai
 router.get('/status', checkStatus);

@@ -4,8 +4,9 @@ import styles from './DocumentDetail.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
 import Loader from '../../components/layout/Loading/Loading';
-import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt, FaBalanceScale } from 'react-icons/fa';
+import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt, FaBalanceScale, FaSearchPlus } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import DocumentAnalysis from '../../components/AI/DocumentAnalysis';
 
 /**
  * Trang hiển thị chi tiết văn bản pháp luật
@@ -18,6 +19,7 @@ const DocumentDetail = () => {
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   // Tải thông tin chi tiết văn bản khi component được tải
   useEffect(() => {
@@ -314,6 +316,16 @@ const DocumentDetail = () => {
     }
   };
 
+  // Xử lý khi người dùng muốn phân tích văn bản
+  const handleAnalyze = () => {
+    if (document?.id) {
+      setShowAnalysis(true);
+      toast.info('Đang chuẩn bị phân tích văn bản...');
+    } else {
+      toast.error('Không thể phân tích văn bản. Không tìm thấy nội dung văn bản.');
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -423,8 +435,23 @@ const DocumentDetail = () => {
                 >
                   <FaBookmark /> {isBookmarked ? 'Đã đánh dấu' : 'Đánh dấu'}
                 </button>
+                <button 
+                  className={`${styles['action-button']} ${styles.analyze}`}
+                  onClick={handleAnalyze}
+                >
+                  <FaSearchPlus /> Nghiên cứu
+                </button>
               </div>
             </div>
+
+            {/* Component phân tích văn bản */}
+            <DocumentAnalysis
+              documentId={document.id}
+              documentTitle={document.title}
+              documentContent={document.content}
+              visible={showAnalysis}
+              onClose={() => setShowAnalysis(false)}
+            />
           </div>
         ) : (
           <div className={styles.error}>

@@ -418,4 +418,15 @@
   color: #303f9f;
   box-shadow: 0 3px 8px rgba(57, 73, 171, 0.25);
   transform: translateY(-2px);
+}
+
+.action-button.analyze {
+  background-color: #722ed1;
+  color: white;
+  border: 1px solid #722ed1;
+}
+
+.action-button.analyze:hover {
+  background-color: #5b21b6;
+  border-color: #5b21b6;
 } 
