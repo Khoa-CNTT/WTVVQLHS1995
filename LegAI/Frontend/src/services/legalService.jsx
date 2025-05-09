@@ -51,7 +51,6 @@ const getLegalDocuments = async (searchParams = {}) => {
     const response = await axios.get(`${API_URL}/legal/documents?${queryParams.toString()}`, getHeaders());
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi tìm kiếm văn bản pháp luật:', error);
     throw error;
   }
 };
@@ -63,47 +62,9 @@ const getLegalDocuments = async (searchParams = {}) => {
  */
 const getLegalDocumentById = async (id) => {
   try {
-    // Kiểm tra ID có phải là số hay không
-    if (!id || isNaN(parseInt(id)) || id === 'dashboard' || id === 'new') {
-      console.error('ID không hợp lệ:', id);
-      throw new Error(`ID không hợp lệ cho văn bản pháp lý: "${id}"`);
-    }
-    
-    // Thực hiện API call với timeout để tránh request bị treo
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 giây timeout
-    
-    try {
-      const response = await axios.get(`${API_URL}/legal/documents/${id}`, {
-        ...getHeaders(),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      // Kiểm tra xem response có hợp lệ không
-      if (!response.data || response.data.status !== 'success') {
-        throw new Error('Dữ liệu trả về từ API không hợp lệ');
-      }
-      
-      return response.data;
-    } catch (apiError) {
-      clearTimeout(timeoutId);
-      
-      // Kiểm tra xem lỗi có phải do timeout hay không
-      if (apiError.name === 'AbortError') {
-        throw new Error('Yêu cầu API bị hủy do quá thời gian');
-      }
-      
-      // Nếu là lỗi 404, tức là không tìm thấy văn bản
-      if (apiError.response && apiError.response.status === 404) {
-        throw new Error(`Không tìm thấy văn bản với ID ${id}`);
-      }
-      
-      throw apiError;
-    }
+    const response = await axios.get(`${API_URL}/legal/documents/${id}`, getHeaders());
+    return response.data;
   } catch (error) {
-    console.error(`Lỗi khi lấy chi tiết văn bản có ID ${id}:`, error);
     throw error;
   }
 };
@@ -115,10 +76,18 @@ const getLegalDocumentById = async (id) => {
 const getDocumentTypes = async () => {
   try {
     const response = await axios.get(`${API_URL}/legal/document-types`, getHeaders());
-    return response.data.data;
+    // Kiểm tra và đảm bảo kết quả trả về là mảng
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    } else if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      console.warn('Định dạng dữ liệu không đúng từ API document-types:', response.data);
+      return []; // Trả về mảng rỗng nếu không phải mảng
+    }
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách loại văn bản:', error);
-    throw error;
+    console.warn('Lỗi khi lấy danh sách loại văn bản:', error);
+    return []; // Trả về mảng rỗng nếu có lỗi
   }
 };
 
@@ -129,10 +98,9 @@ const getDocumentTypes = async () => {
 const getIssuingBodies = async () => {
   try {
     const response = await axios.get(`${API_URL}/legal/issuing-bodies`, getHeaders());
-    return response.data.data;
+    return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách cơ quan ban hành:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -143,7 +111,12 @@ const getIssuingBodies = async () => {
  */
 const getDocumentTemplates = async (searchParams = {}) => {
   try {
-    const { search, template_type, page = 1, limit = 10 } = searchParams;
+    const { 
+      search, 
+      template_type, 
+      page = 1, 
+      limit = 10 
+    } = searchParams;
     
     // Xây dựng query string
     const queryParams = new URLSearchParams();
@@ -151,11 +124,10 @@ const getDocumentTemplates = async (searchParams = {}) => {
     if (template_type) queryParams.append('template_type', template_type);
     queryParams.append('page', page);
     queryParams.append('limit', limit);
-
+    
     const response = await axios.get(`${API_URL}/legal/templates?${queryParams.toString()}`, getHeaders());
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi tìm kiếm mẫu văn bản:', error);
     throw error;
   }
 };
@@ -170,7 +142,6 @@ const getDocumentTemplateById = async (id) => {
     const response = await axios.get(`${API_URL}/legal/templates/${id}`, getHeaders());
     return response.data;
   } catch (error) {
-    console.error(`Lỗi khi lấy chi tiết mẫu văn bản có ID ${id}:`, error);
     throw error;
   }
 };
@@ -184,7 +155,6 @@ const getTemplateTypes = async () => {
     const response = await axios.get(`${API_URL}/legal/template-types`, getHeaders());
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
     // Trả về mảng rỗng nếu có lỗi để xử lý phía client
     return [];
   }
@@ -210,9 +180,9 @@ const searchAll = async (searchParams = {}) => {
     // Xây dựng query string
     const queryParams = new URLSearchParams();
     if (search) {
-      // Chuyển đổi từ khóa tìm kiếm thành chữ thường và loại bỏ dấu cách thừa
-      const normalizedSearch = search.toLowerCase().trim();
-      queryParams.append('search', normalizedSearch);
+      // Giữ nguyên từ khóa tìm kiếm để đảm bảo tìm kiếm chính xác
+      // Không chuyển đổi sang chữ thường hoặc xóa khoảng trắng để giữ nguyên định dạng chính xác
+      queryParams.append('search', search);
     }
     queryParams.append('page', page);
     queryParams.append('limit', limit);
@@ -227,11 +197,25 @@ const searchAll = async (searchParams = {}) => {
     
     // Nếu không tìm thấy kết quả nào và từ khóa tìm kiếm có độ dài > 0, thử tìm kiếm mở rộng
     if (response.data && response.data.data && response.data.data.length === 0 && search && search.length > 0) {
+      // Thử tìm kiếm chính xác theo số hiệu văn bản
+      // Các văn bản pháp luật thường có dạng: số/năm/ký hiệu
+      if (/\d+\/\d{4}\//.test(search)) {
+        // Xử lý đặc biệt cho tìm kiếm số hiệu văn bản
+        const exactSearchParams = new URLSearchParams();
+        exactSearchParams.append('search', search.trim());
+        exactSearchParams.append('page', 1);
+        exactSearchParams.append('limit', 10);
+        
+        const exactResult = await axios.get(`${API_URL}/legal/documents?${exactSearchParams.toString()}`, getHeaders());
+        if (exactResult.data && exactResult.data.data && exactResult.data.data.length > 0) {
+          return exactResult.data;
+        }
+      }
       
       // Nếu từ khóa có nhiều từ, thử tìm kiếm với từng từ riêng lẻ
       if (search.includes(' ')) {
         // Tách từ khóa thành các từ riêng lẻ, loại bỏ từ quá ngắn
-        const keywords = search.toLowerCase().split(/\s+/).filter(word => word.length > 1);
+        const keywords = search.split(/\s+/).filter(word => word.length > 1);
         
         if (keywords.length > 0) {
           
@@ -268,15 +252,39 @@ const searchAll = async (searchParams = {}) => {
             }
           });
           
-          // Nếu tìm thấy kết quả, trả về dữ liệu tổng hợp
+          // Sắp xếp lại kết quả: ưu tiên các văn bản có tiêu đề chứa nhiều từ khóa nhất
           if (allResults.length > 0) {
+            // Tính điểm cho mỗi kết quả
+            const scoredResults = allResults.map(item => {
+              const title = (item.title || '').toLowerCase();
+              
+              // Tính số từ khóa xuất hiện trong tiêu đề
+              let titleKeywordMatches = 0;
+              keywords.forEach(keyword => {
+                if (title.includes(keyword.toLowerCase())) {
+                  titleKeywordMatches++;
+                }
+              });
+              
+              // Điểm cao nhất cho các kết quả có nhiều từ khóa trong tiêu đề
+              const score = titleKeywordMatches * 10 - (item.result_type === 'template' ? 5 : 0);
+              
+              return { ...item, score };
+            });
+            
+            // Sắp xếp theo điểm từ cao xuống thấp
+            scoredResults.sort((a, b) => b.score - a.score);
+            
+            // Loại bỏ trường score trước khi trả về
+            const rankedResults = scoredResults.map(({ score, ...rest }) => rest);
+            
             return {
               status: 'success',
-              data: allResults,
+              data: rankedResults,
               pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(allResults.length / limit),
-                total: allResults.length,
+                totalPages: Math.ceil(rankedResults.length / limit),
+                total: rankedResults.length,
                 limit: limit
               }
             };
@@ -302,14 +310,51 @@ const searchAll = async (searchParams = {}) => {
         const partialResult = await axios.get(`${API_URL}/legal/search?${newParams.toString()}`, getHeaders());
         
         if (partialResult.data && partialResult.data.data && partialResult.data.data.length > 0) {
-          return partialResult.data;
+          // Sắp xếp lại kết quả: ưu tiên các kết quả có tiêu đề gần giống nhất với từ khóa gốc
+          const originalSearch = search.toLowerCase();
+          
+          const rankedResults = partialResult.data.data.map(item => {
+            const title = (item.title || '').toLowerCase();
+            
+            // Tính điểm tương đồng giữa tiêu đề và từ khóa gốc
+            let similarityScore = 0;
+            
+            // Điểm cao nhất nếu tiêu đề chứa chính xác từ khóa
+            if (title.includes(originalSearch)) {
+              similarityScore = 100;
+            } 
+            // Điểm cao nếu tiêu đề bắt đầu bằng từ khóa
+            else if (title.startsWith(partialSearch)) {
+              similarityScore = 80;
+            }
+            // Điểm trung bình nếu tiêu đề chứa từ khóa một phần
+            else if (title.includes(partialSearch)) {
+              similarityScore = 50;
+            }
+            // Điểm thấp cho các trường hợp khác
+            else {
+              similarityScore = 10;
+            }
+            
+            return { ...item, _score: similarityScore };
+          });
+          
+          // Sắp xếp theo điểm tương đồng từ cao xuống thấp
+          rankedResults.sort((a, b) => b._score - a._score);
+          
+          // Loại bỏ trường _score trước khi trả về
+          const finalResults = rankedResults.map(({ _score, ...rest }) => rest);
+          
+          return {
+            ...partialResult.data,
+            data: finalResults
+          };
         }
       }
     }
     
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi tìm kiếm tổng hợp:', error);
     throw error;
   }
 };
@@ -326,7 +371,6 @@ const downloadLegalDocument = async (id) => {
     // Mở URL trong tab mới để tải xuống
     window.open(downloadUrl, '_blank');
   } catch (error) {
-    console.error(`Lỗi khi tải xuống văn bản có ID ${id}:`, error);
     throw error;
   }
 };
@@ -343,7 +387,6 @@ const downloadDocumentTemplate = async (id) => {
     // Mở URL trong tab mới để tải xuống
     window.open(downloadUrl, '_blank');
   } catch (error) {
-    console.error(`Lỗi khi tải xuống mẫu văn bản có ID ${id}:`, error);
     throw error;
   }
 };

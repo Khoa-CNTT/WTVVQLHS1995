@@ -42,7 +42,6 @@ const getAllLegalDocuments = asyncHandler(async (req, res) => {
       pagination: result.pagination,
     });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách văn bản pháp luật:", error);
     res.status(500).json({
       status: "error",
       message: "Lỗi khi lấy danh sách văn bản pháp luật",
@@ -152,21 +151,42 @@ const getTemplateTypes = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const searchAll = asyncHandler(async (req, res) => {
-  const { search, page = 1, limit = 10 } = req.query;
+  try {
+    const { 
+      search, 
+      page = 1, 
+      limit = 10,
+      document_type,
+      from_date,
+      to_date,
+      language
+    } = req.query;
 
-  const options = {
-    searchTerm: search,
-    page: parseInt(page),
-    limit: parseInt(limit),
-  };
+    // Giữ lại từ khóa tìm kiếm gốc để hỗ trợ tìm kiếm chính xác
+    const options = {
+      searchTerm: search,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      documentType: document_type,
+      fromDate: from_date ? new Date(from_date) : null,
+      toDate: to_date ? new Date(to_date) : null,
+      language: language
+    };
 
-  const result = await LegalDocumentModel.searchAll(options);
+    const result = await LegalDocumentModel.searchAll(options);
 
-  res.status(200).json({
-    status: "success",
-    data: result.data,
-    pagination: result.pagination,
-  });
+    res.status(200).json({
+      status: "success",
+      data: result.data,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    console.error("Lỗi khi tìm kiếm tổng hợp:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Lỗi khi tìm kiếm tổng hợp",
+    });
+  }
 });
 
 /**

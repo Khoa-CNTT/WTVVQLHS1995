@@ -45,14 +45,19 @@ const getAllLegalDocuments = async (options = {}) => {
 
     // Thêm điều kiện tìm kiếm theo từ khóa
     if (searchTerm) {
+      // Kiểm tra nếu searchTerm có thể là tiêu đề chính xác
       query += ` AND (
         ld.title ILIKE $${paramIndex} 
-        OR ld.content ILIKE $${paramIndex} 
-        OR ld.summary ILIKE $${paramIndex}
-        OR ld.id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $${paramIndex})
+        OR ld.title ILIKE $${paramIndex + 1}
+        OR ld.content ILIKE $${paramIndex + 2} 
+        OR ld.summary ILIKE $${paramIndex + 2}
+        OR ld.id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $${paramIndex + 2})
       )`;
-      queryParams.push(`%${searchTerm}%`);
-      paramIndex++;
+      // Ưu tiên kết quả khớp chính xác với tiêu đề hơn
+      queryParams.push(searchTerm); // Khớp chính xác tiêu đề
+      queryParams.push(`%${searchTerm}`); // Khớp tiêu đề bắt đầu bằng searchTerm
+      queryParams.push(`%${searchTerm}%`); // Khớp mờ
+      paramIndex += 3;
     }
 
     // Thêm điều kiện tìm kiếm theo loại văn bản
@@ -183,7 +188,6 @@ const getAllLegalDocuments = async (options = {}) => {
       }
     };
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách văn bản pháp luật:', error);
     throw error;
   }
 };
@@ -264,7 +268,6 @@ const getLegalDocumentById = async (documentId) => {
     
     return document;
   } catch (error) {
-    console.error('Lỗi khi lấy chi tiết văn bản pháp luật:', error);
     throw error;
   }
 };
@@ -296,12 +299,13 @@ const getDocumentTypes = async () => {
     });
     
     // Chuyển map thành array kết quả
-    return Array.from(documentTypeMap.values()).map(docType => ({
+    const types = Array.from(documentTypeMap.values()).map(docType => ({
       id: docType,
       name: docType
     })).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    
+    return types;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách loại văn bản:', error);
     throw error;
   }
 };
@@ -321,12 +325,13 @@ const getIssuingBodies = async () => {
     
     const result = await pool.query(query);
     
-    return result.rows.map(row => ({
+    const issuers = result.rows.map(row => ({
       id: row.issuing_body,
       name: row.issuing_body
     }));
+    
+    return issuers;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách cơ quan ban hành:', error);
     throw error;
   }
 };
@@ -348,12 +353,13 @@ const getLegalFields = async () => {
     
     const result = await pool.query(query);
     
-    return result.rows.map(row => ({
+    const fields = result.rows.map(row => ({
       id: row.field,
       name: row.field
     }));
+    
+    return fields;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách lĩnh vực:', error);
     throw error;
   }
 };
@@ -374,7 +380,6 @@ const getEffectStatus = async () => {
     
     return statuses;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách trạng thái hiệu lực:', error);
     throw error;
   }
 };
@@ -458,13 +463,12 @@ async function getDocumentTemplates(options = {}) {
       data: templates,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
+        page: parseInt(page),
+        limit: parseInt(limit),
         totalPages
       }
     };
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách mẫu văn bản:', error);
     throw error;
   }
 }
@@ -494,9 +498,10 @@ async function getDocumentTemplateById(id) {
       return null;
     }
     
-    return result.rows[0];
+    const template = result.rows[0];
+    
+    return template;
   } catch (error) {
-    console.error('Lỗi khi lấy chi tiết mẫu văn bản:', error);
     throw error;
   }
 }
@@ -515,12 +520,13 @@ async function getTemplateTypes() {
     
     const result = await pool.query(query);
     
-    return result.rows.map(row => ({
+    const types = result.rows.map(row => ({
       id: row.template_type,
       name: row.template_type
     }));
+    
+    return types;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách loại mẫu văn bản:', error);
     throw error;
   }
 }
@@ -532,7 +538,16 @@ async function getTemplateTypes() {
  */
 async function searchAll(options = {}) {
   try {
-    const { searchTerm = '', page = 1, limit = 10 } = options;
+    const { 
+      searchTerm = '', 
+      page = 1, 
+      limit = 10,
+      documentType = '',
+      fromDate = null,
+      toDate = null,
+      language = ''
+    } = options;
+    
     const offset = (page - 1) * limit;
     
     if (!searchTerm) {
@@ -546,61 +561,124 @@ async function searchAll(options = {}) {
         }
       };
     }
+
+    // Chuẩn bị tham số tìm kiếm
+    const searchQueries = [
+      `%${searchTerm}%`, // Tìm kiếm mờ (wildcard)
+      searchTerm,        // Khớp chính xác
+      `${searchTerm}%`   // Bắt đầu bằng từ khóa
+    ];
     
-    // Truy vấn UNION để kết hợp kết quả từ cả văn bản pháp luật và mẫu văn bản
-    const query = `
-      (
-        SELECT 
-          id, 
-          title, 
-          document_type as type,
-          summary,
-          issued_date as date,
-          'legal_document' as result_type
-        FROM LegalDocuments
-        WHERE (
-          title ILIKE $1 
-          OR content ILIKE $1 
-          OR summary ILIKE $1
-          OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
-        )
-      )
-      
-      UNION
-      
-      (
-        SELECT 
-          id,
-          title,
-          template_type as type,
-          content as summary,
-          created_at as date,
-          'template' as result_type
-        FROM DocumentTemplates
-        WHERE (
-          title ILIKE $1 
-          OR content ILIKE $1
-        )
-      )
-      
-      ORDER BY date DESC
-      LIMIT $2 OFFSET $3
+    // Xây dựng các phần của truy vấn SQL
+    let documentConditions = `
+      title ILIKE $1 
+      OR title = $2
+      OR title ILIKE $3
+      OR content ILIKE $1 
+      OR summary ILIKE $1
+      OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
     `;
     
-    const queryParams = [`%${searchTerm}%`, limit, offset];
+    let templateConditions = `
+      title ILIKE $1 
+      OR title = $2
+      OR title ILIKE $3
+      OR content ILIKE $1
+    `;
+    
+    // Thêm điều kiện lọc theo loại văn bản
+    const additionalParams = [];
+    let paramIndex = 4;
+    
+    if (documentType) {
+      documentConditions += ` AND LOWER(document_type) = LOWER($${paramIndex})`;
+      templateConditions += ` AND LOWER(template_type) = LOWER($${paramIndex})`;
+      additionalParams.push(documentType);
+      paramIndex++;
+    }
+    
+    // Thêm điều kiện lọc theo ngày
+    if (fromDate) {
+      documentConditions += ` AND issued_date >= $${paramIndex}`;
+      templateConditions += ` AND created_at >= $${paramIndex}`;
+      additionalParams.push(fromDate);
+      paramIndex++;
+    }
+    
+    if (toDate) {
+      documentConditions += ` AND issued_date <= $${paramIndex}`;
+      templateConditions += ` AND created_at <= $${paramIndex}`;
+      additionalParams.push(toDate);
+      paramIndex++;
+    }
+    
+    // Thêm điều kiện lọc theo ngôn ngữ
+    if (language) {
+      documentConditions += ` AND LOWER(language) = LOWER($${paramIndex})`;
+      templateConditions += ` AND LOWER(language) = LOWER($${paramIndex})`;
+      additionalParams.push(language);
+      paramIndex++;
+    }
+    
+    // Truy vấn UNION để kết hợp kết quả từ cả văn bản pháp luật và mẫu văn bản
+    // Sử dụng ORDER BY CASE để ưu tiên các kết quả khớp chính xác
+    const query = `
+      WITH combined_results AS (
+        (
+          SELECT 
+            id, 
+            title, 
+            document_type as type,
+            summary,
+            issued_date as date,
+            'legal_document' as result_type,
+            CASE 
+              WHEN LOWER(title) = LOWER($2) THEN 1      -- Ưu tiên cao nhất cho khớp hoàn toàn
+              WHEN LOWER(title) LIKE LOWER($3) THEN 2   -- Ưu tiên thứ 2 cho khớp đầu tiêu đề
+              WHEN LOWER(title) LIKE LOWER($1) THEN 3   -- Ưu tiên thứ 3 cho chứa trong tiêu đề
+              ELSE 4                                     -- Ưu tiên thấp nhất cho khớp nội dung hoặc tóm tắt
+            END as match_priority
+          FROM LegalDocuments
+          WHERE (${documentConditions})
+        )
+        
+        UNION
+        
+        (
+          SELECT 
+            id,
+            title,
+            template_type as type,
+            content as summary,
+            created_at as date,
+            'template' as result_type,
+            CASE 
+              WHEN LOWER(title) = LOWER($2) THEN 1      -- Ưu tiên cao nhất cho khớp hoàn toàn
+              WHEN LOWER(title) LIKE LOWER($3) THEN 2   -- Ưu tiên thứ 2 cho khớp đầu tiêu đề
+              WHEN LOWER(title) LIKE LOWER($1) THEN 3   -- Ưu tiên thứ 3 cho chứa trong tiêu đề
+              ELSE 4                                     -- Ưu tiên thấp nhất cho khớp nội dung
+            END as match_priority
+          FROM DocumentTemplates
+          WHERE (${templateConditions})
+        )
+      )
+      
+      SELECT id, title, type, summary, date, result_type
+      FROM combined_results
+      ORDER BY match_priority ASC, date DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    const queryParams = [...searchQueries, ...additionalParams, limit, offset];
     
     // Truy vấn đếm tổng số kết quả
     const countQuery = `
-      SELECT COUNT(*) as total FROM (
+      SELECT COUNT(*) as total
+      FROM (
         (
           SELECT id
           FROM LegalDocuments
-          WHERE (
-            title ILIKE $1 
-            OR content ILIKE $1 
-            OR summary ILIKE $1
-            OR id IN (SELECT document_id FROM LegalKeywords WHERE keyword ILIKE $1)
-          )
+          WHERE (${documentConditions})
         )
         
         UNION
@@ -608,34 +686,29 @@ async function searchAll(options = {}) {
         (
           SELECT id
           FROM DocumentTemplates
-          WHERE (
-            title ILIKE $1 
-            OR content ILIKE $1
-          )
+          WHERE (${templateConditions})
         )
-      ) as results
+      ) as count_results
     `;
     
-    const [resultsData, countData] = await Promise.all([
+    // Thực thi truy vấn
+    const [result, countResult] = await Promise.all([
       pool.query(query, queryParams),
-      pool.query(countQuery, [`%${searchTerm}%`])
+      pool.query(countQuery, [...searchQueries, ...additionalParams])
     ]);
-    
-    const results = resultsData.rows;
-    const total = parseInt(countData.rows[0].total);
-    const totalPages = Math.ceil(total / limit);
+
+    const total = parseInt(countResult.rows[0].total);
     
     return {
-      data: results,
+      data: result.rows,
       pagination: {
         total,
         page: Number(page),
         limit: Number(limit),
-        totalPages
+        totalPages: Math.ceil(total / limit)
       }
     };
   } catch (error) {
-    console.error('Lỗi khi tìm kiếm:', error);
     throw error;
   }
 }
@@ -717,7 +790,6 @@ const createLegalDocument = async (documentData) => {
     return newDocument;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Lỗi khi tạo văn bản pháp luật:', error);
     throw error;
   } finally {
     client.release();
@@ -811,7 +883,6 @@ const updateLegalDocument = async (documentId, documentData) => {
     return updatedDocument;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Lỗi khi cập nhật văn bản pháp luật:', error);
     throw error;
   } finally {
     client.release();
@@ -833,7 +904,6 @@ const deleteLegalDocument = async (documentId) => {
     
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Lỗi khi xóa văn bản pháp luật:', error);
     throw error;
   }
 };
@@ -866,9 +936,10 @@ const createDocumentTemplate = async (templateData) => {
     const values = [title, template_type, content, language];
     
     const result = await pool.query(query, values);
-    return result.rows[0];
+    const newTemplate = result.rows[0];
+    
+    return newTemplate;
   } catch (error) {
-    console.error('Lỗi khi tạo mẫu văn bản:', error);
     throw error;
   }
 };
@@ -907,9 +978,10 @@ const updateDocumentTemplate = async (templateId, templateData) => {
       throw new Error(`Không tìm thấy mẫu văn bản có ID ${templateId}`);
     }
     
-    return result.rows[0];
+    const updatedTemplate = result.rows[0];
+    
+    return updatedTemplate;
   } catch (error) {
-    console.error('Lỗi khi cập nhật mẫu văn bản:', error);
     throw error;
   }
 };
@@ -928,7 +1000,6 @@ const deleteDocumentTemplate = async (templateId) => {
     
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Lỗi khi xóa mẫu văn bản:', error);
     throw error;
   }
 };

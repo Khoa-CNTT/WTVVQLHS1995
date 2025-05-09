@@ -138,15 +138,12 @@ const SearchResults = () => {
         language: filters.language || undefined
       };
       
-      console.log("Tìm kiếm với từ khóa:", normalizedQuery);
-      
       // Gọi API searchAll từ legalService
       const response = await legalService.searchAll(searchParams);
       
       if (response && response.status === 'success') {
         // Phân loại kết quả tìm kiếm thành documents và templates
         const allResults = response.data || [];
-        console.log(`Số kết quả từ API: ${allResults.length}`);
         
         // Tách query thành các từ khóa riêng lẻ để tìm kiếm
         const keywordsArray = normalizedQuery.split(/\s+/).filter(word => word.length > 0);
@@ -250,8 +247,6 @@ const SearchResults = () => {
             documents.push(processedItem);
           }
         });
-        
-        console.log(`Sau khi lọc: Tìm thấy ${documents.length} văn bản và ${templates.length} mẫu`);
         
         setResults({
           documents: documents,

@@ -103,7 +103,13 @@ const Home = () => {
     try {
       // Lấy loại văn bản pháp luật
       const types = await legalService.getDocumentTypes();
-      setDocumentTypes(types);
+      // Kiểm tra xem types có phải là mảng không
+      if (Array.isArray(types)) {
+        setDocumentTypes(types);
+      } else {
+        console.warn('Dữ liệu documentTypes không phải là mảng:', types);
+        setDocumentTypes([]); // Set mảng rỗng nếu không phải mảng
+      }
 
       // Lấy văn bản pháp luật mới nhất
       const docsResponse = await legalService.getLegalDocuments({
@@ -126,6 +132,10 @@ const Home = () => {
       }
     } catch (error) {
       console.error('Lỗi khi lấy dữ liệu ban đầu:', error);
+      // Đảm bảo state luôn là mảng rỗng khi có lỗi
+      setDocumentTypes([]);
+      setRecentDocuments([]);
+      setPopularTemplates([]);
     }
   };
 
@@ -331,19 +341,22 @@ const Home = () => {
             </div>
 
             <div className={styles.docTypeCategories}>
-              {documentTypes.slice(0, 6).map((type, index) => (
-                <div 
-                  key={index} 
-                  className={`${styles.docTypeCard} ${styles.fadeInUp}`}
-                  onClick={() => navigate(`/documents?document_type=${encodeURIComponent(type.name)}`)}
-                >
-                  <div className={styles.docTypeIcon}>
-                    <FaRegFilePdf />
+              {Array.isArray(documentTypes) 
+                ? documentTypes.slice(0, 6).map((type, index) => (
+                  <div 
+                    key={index} 
+                    className={`${styles.docTypeCard} ${styles.fadeInUp}`}
+                    onClick={() => navigate(`/documents?document_type=${encodeURIComponent(type.name)}`)}
+                  >
+                    <div className={styles.docTypeIcon}>
+                      <FaRegFilePdf />
+                    </div>
+                    <h3>{type.name}</h3>
+                    <p>{type.description || `Các văn bản ${type.name.toLowerCase()}`}</p>
                   </div>
-                  <h3>{type.name}</h3>
-                  <p>{type.description || `Các văn bản ${type.name.toLowerCase()}`}</p>
-                </div>
-              ))}
+                ))
+                : <div className={styles.loadingTypes}>Đang tải loại văn bản...</div>
+              }
             </div>
 
             <div className={`${styles.viewAllContainer} ${styles.fadeInUp}`}>
