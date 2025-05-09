@@ -84,9 +84,10 @@ const LegalCaseEditor = () => {
                 
                 // Nếu có nội dung AI, hiển thị trong editor
                 if (caseDetail.ai_content) {
-                    setEditableDraft(caseDetail.ai_content);
-                    setFileContent(caseDetail.ai_content);
-                    fileContentRef.current = caseDetail.ai_content;
+                    const sanitizedContent = stripHtml(caseDetail.ai_content);
+                    setEditableDraft(sanitizedContent);
+                    setFileContent(sanitizedContent);
+                    fileContentRef.current = sanitizedContent;
                     setShowFileEditor(true);
                 }
                 
@@ -199,10 +200,11 @@ const LegalCaseEditor = () => {
             const content = event.target.result;
             
             if (typeof content === 'string') {
-                // Xử lý file text
-                setFileContent(content);
-                fileContentRef.current = content;
-                setEditableDraft(content); // Đè lên nội dung hiện tại
+                // Xử lý file text và loại bỏ HTML
+                const sanitizedContent = stripHtml(content);
+                setFileContent(sanitizedContent);
+                fileContentRef.current = sanitizedContent;
+                setEditableDraft(sanitizedContent); // Đè lên nội dung hiện tại
             } else {
                 // Xử lý file binary (PDF, DOCX)
                 const defaultContent = 'Đang xử lý nội dung từ file. Vui lòng đợi trong giây lát...';
@@ -220,10 +222,13 @@ const LegalCaseEditor = () => {
                         if (response && response.success) {
                             const extractedContent = response.data.content || '';
                             
+                            // Loại bỏ các thẻ HTML từ nội dung trích xuất
+                            const sanitizedContent = stripHtml(extractedContent);
+                            
                             // Cập nhật cả hai state và ref
-                            setFileContent(extractedContent);
-                            fileContentRef.current = extractedContent;
-                            setEditableDraft(extractedContent); // Đè lên nội dung hiện tại
+                            setFileContent(sanitizedContent);
+                            fileContentRef.current = sanitizedContent;
+                            setEditableDraft(sanitizedContent); // Đè lên nội dung hiện tại
                             
                             // Hiển thị thông báo thành công
                             message.success('Đã trích xuất nội dung file thành công');
@@ -301,6 +306,21 @@ const LegalCaseEditor = () => {
         setShowAIModal(false);
     };
     
+    // Thêm hàm stripHtml để loại bỏ tất cả các thẻ HTML
+    const stripHtml = (html) => {
+        if (!html) return '';
+        // Loại bỏ tất cả các thẻ HTML bằng regex
+        const strippedText = html.replace(/<[^>]*>?/gm, '');
+        // Chuyển đổi các ký tự đặc biệt HTML thành dạng text thông thường
+        return strippedText
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+    };
+    
     // Xử lý yêu cầu AI chỉnh sửa
     const handleAIEdit = async () => {
         if (!aiPrompt.trim()) {
@@ -321,7 +341,8 @@ const LegalCaseEditor = () => {
             });
             
             if (response && response.success) {
-                const aiContent = response.data.ai_content;
+                // Loại bỏ các thẻ HTML từ nội dung AI
+                const aiContent = stripHtml(response.data.ai_content);
                 setAIResult(aiContent);
             } else {
                 message.error(response?.message || 'Không thể tạo nội dung AI');
@@ -337,9 +358,18 @@ const LegalCaseEditor = () => {
     // Áp dụng kết quả AI vào nội dung
     const handleApplyAIResult = () => {
         if (aiResult) {
-            setEditableDraft(aiResult);
+            // Đảm bảo rằng nội dung được loại bỏ hết HTML trước khi áp dụng
+            const cleanContent = stripHtml(aiResult);
+            
+            // Cập nhật state và đảm bảo hiển thị đầy đủ
+            setEditableDraft(cleanContent);
+            
+            // Đóng modal và hiển thị thông báo
             setShowAIModal(false);
             message.success('Đã áp dụng nội dung AI thành công');
+            
+            // Đảm bảo tab nội dung được hiển thị
+            setActiveTab('content');
         }
     };
 
@@ -361,11 +391,13 @@ const LegalCaseEditor = () => {
             formData.append('case_type', values.case_type || '');
             formData.append('description', values.description || '');
             
-            // Thêm nội dung từ editor nếu có
+            // Thêm nội dung từ editor nếu có, đảm bảo loại bỏ HTML
             if (editableDraft && editableDraft.trim() !== '') {
-                formData.append('ai_content', editableDraft);
+                // Loại bỏ HTML từ nội dung trước khi gửi
+                const cleanContent = stripHtml(editableDraft);
+                formData.append('ai_content', cleanContent);
                 // Log nội dung AI trước khi gửi đi
-                console.log('Nội dung AI sẽ được gửi đi, độ dài:', editableDraft.length);
+                console.log('Nội dung AI đã được loại bỏ HTML, độ dài:', cleanContent.length);
             } else {
                 console.log('Không có nội dung AI để gửi');
             }
@@ -431,9 +463,9 @@ const LegalCaseEditor = () => {
         );
     }
 
-    return (
+    return (<>
+                <Navbar />
         <Layout className={styles.legalCaseLayout}>
-            <Navbar />
             <Content className={styles.legalCaseContent}>
                 <div className={styles.pageContainer} style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 24px' }}>
                     <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
@@ -566,7 +598,7 @@ const LegalCaseEditor = () => {
                                                     value={editableDraft}
                                                     onChange={handleFileContentChange}
                                                     placeholder="Nhập nội dung văn bản vụ án..."
-                                                    autoSize={{ minRows: 20, maxRows: 30 }}
+                                                    rows={40}
                                                     className={styles.contentEditor}
                                                     style={{ 
                                                         borderRadius: '8px', 
@@ -575,7 +607,8 @@ const LegalCaseEditor = () => {
                                                         lineHeight: '1.8',
                                                         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                                                         border: '1px solid #d9e1ec',
-                                                        minHeight: '500px'
+                                                        minHeight: '500px',
+                                                        resize: 'vertical'
                                                     }}
                                                 />
                                             </div>
@@ -657,7 +690,7 @@ const LegalCaseEditor = () => {
                                                                 value={editableDraft}
                                                                 onChange={handleFileContentChange}
                                                                 placeholder="Nội dung tài liệu..."
-                                                                autoSize={{ minRows: 20, maxRows: 30 }}
+                                                                rows={40}
                                                                 className={styles.contentEditor}
                                                                 style={{ 
                                                                     borderRadius: '8px', 
@@ -667,7 +700,8 @@ const LegalCaseEditor = () => {
                                                                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                                                                     border: '1px solid #d9e1ec',
                                                                     width: '100%',
-                                                                    minHeight: '500px'
+                                                                    minHeight: '500px',
+                                                                    resize: 'vertical'
                                                                 }}
                                                             />
                                                         </div>
@@ -797,12 +831,14 @@ const LegalCaseEditor = () => {
                                     <TextArea
                                         value={aiResult}
                                         readOnly
-                                        autoSize={{ minRows: 10, maxRows: 20 }}
+                                        rows={30}
                                         style={{ 
                                             borderRadius: '8px',
                                             fontSize: '15px',
                                             padding: '12px',
-                                            backgroundColor: '#f9fafc'
+                                            backgroundColor: '#f9fafc',
+                                            minHeight: '300px',
+                                            resize: 'vertical'
                                         }}
                                     />
                                 </div>
@@ -811,7 +847,8 @@ const LegalCaseEditor = () => {
                     </div>
                 </Modal>
             </Content>
-        </Layout>
+        </Layout>    </>
+
     );
 };
 

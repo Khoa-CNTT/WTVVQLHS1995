@@ -557,67 +557,6 @@ const ContractDetail = () => {
               </div>
             )}
           </div>
-          
-          <div className={styles.contentSection}>
-            <div className={styles.contentHeader}>
-              <h2 className={styles.sectionTitle}>Nội dung hợp đồng</h2>
-              {isOwner && !isEditingContent && (
-                <button 
-                  className={styles.editContentButton} 
-                  onClick={handleStartContentEditing}
-                  disabled={!content || isDocx}
-                >
-                  <i className="fas fa-edit"></i> Chỉnh sửa nội dung
-                </button>
-              )}
-            </div>
-            
-            {isEditingContent ? (
-              <div className={styles.contentEditContainer}>
-                <textarea
-                  value={editableContent}
-                  onChange={handleContentChange}
-                  className={styles.contentEditor}
-                  rows={15}
-                />
-                
-                <div className={styles.contentEditActions}>
-                  <button 
-                    className={styles.cancelButton} 
-                    onClick={handleCancelContentEdit}
-                  >
-                    Hủy
-                  </button>
-                  <button 
-                    className={styles.saveButton} 
-                    onClick={handleSaveContent}
-                    disabled={isSavingContent}
-                  >
-                    {isSavingContent ? 'Đang lưu...' : 'Lưu nội dung'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {isDocx && fileUrl ? (
-                  <div className={styles.docxViewerContainer}>
-                    <ContractDocViewer fileUrl={fileUrl} fileName={contract?.title} />
-                  </div>
-                ) : (
-                  <div className={styles.contentContainer}>
-                    {content ? (
-                      <pre className={styles.contentText}>{content}</pre>
-                    ) : (
-                      <div className={styles.noContent}>
-                        <i className="fas fa-file-alt"></i>
-                        <p>Không thể hiển thị nội dung tài liệu trực tiếp. Vui lòng tải xuống để xem chi tiết.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
         </div>
       )}
     </div>

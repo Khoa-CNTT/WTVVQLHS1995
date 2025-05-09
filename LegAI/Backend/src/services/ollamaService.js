@@ -58,7 +58,9 @@ NHIỆM VỤ QUAN TRỌNG:
         });
         
         if (response.data && response.data.message && response.data.message.content) {
-          return response.data.message.content;
+          // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+          const cleanContent = stripHtmlTags(response.data.message.content);
+          return cleanContent;
         } else {
           throw new Error('Không nhận được phản hồi hợp lệ từ AI');
         }
@@ -86,7 +88,9 @@ NHIỆM VỤ QUAN TRỌNG:
         });
         
         if (completion && completion.message && completion.message.content) {
-          return completion.message.content;
+          // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+          const cleanContent = stripHtmlTags(completion.message.content);
+          return cleanContent;
         } else {
           throw new Error('Không nhận được phản hồi hợp lệ từ AI qua ollama-js');
         }
@@ -177,7 +181,9 @@ NHIỆM VỤ QUAN TRỌNG:
         });
         
         if (response.data && response.data.message && response.data.message.content) {
-          return response.data.message.content;
+          // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+          const cleanContent = stripHtmlTags(response.data.message.content);
+          return cleanContent;
         }
       } catch (axiosError) {
         console.log('Gặp lỗi khi gọi Ollama API trực tiếp, đang thử với thư viện ollama-js');
@@ -203,7 +209,9 @@ NHIỆM VỤ QUAN TRỌNG:
           });
           
           if (completion && completion.message && completion.message.content) {
-            return completion.message.content;
+            // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+            const cleanContent = stripHtmlTags(completion.message.content);
+            return cleanContent;
           }
         } catch (ollamaError) {
           console.error('Lỗi khi gọi ollama-js:', ollamaError);
@@ -286,7 +294,9 @@ KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá 
 
       // Trích xuất kết quả
       if (response.data && response.data.message && response.data.message.content) {
-        return response.data.message.content;
+        // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+        const cleanContent = stripHtmlTags(response.data.message.content);
+        return cleanContent;
       } else {
         // Trả về thông báo thân thiện thay vì ném lỗi
         return "Tôi đang gặp khó khăn trong việc xử lý câu hỏi của bạn. Vui lòng thử lại sau hoặc kiểm tra lại câu hỏi của bạn.";
@@ -302,7 +312,9 @@ KHÔNG BAO GIỜ được bịa đặt thông tin hoặc đưa ra ý kiến cá 
         });
         
         if (completion && completion.message && completion.message.content) {
-          return completion.message.content;
+          // Loại bỏ tất cả các thẻ HTML từ kết quả AI
+          const cleanContent = stripHtmlTags(completion.message.content);
+          return cleanContent;
         } else {
           return "Tôi đang gặp khó khăn trong việc xử lý câu hỏi của bạn. Vui lòng thử lại sau hoặc kiểm tra lại câu hỏi của bạn.";
         }
@@ -379,7 +391,29 @@ const checkConnection = async () => {
   }
 };
 
+/**
+ * Loại bỏ tất cả các thẻ HTML từ văn bản
+ * @param {string} html - Văn bản có thể chứa HTML
+ * @returns {string} - Văn bản sạch không có thẻ HTML
+ */
+const stripHtmlTags = (html) => {
+  if (!html) return '';
+  
+  // Loại bỏ tất cả các thẻ HTML bằng regex
+  const strippedText = html.replace(/<[^>]*>?/gm, '');
+  
+  // Chuyển đổi các ký tự đặc biệt HTML thành dạng text thông thường
+  return strippedText
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+};
+
 module.exports = {
   generateResponse,
-  checkConnection
-}; 
+  checkConnection,
+  stripHtmlTags
+};

@@ -197,14 +197,13 @@
 
 .aiDraftEditor {
   width: 100%;
-  max-width: 800px; /* Giới hạn chiều rộng tối đa */
   min-width: 300px;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   padding: 12px;
   font-size: 16px;
   resize: vertical;
-  min-height: 200px;
+  min-height: 300px;
   transition: all 0.3s;
 }
 
@@ -1179,6 +1178,7 @@
 .contentEditor {
   width: 100%;
   min-height: 500px !important;
+  max-height: none !important;
   font-size: 16px !important;
   line-height: 1.8 !important;
   padding: 16px !important;
@@ -1187,6 +1187,8 @@
   background-color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   transition: all 0.3s !important;
+  resize: vertical !important;
+  overflow: auto !important;
 }
 
 .contentEditor:hover,
