@@ -209,25 +209,12 @@ const EditLegalDocument = () => {
         placeholder: 'Nhập nội dung văn bản ở đây...'
       });
       
-      // Đăng ký sự kiện - chỉ cập nhật khi người dùng thực sự thay đổi nội dung
-      let isUserAction = true; // Biến flag để kiểm soát cập nhật
-      quillInstance.current.on('text-change', (delta, oldDelta, source) => {
+      // Đăng ký sự kiện
+      quillInstance.current.on('text-change', () => {
         try {
-          // Chỉ cập nhật state khi thay đổi đến từ người dùng
-          if (source === 'user' && isUserAction) {
-            const content = quillInstance.current.root.innerHTML;
-            
-            // Tạm thời vô hiệu hóa cập nhật để tránh vòng lặp
-            isUserAction = false;
-            
-            setHtmlContent(content);
-            form.setFieldsValue({ content });
-            
-            // Cho phép cập nhật lại sau khi state đã được cập nhật
-            setTimeout(() => {
-              isUserAction = true;
-            }, 50);
-          }
+          const content = quillInstance.current.root.innerHTML;
+          setHtmlContent(content);
+          form.setFieldsValue({ content });
         } catch (err) {
           setDebugInfo('Lỗi khi cập nhật nội dung từ Quill: ' + err.message);
         }
@@ -275,32 +262,15 @@ const EditLegalDocument = () => {
     try {
       setDebugInfo('Đang cập nhật nội dung Quill...');
       
-      // Lưu vị trí con trỏ hiện tại
-      const selection = quillInstance.current.getSelection();
-      
       // Xử lý content để loại bỏ iframe, frame nếu có
       let processedContent = sanitizeHtml(content);
       
-      // So sánh nội dung hiện tại với nội dung mới
-      const currentContent = quillInstance.current.root.innerHTML;
-      if (currentContent !== processedContent) {
-        // Xóa nội dung hiện tại 
-        quillInstance.current.root.innerHTML = '';
-        
-        // Chèn HTML mới
-        quillInstance.current.clipboard.dangerouslyPasteHTML(processedContent);
-        
-        // Khôi phục vị trí con trỏ
-        if (selection) {
-          setTimeout(() => {
-            const length = quillInstance.current.getLength();
-            const safeIndex = Math.min(selection.index, Math.max(0, length - 1));
-            quillInstance.current.setSelection(safeIndex, 0);
-          }, 50);
-        }
-        
-        setDebugInfo('Đã cập nhật nội dung Quill thành công');
-      }
+      // Xóa nội dung hiện tại
+      quillInstance.current.root.innerHTML = '';
+      
+      // Chèn HTML mới
+      quillInstance.current.clipboard.dangerouslyPasteHTML(processedContent);
+      setDebugInfo('Đã cập nhật nội dung Quill thành công');
     } catch (err) {
       setDebugInfo('Lỗi khi cập nhật nội dung: ' + err.message);
       
@@ -334,12 +304,10 @@ const EditLegalDocument = () => {
   };
 
   // ===== QUẢN LÝ DỮ LIỆU =====
-  // Thay thế useEffect để khởi tạo Quill một cách hiệu quả hơn
+  // Sửa đổi useEffect để tách biệt việc tải dữ liệu và khởi tạo Quill
   useEffect(() => {
-    // Chỉ khởi tạo Quill khi component được mount và chưa có quillReady
-    if (!quillReady && !fallbackEditor) {
-      setupQuillEditor();
-    }
+    // Khởi tạo Quill khi component được mount
+    setupQuillEditor();
     
     // Dọn dẹp khi unmount
     return () => {
@@ -355,32 +323,6 @@ const EditLegalDocument = () => {
       }
     };
   }, []); // Chỉ chạy 1 lần khi component mount
-
-  // Thay thế useEffect liên quan đến việc cập nhật Quill khi có nội dung mới
-  useEffect(() => {
-    // Chỉ cập nhật khi cả Quill đã sẵn sàng và có nội dung
-    if (quillReady && htmlContent && quillInstance.current) {
-      // Lưu vị trí con trỏ hiện tại
-      const selection = quillInstance.current.getSelection();
-      
-      // Chỉ cập nhật nội dung nếu đây là lần đầu tiên hoặc htmlContent đến từ nguồn bên ngoài
-      // không phải từ sự kiện text-change của chính Quill
-      if (!quillInstance.current.root.innerHTML || quillInstance.current.root.innerHTML.trim() === '<p><br></p>') {
-        updateQuillContent(htmlContent);
-        
-        // Khôi phục vị trí con trỏ sau khi cập nhật nếu đã có
-        if (selection) {
-          setTimeout(() => {
-            try {
-              quillInstance.current.setSelection(selection);
-            } catch (e) {
-              console.error('Không thể khôi phục vị trí con trỏ:', e);
-            }
-          }, 50);
-        }
-      }
-    }
-  }, [quillReady, htmlContent]);
 
   // Thêm useEffect riêng để tải dữ liệu
   useEffect(() => {
@@ -462,6 +404,39 @@ const EditLegalDocument = () => {
     
     // Không cần trả về cleanup function cho useEffect này
   }, [id, form]);
+
+  // Thêm useEffect mới để xử lý khi cả nội dung và Quill đã sẵn sàng
+  useEffect(() => {
+    if (quillReady && htmlContent) {
+      updateQuillContent(htmlContent);
+    }
+  }, [quillReady, htmlContent]);
+
+  // Thêm xử lý trực tiếp nếu không thể tải Quill sau tất cả các lần thử
+  useEffect(() => {
+    if (quillLoadRetries >= MAX_RETRIES && !quillReady && !fallbackEditor) {
+      setFallbackEditor(true);
+    }
+  }, [quillLoadRetries, quillReady, fallbackEditor]);
+
+  // Sửa useEffect đang gây ra lỗi vòng lặp vô hạn
+  useEffect(() => {
+    // Khi nội dung thay đổi do tải tài liệu lên và Quill chưa sẵn sàng
+    if (htmlContent && !quillReady && !fallbackEditor && !hasTriedLoadingWithContent && quillLoadRetries < MAX_RETRIES) {
+      // Đánh dấu đã thử tải Quill để tránh gọi liên tục
+      setHasTriedLoadingWithContent(true);
+      // Thử khởi tạo lại Quill
+      setupQuillEditor();
+    }
+  }, [htmlContent, quillReady, fallbackEditor, hasTriedLoadingWithContent, quillLoadRetries]);
+
+  // Thêm useEffect để reset biến đánh dấu khi cần
+  useEffect(() => {
+    // Reset biến đánh dấu khi Quill đã sẵn sàng
+    if (quillReady) {
+      setHasTriedLoadingWithContent(false);
+    }
+  }, [quillReady]);
 
   const handleUploadPdf = async (info) => {
     if (info.file.status === 'uploading') {

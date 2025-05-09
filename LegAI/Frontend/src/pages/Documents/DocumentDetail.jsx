@@ -4,9 +4,8 @@ import styles from './DocumentDetail.module.css';
 import Navbar from '../../components/layout/Nav/Navbar';
 import legalService from '../../services/legalService';
 import Loader from '../../components/layout/Loading/Loading';
-import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt, FaBalanceScale, FaSearchPlus } from 'react-icons/fa';
+import { FaRegFilePdf, FaShare, FaStar, FaBookmark, FaRegCalendarAlt, FaTag, FaExternalLinkAlt, FaBalanceScale, FaSearch, FaBrain } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import DocumentAnalysis from '../../components/AI/DocumentAnalysis';
 
 /**
  * Trang hiển thị chi tiết văn bản pháp luật
@@ -19,6 +18,8 @@ const DocumentDetail = () => {
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   // Tải thông tin chi tiết văn bản khi component được tải
@@ -316,13 +317,80 @@ const DocumentDetail = () => {
     }
   };
 
-  // Xử lý khi người dùng muốn phân tích văn bản
-  const handleAnalyze = () => {
-    if (document?.id) {
+  // Phân tích văn bản pháp luật bằng AI
+  const handleAnalyzeDocument = async () => {
+    try {
+      setAnalyzing(true);
       setShowAnalysis(true);
-      toast.info('Đang chuẩn bị phân tích văn bản...');
-    } else {
-      toast.error('Không thể phân tích văn bản. Không tìm thấy nội dung văn bản.');
+      
+      // Hiển thị thông báo
+      toast.info('Đang phân tích văn bản pháp luật...', {
+        autoClose: 3000,
+        position: 'top-right'
+      });
+      
+      // Gọi API để phân tích
+      const response = await legalService.analyzeLegalDocument(id);
+      
+      // Lưu ý: hàm analyzeLegalDocument đã được sửa đổi để luôn trả về status: 'success'
+      // và data mặc định ngay cả khi có lỗi xảy ra
+      if (response.data) {
+        setAnalysisResult(response.data);
+        
+        // Hiển thị toast thành công nếu không có thông báo lỗi
+        if (!response.message || !response.message.includes('lỗi')) {
+          toast.success('Phân tích văn bản thành công!', {
+            autoClose: 3000,
+            position: 'top-right'
+          });
+        } 
+        // Nếu có thông báo lỗi trong message, hiển thị cảnh báo
+        else {
+          toast.warning(response.message || 'Phân tích văn bản có thể không đầy đủ', {
+            autoClose: 5000,
+            position: 'top-right'
+          });
+        }
+      } else {
+        // Trường hợp hiếm gặp: không có dữ liệu nhưng không có lỗi
+        toast.warning('Không nhận được dữ liệu phân tích chi tiết', {
+          autoClose: 3000,
+          position: 'top-right'
+        });
+        
+        // Tạo dữ liệu mặc định để hiển thị
+        setAnalysisResult({
+          summary: "Không thể tạo tóm tắt văn bản",
+          key_points: ["Hệ thống không thể phân tích văn bản này", "Vui lòng thử lại sau"],
+          legal_analysis: "Không có kết quả phân tích",
+          related_fields: ["Pháp luật"],
+          recommendations: "Vui lòng đọc trực tiếp nội dung văn bản",
+          potential_issues: "Không có thông tin"
+        });
+      }
+    } catch (error) {
+      // Lỗi này chỉ xảy ra nếu có vấn đề với việc hiển thị UI, vì hàm analyzeLegalDocument
+      // đã được thiết kế để không ném lỗi
+      console.error('Lỗi không mong đợi khi phân tích văn bản:', error);
+      toast.error('Không thể phân tích văn bản do lỗi hệ thống. Vui lòng thử lại sau.', {
+        autoClose: 5000, 
+        position: 'top-right'
+      });
+      
+      // Tạo dữ liệu mặc định để hiển thị
+      setAnalysisResult({
+        summary: "Không thể phân tích văn bản pháp luật",
+        key_points: ["Hệ thống gặp lỗi", "Vui lòng thử lại sau"],
+        legal_analysis: "Lỗi khi phân tích",
+        related_fields: ["Pháp luật"],
+        recommendations: "Vui lòng thử lại sau hoặc liên hệ hỗ trợ kỹ thuật",
+        potential_issues: "Không có thông tin"
+      });
+    } finally {
+      // Giữ trạng thái loading thêm một chút để skeleton loading hiển thị rõ ràng hơn
+      setTimeout(() => {
+        setAnalyzing(false);
+      }, 500);
     }
   };
 
@@ -424,6 +492,13 @@ const DocumentDetail = () => {
                   <FaBalanceScale /> So sánh
                 </Link>
                 <button 
+                  className={`${styles['action-button']} ${styles.research}`}
+                  onClick={handleAnalyzeDocument}
+                  disabled={analyzing}
+                >
+                  <FaBrain /> {analyzing ? 'Đang phân tích...' : 'Nghiên cứu'}
+                </button>
+                <button 
                   className={`${styles['action-button']} ${styles.favorite} ${isFavorite ? styles.active : ''}`}
                   onClick={toggleFavorite}
                 >
@@ -435,23 +510,166 @@ const DocumentDetail = () => {
                 >
                   <FaBookmark /> {isBookmarked ? 'Đã đánh dấu' : 'Đánh dấu'}
                 </button>
-                <button 
-                  className={`${styles['action-button']} ${styles.analyze}`}
-                  onClick={handleAnalyze}
-                >
-                  <FaSearchPlus /> Nghiên cứu
-                </button>
               </div>
             </div>
 
-            {/* Component phân tích văn bản */}
-            <DocumentAnalysis
-              documentId={document.id}
-              documentTitle={document.title}
-              documentContent={document.content}
-              visible={showAnalysis}
-              onClose={() => setShowAnalysis(false)}
-            />
+            {/* Phần hiển thị kết quả phân tích */}
+            {showAnalysis && (
+              <div className={styles['analysis-container']}>
+                <h2 className={styles['analysis-title']}>
+                  <FaBrain /> Kết quả nghiên cứu văn bản pháp luật
+                  <button 
+                    className={styles['close-analysis']}
+                    onClick={() => setShowAnalysis(false)}
+                  >
+                    ×
+                  </button>
+                </h2>
+                
+                {analyzing ? (
+                  <div className={styles['analysis-content']}>
+                    {/* Skeleton loading cho phần tóm tắt */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Tóm tắt</h3>
+                      <div className={styles['skeleton-text']}>
+                        <div className={styles['skeleton-line']} style={{ width: '100%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '95%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '90%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '97%' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Skeleton loading cho phần điểm chính */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Điểm chính</h3>
+                      <div className={styles['skeleton-list']}>
+                        <div className={styles['skeleton-bullet']}>
+                          <div className={styles['skeleton-dot']}></div>
+                          <div className={styles['skeleton-line']} style={{ width: '90%' }}></div>
+                        </div>
+                        <div className={styles['skeleton-bullet']}>
+                          <div className={styles['skeleton-dot']}></div>
+                          <div className={styles['skeleton-line']} style={{ width: '85%' }}></div>
+                        </div>
+                        <div className={styles['skeleton-bullet']}>
+                          <div className={styles['skeleton-dot']}></div>
+                          <div className={styles['skeleton-line']} style={{ width: '80%' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Skeleton loading cho phần phân tích pháp lý */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Phân tích pháp lý</h3>
+                      <div className={styles['skeleton-text']}>
+                        <div className={styles['skeleton-line']} style={{ width: '100%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '98%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '95%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '90%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '95%' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Skeleton loading cho phần lĩnh vực liên quan */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Lĩnh vực liên quan</h3>
+                      <div className={styles['skeleton-tags']}>
+                        <div className={styles['skeleton-tag']}></div>
+                        <div className={styles['skeleton-tag']}></div>
+                        <div className={styles['skeleton-tag']}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Skeleton loading cho phần đề xuất */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Đề xuất</h3>
+                      <div className={styles['skeleton-text']}>
+                        <div className={styles['skeleton-line']} style={{ width: '100%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '90%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '95%' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Skeleton loading cho phần vấn đề tiềm ẩn */}
+                    <div className={styles['analysis-section']}>
+                      <h3>Vấn đề tiềm ẩn</h3>
+                      <div className={styles['skeleton-text']}>
+                        <div className={styles['skeleton-line']} style={{ width: '95%' }}></div>
+                        <div className={styles['skeleton-line']} style={{ width: '90%' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : analysisResult ? (
+                  <div className={styles['analysis-content']}>
+                    {analysisResult.summary && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Tóm tắt</h3>
+                        <p>{analysisResult.summary}</p>
+                      </div>
+                    )}
+                    
+                    {analysisResult.key_points && analysisResult.key_points.length > 0 && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Điểm chính</h3>
+                        <ul>
+                          {analysisResult.key_points.map((point, index) => (
+                            <li key={index}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {analysisResult.legal_analysis && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Phân tích pháp lý</h3>
+                        <p>{analysisResult.legal_analysis}</p>
+                      </div>
+                    )}
+                    
+                    {analysisResult.related_fields && analysisResult.related_fields.length > 0 && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Lĩnh vực liên quan</h3>
+                        <div className={styles['tag-container']}>
+                          {analysisResult.related_fields.map((field, index) => (
+                            <span key={index} className={styles['field-tag']}>
+                              {field}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {analysisResult.recommendations && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Đề xuất</h3>
+                        <p>{analysisResult.recommendations}</p>
+                      </div>
+                    )}
+                    
+                    {analysisResult.potential_issues && (
+                      <div className={styles['analysis-section']}>
+                        <h3>Vấn đề tiềm ẩn</h3>
+                        <p>{analysisResult.potential_issues}</p>
+                      </div>
+                    )}
+                    
+                    <div className={styles['analysis-disclaimer']}>
+                      <p><strong>Lưu ý:</strong> Phân tích này được thực hiện bởi công nghệ AI và chỉ mang tính tham khảo. Vui lòng tham vấn chuyên gia pháp lý để có thông tin chính xác nhất.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles['analysis-error']}>
+                    <p>Không thể phân tích văn bản này. Vui lòng thử lại sau.</p>
+                    <button 
+                      className={styles['retry-button']}
+                      onClick={handleAnalyzeDocument}
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.error}>
@@ -465,4 +683,4 @@ const DocumentDetail = () => {
   );
 };
 
-export default DocumentDetail; 
+export default DocumentDetail;

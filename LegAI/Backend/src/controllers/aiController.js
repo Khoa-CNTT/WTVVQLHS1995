@@ -3,6 +3,7 @@ const aiService = require('../services/aiService');
 const aiModel = require('../models/aiModel');
 const asyncHandler = require('../middleware/async');
 const pool = require('../config/database');
+const ollamaService = require('../services/ollamaService');
 
 /**
  * @desc    Trả lời câu hỏi pháp lý
@@ -106,7 +107,7 @@ const reloadVectorStore = asyncHandler(async (req, res) => {
 const checkStatus = asyncHandler(async (req, res) => {
   try {
     // Kiểm tra kết nối Ollama
-    const isOllamaConnected = await require('../services/ollamaService').checkConnection();
+    const isOllamaConnected = await ollamaService.checkConnection();
     
     return res.status(200).json({
       success: true,
@@ -408,132 +409,184 @@ const getUserChatHistory = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Phân tích văn bản pháp luật bằng AI
- * @route   POST /api/ai/analyze
- * @access  Private (Optional)
+ * @desc    Phân tích văn bản pháp luật
+ * @route   POST /api/ai/analyze-legal/:id
+ * @access  Public
  */
-const analyzeDocument = asyncHandler(async (req, res) => {
+const analyzeLegalDocument = asyncHandler(async (req, res) => {
   try {
-    const { document_id, document_title, content, prompt, options } = req.body;
+    const { id } = req.params;
     
-    if (!content) {
+    if (!id) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp nội dung văn bản để phân tích'
+        message: 'Vui lòng cung cấp ID văn bản pháp luật'
       });
     }
     
-    // Giới hạn độ dài nội dung để tránh quá tải API
-    if (content.length > 50000) {
-      return res.status(400).json({
+    console.log(`Bắt đầu phân tích văn bản pháp luật ID: ${id}`);
+    
+    // Lấy thông tin và nội dung văn bản
+    const documentQuery = `
+      SELECT 
+        id, 
+        title, 
+        document_type, 
+        version, 
+        content,
+        summary,
+        issued_date,
+        created_at,
+        language
+      FROM LegalDocuments 
+      WHERE id = $1
+    `;
+    
+    const documentResult = await pool.query(documentQuery, [id]);
+    
+    if (documentResult.rows.length === 0) {
+      return res.status(404).json({
         success: false,
-        message: 'Nội dung văn bản quá dài. Vui lòng giới hạn trong 50.000 ký tự.'
+        message: 'Không tìm thấy văn bản pháp luật'
       });
     }
     
-    // Thiết lập các tùy chọn mặc định nếu không được cung cấp
-    const modelOptions = {
-      temperature: options?.temperature || 0.2,
-      top_p: options?.top_p || 0.95,
-      top_k: options?.top_k || 40,
-      topK: options?.topK || 3
-    };
+    const document = documentResult.rows[0];
+    const { title, document_type, content, summary, issued_date } = document;
     
-    // Log thông tin user nếu có
-    if (req.user) {
-      console.log('Request phân tích từ user đã xác thực:', {
-        id: req.user.id,
-        role: req.user.role,
-        email: req.user.email
-      });
-    } else {
-      console.log('Request phân tích từ người dùng không xác thực (anonymous)');
+    // Tạo prompt phân tích văn bản pháp luật
+    let prompt = `
+    Bạn là trợ lý AI pháp lý chuyên phân tích văn bản pháp luật Việt Nam. Hãy phân tích chi tiết văn bản pháp luật sau và trả về kết quả dưới dạng JSON có cấu trúc cụ thể.
+    
+    THÔNG TIN VĂN BẢN:
+    - Tiêu đề: ${title}
+    - Loại văn bản: ${document_type}
+    - Ngày ban hành: ${issued_date ? new Date(issued_date).toLocaleDateString('vi-VN') : 'Không rõ'}
+    
+    NỘI DUNG VĂN BẢN:
+    ${content.substring(0, 12000)} ${content.length > 12000 ? '... (nội dung đã được cắt ngắn)' : ''}
+    
+    TÓM TẮT HIỆN CÓ:
+    ${summary || 'Không có tóm tắt'}
+    
+    YÊU CẦU PHÂN TÍCH:
+    1. Tạo một tóm tắt ngắn gọn, súc tích về văn bản (2-3 câu).
+    2. Xác định 5-7 điểm chính của văn bản.
+    3. Phân tích chi tiết về các khía cạnh pháp lý quan trọng (bao gồm phạm vi áp dụng, đối tượng điều chỉnh, quyền và nghĩa vụ, các điều khoản đáng chú ý).
+    4. Xác định các lĩnh vực pháp luật liên quan.
+    5. Đưa ra đề xuất và nhận xét về cách hiểu và áp dụng văn bản này.
+    6. Nêu các vấn đề tiềm ẩn hoặc điểm chưa rõ ràng (nếu có).
+    
+    Trả về phân tích dưới dạng JSON theo cấu trúc sau: 
+    {
+      "summary": "tóm tắt ngắn gọn", 
+      "key_points": ["điểm 1", "điểm 2", ...], 
+      "legal_analysis": "phân tích chi tiết", 
+      "related_fields": ["lĩnh vực 1", "lĩnh vực 2", ...], 
+      "recommendations": "các đề xuất", 
+      "potential_issues": "vấn đề tiềm ẩn"
     }
     
-    // Gửi văn bản đến AI Service để phân tích
-    const result = await aiService.analyzeLegalDocument({
-      document_id,
-      document_title,
-      content,
-      prompt
-    }, modelOptions);
+    Chỉ trả về JSON, không thêm bất kỳ giải thích nào khác.
+    `;
     
-    // Lấy user_id từ token xác thực nếu có
-    const userId = req.user?.id || null;
+    // Gọi ollamaService để lấy phân tích từ mô hình AI
+    console.log('Đang gửi yêu cầu đến mô hình AI...');
+    const responseData = await ollamaService.generateResponse(prompt);
     
-    // Lưu kết quả phân tích vào database nếu có userId
-    let dbResult = { success: false };
+    console.log('Đã nhận phản hồi từ mô hình AI');
     
-    if (userId) {
-      try {
-        // Chuẩn bị dữ liệu để lưu vào DB
-        const analysisData = {
-          user_id: userId,
-          document_id: document_id || null,
-          document_title: document_title || 'Văn bản không tiêu đề',
-          request: JSON.stringify({
-            content_length: content.length,
-            prompt: prompt || 'default'
-          }),
-          response: JSON.stringify({
-            analysis_length: result.analysis.length,
-            related_docs: result.related_documents.length
-          })
-        };
-        
-        // Lưu vào database
-        const query = `
-          INSERT INTO AIDocumentAnalysis (user_id, document_id, document_title, request, response, created_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
-          RETURNING id
-        `;
-        
-        const dbResponse = await pool.query(
-          query, 
-          [analysisData.user_id, analysisData.document_id, analysisData.document_title, 
-           analysisData.request, analysisData.response]
-        );
-        
-        if (dbResponse.rows.length > 0) {
-          dbResult = {
-            success: true,
-            record: { id: dbResponse.rows[0].id }
-          };
-        }
-      } catch (dbError) {
-        console.error('Lỗi khi lưu kết quả phân tích vào DB:', dbError);
-        dbResult = {
-          success: false,
-          error: dbError.message
-        };
+    let analysisResult;
+    try {
+      // Tìm và trích xuất JSON từ phản hồi của AI
+      const jsonMatch = responseData.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysisResult = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Không thể tìm thấy định dạng JSON trong phản hồi');
       }
+    } catch (error) {
+      console.error('Lỗi khi phân tích phản hồi AI:', error.message);
+      
+      // Nếu không thể parse JSON, tạo một phiên bản dự phòng có cấu trúc
+      analysisResult = {
+        summary: "Không thể tạo tóm tắt tự động cho văn bản này",
+        key_points: content ? extractKeyPoints(content) : ["Không thể xác định các điểm chính"],
+        legal_analysis: "Quá trình phân tích tự động gặp sự cố. Vui lòng đọc trực tiếp văn bản để có thông tin chính xác nhất.",
+        related_fields: document_type ? [document_type] : ["Pháp luật"],
+        recommendations: "Vui lòng tham khảo ý kiến chuyên gia pháp lý để hiểu đúng văn bản này.",
+        potential_issues: "Không thể xác định các vấn đề tiềm ẩn"
+      };
     }
     
     // Trả về kết quả phân tích
     return res.status(200).json({
       success: true,
-      data: result,
-      saved_to_db: dbResult.success,
-      db_record_id: dbResult.success ? dbResult.record.id : null,
-      db_error: dbResult.error || null
+      data: analysisResult
     });
+    
   } catch (error) {
-    console.error('Lỗi khi phân tích văn bản:', error);
-    
-    // Kiểm tra lỗi kết nối Ollama
-    if (error.message && error.message.includes('Không thể kết nối đến Ollama')) {
-      return res.status(503).json({
-        success: false,
-        message: 'Dịch vụ AI đang không khả dụng. Vui lòng thử lại sau.'
-      });
-    }
-    
+    console.error('Lỗi khi phân tích văn bản pháp luật:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Lỗi server khi phân tích văn bản'
+      message: `Lỗi khi phân tích văn bản pháp luật: ${error.message}`,
+      data: {
+        summary: "Đã xảy ra lỗi khi phân tích văn bản pháp luật này",
+        key_points: ["Hệ thống gặp sự cố khi phân tích", "Vui lòng thử lại sau"],
+        legal_analysis: "Không thể thực hiện phân tích pháp lý do lỗi hệ thống",
+        related_fields: ["Pháp luật"],
+        recommendations: "Vui lòng thử lại sau hoặc đọc trực tiếp văn bản",
+        potential_issues: "Không có thông tin"
+      }
     });
   }
 });
+
+/**
+ * Hàm trích xuất các điểm chính từ nội dung văn bản khi AI không thể phân tích
+ * @param {string} content - Nội dung văn bản pháp luật
+ * @returns {string[]} - Mảng các điểm chính
+ */
+function extractKeyPoints(content) {
+  // Tìm các tiêu đề hoặc điều khoản trong văn bản
+  const keyPoints = [];
+  
+  // Tìm các điều khoản (Điều X)
+  const articleRegex = /Điều\s+\d+[.:]\s*([^.!?]*[.!?])/gi;
+  let articleMatch;
+  
+  // Giới hạn số điểm chính
+  let count = 0;
+  
+  while ((articleMatch = articleRegex.exec(content)) !== null && count < 5) {
+    if (articleMatch[1] && articleMatch[1].trim().length > 10) {
+      keyPoints.push(articleMatch[0].trim());
+      count++;
+    }
+  }
+  
+  // Nếu không tìm thấy đủ điều khoản, thêm các đoạn văn đầu tiên
+  if (keyPoints.length < 3) {
+    const paragraphs = content.split(/\n+/);
+    for (const para of paragraphs) {
+      if (para.trim().length > 30 && keyPoints.length < 5) {
+        // Chỉ lấy các đoạn văn có ý nghĩa (đủ dài)
+        const trimmedPara = para.trim();
+        if (!keyPoints.includes(trimmedPara)) {
+          keyPoints.push(trimmedPara);
+        }
+      }
+    }
+  }
+  
+  // Nếu vẫn không đủ, thêm thông báo
+  if (keyPoints.length === 0) {
+    keyPoints.push("Không thể tự động xác định các điểm chính");
+    keyPoints.push("Vui lòng đọc toàn bộ văn bản để nắm thông tin chính xác");
+  }
+  
+  return keyPoints;
+}
 
 module.exports = {
   answerQuestion,
@@ -546,5 +599,5 @@ module.exports = {
   deleteAIConsultation,
   getUserChatHistory,
   getMyAIChatHistory,
-  analyzeDocument
+  analyzeLegalDocument
 }; 
