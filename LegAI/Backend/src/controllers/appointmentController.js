@@ -498,13 +498,13 @@ exports.deleteAvailability = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getAppointmentStats = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
-  const isLawyer = req.user.role === 'lawyer';
+  const isLawyer = req.user.role.toLowerCase() === 'lawyer';
 
-  const counts = await appointmentModel.getAppointmentCountsByStatus(userId, isLawyer);
+  const stats = await appointmentModel.getAppointmentCountsByStatus(userId, isLawyer);
 
   res.status(200).json({
     status: 'success',
-    data: counts
+    data: stats
   });
 });
 
@@ -513,7 +513,7 @@ exports.getAppointmentStats = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getUpcomingAppointments = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
-  const isLawyer = req.user.role === 'lawyer';
+  const isLawyer = req.user.role.toLowerCase() === 'lawyer';
   const limit = parseInt(req.query.limit) || 5;
 
   const appointments = await appointmentModel.getUpcomingAppointments(userId, isLawyer, limit);
@@ -523,4 +523,85 @@ exports.getUpcomingAppointments = asyncHandler(async (req, res, next) => {
     count: appointments.length,
     data: appointments
   });
-}); 
+});
+
+// @desc    Lấy tất cả lịch hẹn (cho báo cáo thống kê)
+// @route   GET /api/appointments/all
+// @access  Private (Admin)
+exports.getAllAppointments = asyncHandler(async (req, res, next) => {
+  // Chỉ admin mới có quyền truy cập
+  if (req.user.role.toLowerCase() !== 'admin') {
+    return next(new ErrorResponse('Không có quyền truy cập vào chức năng này', 403));
+  }
+
+  try {
+    const { startDate, endDate, page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    // Xây dựng câu truy vấn
+    let query = `
+      SELECT a.*, 
+        cu.full_name as customer_name, cu.email as customer_email,
+        la.full_name as lawyer_name, la.email as lawyer_email
+      FROM Appointments a
+      JOIN Users cu ON a.customer_id = cu.id
+      JOIN Users la ON a.lawyer_id = la.id
+    `;
+    
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    // Thêm điều kiện lọc theo thời gian
+    if (startDate && endDate) {
+      query += ` WHERE a.start_time >= $${paramIndex} AND a.start_time <= $${paramIndex + 1}`;
+      queryParams.push(startDate, endDate);
+      paramIndex += 2;
+    }
+    
+    // Đếm tổng số bản ghi
+    const countQuery = `SELECT COUNT(*) as total FROM (${query}) as count_query`;
+    const countResult = await db.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total);
+    
+    // Thêm phân trang
+    query += ` ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limit, offset);
+    
+    // Thực thi truy vấn
+    const result = await db.query(query, queryParams);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Lấy danh sách lịch hẹn thành công',
+      data: result.rows,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả lịch hẹn:', error.message);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Lỗi khi lấy danh sách lịch hẹn',
+      error: error.message
+    });
+  }
+});
+
+// Sửa lại cách export để tránh lỗi "ReferenceError: createAppointment is not defined"
+module.exports = {
+  createAppointment: exports.createAppointment,
+  getAppointments: exports.getAppointments,
+  getAppointmentById: exports.getAppointmentById,
+  updateAppointmentStatus: exports.updateAppointmentStatus,
+  cancelAppointment: exports.cancelAppointment,
+  getLawyerAvailability: exports.getLawyerAvailability,
+  addAvailability: exports.addAvailability,
+  deleteAvailability: exports.deleteAvailability,
+  getAppointmentStats: exports.getAppointmentStats,
+  getUpcomingAppointments: exports.getUpcomingAppointments,
+  getAllAppointments: exports.getAllAppointments
+}; 

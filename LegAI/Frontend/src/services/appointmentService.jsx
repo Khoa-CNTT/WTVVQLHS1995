@@ -562,6 +562,36 @@ const adjustTimeForVietnamTimezone = (dateTimeString) => {
   return vietnamDate.toISOString();
 };
 
+/**
+ * Lấy tất cả lịch hẹn (cho báo cáo thống kê)
+ * @param {Object} params - Tham số tìm kiếm
+ * @returns {Promise<Object>} Kết quả API
+ */
+const getAllAppointments = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.page) queryParams.append('page', params.page);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const url = `${API_URL}/appointments/all?${queryParams.toString()}`;
+    
+    const response = await axios.get(url, { headers: getHeaders() });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy tất cả lịch hẹn:', error);
+    return { 
+      success: false, 
+      message: 'Không thể lấy danh sách lịch hẹn. Vui lòng thử lại sau.',
+      data: [],
+      total: 0
+    };
+  }
+};
+
 const appointmentService = {
   createAppointment,
   getAppointments,
@@ -572,7 +602,8 @@ const appointmentService = {
   addAvailability,
   deleteAvailability,
   getAppointmentStats,
-  getUpcomingAppointments
+  getUpcomingAppointments,
+  getAllAppointments
 };
 
 export default appointmentService; 

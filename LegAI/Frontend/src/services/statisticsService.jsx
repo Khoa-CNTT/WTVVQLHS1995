@@ -237,42 +237,14 @@ export const exportReportToCSV = async (id) => {
 
     console.log(`StatisticsService - Đang xuất báo cáo CSV với ID: ${id}`);
     
-    // Kiểm tra tính khả dụng của API trước bằng cách gửi một HEAD request
-    try {
-      // Khởi tạo request với phương thức POST
-      const response = await fetch(`${API_URL}/statistics/${id}/export-csv`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ token }),
-        // Không sử dụng mode: 'no-cors' vì sẽ làm mất quyền truy cập response
-      });
-      
-      // Kiểm tra nếu response OK
-      if (response.ok) {
-        console.log('StatisticsService - Xác thực thành công, mở tab mới để tải CSV');
-        
-        // Mở URL trong cửa sổ mới kèm token trong query string
-        window.open(`${API_URL}/statistics/${id}/export-csv?token=${token}`, '_blank');
-        return { status: 'success' };
-      } else {
-        // Nếu response không OK, đọc thông báo lỗi
-        const errorData = await response.json();
-        console.error('StatisticsService - Lỗi từ API:', errorData);
-        throw errorData || { status: 'error', message: 'Không thể xuất báo cáo' };
-      }
-    } catch (fetchError) {
-      console.error('StatisticsService - Lỗi khi gọi API exportReportToCSV:', fetchError);
-      
-      // Backup method - sử dụng trực tiếp URL với token
-      console.log('StatisticsService - Thử phương thức thay thế');
-      window.open(`${API_URL}/statistics/${id}/export-csv?token=${token}`, '_blank');
-      
-      // Xem là thành công dù không biết kết quả thật sự
-      return { status: 'success' };
-    }
+    // Tạo URL API trực tiếp với token trong query parameter để có thể mở trong thẻ mới
+    const csvDownloadUrl = `${API_URL}/statistics/${id}/export-csv?token=${encodeURIComponent(token)}`;
+    console.log('StatisticsService - URL tải xuống CSV:', csvDownloadUrl);
+    
+    // Mở URL trong tab mới
+    window.open(csvDownloadUrl, '_blank');
+    
+    return { status: 'success', message: 'Đã mở tab tải xuống CSV' };
   } catch (error) {
     console.error('StatisticsService - Error exporting report to CSV:', error);
     throw error.response?.data || { status: 'error', message: 'Lỗi khi xuất báo cáo' };

@@ -665,13 +665,23 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
     }
     
     if (startDate) {
+      // Nếu startDate chỉ là ngày (không có giờ), thêm thời gian bắt đầu của ngày
+      const formattedStartDate = startDate.includes('T') 
+        ? startDate 
+        : `${startDate}T00:00:00.000Z`;
+        
       conditions.push(`t.created_at >= $${paramIndex++}`);
-      values.push(startDate);
+      values.push(formattedStartDate);
     }
     
     if (endDate) {
+      // Nếu endDate chỉ là ngày (không có giờ), thêm thời gian kết thúc của ngày
+      const formattedEndDate = endDate.includes('T') 
+        ? endDate 
+        : `${endDate}T23:59:59.999Z`;
+        
       conditions.push(`t.created_at <= $${paramIndex++}`);
-      values.push(endDate);
+      values.push(formattedEndDate);
     }
     
     if (search) {
@@ -697,6 +707,9 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
     // Thêm phân trang
     query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     values.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+    
+    console.log('SQL Query:', query);
+    console.log('SQL Params:', values);
     
     // Thực hiện truy vấn
     const result = await pool.query(query, values);

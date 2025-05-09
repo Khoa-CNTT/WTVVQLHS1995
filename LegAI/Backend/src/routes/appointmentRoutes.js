@@ -10,7 +10,8 @@ const {
   addAvailability,
   deleteAvailability,
   getAppointmentStats,
-  getUpcomingAppointments
+  getUpcomingAppointments,
+  getAllAppointments
 } = require('../controllers/appointmentController');
 
 const { authenticateToken } = require('../middleware/authMiddleware');
@@ -23,6 +24,9 @@ router.route('/')
 
 router.get('/stats', protect, getAppointmentStats);
 router.get('/upcoming', protect, getUpcomingAppointments);
+
+// Route cho báo cáo thống kê (chỉ admin)
+router.get('/all', protect, authorize('admin'), getAllAppointments);
 
 router.route('/:id')
   .get(protect, getAppointmentById);

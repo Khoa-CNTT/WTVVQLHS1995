@@ -362,19 +362,15 @@ const generateActivityStatistics = async (req, res) => {
   }
 };
 
-// Tạo báo cáo tổng hợp
+// Tạo báo cáo thống kê tổng hợp
 const generateComprehensiveReport = async (req, res) => {
   try {
-    // Báo cáo tổng hợp không cần lọc theo khoảng thời gian
-    // Chỉ lấy tham số để duy trì khả năng tương thích với client
-    const { start_date, end_date } = req.query;
-    
-    // Gọi model để tạo báo cáo tổng hợp
-    const statistics = await statisticsModel.generateComprehensiveReport();
+    // Lấy dữ liệu từ model
+    const reportData = await statisticsModel.generateComprehensiveReport();
     
     res.status(200).json({
       status: 'success',
-      data: statistics
+      data: reportData
     });
   } catch (error) {
     console.error('Error generating comprehensive report:', error);

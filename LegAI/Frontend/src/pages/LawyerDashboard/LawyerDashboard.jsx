@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Badge, Typography, Card, Row, Col, Space, Dropdown, Statistic, List, Divider, Tag } from 'antd';
+import { Layout, Menu, Button, Avatar, Badge, Typography, Card, Row, Col, Space, Dropdown, Statistic, List, Divider, Tag, Popover } from 'antd';
 import { 
   MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, BellOutlined, LogoutOutlined,
   MessageOutlined, FileTextOutlined, CalendarOutlined, ScheduleOutlined, 
@@ -12,6 +12,9 @@ import authService from '../../services/authService';
 import userService from '../../services/userService';
 import appointmentService from '../../services/appointmentService';
 import chatService from '../../services/chatService';
+import legalCaseService from '../../services/legalCaseService';
+import legalService from '../../services/legalService.jsx';
+import { getLawyerTransactions } from '../../services/transactionService';
 import AppointmentsManager from './components/AppointmentsManager';
 import AvailabilityManager from './components/AvailabilityManager';
 import ChatManager from './components/ChatManager';
@@ -36,8 +39,110 @@ const LawyerDashboard = () => {
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({});
   const [collapsed, setCollapsed] = useState(false);
+  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState({
+    casesProcessed: 0,
+    appointmentsCompleted: 0,
+    documentsReviewed: 0,
+    newClients: 0
+  });
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   const navigate = useNavigate();
+
+  const fetchCasesCount = async () => {
+    try {
+      const response = await legalCaseService.getLawyerCases({ limit: 1 });
+      if (response.success) {
+        setCaseCount(response.count || 0);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy số lượng vụ án:', error);
+      setCaseCount(0);
+    }
+  };
+
+  const fetchDocumentsCount = async () => {
+    try {
+      const response = await legalService.getLegalDocumentStats();
+      if (response && response.status === 'success') {
+        setDocumentCount(response.data.pendingReview || 0);
+      } else {
+        setDocumentCount(0);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy số lượng tài liệu:', error);
+      setDocumentCount(0);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    try {
+      const activitiesResponse = await userService.getRecentActivities();
+      if (activitiesResponse && activitiesResponse.success) {
+        setNotifications(activitiesResponse.data.map(activity => ({
+          id: activity.id,
+          message: activity.message,
+          time: activity.timeAgo,
+          icon: activity.icon || 'calendar-check'
+        })));
+      } else {
+        setNotifications([
+          { id: 1, message: 'Bạn có lịch hẹn mới', time: '10 phút trước', icon: 'calendar-check' },
+          { id: 3, message: 'Tin nhắn mới từ khách hàng', time: '2 giờ trước', icon: 'message' },
+          { id: 4, message: 'Nhắc nhở: Phiên tòa ngày mai', time: '5 giờ trước', icon: 'gavel' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy hoạt động gần đây:', error);
+      setNotifications([
+        { id: 1, message: 'Bạn có lịch hẹn mới', time: '10 phút trước', icon: 'calendar-check' },
+        { id: 3, message: 'Tin nhắn mới từ khách hàng', time: '2 giờ trước', icon: 'message' },
+        { id: 4, message: 'Nhắc nhở: Phiên tòa ngày mai', time: '5 giờ trước', icon: 'gavel' },
+      ]);
+    }
+  };
+
+  const fetchUpcomingAppointments = async () => {
+    try {
+      const response = await appointmentService.getUpcomingAppointments();
+      if (response && response.success) {
+        setRecentAppointments(response.data.map(apt => {
+          const dateText = apt.isToday ? 'Hôm nay' : apt.isTomorrow ? 'Ngày mai' : apt.date;
+          return `${apt.title || 'Lịch hẹn với ' + apt.clientName} - ${apt.time}, ${dateText}`;
+        }));
+      } else {
+        setRecentAppointments(['Không có lịch hẹn sắp tới']);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy lịch hẹn sắp tới:', error);
+      setRecentAppointments(['Đang tải lịch hẹn...']);
+    }
+  };
+
+  const fetchMonthlyStats = async () => {
+    try {
+      const caseStatsResponse = await legalCaseService.getLawyerCaseStats();
+      const appointmentStatsResponse = await appointmentService.getMonthlyAppointmentStats();
+      const documentStatsResponse = await legalService.getDocumentStats();
+      const clientStatsResponse = await userService.getClientStats();
+      
+      setMonthlyStats({
+        casesProcessed: caseStatsResponse?.data?.completedThisMonth || 0,
+        appointmentsCompleted: appointmentStatsResponse?.data?.completedThisMonth || 0,
+        documentsReviewed: documentStatsResponse?.data?.reviewedThisMonth || 0,
+        newClients: clientStatsResponse?.data?.newClientsThisMonth || 0
+      });
+    } catch (error) {
+      console.error('Lỗi khi lấy thống kê tháng:', error);
+      setMonthlyStats({
+        casesProcessed: 0,
+        appointmentsCompleted: 0,
+        documentsReviewed: 0,
+        newClients: 0
+      });
+    }
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -56,26 +161,26 @@ const LawyerDashboard = () => {
           const appointmentStatsResponse = await appointmentService.getAppointmentStats();
           if (appointmentStatsResponse.status === 'success') {
             setAppointmentCount(appointmentStatsResponse.data.pending || 0);
+          } else {
+            setAppointmentCount(0);
           }
+          
           const unreadCount = await chatService.countUnreadMessages();
           setUnreadMessages(unreadCount);
           setPendingCount(unreadCount);
-          setCaseCount(24);
-          setDocumentCount(35);
+          
+          await fetchCasesCount();
+          await fetchDocumentsCount();
+          
+          await fetchRecentActivities();
+          await fetchUpcomingAppointments();
+          await fetchMonthlyStats();
+          
         } catch (error) {
           console.error('Lỗi khi lấy thống kê:', error);
           setPendingCount(0);
           setAppointmentCount(0);
-          setCaseCount(24);
-          setDocumentCount(35);
         }
-
-        setNotifications([
-          { id: 1, message: 'Bạn có lịch hẹn mới', time: '10 phút trước', icon: 'calendar-check' },
-          { id: 2, message: 'Tài liệu đã được duyệt', time: '35 phút trước', icon: 'file-check' },
-          { id: 3, message: 'Tin nhắn mới từ khách hàng', time: '2 giờ trước', icon: 'message' },
-          { id: 4, message: 'Nhắc nhở: Phiên tòa ngày mai', time: '5 giờ trước', icon: 'gavel' },
-        ]);
       } catch (error) {
         console.error('Error checking user:', error);
         navigate('/login');
@@ -148,7 +253,6 @@ const LawyerDashboard = () => {
           { icon: <MessageOutlined />, title: 'Tin Nhắn Chưa Đọc', stat: pendingCount, desc: 'tin nhắn', menu: 'messages' },
           { icon: <CalendarOutlined />, title: 'Lịch Hẹn Sắp Tới', stat: appointmentCount, desc: 'cuộc hẹn', menu: 'appointments' },
           { icon: <SafetyOutlined />, title: 'Vụ Án Đang Xử Lý', stat: caseCount, desc: 'vụ án', menu: 'cases' },
-          { icon: <FileTextOutlined />, title: 'Tài Liệu Cần Xem Xét', stat: documentCount, desc: 'tài liệu', menu: 'documents' },
         ].map((item, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
             <Card 
@@ -162,6 +266,7 @@ const LawyerDashboard = () => {
                 </Space>
               }
             >
+              <Statistic value={item.stat} suffix={item.desc} />
               <Button 
                 type="primary" 
                 style={{ marginTop: 16 }} 
@@ -183,63 +288,30 @@ const LawyerDashboard = () => {
         renderItem={(notification, index) => (
           <List.Item 
             className={`animate__animated animate__slideInUp`}
-            style={{ animationDelay: `${index * 0.1}s` }}
+            style={{ 
+              animationDelay: `${index * 0.1}s`,
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              padding: '12px',
+              borderRadius: '4px'
+            }}
+            onClick={() => handleNotificationItemClick(notification)}
+            onMouseEnter={e => {e.currentTarget.style.backgroundColor = '#f0f5ff'}}
+            onMouseLeave={e => {e.currentTarget.style.backgroundColor = 'transparent'}}
           >
             <List.Item.Meta
-              avatar={<Avatar icon={
+              avatar={<Avatar style={{ backgroundColor: '#4a6cf7' }} icon={
                 notification.icon === 'calendar-check' ? <CalendarOutlined /> :
                 notification.icon === 'file-check' ? <FileTextOutlined /> : 
                 notification.icon === 'message' ? <MessageOutlined /> : <AuditOutlined />
               } />}
-              title={notification.message}
-              description={notification.time}
+              title={<span style={{ color: '#1a1a1a' }}>{notification.message}</span>}
+              description={<span style={{ color: '#666' }}>{notification.time}</span>}
             />
+            <RightOutlined style={{ color: '#8c8c8c', fontSize: '12px' }} />
           </List.Item>
         )}
       />
-
-      <Row gutter={24} style={{ marginTop: 24 }}>
-        <Col xs={24} md={12}>
-          <Card title="Lịch Hẹn Sắp Tới">
-            <List
-              dataSource={[
-                'Gặp khách hàng Nguyễn Văn A - 9:00 AM, Hôm nay',
-                'Tư vấn luật doanh nghiệp - 11:30 AM, Hôm nay',
-                'Hòa giải vụ kiện lao động - 14:00, Hôm nay',
-                'Thảo luận hợp đồng với Công ty X - 9:30 AM, Ngày mai'
-              ]}
-              renderItem={item => {
-                const parts = item.split(' - ');
-                return (
-                  <List.Item>
-                    <Text>{parts[0]} - <Text strong>{parts[1]}</Text></Text>
-                  </List.Item>
-                );
-              }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={12}>
-          <Card title="Thống Kê Tháng Này">
-            <List
-              dataSource={[
-                'Vụ án đã xử lý: 8',
-                'Lịch hẹn đã hoàn thành: 24',
-                'Tài liệu đã duyệt: 35',
-                'Khách hàng mới: 12'
-              ]}
-              renderItem={item => {
-                const parts = item.split(': ');
-                return (
-                  <List.Item>
-                    <Text>{parts[0]}: <Text strong>{parts[1]}</Text></Text>
-                  </List.Item>
-                );
-              }}
-            />
-          </Card>
-        </Col>
-      </Row>
     </div>
   );
 
@@ -369,6 +441,59 @@ const LawyerDashboard = () => {
     },
   ];
 
+  const handleNotificationItemClick = (notification) => {
+    setNotificationVisible(false);
+    
+    if (notification.icon === 'calendar-check') {
+      setActiveMenu('appointments');
+    } else if (notification.icon === 'file-check') {
+      setActiveMenu('documents');
+    } else if (notification.icon === 'message') {
+      setActiveMenu('messages');
+    } else if (notification.icon === 'gavel') {
+      setActiveMenu('cases');
+    }
+  };
+
+  const notificationsContent = (
+    <div style={{ width: 350, maxHeight: 400, overflow: 'auto' }}>
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid #f0f0f0' }}>
+        <Text strong>Thông Báo</Text>
+      </div>
+      <List
+        itemLayout="horizontal"
+        dataSource={notifications}
+        renderItem={(notification) => (
+          <List.Item 
+            style={{ 
+              padding: '10px 16px',
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onClick={() => handleNotificationItemClick(notification)}
+            onMouseEnter={e => {e.currentTarget.style.backgroundColor = '#f0f5ff'}}
+            onMouseLeave={e => {e.currentTarget.style.backgroundColor = 'transparent'}}
+          >
+            <List.Item.Meta
+              avatar={
+                <Avatar style={{ backgroundColor: '#4a6cf7' }} icon={
+                  notification.icon === 'calendar-check' ? <CalendarOutlined /> :
+                  notification.icon === 'file-check' ? <FileTextOutlined /> : 
+                  notification.icon === 'message' ? <MessageOutlined /> : <AuditOutlined />
+                } />
+              }
+              title={notification.message}
+              description={notification.time}
+            />
+          </List.Item>
+        )}
+      />
+      <div style={{ padding: '10px 16px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+        <Button type="link">Xem tất cả</Button>
+      </div>
+    </div>
+  );
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider 
@@ -467,12 +592,22 @@ const LawyerDashboard = () => {
           </div>
           
           <Space>
-            <Badge count={notifications.length}>
-              <Avatar 
-                icon={<BellOutlined />} 
-                style={{ backgroundColor: '#4a6cf7', cursor: 'pointer' }} 
-              />
-            </Badge>
+            <Popover 
+              content={notificationsContent} 
+              trigger="click"
+              visible={notificationVisible}
+              onVisibleChange={setNotificationVisible}
+              placement="bottomRight"
+              overlayStyle={{ width: 350 }}
+              overlayInnerStyle={{ padding: 0 }}
+            >
+              <Badge count={notifications.length}>
+                <Avatar 
+                  icon={<BellOutlined />} 
+                  style={{ backgroundColor: '#4a6cf7', cursor: 'pointer' }} 
+                />
+              </Badge>
+            </Popover>
             
             {currentUser.fullName && (
               <Text strong style={{ margin: '0 16px' }}>

@@ -693,8 +693,23 @@ export const getAllTransactions = async (params = {}) => {
     if (params.limit) queryParams.append('limit', params.limit);
     if (params.status) queryParams.append('status', params.status);
     if (params.search) queryParams.append('search', params.search);
-    if (params.startDate) queryParams.append('startDate', params.startDate);
-    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    // Xử lý ngày bắt đầu và kết thúc
+    if (params.startDate) {
+      // Nếu startDate chỉ là ngày (không có giờ), thêm thời gian bắt đầu của ngày
+      const formattedStartDate = params.startDate.includes('T') 
+        ? params.startDate 
+        : `${params.startDate}T00:00:00.000Z`;
+      queryParams.append('startDate', formattedStartDate);
+    }
+    
+    if (params.endDate) {
+      // Nếu endDate chỉ là ngày (không có giờ), thêm thời gian kết thúc của ngày
+      const formattedEndDate = params.endDate.includes('T') 
+        ? params.endDate 
+        : `${params.endDate}T23:59:59.999Z`;
+      queryParams.append('endDate', formattedEndDate);
+    }
     
     // Kiểm tra token
     const token = getToken();
@@ -709,6 +724,8 @@ export const getAllTransactions = async (params = {}) => {
     }
     
     const url = `${API_URL}/transactions/all?${queryParams.toString()}`;
+    console.log('Gọi API:', url);
+    
     const response = await axios.get(url, getHeaders());
     
     // Chuyển đổi dữ liệu từ định dạng API về định dạng frontend cần
@@ -721,19 +738,6 @@ export const getAllTransactions = async (params = {}) => {
     };
   } catch (error) {
     console.error('Lỗi khi lấy tất cả giao dịch:', error);
-    
-    if (error.response) {
-      // Xử lý lỗi từ server
-      if (error.response.status === 401 || error.response.status === 403) {
-        return {
-          success: false,
-          message: 'Bạn không có quyền truy cập vào chức năng này',
-          data: [],
-          total: 0
-        };
-      }
-    }
-    
     return {
       success: false,
       message: 'Không thể lấy danh sách giao dịch. Vui lòng thử lại sau.',

@@ -8,10 +8,30 @@
   margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+.filterBar:hover {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
 }
 
 .tabs {
   margin-top: 16px;
+}
+
+.tabs :global(.ant-tabs-tab) {
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+.tabs :global(.ant-tabs-tab-active) {
+  background-color: rgba(24, 144, 255, 0.1);
+  border-radius: 8px 8px 0 0;
 }
 
 .emptyReport {
@@ -21,6 +41,12 @@
   justify-content: center;
   padding: 48px 0;
   text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .emptyReport p {
@@ -31,6 +57,12 @@
 
 .reportContainer {
   padding: 8px;
+  animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .chartCard {
@@ -38,16 +70,39 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.chartCard:hover {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.chartCard :global(.ant-card-head) {
+  background-color: rgba(24, 144, 255, 0.03);
 }
 
 .chartCard :global(.ant-card-body) {
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .tableCard {
   margin-top: 16px;
+  animation: slideUp 0.5s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .actionBar {
@@ -57,9 +112,27 @@
   gap: 16px;
 }
 
+.actionBar button {
+  transition: all 0.2s ease;
+}
+
+.actionBar button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
 .summaryCard {
   background-color: #f9f9f9;
   margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.summaryCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
 }
 
 .statItem {
@@ -70,12 +143,41 @@
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: 100%;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.statItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.statItem::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #1890ff, #52c41a);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.statItem:hover::after {
+  opacity: 1;
 }
 
 .statIcon {
   font-size: 32px;
   margin-right: 16px;
   color: #1890ff;
+  transition: all 0.3s ease;
+}
+
+.statItem:hover .statIcon {
+  transform: scale(1.1);
 }
 
 .statContent {
@@ -86,6 +188,11 @@
   font-size: 24px;
   font-weight: bold;
   color: #1890ff;
+  transition: all 0.3s ease;
+}
+
+.statItem:hover .statValue {
+  color: #096dd9;
 }
 
 .statLabel {
@@ -103,6 +210,7 @@
 :global(.recharts-responsive-container) {
   width: 100% !important;
   height: 100% !important;
+  min-height: 300px;
 }
 
 :global(.recharts-legend-wrapper) {
@@ -171,10 +279,15 @@
 .reportCard {
   cursor: pointer;
   transition: all 0.3s;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .reportCard:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  transform: translateY(-2px);
 }
 
 .activeReportCard {
@@ -190,4 +303,78 @@
 
 .modalButtons button {
   margin-left: 8px;
+}
+
+/* Loading skeleton */
+.skeletonChart {
+  background: rgba(190, 190, 190, 0.2);
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.skeletonChart::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Empty state styling */
+.emptyChartContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  background-color: rgba(245, 245, 245, 0.5);
+  border-radius: 8px;
+}
+
+.emptyChartIcon {
+  font-size: 48px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+.emptyChartText {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.warningMessage {
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.noDataMessage {
+  text-align: center;
+  padding: 40px 0;
+  color: #8c8c8c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filterBar {
+    flex-direction: column;
+  }
+  
+  .filterBar > * {
+    width: 100%;
+  }
 }
