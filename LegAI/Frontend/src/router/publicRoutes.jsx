@@ -2,7 +2,6 @@ import { Route, Routes } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/layout/TransitionPage/PageTransition';
 import Home from '../pages/Home/Home';
-import Services from '../pages/Services/Services';
 import News from '../pages/News/News';
 import Contact from '../pages/Contact/Contact';
 import Lawyers from '../pages/Lawyers/Lawyers';
@@ -39,11 +38,6 @@ const PublicRoutes = () => {
         <Route path="/" element={
           <PageTransition custom="fade">
             <Home />
-          </PageTransition>
-        } />
-        <Route path="/services" element={
-          <PageTransition custom="fade">
-            <Services />
           </PageTransition>
         } />
         <Route path="/news" element={

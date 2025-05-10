@@ -196,10 +196,6 @@ const Navbar = () => {
             <li>
               <NavLink to="/contracts">Hợp đồng</NavLink>
             </li>
-
-            <li>
-              <NavLink to="/services">Dịch vụ</NavLink>
-            </li>
             <li>
               <NavLink to="/lawyers">Luật sư</NavLink>
             </li>
