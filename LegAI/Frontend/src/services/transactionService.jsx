@@ -694,21 +694,42 @@ export const getAllTransactions = async (params = {}) => {
     if (params.status) queryParams.append('status', params.status);
     if (params.search) queryParams.append('search', params.search);
     
-    // Xử lý ngày bắt đầu và kết thúc
+    // Xử lý ngày bắt đầu và kết thúc một cách an toàn
     if (params.startDate) {
-      // Nếu startDate chỉ là ngày (không có giờ), thêm thời gian bắt đầu của ngày
-      const formattedStartDate = params.startDate.includes('T') 
-        ? params.startDate 
-        : `${params.startDate}T00:00:00.000Z`;
-      queryParams.append('startDate', formattedStartDate);
+      try {
+        // Kiểm tra và định dạng lại startDate
+        const startDate = new Date(params.startDate);
+        if (!isNaN(startDate.getTime())) {
+          // Nếu startDate là ngày hợp lệ, chuyển đổi thành ISO string
+          const formattedStartDate = startDate.toISOString();
+          queryParams.append('startDate', formattedStartDate);
+          console.log('Đã xử lý startDate:', formattedStartDate);
+        } else {
+          console.warn('startDate không hợp lệ:', params.startDate);
+        }
+      } catch (dateError) {
+        console.error('Lỗi khi xử lý startDate:', dateError);
+        // Bỏ qua tham số nếu không hợp lệ
+      }
     }
     
     if (params.endDate) {
-      // Nếu endDate chỉ là ngày (không có giờ), thêm thời gian kết thúc của ngày
-      const formattedEndDate = params.endDate.includes('T') 
-        ? params.endDate 
-        : `${params.endDate}T23:59:59.999Z`;
-      queryParams.append('endDate', formattedEndDate);
+      try {
+        // Kiểm tra và định dạng lại endDate
+        const endDate = new Date(params.endDate);
+        if (!isNaN(endDate.getTime())) {
+          // Nếu là ngày cuối, đặt thời gian là cuối ngày
+          endDate.setHours(23, 59, 59, 999);
+          const formattedEndDate = endDate.toISOString();
+          queryParams.append('endDate', formattedEndDate);
+          console.log('Đã xử lý endDate:', formattedEndDate);
+        } else {
+          console.warn('endDate không hợp lệ:', params.endDate);
+        }
+      } catch (dateError) {
+        console.error('Lỗi khi xử lý endDate:', dateError);
+        // Bỏ qua tham số nếu không hợp lệ
+      }
     }
     
     // Kiểm tra token
@@ -724,23 +745,81 @@ export const getAllTransactions = async (params = {}) => {
     }
     
     const url = `${API_URL}/transactions/all?${queryParams.toString()}`;
-    console.log('Gọi API:', url);
+    console.log('Gọi API getAllTransactions:', url);
     
-    const response = await axios.get(url, getHeaders());
-    
-    // Chuyển đổi dữ liệu từ định dạng API về định dạng frontend cần
-    return {
-      success: response.data.success,
-      message: response.data.message,
-      data: response.data.data || [],
-      total: response.data.total || 0,
-      count: response.data.count || 0
-    };
+    try {
+      const response = await axios.get(url, {
+        ...getHeaders(),
+        timeout: 15000 // Tăng timeout lên 15 giây
+      });
+      
+      console.log('Kết quả API getAllTransactions:', {
+        status: response.status,
+        success: response.data.success,
+        data: Array.isArray(response.data.data) ? `${response.data.data.length} items` : 'not array',
+        total: response.data.total || 0
+      });
+      
+      // Chuyển đổi dữ liệu từ định dạng API về định dạng frontend cần
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: response.data.data || [],
+        total: response.data.total || 0,
+        count: response.data.count || 0
+      };
+    } catch (apiError) {
+      console.error('Lỗi khi gọi API getAllTransactions:', apiError);
+      console.error('Chi tiết lỗi API:', apiError.response?.data || apiError.message);
+      
+      // Nếu lỗi 500 từ server, có thể do tham số không hợp lệ
+      if (apiError.response?.status === 500) {
+        console.warn('Lỗi server 500, thử gọi lại API không có tham số ngày tháng');
+        
+        // Thử lại lần nữa không có tham số ngày tháng
+        try {
+          const simpleParams = new URLSearchParams();
+          if (params.page) simpleParams.append('page', params.page);
+          if (params.limit) simpleParams.append('limit', params.limit);
+          
+          const backupUrl = `${API_URL}/transactions/all?${simpleParams.toString()}`;
+          const backupResponse = await axios.get(backupUrl, getHeaders());
+          
+          console.log('Kết quả API gọi lại thành công (không có ngày tháng)');
+          
+          return {
+            success: backupResponse.data.success,
+            message: 'Đã bỏ qua bộ lọc ngày tháng do lỗi server',
+            data: backupResponse.data.data || [],
+            total: backupResponse.data.total || 0,
+            count: backupResponse.data.count || 0
+          };
+        } catch (retryError) {
+          console.error('Lỗi khi gọi lại API lần 2:', retryError);
+          
+          // Trả về mảng rỗng nếu lỗi cả 2 lần
+          return {
+            success: false,
+            message: 'Không thể lấy danh sách giao dịch do lỗi server. Vui lòng thử lại sau.',
+            data: [],
+            total: 0
+          };
+        }
+      }
+      
+      // Lỗi khác
+      return {
+        success: false,
+        message: apiError.response?.data?.message || 'Không thể lấy danh sách giao dịch. Vui lòng thử lại sau.',
+        data: [],
+        total: 0
+      };
+    }
   } catch (error) {
     console.error('Lỗi khi lấy tất cả giao dịch:', error);
     return {
       success: false,
-      message: 'Không thể lấy danh sách giao dịch. Vui lòng thử lại sau.',
+      message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
       data: [],
       total: 0
     };

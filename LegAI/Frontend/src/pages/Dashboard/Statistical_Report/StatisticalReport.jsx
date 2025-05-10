@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Spin, Button, DatePicker, Tabs, Select, Table, Typography, message, Modal, Form, Input, Empty, Skeleton, List, Space, Tag } from 'antd';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area } from 'recharts';
-import { DownloadOutlined, FileTextOutlined, UserOutlined, DollarOutlined, BarChartOutlined, PieChartOutlined, SaveOutlined, FileAddOutlined, DeleteOutlined, TeamOutlined, FileDoneOutlined, ScheduleOutlined, LineChartOutlined, RadarChartOutlined, AreaChartOutlined, FileProtectOutlined } from '@ant-design/icons';
+import { DownloadOutlined, FileTextOutlined, UserOutlined, DollarOutlined, BarChartOutlined, PieChartOutlined, SaveOutlined, FileAddOutlined, DeleteOutlined, TeamOutlined, FileDoneOutlined, ScheduleOutlined, LineChartOutlined, RadarChartOutlined, AreaChartOutlined, FileProtectOutlined, FilePdfOutlined } from '@ant-design/icons';
 import statisticsService from '../../../services/statisticsService';
 import styles from './StatisticalReport.module.css';
 import { formatCurrency } from '../../../utils/formatters';
@@ -16,6 +16,13 @@ import appointmentService from '../../../services/appointmentService';
 import * as contractService from '../../../services/contractService';
 import * as legalDocService from '../../../services/legalDocService';
 import chatService from '../../../services/chatService';
+
+// Sửa import cho thư viện jsPDF
+import jsPDF from 'jspdf';
+// import 'jspdf-autotable'; // Bỏ cách import này
+
+// Thêm import cho thư viện jspdf-autotable một cách đúng đắn
+import autoTable from 'jspdf-autotable';
 
 moment.locale('vi');
 
@@ -381,9 +388,9 @@ const StatisticalReport = () => {
       
       // Thiết lập mặc định là hôm nay nếu không có ngày được chọn
       if (!start_date || !end_date) {
-        if (reportType === 'comprehensive') {
-          // Báo cáo tổng hợp không cần ngày tháng
-          console.log('StatisticalReport - Tạo báo cáo tổng hợp không cần khoảng thời gian');
+        if (reportType === 'comprehensive' || reportType === 'financial') {
+          // Báo cáo tổng hợp và tài chính không cần ngày tháng
+          console.log(`StatisticalReport - Tạo báo cáo ${reportType} không cần khoảng thời gian`);
         } else {
           // Cảnh báo nếu là báo cáo khác và không có ngày được chọn
           message.warning('Không có khoảng thời gian được chọn, sử dụng ngày hôm nay');
@@ -432,12 +439,6 @@ const StatisticalReport = () => {
   // Tạo báo cáo thống kê tài chính
   const generateFinancialStatistics = async (start_date, end_date) => {
     try {
-      // Nếu không phải báo cáo tổng hợp, yêu cầu chọn khoảng thời gian
-      if (!start_date || !end_date) {
-        message.warning('Vui lòng chọn khoảng thời gian');
-        return;
-      }
-
       // Kiểm tra token có tồn tại không
       const token = localStorage.getItem('token');
       if (!token) {
@@ -451,15 +452,26 @@ const StatisticalReport = () => {
       
       setLoading(true);
       
-      console.log(`StatisticalReport - Đang tạo báo cáo tài chính từ ${start_date} đến ${end_date}`);
+      console.log(`StatisticalReport - Đang tạo báo cáo tài chính từ ${start_date || 'tất cả'} đến ${end_date || 'tất cả'}`);
       
       try {
-        // Lấy dữ liệu từ transactionService
-        const transactionsResponse = await transactionService.getAllTransactions({
-          startDate: start_date,
-          endDate: end_date,
+        // Lấy dữ liệu từ transactionService với các tham số đã được xử lý cẩn thận
+        const params = {
           limit: 1000
-        });
+        };
+        
+        // Chỉ thêm tham số ngày nếu thực sự có giá trị
+        if (start_date) {
+          params.startDate = start_date;
+        }
+        
+        if (end_date) {
+          params.endDate = end_date;
+        }
+        
+        console.log('StatisticalReport - Gọi API getAllTransactions với tham số:', params);
+        
+        const transactionsResponse = await transactionService.getAllTransactions(params);
   
         console.log('Dữ liệu từ transactionService.getAllTransactions():', transactionsResponse);
         
@@ -481,71 +493,41 @@ const StatisticalReport = () => {
             transactions = transactionsResponse.transactions;
           }
           // Trường hợp 4: { status: 'success', data: [...] }
-          else if (transactionsResponse.status === 'success' && Array.isArray(transactionsResponse.data)) {
+          else if (transactionsResponse.success && Array.isArray(transactionsResponse.data)) {
             transactions = transactionsResponse.data;
           }
           // Trường hợp 5: { status: 'success', data: { data: [...] } }
-          else if (transactionsResponse.status === 'success' && transactionsResponse.data && Array.isArray(transactionsResponse.data.data)) {
+          else if (transactionsResponse.success && transactionsResponse.data && Array.isArray(transactionsResponse.data.data)) {
             transactions = transactionsResponse.data.data;
           }
         }
         
         // Kiểm tra có dữ liệu không
         if (!transactions || transactions.length === 0) {
-          // Dùng dữ liệu mẫu nếu không có dữ liệu thực
-          console.log('Không có dữ liệu giao dịch thực, sử dụng dữ liệu mẫu');
+          message.info('Không có dữ liệu giao dịch trong khoảng thời gian này');
           
-          // Dữ liệu mẫu
-          const sampleData = {
-            transactionByMonth: [
-              { month: '01/2025', total_amount: 5000000, count: 3 },
-              { month: '02/2025', total_amount: 7500000, count: 5 },
-              { month: '03/2025', total_amount: 12000000, count: 8 },
-              { month: '04/2025', total_amount: 8500000, count: 6 },
-              { month: '05/2025', total_amount: 15000000, count: 10 }
-            ],
-            transactionByStatus: [
-              { status: 'completed', total_amount: 35000000, count: 25 },
-              { status: 'pending', total_amount: 12000000, count: 8 },
-              { status: 'failed', total_amount: 1000000, count: 2 }
-            ],
-            transactionByMethod: [
-              { payment_method: 'bank_transfer', total_amount: 30000000, count: 20 },
-              { payment_method: 'credit_card', total_amount: 15000000, count: 10 },
-              { payment_method: 'e-wallet', total_amount: 3000000, count: 5 }
-            ],
-            topLawyers: [
-              { lawyer_id: 1, lawyer_name: 'Nguyễn Văn A', transaction_count: 12, total_amount: 18000000 },
-              { lawyer_id: 2, lawyer_name: 'Trần Thị B', transaction_count: 8, total_amount: 12000000 },
-              { lawyer_id: 3, lawyer_name: 'Lê Văn C', transaction_count: 6, total_amount: 9000000 },
-              { lawyer_id: 4, lawyer_name: 'Phạm Thị D', transaction_count: 5, total_amount: 7500000 },
-              { lawyer_id: 5, lawyer_name: 'Hoàng Văn E', transaction_count: 4, total_amount: 6000000 }
-            ]
-          };
-          
-          const response = {
-            status: 'success',
-            data: sampleData
-          };
-          
-          console.log('StatisticalReport - Kết quả tạo báo cáo tài chính (mẫu):', response);
-          
-          // Cập nhật state
           setStatistics({
             ...statistics,
             financial: {
-              data: response.data,
-              generated: true,
-              isSampleData: true
+              data: {
+                transactionByMonth: [],
+                transactionByStatus: [],
+                transactionByMethod: [],
+                topLawyers: []
+              },
+              generated: true
             }
           });
           
-          message.info('Đã tạo báo cáo tài chính với dữ liệu mẫu (không có dữ liệu thực)');
-          
-          // Hiện modal lưu báo cáo
-          setSaveReportModalVisible(true);
-          
-          return response;
+          return {
+            status: 'success',
+            data: {
+              transactionByMonth: [],
+              transactionByStatus: [],
+              transactionByMethod: [],
+              topLawyers: []
+            }
+          };
         }
         
         console.log(`Đã xử lý ${transactions.length} giao dịch từ API`);
@@ -700,51 +682,47 @@ const StatisticalReport = () => {
         
         // Hiện modal lưu báo cáo
         setSaveReportModalVisible(true);
-  
+
         return response;
       } catch (apiError) {
         console.error('Lỗi khi gọi API:', apiError);
+        console.error('Chi tiết lỗi:', apiError.response?.data || apiError.message);
         
-        // Tạo dữ liệu mẫu trong trường hợp có lỗi
+        // Hiển thị thông báo lỗi chi tiết
+        if (apiError.response?.status === 500) {
+          message.error('Lỗi máy chủ khi lấy dữ liệu tài chính. Vui lòng thử lại sau.');
+        } else {
+          message.error('Không thể lấy dữ liệu tài chính từ API: ' + (apiError.response?.data?.message || apiError.message || 'Lỗi không xác định'));
+        }
+        
+        // Tạo dữ liệu mẫu để hiển thị
         const sampleData = {
           transactionByMonth: [
-            { month: '01/2025', total_amount: 5000000, count: 3 },
-            { month: '02/2025', total_amount: 7500000, count: 5 },
-            { month: '03/2025', total_amount: 12000000, count: 8 },
-            { month: '04/2025', total_amount: 8500000, count: 6 },
-            { month: '05/2025', total_amount: 15000000, count: 10 }
+            { month: '01/2023', total_amount: 15000000, count: 5 },
+            { month: '02/2023', total_amount: 22000000, count: 7 },
+            { month: '03/2023', total_amount: 18000000, count: 6 }
           ],
           transactionByStatus: [
-            { status: 'completed', total_amount: 35000000, count: 25 },
-            { status: 'pending', total_amount: 12000000, count: 8 },
-            { status: 'failed', total_amount: 1000000, count: 2 }
+            { status: 'completed', total_amount: 35000000, count: 12 },
+            { status: 'pending', total_amount: 12000000, count: 4 },
+            { status: 'failed', total_amount: 8000000, count: 2 }
           ],
           transactionByMethod: [
-            { payment_method: 'bank_transfer', total_amount: 30000000, count: 20 },
-            { payment_method: 'credit_card', total_amount: 15000000, count: 10 },
-            { payment_method: 'e-wallet', total_amount: 3000000, count: 5 }
+            { payment_method: 'bank_transfer', total_amount: 30000000, count: 10 },
+            { payment_method: 'credit_card', total_amount: 15000000, count: 5 },
+            { payment_method: 'cash', total_amount: 10000000, count: 3 }
           ],
           topLawyers: [
-            { lawyer_id: 1, lawyer_name: 'Nguyễn Văn A', transaction_count: 12, total_amount: 18000000 },
-            { lawyer_id: 2, lawyer_name: 'Trần Thị B', transaction_count: 8, total_amount: 12000000 },
-            { lawyer_id: 3, lawyer_name: 'Lê Văn C', transaction_count: 6, total_amount: 9000000 },
-            { lawyer_id: 4, lawyer_name: 'Phạm Thị D', transaction_count: 5, total_amount: 7500000 },
-            { lawyer_id: 5, lawyer_name: 'Hoàng Văn E', transaction_count: 4, total_amount: 6000000 }
+            { lawyer_id: 1, lawyer_name: 'Nguyễn Văn A', total_amount: 20000000, transaction_count: 5 },
+            { lawyer_id: 2, lawyer_name: 'Trần Thị B', total_amount: 15000000, transaction_count: 4 },
+            { lawyer_id: 3, lawyer_name: 'Lê Văn C', total_amount: 10000000, transaction_count: 3 }
           ]
         };
         
-        const response = {
-          status: 'success',
-          data: sampleData
-        };
-        
-        console.log('StatisticalReport - Sử dụng dữ liệu mẫu vì lỗi API:', response);
-        
-        // Cập nhật state
         setStatistics({
           ...statistics,
           financial: {
-            data: response.data,
+            data: sampleData,
             generated: true,
             isSampleData: true
           }
@@ -752,10 +730,10 @@ const StatisticalReport = () => {
         
         message.info('Đang sử dụng dữ liệu mẫu do không thể kết nối đến API');
         
-        // Hiện modal lưu báo cáo
-        setSaveReportModalVisible(true);
-        
-        return response;
+        return {
+          status: 'success',
+          data: sampleData
+        };
       }
     } catch (error) {
       console.error('Lỗi chi tiết khi tạo báo cáo tài chính:', error);
@@ -1255,6 +1233,488 @@ const StatisticalReport = () => {
     return statusMap[status] || status;
   };
 
+  // Sửa hàm xuất PDF cho báo cáo
+  const exportToPDF = (reportType) => {
+    try {
+      const reportData = statistics[reportType];
+      if (!reportData || !reportData.data) {
+        message.error('Không có dữ liệu để xuất báo cáo');
+        return;
+      }
+      
+      // Tạo đối tượng PDF A4
+      const pdf = new jsPDF();
+      
+      // Thêm tiêu đề trang
+      pdf.setFontSize(20);
+      pdf.setTextColor(44, 62, 80);
+      
+      const reportTitles = {
+        user: 'BAO CAO THONG KE NGUOI DUNG',
+        financial: 'BAO CAO THONG KE TAI CHINH',
+        activity: 'BAO CAO THONG KE HOAT DONG',
+        comprehensive: 'BAO CAO THONG KE TONG HOP'
+      };
+      
+      // Thêm logo hoặc icon
+      pdf.setDrawColor(52, 152, 219);
+      pdf.setFillColor(52, 152, 219);
+      pdf.rect(14, 10, 182, 12, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(reportTitles[reportType], 105, 18, { align: 'center' });
+      
+      // Thông tin khoảng thời gian
+      if (dateRange[0] && dateRange[1] && reportType !== 'comprehensive') {
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        const dateText = `Tu ngay: ${dateRange[0].format('DD/MM/YYYY')} den ngay: ${dateRange[1].format('DD/MM/YYYY')}`;
+        pdf.text(dateText, 105, 28, { align: 'center' });
+      }
+      
+      // Thêm ngày xuất báo cáo
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      const exportDate = `Ngay xuat bao cao: ${new Date().toLocaleDateString()}`;
+      pdf.text(exportDate, 105, 34, { align: 'center' });
+      
+      pdf.setDrawColor(44, 62, 80);
+      pdf.setFillColor(236, 240, 241);
+      
+      // Xử lý theo từng loại báo cáo
+      if (reportType === 'user') {
+        // Báo cáo người dùng
+        const userData = reportData.data;
+        
+        // Thêm thông tin tổng quan
+        pdf.setFontSize(14);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text('THONG TIN TONG QUAN', 14, 45);
+        
+        pdf.setFillColor(236, 240, 241);
+        pdf.rect(14, 48, 182, 20, 'F');
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text(`Tong so nguoi dung: ${userData.totalUsers || 0}`, 20, 55);
+        
+        const userByRole = userData.userByRole || [];
+        const lawyers = userByRole.find(item => item.role === 'lawyer')?.count || 0;
+        const clients = userByRole.find(item => item.role === 'client')?.count || 0;
+        const admins = userByRole.find(item => item.role === 'admin')?.count || 0;
+        
+        pdf.text(`Luat su: ${lawyers}  |  Khach hang: ${clients}  |  Quan tri vien: ${admins}`, 20, 63);
+        
+        // Thêm bảng phân bố người dùng theo vai trò
+        if (userByRole.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          pdf.text('PHAN BO NGUOI DUNG THEO VAI TRO', 14, 80);
+          
+          const tableData = userByRole.map(item => [
+            mapRoleToVietnameseNonAccent(item.role),
+            item.count,
+            userData.totalUsers ? ((item.count / userData.totalUsers) * 100).toFixed(2) + '%' : '0%'
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: 85,
+            head: [['Vai tro', 'So luong', 'Ty le']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [52, 152, 219],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+        
+      } else if (reportType === 'financial') {
+        // Báo cáo tài chính
+        const financialData = reportData.data;
+        
+        // Thêm thông tin tổng quan
+        pdf.setFontSize(14);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text('THONG TIN TONG QUAN', 14, 45);
+        
+        pdf.setFillColor(236, 240, 241);
+        pdf.rect(14, 48, 182, 25, 'F');
+        
+        // Tính tổng thu nhập
+        const transactionByStatus = financialData.transactionByStatus || [];
+        const totalIncome = transactionByStatus
+          .filter(item => item.status === 'completed')
+          .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
+        
+        // Tính tổng giao dịch
+        const totalTransactions = transactionByStatus
+          .reduce((sum, item) => sum + (parseFloat(item.count) || 0), 0);
+        
+        // Tính trung bình giao dịch
+        const avgTransaction = totalTransactions > 0 
+          ? totalIncome / totalTransactions : 0;
+        
+        // Tính số giao dịch thành công
+        const successfulTransactions = transactionByStatus
+          .find(item => item.status === 'completed')?.count || 0;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text(`Tong thu nhap: ${formatCurrency(totalIncome)}`, 20, 55);
+        pdf.text(`Tong giao dich: ${totalTransactions}`, 20, 62);
+        pdf.text(`Trung binh/giao dich: ${formatCurrency(avgTransaction)}`, 20, 69);
+        
+        // Thêm bảng phân bố giao dịch theo trạng thái
+        if (transactionByStatus.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          pdf.text('PHAN BO GIAO DICH THEO TRANG THAI', 14, 85);
+          
+          const tableData = transactionByStatus.map(item => [
+            mapStatusToVietnameseNonAccent(item.status),
+            item.count,
+            formatCurrency(item.total_amount),
+            totalIncome ? ((item.total_amount / totalIncome) * 100).toFixed(2) + '%' : '0%'
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: 90,
+            head: [['Trang thai', 'So luong', 'Tong tien', 'Ty le']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [26, 188, 156],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+        
+        // Thêm bảng top luật sư có doanh thu cao nhất
+        const topLawyers = financialData.topLawyers || [];
+        if (topLawyers.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          
+          // Lấy vị trí Y sau bảng trước đó
+          const prevTableHeight = pdf.previousAutoTable ? pdf.previousAutoTable.finalY : 150;
+          pdf.text('TOP LUAT SU CO DOANH THU CAO NHAT', 14, prevTableHeight + 15);
+          
+          const tableData = topLawyers.map(item => [
+            item.lawyer_name,
+            item.transaction_count,
+            formatCurrency(item.total_amount)
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: prevTableHeight + 20,
+            head: [['Luat su', 'So giao dich', 'Tong doanh thu']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [155, 89, 182],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+        
+      } else if (reportType === 'activity') {
+        // Báo cáo hoạt động
+        const activityData = reportData.data;
+        
+        // Thêm thông tin tổng quan
+        pdf.setFontSize(14);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text('THONG TIN TONG QUAN', 14, 45);
+        
+        pdf.setFillColor(236, 240, 241);
+        pdf.rect(14, 48, 182, 25, 'F');
+        
+        // Tính tổng vụ án
+        const caseByStatus = activityData.caseByStatus || [];
+        const totalCases = caseByStatus.reduce((sum, item) => sum + (parseInt(item.count) || 0), 0);
+        
+        // Tính tổng cuộc hẹn
+        const appointmentByStatus = activityData.appointmentByStatus || [];
+        const totalAppointments = appointmentByStatus.reduce((sum, item) => sum + (parseInt(item.count) || 0), 0);
+        
+        // Tính số vụ án đang xử lý và cuộc hẹn đã xác nhận
+        const casesInProgress = caseByStatus.find(item => item.status === 'in_progress')?.count || 0;
+        const confirmedAppointments = appointmentByStatus.find(item => item.status === 'confirmed')?.count || 0;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text(`Tong vu an: ${totalCases}`, 20, 55);
+        pdf.text(`Tong cuoc hen: ${totalAppointments}`, 20, 62);
+        pdf.text(`Vu an dang xu ly: ${casesInProgress}  |  Cuoc hen da xac nhan: ${confirmedAppointments}`, 20, 69);
+        
+        // Thêm bảng phân bố vụ án theo trạng thái
+        if (caseByStatus.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          pdf.text('PHAN BO VU AN THEO TRANG THAI', 14, 85);
+          
+          const tableData = caseByStatus.map(item => [
+            mapStatusToVietnameseNonAccent(item.status),
+            item.count,
+            totalCases ? ((item.count / totalCases) * 100).toFixed(2) + '%' : '0%'
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: 90,
+            head: [['Trang thai', 'So luong', 'Ty le']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [230, 126, 34],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+        
+        // Thêm bảng phân bố cuộc hẹn theo trạng thái
+        if (appointmentByStatus.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          
+          // Lấy vị trí Y sau bảng trước đó
+          const prevTableHeight = pdf.previousAutoTable ? pdf.previousAutoTable.finalY : 150;
+          pdf.text('PHAN BO CUOC HEN THEO TRANG THAI', 14, prevTableHeight + 15);
+          
+          const tableData = appointmentByStatus.map(item => [
+            mapStatusToVietnameseNonAccent(item.status),
+            item.count,
+            totalAppointments ? ((item.count / totalAppointments) * 100).toFixed(2) + '%' : '0%'
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: prevTableHeight + 20,
+            head: [['Trang thai', 'So luong', 'Ty le']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [41, 128, 185],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+      } else if (reportType === 'comprehensive') {
+        // Báo cáo tổng hợp
+        const comprehensiveData = reportData.data;
+        
+        // Lấy dữ liệu thống kê
+        const summary = comprehensiveData?.summary || {};
+        
+        // Thêm thông tin tổng quan
+        pdf.setFontSize(14);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text('THONG TIN TONG QUAN', 14, 45);
+        
+        pdf.setFillColor(236, 240, 241);
+        pdf.rect(14, 48, 182, 30, 'F');
+        
+        // Hiển thị các thông tin tổng quan
+        pdf.setFontSize(12);
+        pdf.setTextColor(44, 62, 80);
+        pdf.text(`Tong nguoi dung: ${summary.totalUsers || summary.total_users || 0}`, 20, 55);
+        pdf.text(`Tong luat su: ${summary.totalLawyers || summary.total_lawyers || 0}`, 20, 63);
+        pdf.text(`Tong vu an: ${summary.totalCases || summary.total_cases || 0}`, 20, 71);
+        
+        // Tính tổng doanh thu
+        const totalRevenue = summary.completedAmount || summary.total_transaction_amount || 0;
+        pdf.text(`Tong doanh thu: ${formatCurrency(totalRevenue)}`, 130, 55);
+        pdf.text(`Tong hop dong: ${summary.totalContracts || summary.total_contracts || 0}`, 130, 63);
+        pdf.text(`Tong cuoc hen: ${summary.totalAppointments || summary.total_appointments || 0}`, 130, 71);
+        
+        // Dữ liệu thống kê người dùng
+        const userStatistics = comprehensiveData?.userStatistics || {};
+        const userRoleData = Array.isArray(userStatistics.userByRole) 
+          ? userStatistics.userByRole
+          : [];
+        
+        if (userRoleData.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          pdf.text('PHAN BO NGUOI DUNG THEO VAI TRO', 14, 90);
+          
+          const tableData = userRoleData.map(item => [
+            mapRoleToVietnameseNonAccent(item.role),
+            item.count,
+            summary.totalUsers ? ((item.count / summary.totalUsers) * 100).toFixed(2) + '%' : '0%'
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: 95,
+            head: [['Vai tro', 'So luong', 'Ty le']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [52, 152, 219],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+        
+        // Dữ liệu thống kê tài chính
+        const financialStatistics = comprehensiveData?.financialStatistics || {};  
+        const transactionStatusData = Array.isArray(financialStatistics.transactionByStatus)
+          ? financialStatistics.transactionByStatus
+          : [];
+        
+        if (transactionStatusData.length > 0) {
+          pdf.setFontSize(14);
+          pdf.setTextColor(44, 62, 80);
+          
+          // Lấy vị trí Y sau bảng trước đó
+          const prevTableHeight = pdf.previousAutoTable ? pdf.previousAutoTable.finalY : 150;
+          pdf.text('PHAN BO GIAO DICH THEO TRANG THAI', 14, prevTableHeight + 15);
+          
+          const tableData = transactionStatusData.map(item => [
+            mapStatusToVietnameseNonAccent(item.status),
+            item.count,
+            formatCurrency(item.total_amount)
+          ]);
+          
+          // Sử dụng autoTable plugin đúng cách
+          autoTable(pdf, {
+            startY: prevTableHeight + 20,
+            head: [['Trang thai', 'So luong', 'Tong tien']],
+            body: tableData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [189, 195, 199],
+              lineWidth: 0.2
+            },
+            headStyles: {
+              fillColor: [26, 188, 156],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [242, 242, 242]
+            }
+          });
+        }
+      }
+      
+      // Thêm chân trang
+      const pageCount = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`LegAI - Trang ${i} / ${pageCount}`, 105, 290, { align: 'center' });
+      }
+      
+      // Lưu tên file báo cáo theo loại + ngày tháng
+      const fileDate = new Date().toISOString().slice(0, 10);
+      let fileName = `Bao_cao_${reportType}_${fileDate}.pdf`;
+      
+      // Lưu file PDF
+      pdf.save(fileName);
+      
+      message.success('Đã xuất báo cáo PDF thành công');
+    } catch (error) {
+      console.error('Lỗi khi xuất báo cáo PDF:', error);
+      message.error('Không thể xuất báo cáo PDF: ' + error.message);
+    }
+  };
+
+  // Thêm hàm ánh xạ tên vai trò sang tiếng Việt không dấu cho biểu đồ người dùng
+  const mapRoleToVietnameseNonAccent = (role) => {
+    const roleMap = {
+      'admin': 'Quan tri vien',
+      'client': 'Khach hang',
+      'lawyer': 'Luat su',
+      'staff': 'Nhan vien'
+    };
+    return roleMap[role] || role;
+  };
+
+  // Thêm hàm ánh xạ tên trạng thái sang tiếng Việt không dấu 
+  const mapStatusToVietnameseNonAccent = (status) => {
+    const statusMap = {
+      'completed': 'Hoan thanh',
+      'pending': 'Dang xu ly',
+      'failed': 'That bai',
+      'cancelled': 'Da huy',
+      'confirmed': 'Da xac nhan',
+      'new': 'Moi',
+      'in_progress': 'Dang xu ly',
+      'requested': 'Yeu cau',
+      'rescheduled': 'Doi lich'
+    };
+    return statusMap[status] || status;
+  };
+
   // Hiển thị báo cáo người dùng
   const renderUserStatistics = () => {
     const data = statistics.user;
@@ -1489,6 +1949,18 @@ const StatisticalReport = () => {
                 Lưu báo cáo
               </Button>
             )}
+            
+            {/* Thêm nút xuất PDF */}
+            {data.generated && (
+              <Button
+                type="primary" 
+                icon={<FilePdfOutlined />}
+                onClick={() => exportToPDF('user')}
+                style={{ marginLeft: 8, background: '#2980b9' }}
+              >
+                Xuất PDF đẹp
+              </Button>
+            )}
           </Col>
         </Row>
       </div>
@@ -1507,6 +1979,9 @@ const StatisticalReport = () => {
           <Button type="primary" onClick={() => generateReport('financial')} loading={loading}>
             Tạo báo cáo
           </Button>
+          <p style={{ fontSize: '12px', marginTop: '8px', color: '#999' }}>
+            Có thể tạo báo cáo tài chính không cần chọn khoảng thời gian để xem tất cả dữ liệu
+          </p>
         </div>
       );
     }
@@ -1745,6 +2220,18 @@ const StatisticalReport = () => {
                 onClick={() => setSaveReportModalVisible(true)}
               >
                 Lưu báo cáo
+              </Button>
+            )}
+            
+            {/* Thêm nút xuất PDF */}
+            {data.generated && (
+              <Button
+                type="primary" 
+                icon={<FilePdfOutlined />}
+                onClick={() => exportToPDF('financial')}
+                style={{ marginLeft: 8, background: '#16a085' }}
+              >
+                Xuất PDF đẹp
               </Button>
             )}
         </Col>
@@ -2062,6 +2549,18 @@ const StatisticalReport = () => {
                 onClick={() => setSaveReportModalVisible(true)}
               >
                 Lưu báo cáo
+              </Button>
+            )}
+            
+            {/* Thêm nút xuất PDF */}
+            {data.generated && (
+              <Button
+                type="primary" 
+                icon={<FilePdfOutlined />}
+                onClick={() => exportToPDF('activity')}
+                style={{ marginLeft: 8, background: '#d35400' }}
+              >
+                Xuất PDF đẹp
               </Button>
             )}
         </Col>
@@ -2407,6 +2906,18 @@ const StatisticalReport = () => {
                 Lưu báo cáo
               </Button>
             )}
+            
+            {/* Thêm nút xuất PDF */}
+            {data.generated && (
+              <Button
+                type="primary" 
+                icon={<FilePdfOutlined />}
+                onClick={() => exportToPDF('comprehensive')}
+                style={{ marginLeft: 8, background: '#8e44ad' }}
+              >
+                Xuất PDF đẹp
+              </Button>
+            )}
         </Col>
       </Row>
       </div>
@@ -2561,10 +3072,17 @@ const StatisticalReport = () => {
             onClick={() => generateReport(activeTab)}
             loading={loading}
             icon={activeTab === 'comprehensive' ? <BarChartOutlined /> : <LineChartOutlined />}
-            disabled={(activeTab !== 'comprehensive' && (!dateRange[0] || !dateRange[1]))}
+            disabled={(activeTab !== 'comprehensive' && activeTab !== 'financial' && (!dateRange[0] || !dateRange[1]))}
           >
             Tạo báo cáo {activeTab === 'comprehensive' ? 'tổng hợp' : ''}
-            </Button>
+          </Button>
+            
+          {(activeTab === 'comprehensive' || activeTab === 'financial') && (
+            <Text type="secondary" style={{ fontSize: '12px', alignSelf: 'center', marginLeft: '8px' }}>
+              {activeTab === 'comprehensive' ? 'Báo cáo tổng hợp không cần chọn khoảng thời gian' : 
+              'Chọn khoảng thời gian hoặc để trống để xem tất cả dữ liệu tài chính'}
+            </Text>
+          )}
         </div>
         
         <Tabs activeKey={activeTab} onChange={setActiveTab} className={styles.tabs}>
