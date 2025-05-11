@@ -102,13 +102,13 @@ const SideMenu = ({ isOpen, onClose, currentUser: initialUser, onLogout }) => {
             <i className="fas fa-file-alt"></i> Xem tất cả mẫu
           </Link>
 
-          <Link to="/news" className={styles.sideMenuItem} onClick={onClose}>
+          {/* <Link to="/news" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-newspaper"></i> Tin tức
           </Link>
 
           <Link to="/contact" className={styles.sideMenuItem} onClick={onClose}>
             <i className="fas fa-envelope"></i> Liên hệ
-          </Link>
+          </Link> */}
 
           <div className={styles.sideMenuDivider}></div>
 

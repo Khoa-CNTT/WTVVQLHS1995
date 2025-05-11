@@ -205,12 +205,12 @@ const Navbar = () => {
             <li>
               <NavLink to="/templates">Mẫu đơn</NavLink>
             </li>
-            <li>
+            {/* <li>
               <NavLink to="/news">Tin tức</NavLink>
             </li>
             <li>
               <NavLink to="/contact">Liên hệ</NavLink>
-            </li>
+            </li> */}
           </ul>
         </div>
 

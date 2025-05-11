@@ -93,7 +93,7 @@
 .navLink {
   color: var(--text-dark);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   position: relative;
   padding: 5px 0;
