@@ -54,15 +54,20 @@ const login = async (usernameOrEmail, password) => {
         const isPasswordValid = await bcrypt.compare(password, user.password);
         
         if (!isPasswordValid) {
-            // Tăng số lần đăng nhập thất bại
-            await userService.updateFailedLoginAttempts(user.id);
+            // Kiểm tra nếu là tài khoản admin thì không khóa
+            const isAdmin = user.role && user.role.toLowerCase() === 'admin';
             
-            // Kiểm tra và khóa tài khoản nếu đăng nhập sai quá nhiều lần
-            const updatedUser = await userService.getUserById(user.id);
-            
-            if (updatedUser.failed_attempts >= MAX_FAILED_ATTEMPTS) {
-                await userService.toggleUserLock(user.id);
-                throw new Error('Tài khoản của bạn đã bị khóa do đăng nhập sai quá nhiều lần');
+            if (!isAdmin) {
+                // Chỉ tăng số lần đăng nhập thất bại nếu không phải admin
+                await userService.updateFailedLoginAttempts(user.id);
+                
+                // Kiểm tra và khóa tài khoản nếu đăng nhập sai quá nhiều lần
+                const updatedUser = await userService.getUserById(user.id);
+                
+                if (updatedUser.failed_attempts >= MAX_FAILED_ATTEMPTS) {
+                    await userService.toggleUserLock(user.id);
+                    throw new Error('Tài khoản của bạn đã bị khóa do đăng nhập sai quá nhiều lần');
+                }
             }
             
             throw new Error('Mật khẩu không đúng');
