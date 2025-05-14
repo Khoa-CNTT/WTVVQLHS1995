@@ -328,9 +328,6 @@ const TemplateDetail = () => {
               <p>Hướng dẫn sử dụng mẫu văn bản:</p>
               <ol>
                 <li>Tải xuống mẫu bằng cách nhấp vào nút "Tải xuống" phía trên.</li>
-                <li>Mở tệp tin trong Microsoft Word hoặc phần mềm soạn thảo văn bản tương tự.</li>
-                <li>Điền thông tin vào các trường được đánh dấu (thường nằm trong dấu ngoặc vuông [...]).</li>
-                <li>Lưu tài liệu sau khi hoàn thành.</li>
               </ol>
             </div>
           </div>
