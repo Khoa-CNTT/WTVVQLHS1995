@@ -1245,6 +1245,40 @@ const convertHtmlToPdf = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc    Tìm kiếm văn bản pháp luật theo câu hỏi
+ * @route   POST /api/legal/query
+ * @access  Public
+ */
+const getLegalDocumentsForQuery = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng cung cấp câu hỏi"
+      });
+    }
+    
+    // Sử dụng ragService để tìm kiếm văn bản pháp luật
+    const ragService = require('../services/ragService');
+    const result = await ragService.getLegalDocumentsForQuery(query);
+    
+    res.status(200).json({
+      status: "success",
+      message: result.message,
+      data: result.data
+    });
+  } catch (error) {
+    console.error("Lỗi khi tìm kiếm văn bản pháp luật theo câu hỏi:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Lỗi khi tìm kiếm văn bản pháp luật theo câu hỏi"
+    });
+  }
+});
+
 module.exports = {
   getAllLegalDocuments,
   getLegalDocumentById,
@@ -1266,4 +1300,5 @@ module.exports = {
   downloadLegalDocument,
   downloadDocumentTemplate,
   convertHtmlToPdf,
+  getLegalDocumentsForQuery
 };

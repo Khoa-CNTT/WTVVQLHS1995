@@ -39,6 +39,53 @@ const initialize = async () => {
  */
 const answerLegalQuestion = async (question, options = {}) => {
   try {
+    // Kiểm tra nếu câu hỏi chứa số hiệu văn bản pháp luật hoặc từ khóa về loại văn bản và năm
+    const docNumberRegex = /(\d+)\/([A-Za-z0-9\-]+)/i;
+    const docTypeYearRegex = /(luật|nghị định|thông tư|quyết định|nghị quyết|công văn|thông báo|chỉ thị|công điện).*?(20\d{2})/i;
+    const yearDocTypeRegex = /(20\d{2}).*?(luật|nghị định|thông tư|quyết định|nghị quyết|công văn|thông báo|chỉ thị|công điện)/i;
+    
+    // Nếu câu hỏi có dạng tìm kiếm văn bản pháp luật
+    if (docNumberRegex.test(question) || 
+        docTypeYearRegex.test(question) || 
+        yearDocTypeRegex.test(question) ||
+        question.toLowerCase().includes('văn bản') ||
+        question.toLowerCase().includes('tìm')) {
+      
+      console.log('Phát hiện câu hỏi tìm kiếm văn bản pháp luật, sử dụng phương thức truy xuất...');
+      
+      try {
+        // Sử dụng phương thức mới để truy xuất văn bản pháp luật
+        const legalDocuments = await ragService.getLegalDocumentsForQuery(question);
+        
+        if (legalDocuments.success && legalDocuments.data && legalDocuments.data.length > 0) {
+          // Tạo câu trả lời từ dữ liệu văn bản pháp luật
+          const documentsInfo = legalDocuments.data.map((doc, index) => {
+            const docNumber = doc.documentNumber ? ` - Số: ${doc.documentNumber}` : '';
+            // Tạo đường dẫn đến trang chi tiết văn bản trong web
+            const localUrl = `http://localhost:3000/legal/documents/${doc.id}`;
+            return `${index + 1}. **${doc.title}** (${doc.documentType}${docNumber}) - Ban hành ngày: ${formatDate(doc.issuedDate)}\n   **[👉 XEM CHI TIẾT](${localUrl})**`;
+          }).join('\n\n');
+          
+          return {
+            answer: `Tôi đã tìm thấy các văn bản pháp luật sau đây phù hợp với yêu cầu của bạn:\n\n${documentsInfo}\n\nBạn có thể nhấp vào link "XEM CHI TIẾT" để xem nội dung đầy đủ của văn bản.`,
+            documents: legalDocuments.data
+          };
+        } else {
+          // Không tìm thấy văn bản nào phù hợp
+          return {
+            answer: `Tôi không tìm thấy văn bản pháp luật nào phù hợp với yêu cầu "${question}" của bạn. Vui lòng thử lại với từ khóa khác hoặc cung cấp thêm thông tin chi tiết.`,
+            documents: []
+          };
+        }
+      } catch (error) {
+        console.error('Lỗi khi truy xuất văn bản pháp luật:', error);
+        return {
+          answer: 'Đã xảy ra lỗi khi tìm kiếm văn bản pháp luật. Vui lòng thử lại sau.',
+          documents: []
+        };
+      }
+    }
+    
     // Kiểm tra câu hỏi về danh tính (ai là ai)
     if (/bạn là ai|bạn tên gì|bạn là gì|cho mình biết về bạn|giới thiệu về bạn/i.test(question)) {
       return {
@@ -155,6 +202,45 @@ const answerLegalQuestion = async (question, options = {}) => {
       };
     }
     
+    // Kiểm tra xem câu hỏi có yêu cầu về văn bản pháp luật không
+    const legalDocumentKeywords = /văn\s*bản|luật\s*mới|nghị\s*định\s*mới|thông\s*tư\s*mới|quyết\s*định\s*mới|văn\s*bản\s*pháp\s*luật|văn\s*bản\s*mới\s*nhất/i;
+
+    if (docNumberRegex.test(question) || legalDocumentKeywords.test(question)) {
+      console.log('Câu hỏi liên quan đến văn bản pháp luật, sử dụng phương thức mới để truy xuất...');
+      
+      try {
+        // Sử dụng phương thức mới để truy xuất văn bản pháp luật
+        const legalDocuments = await ragService.getLegalDocumentsForQuery(question);
+        
+        if (legalDocuments.success && legalDocuments.data && legalDocuments.data.length > 0) {
+          // Tạo câu trả lời từ dữ liệu văn bản pháp luật
+          const documentsInfo = legalDocuments.data.map((doc, index) => {
+            const docNumber = doc.documentNumber ? ` - Số: ${doc.documentNumber}` : '';
+            // Tạo đường dẫn đến trang chi tiết văn bản trong web
+            const localUrl = `http://localhost:3000/legal/documents/${doc.id}`;
+            return `${index + 1}. **${doc.title}** (${doc.documentType}${docNumber}) - Ban hành ngày: ${formatDate(doc.issuedDate)}\n   **[👉 XEM CHI TIẾT](${localUrl})**`;
+          }).join('\n\n');
+          
+          return {
+            answer: `Tôi đã tìm thấy các văn bản pháp luật sau đây phù hợp với yêu cầu của bạn:\n\n${documentsInfo}\n\nBạn có thể nhấp vào link "XEM CHI TIẾT" để xem nội dung đầy đủ của văn bản.`,
+            documents: legalDocuments.data
+          };
+        } else {
+          // Nếu không tìm thấy văn bản nào, thông báo cho người dùng
+          return {
+            answer: `Tôi không tìm thấy văn bản pháp luật nào phù hợp với yêu cầu "${question}" của bạn. Vui lòng thử lại với từ khóa khác hoặc cung cấp thêm thông tin chi tiết.`,
+            documents: []
+          };
+        }
+      } catch (error) {
+        console.error('Lỗi khi truy xuất văn bản pháp luật:', error);
+        return {
+          answer: 'Đã xảy ra lỗi khi tìm kiếm văn bản pháp luật. Vui lòng thử lại sau.',
+          documents: []
+        };
+      }
+    }
+    
     // Kiểm tra xem nội dung có liên quan đến pháp luật không
     const legalKeywords = /lu[aậ]t|ph[aá]p|[dđ][iị]nh|[dđ][iê]̀u|kho[aả]n|ngh[iị]\s*[dđ][iị]nh|quy[eêề]n|ngh[iĩ]a\s*v[uụ]|h[iì]nh\s*s[uự]|d[aâ]n\s*s[uự]|h[aà]nh\s*ch[íi]nh|t[oố]\s*t[uụ]ng|th[uưủ]\s*t[uụ]c|doanh\s*nghi[eệ]p|kinh\s*doanh|lao\s*[dđ][oộ]ng|h[oô]n\s*nh[aâ]n|gia\s*[dđ][iì]nh|k[eế]t\s*h[oô]n|ly\s*h[oô]n|th[uừ]a\s*k[eế]|di\s*ch[uú]c|ch[uứ]ng\s*kho[áa]n/i;
     
@@ -225,12 +311,26 @@ const answerLegalQuestion = async (question, options = {}) => {
       };
     }
   } catch (error) {
-    console.error('Lỗi khi trả lời câu hỏi:', error);
+    console.error('Lỗi khi xử lý câu hỏi:', error);
     return {
-      answer: 'Đã xảy ra lỗi khi xử lý câu hỏi của bạn. Vui lòng thử lại sau.',
+      answer: 'Đã xảy ra lỗi khi xử lý câu hỏi. Vui lòng thử lại sau.',
       documents: []
     };
   }
+};
+
+/**
+ * Định dạng ngày tháng
+ * @param {string} dateString - Chuỗi ngày tháng
+ * @returns {string} - Chuỗi ngày tháng đã định dạng
+ */
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 };
 
 /**

@@ -3,11 +3,11 @@
   position: fixed;
   bottom: 30px;
   right: 30px;
-  width: 360px;
-  height: 500px;
+  width: 380px;
+  height: 550px;
   background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   z-index: 9999;
@@ -16,7 +16,7 @@
   opacity: 1;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
     opacity 0.3s ease;
-  border: 1px solid #eaeaea;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .chatWindowContainer.open {
@@ -213,9 +213,10 @@
   flex: 1;
   padding: 15px 0;
   overflow-y: hidden;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .messagesContainer {
@@ -227,22 +228,28 @@
   overflow-x: hidden;
   position: relative;
   scroll-behavior: smooth;
+  width: 100%;
+  gap: 12px;
 }
 
 .messageItem {
-  margin-bottom: 15px;
-  max-width: 80%;
+  margin-bottom: 8px;
+  max-width: 100%;
   display: flex;
   align-items: flex-start;
+  width: 100%;
+  position: relative;
 }
 
 .userMessage {
   align-self: flex-end;
   flex-direction: row-reverse;
+  max-width: 80%;
 }
 
 .systemMessage {
   align-self: flex-start;
+  width: 100%;
 }
 
 .messageAvatar {
@@ -254,6 +261,7 @@
   justify-content: center;
   align-items: center;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .userMessage .messageAvatar {
@@ -272,9 +280,13 @@
 }
 
 .messageContent {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  padding: 0 12px;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  width: 100%;
 }
 
 .userMessage .messageContent {
@@ -282,12 +294,12 @@
 }
 
 .messageContent p {
-  background-color: #e9ecef;
-  padding: 10px 15px;
-  border-radius: 18px;
-  border-top-left-radius: 4px;
+  background-color: transparent;
+  padding: 10px 0;
+  border-radius: 0;
   position: relative;
   margin: 0;
+  width: 100%;
 }
 
 .userMessage .messageContent p {
@@ -295,6 +307,7 @@
   color: white;
   border-radius: 18px;
   border-top-right-radius: 4px;
+  padding: 10px 15px;
 }
 
 .senderName {
@@ -305,18 +318,91 @@
 }
 
 .messageText {
-  color: #212529;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  white-space: normal;
-  max-width: 100%;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
   white-space: pre-wrap;
+  word-break: break-word;
+  color: #212529;
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* Đảm bảo div.messageText có cùng style với p.messageText */
+div.messageText {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #212529;
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* CSS cho link trong tin nhắn */
+.messageText a.chat-link {
+  color: #0d6efd;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s, background-color 0.2s;
+  word-break: break-all;
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: 4px;
+  max-width: 100%;
+}
+
+.messageText a.chat-link:hover {
+  color: #0a58ca;
+  text-decoration: underline;
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Tạo hiệu ứng đặc biệt cho link XEM CHI TIẾT */
+.messageText a.chat-link:has(strong) {
+  background-color: rgba(13, 110, 253, 0.08);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 6px 0;
+  display: inline-block;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.messageText a.chat-link:has(strong):hover {
+  background-color: rgba(13, 110, 253, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Tạo hiệu ứng nút cho link XEM CHI TIẾT */
+.messageText a.chat-link strong {
+  display: inline-block;
+  font-weight: 600;
 }
 
 .userMessage .messageText {
   color: white;
+}
+
+.userMessage .messageText a.chat-link {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.userMessage .messageText a.chat-link:hover {
+  color: #f8f9fa;
+}
+
+.userMessage .messageText a.chat-link:visited {
+  color: #e9ecef;
 }
 
 .messageTime {
@@ -449,10 +535,10 @@
 }
 
 .botTyping {
-  padding: 10px 15px;
-  background-color: #e9ecef;
-  border-radius: 18px;
-  border-top-left-radius: 4px;
+  padding: 6px 0;
+  background-color: transparent;
+  border-radius: 0;
+  border-top-left-radius: 0;
 }
 
 .typingIndicator {
@@ -464,9 +550,10 @@
 .typingDot {
   width: 8px;
   height: 8px;
-  background-color: #6c757d;
+  background-color: #0d6efd;
   border-radius: 50%;
   animation: typingAnimation 1.5s infinite ease-in-out;
+  opacity: 0.7;
 }
 
 .typingDot:nth-child(1) {
@@ -493,17 +580,25 @@
 .blinkingCursor {
   display: inline-block;
   width: 2px;
-  animation: blink 1s infinite;
-  color: #0d6efd;
+  height: 1.2em;
+  background-color: #333;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
 }
 
 @keyframes blink {
-  0%, 100% {
+  from, to {
     opacity: 1;
   }
   50% {
     opacity: 0;
   }
+}
+
+.messageHtmlContent {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Slide Menu styles */
@@ -638,7 +733,7 @@
 }
 
 .aiMessage .messageContent p {
-  background-color: #e9ecef;
+  background-color: transparent;
   color: #212529;
 }
 
@@ -738,4 +833,17 @@
   to {
     transform: translateY(-5px);
   }
+}
+
+.messageHtmlContent {
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.messageHtmlContent img {
+  max-width: 100%;
+  height: auto;
 }

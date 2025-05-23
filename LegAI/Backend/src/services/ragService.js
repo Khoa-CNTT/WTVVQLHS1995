@@ -5,6 +5,8 @@ const path = require('path');
 const { HierarchicalNSW } = require('../utils/simpleVectorStore');
 // Sửa lại cách import từ @xenova/transformers
 const { pipeline } = require('@xenova/transformers');
+const pool = require('../config/database');
+const simpleVectorStore = require('../utils/simpleVectorStore');
 
 // Đường dẫn đến file JSON chứa dữ liệu pháp luật
 const LEGAL_DATA_PATH = path.join(__dirname, '../data/legal_data.json');
@@ -370,7 +372,428 @@ const query = async (query, k = TOP_K) => {
   }
 };
 
+/**
+ * Lấy dữ liệu văn bản pháp luật để trả lời câu hỏi
+ * @param {string} query - Câu hỏi của người dùng
+ * @returns {Promise<Object>} Kết quả tìm kiếm
+ */
+const getLegalDocumentsForQuery = async (query) => {
+  try {
+    // Kiểm tra xem query có phải là yêu cầu về văn bản pháp luật không
+    const isLegalQuery = checkIfLegalQuery(query);
+    
+    if (!isLegalQuery) {
+      return {
+        success: false,
+        message: "Câu hỏi không liên quan đến văn bản pháp luật",
+        data: []
+      };
+    }
+    
+    // Xử lý query để tìm kiếm hiệu quả hơn
+    const { searchTerms, documentType, timeRange, documentNumber } = extractSearchParams(query);
+    
+    // Log thông tin tìm kiếm để debug
+    console.log("Thông tin tìm kiếm:", {
+      searchTerms,
+      documentType,
+      timeRange,
+      documentNumber
+    });
+    
+    // Tìm kiếm văn bản pháp luật từ database
+    const documents = await searchLegalDocuments(searchTerms, documentType, timeRange, documentNumber);
+    
+    if (documents.length === 0) {
+      // Nếu không tìm thấy kết quả, thử cập nhật dữ liệu mới
+      await updateLatestLegalDocuments();
+      
+      // Tìm kiếm lại sau khi cập nhật
+      const updatedDocuments = await searchLegalDocuments(searchTerms, documentType, timeRange, documentNumber);
+      
+      return {
+        success: true,
+        message: updatedDocuments.length > 0 
+          ? "Đã tìm thấy văn bản pháp luật sau khi cập nhật dữ liệu" 
+          : "Không tìm thấy văn bản pháp luật phù hợp",
+        data: updatedDocuments
+      };
+    }
+    
+    return {
+      success: true,
+      message: "Đã tìm thấy văn bản pháp luật",
+      data: documents
+    };
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu văn bản pháp luật:", error);
+    return {
+      success: false,
+      message: "Đã xảy ra lỗi khi truy xuất dữ liệu pháp luật",
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Kiểm tra xem câu hỏi có liên quan đến văn bản pháp luật không
+ * @param {string} query - Câu hỏi cần kiểm tra
+ * @returns {boolean} Kết quả kiểm tra
+ */
+const checkIfLegalQuery = (query) => {
+  if (!query) return false;
+  
+  const queryLower = query.toLowerCase();
+  
+  // Kiểm tra số hiệu văn bản
+  const docNumberRegex = /(\d+)\/([A-Za-z0-9\-]+)/;
+  if (docNumberRegex.test(queryLower)) {
+    return true;
+  }
+  
+  // Kiểm tra tên loại văn bản
+  const docTypeRegex = /(luật|nghị định|thông tư|quyết định|nghị quyết|công văn|thông báo|chỉ thị|công điện)/i;
+  if (docTypeRegex.test(queryLower)) {
+    return true;
+  }
+  
+  // Kiểm tra nếu có năm trong câu hỏi (ví dụ: năm 2025)
+  const yearRegex = /năm\s+(\d{4})|(\d{4})/;
+  if (yearRegex.test(queryLower) && (queryLower.includes('văn bản') || 
+      docTypeRegex.test(queryLower) || 
+      queryLower.includes('pháp luật'))) {
+    return true;
+  }
+  
+  const legalKeywords = [
+    'luật', 'pháp luật', 'nghị định', 'thông tư', 'quyết định', 'nghị quyết',
+    'văn bản', 'hiến pháp', 'bộ luật', 'điều', 'khoản', 'quy định',
+    'hợp đồng', 'tranh chấp', 'khiếu nại', 'tố cáo', 'hình sự', 'dân sự',
+    'hành chính', 'lao động', 'thuế', 'bảo hiểm', 'đất đai', 'thừa kế',
+    'hôn nhân', 'ly hôn', 'giấy phép', 'kinh doanh', 'doanh nghiệp', 'công điện'
+  ];
+  
+  // Kiểm tra nếu query chứa từ khóa pháp luật
+  return legalKeywords.some(keyword => queryLower.includes(keyword));
+};
+
+/**
+ * Trích xuất các tham số tìm kiếm từ câu hỏi
+ * @param {string} query - Câu hỏi cần trích xuất
+ * @returns {Object} Các tham số tìm kiếm
+ */
+const extractSearchParams = (query) => {
+  const queryLower = query.toLowerCase();
+  
+  // Xác định loại văn bản
+  let documentType = '';
+  const docTypes = {
+    'luật': 'LUẬT',
+    'nghị định': 'NGHỊ ĐỊNH',
+    'thông tư': 'THÔNG TƯ',
+    'quyết định': 'QUYẾT ĐỊNH',
+    'nghị quyết': 'NGHỊ QUYẾT',
+    'công văn': 'CÔNG VĂN',
+    'thông báo': 'THÔNG BÁO',
+    'chỉ thị': 'CHỈ THỊ',
+    'công điện': 'CÔNG ĐIỆN'
+  };
+  
+  Object.entries(docTypes).forEach(([key, value]) => {
+    if (queryLower.includes(key)) {
+      documentType = value;
+    }
+  });
+  
+  // Xác định khoảng thời gian
+  let timeRange = {
+    fromDate: null,
+    toDate: null
+  };
+  
+  // Tìm năm trong câu hỏi (ví dụ: năm 2025)
+  const yearMatch = queryLower.match(/năm\s+(\d{4})/);
+  // Tìm năm độc lập trong câu hỏi (ví dụ: 2025)
+  const yearOnlyMatch = !yearMatch && queryLower.match(/\b(20\d{2})\b/);
+  
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1]);
+    if (year >= 2000 && year <= 2100) { // Kiểm tra năm hợp lệ
+      timeRange.fromDate = `${year}-01-01`;
+      timeRange.toDate = `${year}-12-31`;
+    }
+  } else if (yearOnlyMatch) {
+    const year = parseInt(yearOnlyMatch[1]);
+    if (year >= 2000 && year <= 2100) { // Kiểm tra năm hợp lệ
+      timeRange.fromDate = `${year}-01-01`;
+      timeRange.toDate = `${year}-12-31`;
+    }
+  } else if (queryLower.includes('mới nhất') || 
+      queryLower.includes('gần đây') || 
+      queryLower.includes('mới ban hành')) {
+    // Lấy văn bản trong 3 tháng gần đây
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    timeRange.fromDate = threeMonthsAgo.toISOString().split('T')[0];
+  }
+  
+  // Tìm số hiệu văn bản (ví dụ: 319/QĐ-VPCP)
+  let documentNumber = null;
+  
+  // Mẫu regex cho số hiệu văn bản tiếng Việt
+  const docNumberPatterns = [
+    /(\d+)\/(\d{4})\/([A-Za-z0-9\-]+)/i,  // Dạng 123/2025/NĐ-CP
+    /(\d+)\/([A-Za-z0-9\-]+)/i,           // Dạng 123/NĐ-CP
+    /(\d+)\/([A-Za-z0-9\-]+)-(\d{4})/i    // Dạng 123/NĐ-CP-2025
+  ];
+  
+  // Tìm kiếm theo các mẫu số hiệu
+  for (const pattern of docNumberPatterns) {
+    const match = query.match(pattern);
+    if (match) {
+      documentNumber = match[0];
+      console.log(`Đã tìm thấy số hiệu văn bản: ${documentNumber}`);
+      break;
+    }
+  }
+  
+  // Trích xuất các từ khóa tìm kiếm
+  let searchTerms = query
+    .replace(/luật|nghị định|thông tư|quyết định|nghị quyết|văn bản|pháp luật|mới nhất|gần đây|năm \d{4}|công điện/gi, '')
+    .trim()
+    .split(/\s+/)
+    .filter(term => term.length > 2);
+  
+  // Nếu có số hiệu văn bản, thêm vào từ khóa tìm kiếm
+  if (documentNumber) {
+    // Thêm số hiệu vào đầu danh sách từ khóa để ưu tiên tìm kiếm
+    searchTerms.unshift(documentNumber);
+    
+    // Thêm các biến thể của số hiệu (không có dấu cách)
+    const numberWithoutSpaces = documentNumber.replace(/\s+/g, '');
+    if (numberWithoutSpaces !== documentNumber) {
+      searchTerms.unshift(numberWithoutSpaces);
+    }
+  }
+  
+  // Nếu có loại văn bản, thêm vào từ khóa tìm kiếm
+  if (documentType && !searchTerms.includes(documentType.toLowerCase())) {
+    searchTerms.push(documentType.toLowerCase());
+  }
+  
+  // Nếu có năm, thêm vào từ khóa tìm kiếm
+  if (timeRange.fromDate) {
+    const year = timeRange.fromDate.split('-')[0];
+    if (!searchTerms.includes(year)) {
+      searchTerms.push(year);
+    }
+  }
+  
+  console.log("Đã trích xuất các tham số tìm kiếm:", {
+    searchTerms,
+    documentType,
+    timeRange,
+    documentNumber
+  });
+  
+  return {
+    searchTerms,
+    documentType,
+    timeRange,
+    documentNumber
+  };
+};
+
+/**
+ * Tìm kiếm văn bản pháp luật từ database
+ * @param {Array} searchTerms - Các từ khóa tìm kiếm
+ * @param {string} documentType - Loại văn bản
+ * @param {Object} timeRange - Khoảng thời gian
+ * @param {string} documentNumber - Số hiệu văn bản
+ * @returns {Promise<Array>} Danh sách văn bản pháp luật
+ */
+const searchLegalDocuments = async (searchTerms, documentType, timeRange, documentNumber) => {
+  try {
+    console.log("Tìm kiếm văn bản pháp luật với các tham số:", {
+      searchTerms,
+      documentType,
+      timeRange,
+      documentNumber
+    });
+    
+    let query = `
+      SELECT 
+        id, 
+        title, 
+        document_type, 
+        summary,
+        content,
+        issued_date,
+        source_url,
+        document_number
+      FROM LegalDocuments
+      WHERE 1=1
+    `;
+    
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    // Nếu là tìm kiếm theo số hiệu
+    if (documentNumber) {
+      // Tìm kiếm chính xác hơn với số hiệu văn bản
+      query += ` AND (
+        document_number ILIKE $${paramIndex} OR 
+        title ILIKE $${paramIndex+1} OR
+        content ILIKE $${paramIndex+2}
+      )`;
+      queryParams.push(`%${documentNumber}%`);
+      queryParams.push(`%${documentNumber}%`);
+      queryParams.push(`%${documentNumber}%`);
+      paramIndex += 3;
+      
+      console.log(`Tìm kiếm theo số hiệu: ${documentNumber}`);
+    } 
+    // Nếu không, tìm kiếm theo từ khóa thông thường
+    else if (searchTerms && searchTerms.length > 0) {
+      const searchConditions = searchTerms.map((term, index) => {
+        queryParams.push(`%${term}%`);
+        return `(title ILIKE $${paramIndex + index} OR content ILIKE $${paramIndex + index} OR summary ILIKE $${paramIndex + index})`;
+      }).join(' AND ');
+      
+      query += ` AND (${searchConditions})`;
+      paramIndex += searchTerms.length;
+    }
+    
+    // Thêm điều kiện tìm kiếm theo loại văn bản
+    if (documentType) {
+      query += ` AND document_type = $${paramIndex}`;
+      queryParams.push(documentType);
+      paramIndex++;
+    }
+    
+    // Thêm điều kiện tìm kiếm theo khoảng thời gian
+    if (timeRange.fromDate) {
+      query += ` AND issued_date >= $${paramIndex}`;
+      queryParams.push(timeRange.fromDate);
+      paramIndex++;
+    }
+    
+    if (timeRange.toDate) {
+      query += ` AND issued_date <= $${paramIndex}`;
+      queryParams.push(timeRange.toDate);
+      paramIndex++;
+    }
+    
+    // Sắp xếp kết quả theo ngày ban hành giảm dần
+    query += ` ORDER BY issued_date DESC LIMIT 20`;
+    
+    // In ra câu truy vấn để debug
+    console.log("SQL Query:", query);
+    console.log("Query Params:", queryParams);
+    
+    // Thực hiện truy vấn
+    const result = await pool.query(query, queryParams);
+    
+    console.log(`Tìm thấy ${result.rows.length} kết quả`);
+    
+    // Xử lý kết quả
+    return result.rows.map(doc => {
+      // Tạo đoạn tóm tắt ngắn từ nội dung nếu không có sẵn
+      let summary = doc.summary;
+      if (!summary || summary.length < 50) {
+        const content = doc.content.replace(/<[^>]*>/g, ' ').trim();
+        summary = content.length > 300 ? content.substring(0, 300) + '...' : content;
+      }
+      
+      return {
+        id: doc.id,
+        title: doc.title,
+        documentType: doc.document_type,
+        documentNumber: doc.document_number,
+        summary: summary,
+        issuedDate: doc.issued_date,
+        sourceUrl: doc.source_url
+      };
+    });
+  } catch (error) {
+    console.error("Lỗi khi tìm kiếm văn bản pháp luật:", error);
+    return [];
+  }
+};
+
+/**
+ * Cập nhật các văn bản pháp luật mới nhất
+ * @returns {Promise<boolean>} Kết quả cập nhật
+ */
+const updateLatestLegalDocuments = async () => {
+  try {
+    const autoUpdateService = require('./autoUpdateService');
+    const result = await autoUpdateService.autoUpdateLegalDocuments(10);
+    return result.success;
+  } catch (error) {
+    console.error("Lỗi khi cập nhật văn bản pháp luật mới:", error);
+    return false;
+  }
+};
+
+/**
+ * Lấy chi tiết văn bản pháp luật theo ID
+ * @param {number} documentId - ID của văn bản
+ * @returns {Promise<Object>} Chi tiết văn bản pháp luật
+ */
+const getLegalDocumentById = async (documentId) => {
+  try {
+    const query = `
+      SELECT 
+        id, 
+        title, 
+        document_type, 
+        content,
+        summary,
+        issued_date,
+        source_url
+      FROM LegalDocuments 
+      WHERE id = $1
+    `;
+    
+    const result = await pool.query(query, [documentId]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const document = result.rows[0];
+    
+    // Lấy từ khóa cho văn bản
+    const keywordsQuery = `
+      SELECT keyword 
+      FROM LegalKeywords 
+      WHERE document_id = $1
+    `;
+    
+    const keywordsResult = await pool.query(keywordsQuery, [documentId]);
+    const keywords = keywordsResult.rows.map(row => row.keyword);
+    
+    return {
+      id: document.id,
+      title: document.title,
+      documentType: document.document_type,
+      content: document.content,
+      summary: document.summary,
+      issuedDate: document.issued_date,
+      sourceUrl: document.source_url,
+      keywords: keywords
+    };
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết văn bản pháp luật:", error);
+    return null;
+  }
+};
+
 module.exports = {
+  getLegalDocumentsForQuery,
+  getLegalDocumentById,
+  updateLatestLegalDocuments,
   loadLegalData,
   createVectorStore,
   query,

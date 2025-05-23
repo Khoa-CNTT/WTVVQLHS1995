@@ -34,17 +34,52 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
   const [canScrollDown, setCanScrollDown] = useState(false);
   const inputRef = useRef(null);
 
+  // Thêm CSS inline cho hiệu ứng con trỏ nhấp nháy
+  const blinkingCursorStyle = {
+    display: 'inline-block',
+    width: '2px',
+    height: '1.2em',
+    backgroundColor: '#333',
+    marginLeft: '2px',
+    verticalAlign: 'middle',
+    animation: 'blink 1s step-end infinite'
+  };
+
   // Thêm hàm cleanHtmlContent để loại bỏ HTML từ tin nhắn
   const cleanHtmlContent = (content) => {
     if (!content) return '';
     
-    // Xóa các thẻ HTML và thay thế các ký tự đặc biệt
-    return content
-      .replace(/<[^>]*>/g, '') // Xóa tất cả thẻ HTML
-      .replace(/&nbsp;/g, ' ') // Thay thẻ &nbsp; bằng khoảng trắng
-      .replace(/&amp;/g, '&') // Thay &amp; bằng &
-      .replace(/&lt;/g, '<') // Thay &lt; bằng <
-      .replace(/&gt;/g, '>'); // Thay &gt; bằng >
+    // Xử lý các link bị lặp lại thuộc tính và các trường hợp đặc biệt
+    let processedContent = content
+      // Loại bỏ các thuộc tính target, rel, class bị lặp lại
+      .replace(/"" target="_blank" rel="noopener noreferrer" class="chat-link"/g, '')
+      .replace(/" target="_blank" rel="noopener noreferrer" class="chat-link">"/g, '">')
+      // Xử lý trường hợp link bị lồng nhau
+      .replace(/<a href="(http[^"]+)" target="_blank" rel="noopener noreferrer" class="chat-link">(http[^<]+)<\/a>" target="_blank" rel="noopener noreferrer" class="chat-link">/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="chat-link">$2</a>')
+      // Xử lý trường hợp "XEM CHI TIẾT" bị lỗi format
+      .replace(/(http[^"]+)" target="_blank" rel="noopener noreferrer" class="chat-link">XEM CHI TIẾT/g, '$1">XEM CHI TIẾT')
+      // Đảm bảo các thẻ strong trong link được giữ nguyên
+      .replace(/\*\*\[(.*?)\]\((.*?)\)\*\*/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="chat-link"><strong>$1</strong></a>');
+      
+    // Xử lý đường link để hiển thị dưới dạng thẻ a có thể nhấp được
+    processedContent = processedContent
+      // Chuyển đổi Markdown links [text](url) thành HTML links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="chat-link">$1</a>')
+      // Chuyển đổi URL thông thường thành links (chỉ khi chưa nằm trong thẻ a)
+      .replace(/(https?:\/\/[^\s<>"]+)(?![^<>]*>|[^<>]*<\/a>)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="chat-link">$1</a>')
+      // Xử lý đường dẫn localhost (chỉ khi chưa nằm trong thẻ a)
+      .replace(/(http:\/\/localhost:[0-9]+\/[^\s<>"]+)(?![^<>]*>|[^<>]*<\/a>)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="chat-link">$1</a>')
+      // Thay thế các ký tự đặc biệt
+      .replace(/&nbsp;/g, ' ') 
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+    
+    // Giữ lại các thẻ a, strong và định dạng cơ bản, loại bỏ các thẻ HTML khác
+    processedContent = processedContent
+      .replace(/<(?!\/?(a|b|strong|i|em|br)[^>]*>)[^>]*>/g, '');
+    
+    return processedContent;
   };
 
   // Khôi phục lịch sử trò chuyện AI từ localStorage nếu có
@@ -78,98 +113,16 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     }
   }, [chatType, isOpen, chatSessionKey]);
   
-  // Tải lịch sử chat từ database khi không có lịch sử cục bộ
-  const loadChatHistoryFromDatabase = async () => {
-    // Chỉ thực hiện khi đã đăng nhập
-    if (!authService.isAuthenticated()) {
-      console.log('Người dùng chưa đăng nhập, không thể tải lịch sử chat từ database');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      console.log('Bắt đầu tải lịch sử chat từ database...');
-      
-      // Gọi API lấy lịch sử chat của người dùng
-      const response = await aiService.getMyAIChatHistory();
-      
-      console.log('Kết quả lấy lịch sử chat từ database:', {
-        success: response.success,
-        records: response.data?.length || 0,
-        timestamp: new Date().toISOString()
-      });
-      
-      if (response.success && response.data && response.data.length > 0) {
-        console.log('Tìm thấy', response.data.length, 'bản ghi lịch sử chat trong database');
-        
-        // Chỉ tải lịch sử từ server nếu không có lịch sử cục bộ
-        if (messages.length <= 1) { // Chỉ có tin nhắn chào mừng
-          console.log('Không có lịch sử cục bộ, tải từ database...');
-          
-          // Chuyển đổi lịch sử từ server sang định dạng hiển thị
-          const formattedHistory = response.data.slice(0, 20).map(chat => [
-            {
-              type: 'user',
-              text: chat.question,
-              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              isCurrentUser: true
-            },
-            {
-              type: 'system',
-              text: chat.answer,
-              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            }
-          ]).flat();
-          
-          // Thêm tin nhắn chào mừng ở đầu
-          const welcomeMessage = {
-            type: 'system',
-            text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Dưới đây là lịch sử chat của bạn:',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-          
-          // Cập nhật giao diện với lịch sử chat từ server
-          const newMessages = [welcomeMessage, ...formattedHistory];
-          setMessages(newMessages);
-          console.log('Đã cập nhật UI với', newMessages.length, 'tin nhắn từ database');
-          
-          // Lưu vào localStorage
-          try {
-            localStorage.setItem(chatSessionKey, JSON.stringify(newMessages));
-            console.log('Đã lưu lịch sử chat từ database vào localStorage');
-            
-            // Kiểm tra dữ liệu đã lưu
-            const savedData = localStorage.getItem(chatSessionKey);
-            if (savedData) {
-              const parsedData = JSON.parse(savedData);
-              console.log('Xác nhận dữ liệu đã lưu vào localStorage:', parsedData.length, 'tin nhắn');
-            }
-          } catch (storageError) {
-            console.error('Lỗi khi lưu lịch sử chat vào localStorage:', storageError);
-          }
-        } else {
-          console.log('Đã có lịch sử cục bộ', messages.length, 'tin nhắn, không tải từ database');
-        }
-      } else {
-        if (!response.success) {
-          console.warn('Không thể tải lịch sử chat từ database:', response.message || 'Lỗi không xác định');
-        } else {
-          console.log('Không tìm thấy lịch sử chat trong database');
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải lịch sử chat từ server:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   // Lưu lịch sử trò chuyện AI vào localStorage
   useEffect(() => {
     if (chatType === 'ai' && messages.length > 0) {
       try {
         console.log('Tự động lưu', messages.length, 'tin nhắn vào localStorage');
         localStorage.setItem(chatSessionKey, JSON.stringify(messages));
+        
+        // Lưu vào sessionStorage để đảm bảo tin nhắn được giữ nguyên khi chuyển trang
+        sessionStorage.setItem('legai-current-chat', chatSessionKey);
+        sessionStorage.setItem(chatSessionKey, JSON.stringify(messages));
         
         // Kiểm tra xem đã lưu thành công chưa
         const savedData = localStorage.getItem(chatSessionKey);
@@ -339,10 +292,23 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
       return;
     }
     
+    // Tốc độ hiển thị chữ thay đổi theo loại ký tự
+    let currentSpeed = typingSpeed;
+    const currentChar = fullText.charAt(typingIndex);
+    
+    // Tạm dừng lâu hơn ở dấu chấm, dấu phẩy, xuống dòng
+    if (['.', '!', '?'].includes(currentChar)) {
+      currentSpeed = typingSpeed * 5; // Dừng lâu hơn ở cuối câu
+    } else if ([',', ';', ':'].includes(currentChar)) {
+      currentSpeed = typingSpeed * 3; // Dừng lâu hơn ở dấu phẩy
+    } else if (currentChar === '\n') {
+      currentSpeed = typingSpeed * 2; // Dừng lâu hơn ở xuống dòng
+    }
+    
     const timer = setTimeout(() => {
-      setTypingText(prev => prev + fullText.charAt(typingIndex));
+      setTypingText(prev => prev + currentChar);
       setTypingIndex(prev => prev + 1);
-    }, typingSpeed);
+    }, currentSpeed);
     
     return () => clearTimeout(timer);
   }, [fullText, typingIndex, typingSpeed, isTyping]);
@@ -356,8 +322,10 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     setTypingIndex(0);
     
     return new Promise((resolve) => {
-      // Tạo timer để tự động kết thúc typing sau một khoảng thời gian nhất định
-      const maxTypingTime = text.length * typingSpeed + 500; // Thời gian tối đa, tính bằng chiều dài text * tốc độ + 500ms
+      // Tính toán thời gian tối đa dựa trên độ dài văn bản
+      // Với văn bản dài, tốc độ sẽ nhanh hơn để tránh chờ đợi quá lâu
+      const estimatedTime = Math.min(text.length * typingSpeed * 1.2, 15000); // Tối đa 15 giây
+      const maxTypingTime = Math.max(estimatedTime, 2000); // Tối thiểu 2 giây
       
       const typingTimeout = setTimeout(() => {
         setIsTyping(false);
@@ -512,11 +480,16 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
             throw new Error('Không nhận được phản hồi hợp lệ từ AI');
           }
           
+          // Tắt trạng thái loading sau khi nhận được phản hồi
+          setLoading(false);
+          
           // Hiển thị hiệu ứng typing
           const cleanedResponse = cleanHtmlContent(responseText);
+          
+          // Bắt đầu hiệu ứng typing và đợi nó hoàn thành
           await simulateTyping(cleanedResponse);
           
-          // Hiển thị phản hồi từ AI
+          // Hiển thị phản hồi từ AI sau khi hiệu ứng typing hoàn thành
           const aiResponseMsg = {
             type: 'system',
             text: responseText,
@@ -557,9 +530,8 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
             isError: true
           };
           setMessages(prev => [...prev, errorMsg]);
+          setLoading(false);
         }
-        
-        setLoading(false);
       } else {
         // Phần code xử lý chat người hỗ trợ giữ nguyên
         if (currentChatId) {
@@ -698,6 +670,123 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
     return loading;
   };
 
+  // Tải lịch sử chat từ database khi không có lịch sử cục bộ
+  const loadChatHistoryFromDatabase = async () => {
+    // Chỉ thực hiện khi đã đăng nhập
+    if (!authService.isAuthenticated()) {
+      console.log('Người dùng chưa đăng nhập, không thể tải lịch sử chat từ database');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log('Bắt đầu tải lịch sử chat từ database...');
+      
+      // Gọi API lấy lịch sử chat của người dùng
+      const response = await aiService.getMyAIChatHistory();
+      
+      console.log('Kết quả lấy lịch sử chat từ database:', {
+        success: response.success,
+        records: response.data?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('Tìm thấy', response.data.length, 'bản ghi lịch sử chat trong database');
+        
+        // Chỉ tải lịch sử từ server nếu không có lịch sử cục bộ
+        if (messages.length <= 1) { // Chỉ có tin nhắn chào mừng
+          console.log('Không có lịch sử cục bộ, tải từ database...');
+          
+          // Chuyển đổi lịch sử từ server sang định dạng hiển thị
+          const formattedHistory = response.data.slice(0, 20).map(chat => [
+            {
+              type: 'user',
+              text: chat.question,
+              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isCurrentUser: true
+            },
+            {
+              type: 'system',
+              text: chat.answer,
+              time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }
+          ]).flat();
+          
+          // Thêm tin nhắn chào mừng ở đầu
+          const welcomeMessage = {
+            type: 'system',
+            text: 'Xin chào! Tôi là trợ lý AI pháp lý của LegAI. Dưới đây là lịch sử chat của bạn:',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          
+          // Cập nhật giao diện với lịch sử chat từ server
+          const newMessages = [welcomeMessage, ...formattedHistory];
+          setMessages(newMessages);
+          console.log('Đã cập nhật UI với', newMessages.length, 'tin nhắn từ database');
+          
+          // Lưu vào localStorage và sessionStorage
+          try {
+            localStorage.setItem(chatSessionKey, JSON.stringify(newMessages));
+            sessionStorage.setItem('legai-current-chat', chatSessionKey);
+            sessionStorage.setItem(chatSessionKey, JSON.stringify(newMessages));
+            console.log('Đã lưu lịch sử chat từ database vào localStorage và sessionStorage');
+            
+            // Kiểm tra dữ liệu đã lưu
+            const savedData = localStorage.getItem(chatSessionKey);
+            if (savedData) {
+              const parsedData = JSON.parse(savedData);
+              console.log('Xác nhận dữ liệu đã lưu vào localStorage:', parsedData.length, 'tin nhắn');
+            }
+          } catch (storageError) {
+            console.error('Lỗi khi lưu lịch sử chat vào localStorage:', storageError);
+          }
+        } else {
+          console.log('Đã có lịch sử cục bộ', messages.length, 'tin nhắn, không tải từ database');
+        }
+      } else {
+        if (!response.success) {
+          console.warn('Không thể tải lịch sử chat từ database:', response.message || 'Lỗi không xác định');
+        } else {
+          console.log('Không tìm thấy lịch sử chat trong database');
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải lịch sử chat từ server:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Khôi phục phiên chat từ sessionStorage khi người dùng quay lại trang
+  useEffect(() => {
+    if (isOpen && chatType === 'ai') {
+      try {
+        // Kiểm tra xem có phiên chat nào được lưu trong sessionStorage không
+        const lastChatKey = sessionStorage.getItem('legai-current-chat');
+        if (lastChatKey && lastChatKey === chatSessionKey) {
+          const sessionData = sessionStorage.getItem(lastChatKey);
+          if (sessionData) {
+            try {
+              const parsedData = JSON.parse(sessionData);
+              if (Array.isArray(parsedData) && parsedData.length > 0) {
+                console.log('Khôi phục phiên chat từ sessionStorage, số tin nhắn:', parsedData.length);
+                setMessages(parsedData);
+                
+                // Đặt lại auto-scroll khi khôi phục phiên chat
+                setShouldAutoScroll(true);
+              }
+            } catch (parseError) {
+              console.error('Lỗi khi phân tích dữ liệu từ sessionStorage:', parseError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi khi truy cập sessionStorage:', error);
+      }
+    }
+  }, [isOpen, chatType, chatSessionKey]);
+
   return (
     <>
       {/* Button chat mini luôn hiển thị khi cửa sổ chat bị thu nhỏ */}
@@ -816,23 +905,18 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                           )}
                         </div>
                       )}
+                      {chatType === 'ai' && !message.isCurrentUser ? (
+                        <div className={`${styles.messageText} ${styles.messageHtmlContent}`} dangerouslySetInnerHTML={{ __html: cleanHtmlContent(message.text) }} />
+                      ) : (
                       <p className={styles.messageText}>
-                        {/* Xử lý hiển thị tin nhắn có thể chứa xuống dòng và loại bỏ HTML */}
-                        {chatType === 'ai' && !message.isCurrentUser
-                          ? cleanHtmlContent(message.text).split('\n').map((line, i) => (
-                              <span key={i}>
-                                {line}
-                                {i < cleanHtmlContent(message.text).split('\n').length - 1 && <br />}
-                              </span>
-                            ))
-                          : message.text.split('\n').map((line, i) => (
+                          {message.text.split('\n').map((line, i) => (
                               <span key={i}>
                                 {line}
                                 {i < message.text.split('\n').length - 1 && <br />}
                               </span>
-                            ))
-                        }
+                          ))}
                       </p>
+                      )}
                       <div className={styles.messageTime}>{message.time}</div>
                     </div>
                   </div>
@@ -862,10 +946,10 @@ const ChatWindow = ({ isOpen, onClose, chatType, chatId = null, id = 'default', 
                           <span>AI LegAI</span>
                         </div>
                       )}
-                      <p className={styles.messageText}>
-                        {cleanHtmlContent(typingText)}
-                        <span className={styles.blinkingCursor}>|</span>
-                      </p>
+                      <div className={`${styles.messageText} ${styles.messageHtmlContent}`}>
+                        <div dangerouslySetInnerHTML={{ __html: cleanHtmlContent(typingText) }} />
+                        <span className={styles.blinkingCursor} style={blinkingCursorStyle}></span>
+                      </div>
                       <div className={styles.messageTime}>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                   </div>

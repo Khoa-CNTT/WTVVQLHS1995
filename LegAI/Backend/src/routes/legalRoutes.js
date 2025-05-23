@@ -20,11 +20,16 @@ const {
   deleteDocumentTemplate,
   uploadPdfDocument,
   downloadLegalDocument,
-  downloadDocumentTemplate
+  downloadDocumentTemplate,
+  convertHtmlToPdf,
+  getLegalDocumentsForQuery
 } = require('../controllers/legalDocumentController');
 
 // Route tìm kiếm tổng hợp
 router.get('/search', searchAll);
+
+// Thêm route API truy xuất văn bản pháp luật dựa trên câu hỏi
+router.post('/query', getLegalDocumentsForQuery);
 
 // Routes văn bản pháp luật
 router.get('/documents', getAllLegalDocuments);
