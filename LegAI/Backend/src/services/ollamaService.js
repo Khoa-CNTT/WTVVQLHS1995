@@ -27,7 +27,6 @@ const generateResponse = async (prompt, documents = [], options = {}) => {
       const jsonSystemPrompt = `Bạn là trợ lý phân tích tài liệu AI. 
 NHIỆM VỤ QUAN TRỌNG: 
 - Phản hồi CHỈ VÀ CHỈ bằng cú pháp JSON hợp lệ
-- KHÔNG GHI thêm bất kỳ văn bản nào ngoài JSON
 - KHÔNG sử dụng dấu backtick hoặc markdown
 - KHÔNG bao gồm phần mở đầu hoặc kết thúc nào
 - KHÔNG xin lỗi hoặc giải thích bất cứ điều gì
